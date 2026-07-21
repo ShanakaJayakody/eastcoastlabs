@@ -91,10 +91,18 @@ function ecl_child_locate_template( string $template, string $template_name, str
         return $template;
     }
 
-    $child_template = ECL_CHILD_DIR . '/templates/woocommerce/' . $template_name;
+    // Try standard Woo child theme path first: child-theme/woocommerce/...
+    $child_template = ECL_CHILD_DIR . '/woocommerce/' . $template_name;
 
     if ( file_exists( $child_template ) ) {
         return $child_template;
+    }
+
+    // Fallback: child-theme/templates/woocommerce/...
+    $child_template_alt = ECL_CHILD_DIR . '/templates/woocommerce/' . $template_name;
+
+    if ( file_exists( $child_template_alt ) ) {
+        return $child_template_alt;
     }
 
     return $template;

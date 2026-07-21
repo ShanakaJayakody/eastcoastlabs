@@ -53,7 +53,7 @@ class ECL_COA_Module {
      */
     public function register_meta(): void {
         register_post_meta( 'product', '_ecl_coa', array(
-            'type'         => 'object',
+            'type'         => 'array',
             'description'  => 'COA verification data for this product',
             'single'       => true,
             'show_in_rest' => array(
@@ -69,7 +69,6 @@ class ECL_COA_Module {
                     ),
                 ),
             ),
-            'default'      => array(),
         ) );
     }
 
