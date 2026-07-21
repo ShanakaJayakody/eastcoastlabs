@@ -1,0 +1,28 @@
+{
+  "description": "Curated cross-sell mappings for ECL peptide products. Replaces WooCommerce default related products with scientifically relevant pairings.",
+  "mappings": {
+    "bpc-157": ["tb-500", "bacteriostatic-water"],
+    "tb-500": ["bpc-157", "bacteriostatic-water"],
+    "ghk-cu": ["glow", "bacteriostatic-water"],
+    "glow": ["ghk-cu", "bacteriostatic-water"],
+    "klow": ["igf-1-lr3", "bacteriostatic-water"],
+    "igf-1-lr3": ["klow", "bacteriostatic-water"],
+    "semaglutide": ["tirzepatide", "bacteriostatic-water"],
+    "tirzepatide": ["semaglutide", "retatrutide"],
+    "retatrutide": ["tirzepatide", "semaglutide"],
+    "tesamorelin": ["mots-c", "bacteriostatic-water"],
+    "mots-c": ["tesamorelin", "bacteriostatic-water"],
+    "selank": ["semax", "bacteriostatic-water"],
+    "semax": ["selank", "bacteriostatic-water"],
+    "mt2": ["bacteriostatic-water", "bpc-157"]
+  },
+  "default": ["bacteriostatic-water", "bpc-157"],
+  "rationale": {
+    "bpc-157_tb-500": "Classic synergistic research pairing — frequently co-investigated in tissue repair studies.",
+    "ghk-cu_glow": "Both copper peptide compounds investigated in parallel in wound healing and skin research.",
+    "klow_igf-1-lr3": "Both growth factor-related peptides; often researched together.",
+    "semaglutide_tirzepatide_retatrutide": "GLP-1/GIP/glucagon receptor agonist family — investigators compare these compounds.",
+    "tesamorelin_mots-c": "Both investigated in metabolic research contexts.",
+    "selank_semax": "Russian-origin neuropeptide pair frequently studied together in neurological research."
+  }
+}

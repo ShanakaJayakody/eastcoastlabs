@@ -1,0 +1,783 @@
+/* ===========================================================================
+   ECL Conversion — Master Stylesheet
+   All conversion module styles. Mobile-first.
+   Compiled for ecl-conversion plugin v1.0.0
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   CSS Custom Properties (theme-able)
+   --------------------------------------------------------------------------- */
+:root {
+    --ecl-primary: #1a5632;
+    --ecl-primary-dark: #134426;
+    --ecl-accent: #2d8f3f;
+    --ecl-bg: #f8f9fa;
+    --ecl-border: #e0e0e0;
+    --ecl-text: #1a1a1a;
+    --ecl-text-muted: #666;
+    --ecl-white: #fff;
+    --ecl-radius: 8px;
+    --ecl-radius-sm: 4px;
+    --ecl-transition: 0.2s ease;
+    --ecl-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --ecl-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --ecl-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 0.3 — Stock Status
+   --------------------------------------------------------------------------- */
+.ecl-stock-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.ecl-stock-status__dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ecl-stock--in .ecl-stock-status__dot {
+    background: var(--ecl-accent);
+}
+
+.ecl-stock--backorder .ecl-stock-status__dot {
+    background: #f0ad4e;
+}
+
+.ecl-stock--out .ecl-stock-status__dot {
+    background: #d9534f;
+}
+
+.ecl-stock--in { color: var(--ecl-accent); }
+.ecl-stock--backorder { color: #8a6d3b; }
+.ecl-stock--out { color: #d9534f; }
+
+.ecl-loop-stock {
+    font-size: 12px;
+    margin: 4px 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 1.2 — COA Module
+   --------------------------------------------------------------------------- */
+.ecl-coa-module {
+    margin: 16px 0;
+    padding: 16px;
+    background: var(--ecl-bg);
+    border: 1px solid var(--ecl-border);
+    border-radius: var(--ecl-radius);
+}
+
+.ecl-coa-module__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ecl-primary);
+}
+
+.ecl-coa-module__data {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 480px) {
+    .ecl-coa-module__data {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ecl-coa-module__line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 14px;
+}
+
+.ecl-coa-module__label {
+    color: var(--ecl-text-muted);
+    font-size: 13px;
+}
+
+.ecl-coa-module__value--purity {
+    font-size: 18px;
+    color: var(--ecl-primary);
+}
+
+.ecl-coa-module__links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.ecl-coa-module__link {
+    font-size: 13px;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: var(--ecl-radius-sm);
+    transition: background var(--ecl-transition);
+}
+
+.ecl-coa-module__link--coa {
+    background: var(--ecl-primary);
+    color: var(--ecl-white);
+}
+
+.ecl-coa-module__link--coa:hover {
+    background: var(--ecl-primary-dark);
+}
+
+.ecl-coa-module__link--verify {
+    border: 1px solid var(--ecl-primary);
+    color: var(--ecl-primary);
+}
+
+.ecl-coa-module__footer {
+    font-size: 12px;
+    color: var(--ecl-text-muted);
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Homepage proof strip */
+.ecl-proof-strip {
+    padding: 24px;
+    background: var(--ecl-white);
+    border: 1px solid var(--ecl-border);
+    border-radius: var(--ecl-radius);
+    text-align: center;
+}
+
+.ecl-proof-strip__header {
+    margin-bottom: 16px;
+}
+
+.ecl-proof-strip__label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ecl-primary);
+}
+
+.ecl-proof-strip__items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+}
+
+.ecl-proof-strip__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.ecl-proof-strip__compound {
+    font-size: 13px;
+    color: var(--ecl-text-muted);
+}
+
+.ecl-proof-strip__purity {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ecl-accent);
+}
+
+.ecl-proof-strip__footer {
+    font-size: 13px;
+    color: var(--ecl-text-muted);
+}
+
+.ecl-proof-strip__footer a {
+    color: var(--ecl-primary);
+    font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 1.3 — Guarantee Block
+   --------------------------------------------------------------------------- */
+.ecl-guarantee-block {
+    margin: 16px 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #f0f7f1, #e8f5e9);
+    border: 1px solid var(--ecl-accent);
+    border-radius: var(--ecl-radius);
+}
+
+.ecl-guarantee-block--full {
+    padding: 28px;
+}
+
+.ecl-guarantee-block__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ecl-guarantee-block__icon {
+    font-size: 20px;
+}
+
+.ecl-guarantee-block__header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--ecl-primary);
+}
+
+.ecl-guarantee-block__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ecl-primary);
+}
+
+.ecl-guarantee-block__text {
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.ecl-guarantee-block__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.ecl-guarantee-block__badge {
+    font-size: 12px;
+    color: var(--ecl-accent);
+    font-weight: 600;
+}
+
+.ecl-guarantee-block__details ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.ecl-guarantee-block__details li {
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.ecl-guarantee-block__cta {
+    font-size: 13px;
+    margin-top: 12px;
+}
+
+/* Guarantee microcopy under ATC */
+.ecl-guarantee-microcopy {
+    font-size: 12px;
+    color: var(--ecl-text-muted);
+    margin: 8px 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 1.5 — Checkout Trust Block
+   --------------------------------------------------------------------------- */
+.ecl-checkout-trust {
+    margin: 16px 0;
+    padding: 16px;
+    background: var(--ecl-bg);
+    border-radius: var(--ecl-radius);
+    border: 1px solid var(--ecl-border);
+}
+
+.ecl-checkout-trust__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ecl-checkout-trust__title {
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.ecl-checkout-trust__desc {
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.ecl-checkout-trust__descriptor {
+    font-size: 13px;
+    margin-bottom: 12px;
+    color: var(--ecl-text-muted);
+}
+
+.ecl-checkout-trust__signals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ecl-checkout-trust__signal {
+    font-size: 12px;
+    padding: 4px 10px;
+    background: var(--ecl-white);
+    border-radius: var(--ecl-radius-sm);
+    border: 1px solid var(--ecl-border);
+}
+
+.ecl-checkout-trust__faq details {
+    margin-bottom: 8px;
+}
+
+.ecl-checkout-trust__faq summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ecl-primary);
+}
+
+.ecl-checkout-trust__faq p {
+    font-size: 13px;
+    padding: 8px 0;
+}
+
+.ecl-place-order-microcopy {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ecl-text-muted);
+    margin-top: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 2.2 — Tier Cards
+   --------------------------------------------------------------------------- */
+.ecl-tier-cards {
+    margin: 16px 0;
+}
+
+.ecl-tier-cards__header {
+    margin-bottom: 12px;
+}
+
+.ecl-tier-cards__label {
+    font-size: 16px;
+    font-weight: 700;
+    display: block;
+}
+
+.ecl-tier-cards__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 600px) {
+    .ecl-tier-cards__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.ecl-tier-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+    border: 2px solid var(--ecl-border);
+    border-radius: var(--ecl-radius);
+    cursor: pointer;
+    transition: border-color var(--ecl-transition), box-shadow var(--ecl-transition);
+    background: var(--ecl-white);
+}
+
+.ecl-tier-card:hover {
+    border-color: var(--ecl-accent);
+    box-shadow: var(--ecl-shadow-sm);
+}
+
+.ecl-tier-card--selected {
+    border-color: var(--ecl-primary);
+    border-width: 2px;
+    box-shadow: var(--ecl-shadow-md);
+    background: #f6fbf7;
+}
+
+.ecl-tier-card--out-of-stock {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ecl-tier-card__input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ecl-tier-card__badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+.ecl-tier-card__badge--popular {
+    background: var(--ecl-primary);
+    color: var(--ecl-white);
+}
+
+.ecl-tier-card__badge--value {
+    background: var(--ecl-accent);
+    color: var(--ecl-white);
+}
+
+.ecl-tier-card__pack {
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.ecl-tier-card__price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.ecl-tier-card__anchor {
+    text-decoration: line-through;
+    color: var(--ecl-text-muted);
+    font-size: 13px;
+}
+
+.ecl-tier-card__total {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ecl-primary);
+}
+
+.ecl-tier-card__per-vial {
+    font-size: 13px;
+    color: var(--ecl-accent);
+    font-weight: 600;
+}
+
+.ecl-tier-card__perk {
+    font-size: 12px;
+    color: var(--ecl-primary);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--ecl-border);
+    font-weight: 600;
+}
+
+.ecl-tier-card__stock--out {
+    font-size: 12px;
+    color: #d9534f;
+}
+
+.ecl-tier-cards__actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.ecl-variations-hidden { display: none !important; }
+
+/* ---------------------------------------------------------------------------
+   Phase 2.3 — Bac Water Attach
+   --------------------------------------------------------------------------- */
+.ecl-bac-water-attach {
+    margin: 12px 0;
+    padding: 12px 16px;
+    background: var(--ecl-bg);
+    border: 1px solid var(--ecl-border);
+    border-radius: var(--ecl-radius-sm);
+}
+
+.ecl-bac-water-attach__label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.ecl-bac-water-attach__input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--ecl-primary);
+    flex-shrink: 0;
+}
+
+.ecl-bac-water-attach__note {
+    color: var(--ecl-text-muted);
+    font-size: 12px;
+}
+
+.ecl-free-gift-qty {
+    font-size: 12px;
+    color: var(--ecl-accent);
+    font-weight: 700;
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 2.4 — Free Shipping Notice (inline styles are in PHP, this adds extras)
+   --------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Phase 3 — Restock Program
+   --------------------------------------------------------------------------- */
+.ecl-restock-toggle,
+.ecl-restock-optin {
+    margin: 12px 0;
+    padding: 12px 16px;
+    border-radius: var(--ecl-radius-sm);
+}
+
+.ecl-restock-toggle {
+    background: linear-gradient(135deg, #fff9e6, #fff3cc);
+    border: 1px solid #f0d860;
+}
+
+.ecl-restock-toggle__label,
+.ecl-restock-optin__label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.ecl-restock-toggle__input,
+.ecl-restock-optin__input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--ecl-primary);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.ecl-restock-toggle__subtext,
+.ecl-restock-optin__subtext {
+    display: block;
+    font-size: 12px;
+    color: var(--ecl-text-muted);
+    margin-top: 2px;
+}
+
+.ecl-restock-optin__interval {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--ecl-border);
+}
+
+/* Bulk Packs page */
+.ecl-bulk-packs__header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.ecl-bulk-packs__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.ecl-bulk-packs__item {
+    padding: 20px;
+    border: 1px solid var(--ecl-border);
+    border-radius: var(--ecl-radius);
+    text-align: center;
+}
+
+.ecl-bulk-packs__per-vial {
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 4.1 — Sticky ATC Bar
+   --------------------------------------------------------------------------- */
+.ecl-sticky-atc {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: var(--ecl-white);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--ecl-border);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    padding: 12px 16px;
+    /* Safe area for mobile */
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.ecl-sticky-atc--visible {
+    transform: translateY(0);
+}
+
+.ecl-sticky-atc__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.ecl-sticky-atc__product {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.ecl-sticky-atc__name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ecl-sticky-atc__price {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ecl-primary);
+}
+
+.ecl-sticky-atc__per-vial {
+    font-size: 12px;
+    color: var(--ecl-text-muted);
+    font-weight: 400;
+}
+
+.ecl-sticky-atc__button {
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .ecl-sticky-atc__name {
+        font-size: 13px;
+        max-width: 160px;
+    }
+    .ecl-sticky-atc__price {
+        font-size: 16px;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 4.2 — Announcement Bar
+   --------------------------------------------------------------------------- */
+.ecl-announcement-bar {
+    background: var(--ecl-primary);
+    color: var(--ecl-white);
+    text-align: center;
+    padding: 8px 40px;
+    font-size: 13px;
+    position: relative;
+    z-index: 9998;
+}
+
+.ecl-announcement-bar__content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ecl-announcement-bar__cta {
+    color: var(--ecl-white);
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.ecl-announcement-bar__close {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--ecl-white);
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    opacity: 0.8;
+}
+
+.ecl-announcement-bar__close:hover {
+    opacity: 1;
+}
+
+.ecl-announcement-active {
+    /* margin-top handled by theme — this class is a hook */
+}
+
+/* ---------------------------------------------------------------------------
+   Phase 4.4 — Final CTA Strip
+   --------------------------------------------------------------------------- */
+.ecl-cta-strip {
+    margin: 32px 0;
+    padding: 32px;
+    background: linear-gradient(135deg, var(--ecl-primary), var(--ecl-primary-dark));
+    color: var(--ecl-white);
+    border-radius: var(--ecl-radius);
+    text-align: center;
+}
+
+.ecl-cta-strip__price {
+    font-size: 20px;
+    margin-bottom: 16px;
+}
+
+.ecl-cta-strip__price strong {
+    font-size: 28px;
+}
+
+.ecl-cta-strip__button {
+    background: var(--ecl-white);
+    color: var(--ecl-primary);
+    font-weight: 700;
+    font-size: 16px;
+    padding: 12px 32px;
+    border-radius: var(--ecl-radius-sm);
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: transform var(--ecl-transition);
+}
+
+.ecl-cta-strip__button:hover {
+    transform: scale(1.03);
+}
+
+.ecl-cta-strip__guarantee {
+    font-size: 13px;
+    margin-top: 16px;
+    opacity: 0.9;
+}

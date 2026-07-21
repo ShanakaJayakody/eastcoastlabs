@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+default.profraw
+
+# WordPress
+wp-config.php
+wp-config-local.php
+
+# IDE / Editor
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime*
+
+# Node
+node_modules/
+package-lock.json
+
+# Logs
+*.log
