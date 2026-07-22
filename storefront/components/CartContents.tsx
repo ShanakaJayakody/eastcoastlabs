@@ -1,15 +1,39 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 import { formatAud } from "@/lib/format";
+import { GIFT_THRESHOLD } from "@/lib/env";
 import FreeShippingProgress from "./FreeShippingProgress";
+import CartUpsell from "./CartUpsell";
 import ResearchDisclaimer from "./ResearchDisclaimer";
 
+const GIFT_KEY = "gift:bac-water";
+
 export default function CartContents({ onNavigate }: { onNavigate?: () => void }) {
-  const { lines, subtotal, itemCount, updateQty, removeLine, goToCheckout, freeShippingThreshold, ready } =
+  const { lines, subtotal, itemCount, updateQty, removeLine, addLine, goToCheckout, freeShippingThreshold, ready } =
     useCart();
+
+  // Free bacteriostatic-water gift once the basket clears the gift threshold.
+  // The gift line is $0 so it never affects the threshold check itself.
+  const hasGift = lines.some((l) => l.key === GIFT_KEY);
+  const giftEligible = subtotal >= GIFT_THRESHOLD;
+  useEffect(() => {
+    if (giftEligible && !hasGift) {
+      addLine({
+        key: GIFT_KEY,
+        productId: 990101,
+        name: "Bacteriostatic Water",
+        slug: "bacteriostatic-water",
+        variantLabel: "🎁 Free gift",
+        unitPrice: 0,
+      });
+    } else if (!giftEligible && hasGift) {
+      removeLine(GIFT_KEY);
+    }
+  }, [giftEligible, hasGift, addLine, removeLine]);
 
   if (ready && lines.length === 0) {
     return (
@@ -32,7 +56,11 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-        <FreeShippingProgress subtotal={subtotal} threshold={freeShippingThreshold} />
+        <FreeShippingProgress
+          subtotal={subtotal}
+          threshold={freeShippingThreshold}
+          giftThreshold={GIFT_THRESHOLD}
+        />
 
         <ul className="space-y-3">
           {lines.map((line) => (
@@ -93,6 +121,8 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
             </li>
           ))}
         </ul>
+
+        <CartUpsell />
       </div>
 
       <div className="space-y-3 border-t border-line bg-ink-2 px-4 py-4">

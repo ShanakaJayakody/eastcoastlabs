@@ -3,6 +3,7 @@ import { getProducts } from "@/lib/woo";
 import ProductCard from "@/components/ProductCard";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import Reveal from "@/components/Reveal";
+import AccessoryGrid from "@/components/AccessoryGrid";
 
 export const metadata: Metadata = {
   title: "Shop research peptides",
@@ -43,6 +44,17 @@ export default async function ShopPage() {
       <p className="mt-8 text-xs text-muted-2">
         Showing {products.length} products from the live catalog.
       </p>
+
+      {/* Research accessories */}
+      <section className="mt-16">
+        <div className="mb-5">
+          <h2 className="text-xl font-semibold text-fg">Research accessories</h2>
+          <p className="mt-1 text-sm text-muted">
+            Everything you need to reconstitute and handle research material. Add to any order.
+          </p>
+        </div>
+        <AccessoryGrid />
+      </section>
     </div>
   );
 }

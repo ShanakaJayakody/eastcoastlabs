@@ -31,3 +31,6 @@ export const KLAVIYO_ID = process.env.NEXT_PUBLIC_KLAVIYO_ID ?? "";
 
 /** Free-shipping threshold in AUD (major units). */
 export const FREE_SHIPPING_THRESHOLD = 150;
+
+/** Spend threshold (AUD) that unlocks a free bacteriostatic-water gift. */
+export const GIFT_THRESHOLD = 250;

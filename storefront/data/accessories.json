@@ -1,0 +1,41 @@
+{
+  "_note": "Research accessories — consumables/tools for handling reconstituted research material. High-attach, pure-margin basket builders. Prices in AUD major units.",
+  "items": [
+    {
+      "id": 990102,
+      "name": "Insulin Syringes — 0.5ml",
+      "slug": "insulin-syringes",
+      "price": 24.99,
+      "icon": "💉",
+      "blurb": "29G ultra-fine · 100 pack",
+      "unit": "100 pack"
+    },
+    {
+      "id": 990103,
+      "name": "Alcohol Prep Swabs",
+      "slug": "alcohol-swabs",
+      "price": 9.99,
+      "icon": "🧴",
+      "blurb": "Sterile 70% IPA · 200 pack",
+      "unit": "200 pack"
+    },
+    {
+      "id": 990104,
+      "name": "Sharps Disposal Container",
+      "slug": "sharps-container",
+      "price": 12.99,
+      "icon": "🧯",
+      "blurb": "1L · puncture-proof",
+      "unit": "1L"
+    },
+    {
+      "id": 990105,
+      "name": "Reconstitution Starter Kit",
+      "slug": "reconstitution-kit",
+      "price": 39.99,
+      "icon": "🧰",
+      "blurb": "Bac water + syringes + swabs",
+      "unit": "kit"
+    }
+  ]
+}
