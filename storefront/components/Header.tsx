@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
@@ -22,17 +23,14 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur supports-[backdrop-filter]:bg-ink/70">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
         <Link href="/" className="group flex items-center gap-2.5" aria-label="East Coast Labs home">
-          <span className="grid h-8 w-8 place-items-center rounded-md border border-accent/40 bg-accent/10 text-accent">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M9 3h6M10 3v6.2L5.5 17.4A2 2 0 0 0 7.3 20.5h9.4a2 2 0 0 0 1.8-3.1L14 9.2V3"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
+          <Image
+            src="/logo.png"
+            alt="East Coast Labs"
+            width={38}
+            height={40}
+            priority
+            className="h-9 w-auto transition-transform duration-300 group-hover:scale-105"
+          />
           <span className="flex flex-col leading-none">
             <span className="text-sm font-semibold tracking-[0.18em] text-fg">EAST COAST LABS</span>
             <span className="text-[10px] tracking-[0.22em] text-muted-2">RESEARCH PEPTIDES</span>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import ResearchDisclaimer from "./ResearchDisclaimer";
 import EmailCapture from "./EmailCapture";
 import { getCollections } from "@/lib/collections";
@@ -21,7 +22,10 @@ export default function Footer() {
 
         <div className="grid gap-10 md:grid-cols-4 lg:grid-cols-5">
           <div className="md:col-span-2">
-            <p className="text-sm font-semibold tracking-[0.18em] text-fg">EAST COAST LABS</p>
+            <div className="flex items-center gap-2.5">
+              <Image src="/logo.png" alt="East Coast Labs" width={34} height={36} className="h-8 w-auto" />
+              <p className="text-sm font-semibold tracking-[0.18em] text-fg">EAST COAST LABS</p>
+            </div>
             <p className="mt-3 max-w-sm text-sm text-muted">
               Australian owned &amp; operated supplier of research-use-only peptides. Every batch
               independently tested by JanoShik, with the Certificate of Analysis published before it
