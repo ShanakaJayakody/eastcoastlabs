@@ -36,6 +36,7 @@ export default function Footer() {
               <li><Link href="/shop" className="text-fg-2 hover:text-accent">Shop</Link></li>
               <li><Link href="/stacks" className="text-fg-2 hover:text-accent">Research Stacks</Link></li>
               <li><Link href="/lab-results" className="text-fg-2 hover:text-accent">Lab Results</Link></li>
+              <li><Link href="/learn" className="text-fg-2 hover:text-accent">Research Hub</Link></li>
               <li><Link href="/about" className="text-fg-2 hover:text-accent">About</Link></li>
             </ul>
           </div>

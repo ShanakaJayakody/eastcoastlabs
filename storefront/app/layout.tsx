@@ -25,9 +25,24 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "East Coast Labs",
+    url: "https://eastcoastlabs.com.au",
+    description:
+      "Australian-owned supplier of research-use-only peptides. Every batch independently tested by JanoShik with the COA published before it ships.",
+    email: "support@eastcoastlabs.com.au",
+    areaServed: "AU",
+  };
+
   return (
     <html lang="en-AU">
       <body className="flex min-h-screen flex-col bg-ink text-fg">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
         <Providers>
           <AnnouncementBar />
           <Header />

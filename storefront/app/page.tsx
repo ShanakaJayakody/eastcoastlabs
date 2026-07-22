@@ -53,8 +53,27 @@ export default async function HomePage() {
     { left: "72%", size: 2, dur: 9, delay: 4 },
   ];
 
+  const faqJsonLd =
+    copy.faq.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: copy.faq.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        }
+      : null;
+
   return (
     <div>
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-line">
         {/* Fading clinical grid */}

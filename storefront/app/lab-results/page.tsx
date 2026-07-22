@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getAllCoa } from "@/lib/coa";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
+import CoaVerify from "@/components/CoaVerify";
 
 export const metadata: Metadata = {
   title: "Lab Results",
@@ -26,6 +27,12 @@ export default async function LabResultsPage() {
           doesn&apos;t ship.
         </p>
       </div>
+
+      {records.length > 0 && (
+        <div className="mt-8">
+          <CoaVerify records={records} />
+        </div>
+      )}
 
       {records.length === 0 ? (
         <div className="mt-10 rounded-lg border border-line bg-surface p-8 text-center text-muted">
