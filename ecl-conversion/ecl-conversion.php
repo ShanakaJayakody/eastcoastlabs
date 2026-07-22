@@ -145,6 +145,7 @@ register_deactivation_hook( __FILE__, function (): void {
 function ecl_load_modules(): void {
 
     $modules = array(
+        'ECL_REST_API',
         'ECL_Stock_Status',
         'ECL_Consistency',
         'ECL_COA_Module',

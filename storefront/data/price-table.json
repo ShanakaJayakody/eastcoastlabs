@@ -1,0 +1,197 @@
+{
+  "description": "ECL Tier Pricing Table — 1/3/6 vial packs. 3-pack = 15% off 3x single. 6-pack = 25% off 6x single. All prices in AUD. Rounded to whole dollars.",
+  "discount_3pk_pct": 15,
+  "discount_6pk_pct": 25,
+  "products": [
+    {
+      "name": "KLOW",
+      "slug": "klow",
+      "sku": "ECL-KLOW",
+      "prices": {
+        "1_vial": 149.99,
+        "3_pack": 382.00,
+        "3_pack_per_vial": 127.33,
+        "6_pack": 674.00,
+        "6_pack_per_vial": 112.33,
+        "6_pack_saving_shown": "Save $225"
+      }
+    },
+    {
+      "name": "IGF-1 LR3",
+      "slug": "igf-1-lr3",
+      "sku": "ECL-IGF1LR3",
+      "prices": {
+        "1_vial": 139.99,
+        "3_pack": 356.00,
+        "3_pack_per_vial": 118.67,
+        "6_pack": 629.00,
+        "6_pack_per_vial": 104.83,
+        "6_pack_saving_shown": "Save $210"
+      }
+    },
+    {
+      "name": "GLOW",
+      "slug": "glow",
+      "sku": "ECL-GLOW",
+      "prices": {
+        "1_vial": 119.99,
+        "3_pack": 305.00,
+        "3_pack_per_vial": 101.67,
+        "6_pack": 539.00,
+        "6_pack_per_vial": 89.83,
+        "6_pack_saving_shown": "Save $180"
+      }
+    },
+    {
+      "name": "Tesamorelin",
+      "slug": "tesamorelin",
+      "sku": "ECL-TESA",
+      "prices": {
+        "1_vial": 104.99,
+        "3_pack": 267.00,
+        "3_pack_per_vial": 89.00,
+        "6_pack": 472.00,
+        "6_pack_per_vial": 78.67,
+        "6_pack_saving_shown": "Save $157"
+      }
+    },
+    {
+      "name": "Retatrutide",
+      "slug": "retatrutide",
+      "sku": "ECL-RETA",
+      "prices": {
+        "1_vial": 99.99,
+        "3_pack": 254.00,
+        "3_pack_per_vial": 84.67,
+        "6_pack": 449.00,
+        "6_pack_per_vial": 74.83,
+        "6_pack_saving_shown": "Save $150"
+      }
+    },
+    {
+      "name": "Tirzepatide",
+      "slug": "tirzepatide",
+      "sku": "ECL-TIRZ",
+      "prices": {
+        "1_vial": 89.99,
+        "3_pack": 229.00,
+        "3_pack_per_vial": 76.33,
+        "6_pack": 404.00,
+        "6_pack_per_vial": 67.33,
+        "6_pack_saving_shown": "Save $135"
+      }
+    },
+    {
+      "name": "TB-500",
+      "slug": "tb-500",
+      "sku": "ECL-TB500",
+      "prices": {
+        "1_vial": 89.99,
+        "3_pack": 229.00,
+        "3_pack_per_vial": 76.33,
+        "6_pack": 404.00,
+        "6_pack_per_vial": 67.33,
+        "6_pack_saving_shown": "Save $135"
+      }
+    },
+    {
+      "name": "Semaglutide",
+      "slug": "semaglutide",
+      "sku": "ECL-SEMA",
+      "prices": {
+        "1_vial": 84.99,
+        "3_pack": 216.00,
+        "3_pack_per_vial": 72.00,
+        "6_pack": 382.00,
+        "6_pack_per_vial": 63.67,
+        "6_pack_saving_shown": "Save $127"
+      }
+    },
+    {
+      "name": "GHK-Cu",
+      "slug": "ghk-cu",
+      "sku": "ECL-GHKCU",
+      "prices": {
+        "1_vial": 79.99,
+        "3_pack": 203.00,
+        "3_pack_per_vial": 67.67,
+        "6_pack": 359.00,
+        "6_pack_per_vial": 59.83,
+        "6_pack_saving_shown": "Save $120"
+      }
+    },
+    {
+      "name": "MOTS-C",
+      "slug": "mots-c",
+      "sku": "ECL-MOTSC",
+      "prices": {
+        "1_vial": 69.99,
+        "3_pack": 178.00,
+        "3_pack_per_vial": 59.33,
+        "6_pack": 314.00,
+        "6_pack_per_vial": 52.33,
+        "6_pack_saving_shown": "Save $105"
+      }
+    },
+    {
+      "name": "Selank",
+      "slug": "selank",
+      "sku": "ECL-SELANK",
+      "prices": {
+        "1_vial": 64.99,
+        "3_pack": 165.00,
+        "3_pack_per_vial": 55.00,
+        "6_pack": 292.00,
+        "6_pack_per_vial": 48.67,
+        "6_pack_saving_shown": "Save $97"
+      }
+    },
+    {
+      "name": "Semax",
+      "slug": "semax",
+      "sku": "ECL-SEMAX",
+      "prices": {
+        "1_vial": 59.99,
+        "3_pack": 152.00,
+        "3_pack_per_vial": 50.67,
+        "6_pack": 269.00,
+        "6_pack_per_vial": 44.83,
+        "6_pack_saving_shown": "Save $90"
+      }
+    },
+    {
+      "name": "BPC-157",
+      "slug": "bpc-157",
+      "sku": "ECL-BPC157",
+      "prices": {
+        "1_vial": 59.99,
+        "3_pack": 152.00,
+        "3_pack_per_vial": 50.67,
+        "6_pack": 269.00,
+        "6_pack_per_vial": 44.83,
+        "6_pack_saving_shown": "Save $90"
+      }
+    },
+    {
+      "name": "MT2",
+      "slug": "mt2",
+      "sku": "ECL-MT2",
+      "prices": {
+        "1_vial": 39.99,
+        "3_pack": 101.00,
+        "3_pack_per_vial": 33.67,
+        "6_pack": 179.00,
+        "6_pack_per_vial": 29.83,
+        "6_pack_saving_shown": "Save $60"
+      }
+    }
+  ],
+  "bacteriostatic_water": {
+    "name": "Bacteriostatic Water",
+    "slug": "bacteriostatic-water",
+    "sku": "ECL-BACWATER",
+    "price": 19.99,
+    "type": "simple",
+    "note": "Stays simple product — attach item, not a peptide"
+  }
+}
