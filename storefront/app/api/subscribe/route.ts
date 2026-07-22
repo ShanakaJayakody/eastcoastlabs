@@ -1,28 +1,43 @@
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
 
 /**
  * Email-capture endpoint — the single seam for the email platform.
  *
- * Today it validates and logs (no ESP configured yet). When Klaviyo (or any
- * ESP) is wired, forward the payload here — the `source` field distinguishes
- * newsletter / exit-intent / back-in-stock so it can route to the right list
- * or flow. No client code changes needed when that lands.
+ * Persists to Supabase: a `back_in_stock:<slug>` source goes to
+ * stock_notifications; everything else (newsletter, exit-intent) goes to
+ * subscribers. If Supabase is unconfigured it degrades to a server log, so the
+ * form never errors. (A future ESP forward — Klaviyo — slots in right here.)
  */
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as { email?: string; source?: string; meta?: unknown };
-    const email = (body.email ?? "").trim();
+    const body = (await req.json()) as { email?: string; source?: string };
+    const email = (body.email ?? "").trim().toLowerCase();
+    const source = body.source ?? "unknown";
 
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       return NextResponse.json({ ok: false, error: "invalid_email" }, { status: 400 });
     }
 
-    // TODO(payment/ESP): POST to Klaviyo subscribe endpoint using the site key.
-    // For now we just record the intent server-side.
-    console.log(`[subscribe] ${email} · source=${body.source ?? "unknown"}`);
+    const sb = supabaseAdmin();
+    if (sb) {
+      if (source.startsWith("back_in_stock:")) {
+        const productSlug = source.slice("back_in_stock:".length);
+        await sb
+          .from("stock_notifications")
+          .upsert({ email, product_slug: productSlug }, { onConflict: "email,product_slug" });
+      } else {
+        await sb
+          .from("subscribers")
+          .upsert({ email, source }, { onConflict: "email,source" });
+      }
+    } else {
+      console.log(`[subscribe] (no supabase) ${email} · source=${source}`);
+    }
 
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
+  } catch (err) {
+    console.error("[subscribe] error:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
   }
 }

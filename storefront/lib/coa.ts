@@ -14,6 +14,7 @@ import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { WOO_API_BASE } from "./env";
+import { supabasePublic } from "./supabase";
 
 export interface CoaRecord {
   batch_id: string;
@@ -94,6 +95,32 @@ function coerceRecords(data: unknown): CoaRecord[] | null {
  * it falls back to the CSV fixture. Never throws.
  */
 export async function getAllCoa(): Promise<CoaRecord[]> {
+  // Primary source: Supabase coa_batches (public read). Falls back to the live
+  // Woo endpoint and then the CSV fixture if Supabase is unconfigured/empty.
+  const sb = supabasePublic();
+  if (sb) {
+    try {
+      const { data, error } = await sb
+        .from("coa_batches")
+        .select("batch_id,compound,purity_pct,lab,test_date,coa_url,lab_verify_url");
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return sortByDateDesc(
+          data.map((r) => ({
+            batch_id: String(r.batch_id),
+            compound: String(r.compound),
+            purity_pct: Number(r.purity_pct),
+            lab: String(r.lab ?? ""),
+            test_date: String(r.test_date ?? ""),
+            coa_url: String(r.coa_url ?? ""),
+            lab_verify_url: String(r.lab_verify_url ?? ""),
+          })),
+        );
+      }
+    } catch (err) {
+      console.warn("[coa] supabase read failed — falling back:", err instanceof Error ? err.message : err);
+    }
+  }
+
   try {
     const res = await fetch(COA_API, {
       headers: { Accept: "application/json" },
