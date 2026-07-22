@@ -140,6 +140,93 @@ body {
   .animate-glow { animation: none; }
 }
 
+/* ---- Hero: entrance cascade + continuous ambient motion ---- */
+
+/* On-load entrance for copy (staggered via inline animation-delay) */
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(22px); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+.hero-in { opacity: 0; animation: hero-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Visual column assembles in (fade + slight scale) */
+@keyframes hero-visual-in {
+  from { opacity: 0; transform: translateY(26px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+.hero-visual-in { opacity: 0; animation: hero-visual-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
+
+/* Animated gradient headline — slow teal↔cyan shimmer */
+.text-gradient-animated {
+  background: linear-gradient(100deg, var(--color-accent), var(--color-accent-2), var(--color-accent));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-shift 7s ease-in-out infinite;
+}
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Drifting ambient glow orbs */
+@keyframes drift-1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-26px, 22px); } }
+@keyframes drift-2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(22px, -18px); } }
+.animate-drift-1 { animation: drift-1 15s ease-in-out infinite; }
+.animate-drift-2 { animation: drift-2 18s ease-in-out infinite; }
+
+/* Rotating reactor-glow ring behind the vial */
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.animate-spin-slow { animation: spin-slow 22s linear infinite; }
+
+/* Periodic shine sweep across the vial.
+   NOTE: no `position` here on purpose — the element carries its own positioning
+   (Tailwind `absolute`), and a `.shine { position: ... }` rule would override
+   that utility (same specificity, later in the cascade) and collapse the box. */
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 34%, rgba(255, 255, 255, 0.12) 50%, transparent 66%);
+  transform: translateX(-130%) skewX(-12deg);
+  animation: shine-sweep 7s ease-in-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+}
+@keyframes shine-sweep {
+  0% { transform: translateX(-130%) skewX(-12deg); opacity: 0; }
+  12% { opacity: 1; }
+  30%, 100% { transform: translateX(230%) skewX(-12deg); opacity: 0; }
+}
+
+/* Rising molecular particles */
+@keyframes particle-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 0.7; }
+  85% { opacity: 0.5; }
+  100% { transform: translateY(-190px) scale(0.4); opacity: 0; }
+}
+.particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent);
+  animation: particle-rise linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-in,
+  .hero-visual-in { opacity: 1 !important; animation: none !important; }
+  .text-gradient-animated,
+  .animate-drift-1,
+  .animate-drift-2,
+  .animate-spin-slow,
+  .shine::after,
+  .particle { animation: none !important; }
+  .particle { display: none; }
+}
+
 /* ---- Motion system (brand: precise, smooth, never bouncy) ---- */
 
 /* The one easing curve used everywhere for a cohesive feel */
