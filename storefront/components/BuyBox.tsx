@@ -302,7 +302,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         <button
           type="button"
           onClick={handleAdd}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-4 text-base font-semibold text-accent-ink transition hover:brightness-95"
+          className="btn-press flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-4 text-base font-semibold text-accent-ink transition hover:brightness-95"
         >
           Add to Cart · {formatAud(lineTotal)}
         </button>
@@ -328,7 +328,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
           <button
             type="button"
             onClick={handleAdd}
-            className="shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition hover:brightness-95"
+            className="btn-press shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition hover:brightness-95"
           >
             Add to Cart
           </button>

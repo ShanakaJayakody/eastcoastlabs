@@ -45,7 +45,8 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                data-active={active}
+                className={`nav-underline rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                   active ? "text-accent" : "text-fg-2 hover:text-fg"
                 }`}
               >
@@ -58,7 +59,7 @@ export default function Header() {
         <button
           type="button"
           onClick={openCart}
-          className="relative inline-flex items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm font-medium text-fg transition-colors hover:border-line-2"
+          className="btn-press relative inline-flex items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm font-medium text-fg transition-colors hover:border-line-2 hover:border-accent/50"
           aria-label="Open cart"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -72,7 +73,10 @@ export default function Header() {
           </svg>
           <span className="hidden sm:inline">Cart</span>
           {ready && itemCount > 0 && (
-            <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold text-accent-ink">
+            <span
+              key={itemCount}
+              className="animate-badge-pop absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold text-accent-ink"
+            >
               {itemCount}
             </span>
           )}

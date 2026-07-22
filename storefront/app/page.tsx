@@ -13,6 +13,7 @@ import { getSiteAggregate } from "@/lib/reviews";
 import StackCard from "@/components/StackCard";
 import { getStacks } from "@/lib/stacks";
 import GuaranteeBand from "@/components/GuaranteeBand";
+import Reveal from "@/components/Reveal";
 
 export const revalidate = 300;
 
@@ -173,11 +174,11 @@ export default async function HomePage() {
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted">{copy.bestsellersIntro}</p>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <Reveal className="stagger grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {grid.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
-        </div>
+        </Reveal>
         <div className="mt-6">
           <Link href="/shop" className="text-sm font-medium text-accent">
             Browse the full catalog →
@@ -200,11 +201,11 @@ export default async function HomePage() {
               View all stacks →
             </Link>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2">
+          <Reveal className="stagger grid gap-6 sm:grid-cols-2">
             {featuredStacks.map((stack) => (
               <StackCard key={stack.slug} stack={stack} />
             ))}
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -212,9 +213,9 @@ export default async function HomePage() {
       {copy.steps.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-14">
           <h2 className="text-xl font-semibold text-fg">How testing works</h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Reveal className="stagger mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {copy.steps.map((step, i) => (
-              <div key={i} className="rounded-xl border border-line bg-surface p-5">
+              <div key={i} className="card-hover rounded-xl border border-line bg-surface p-5 hover:border-accent/40">
                 <div className="grid h-8 w-8 place-items-center rounded-md bg-accent/15 text-sm font-bold text-accent">
                   {i + 1}
                 </div>
@@ -222,7 +223,7 @@ export default async function HomePage() {
                 <p className="mt-1 text-sm text-muted">{step.body}</p>
               </div>
             ))}
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -233,7 +234,9 @@ export default async function HomePage() {
 
       {/* Purity guarantee band */}
       <section className="mx-auto max-w-6xl px-4 py-10">
-        <GuaranteeBand />
+        <Reveal className="reveal">
+          <GuaranteeBand />
+        </Reveal>
       </section>
 
       {/* Restock promo */}
@@ -252,7 +255,9 @@ export default async function HomePage() {
       {copy.faq.length > 0 && (
         <section className="mx-auto max-w-3xl px-4 py-14">
           <h2 className="mb-5 text-xl font-semibold text-fg">Frequently asked questions</h2>
-          <Faq items={copy.faq} />
+          <Reveal className="reveal">
+            <Faq items={copy.faq} />
+          </Reveal>
         </section>
       )}
     </div>

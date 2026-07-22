@@ -3,6 +3,7 @@ import { getStacks } from "@/lib/stacks";
 import StackCard from "@/components/StackCard";
 import TrustRow from "@/components/TrustRow";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
+import Reveal from "@/components/Reveal";
 
 export const revalidate = 300;
 
@@ -29,11 +30,11 @@ export default async function StacksPage() {
         <ResearchDisclaimer className="mt-5" />
       </div>
 
-      <div className="mt-10 grid gap-6 sm:grid-cols-2">
+      <Reveal className="stagger mt-10 grid gap-6 sm:grid-cols-2">
         {stacks.map((stack) => (
           <StackCard key={stack.slug} stack={stack} />
         ))}
-      </div>
+      </Reveal>
 
       <div className="mt-14">
         <TrustRow />

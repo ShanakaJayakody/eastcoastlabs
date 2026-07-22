@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getProducts } from "@/lib/woo";
 import ProductCard from "@/components/ProductCard";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
+import Reveal from "@/components/Reveal";
 
 export const metadata: Metadata = {
   title: "Shop research peptides",
@@ -32,11 +33,11 @@ export default async function ShopPage() {
           Catalog is temporarily unavailable. Please try again shortly.
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <Reveal className="stagger mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
-        </div>
+        </Reveal>
       )}
 
       <p className="mt-8 text-xs text-muted-2">

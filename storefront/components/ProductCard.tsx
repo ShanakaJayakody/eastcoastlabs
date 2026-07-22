@@ -16,7 +16,7 @@ export default function ProductCard({ product }: { product: WooProduct }) {
   return (
     <Link
       href={`/product/${product.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-line bg-surface transition-colors hover:border-accent/50"
+      className="card-hover group flex flex-col overflow-hidden rounded-xl border border-line bg-surface hover:border-accent/50"
     >
       <div className="relative aspect-square overflow-hidden bg-ink-2">
         {img ? (

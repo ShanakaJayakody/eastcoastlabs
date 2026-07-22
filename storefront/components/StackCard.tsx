@@ -39,7 +39,7 @@ export default function StackCard({ stack }: { stack: ResolvedStack }) {
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-surface">
+    <div className="card-hover flex flex-col overflow-hidden rounded-2xl border border-line bg-surface hover:border-accent/40">
       {/* Component images */}
       <div className="relative flex items-center justify-center gap-2 border-b border-line bg-ink-2 px-6 pb-6 pt-16">
         {stack.badge && (
@@ -103,7 +103,7 @@ export default function StackCard({ stack }: { stack: ResolvedStack }) {
         <button
           type="button"
           onClick={handleAdd}
-          className="mt-4 w-full rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-accent-ink transition hover:brightness-95"
+          className="btn-press mt-4 w-full rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-accent-ink transition hover:brightness-95"
         >
           Add stack to cart · {formatAudWhole(stack.bundlePrice)}
         </button>

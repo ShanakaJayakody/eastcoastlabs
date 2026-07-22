@@ -139,3 +139,85 @@ body {
   .animate-float-slow-2,
   .animate-glow { animation: none; }
 }
+
+/* ---- Motion system (brand: precise, smooth, never bouncy) ---- */
+
+/* The one easing curve used everywhere for a cohesive feel */
+:root {
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Scroll reveal — element fades/rises in when it enters the viewport */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+.reveal { opacity: 0; }
+.reveal.is-visible { animation: reveal-up 0.65s var(--ease-brand) both; }
+
+/* Staggered children — reveal one after another once the container is in view */
+.stagger > * { opacity: 0; }
+.stagger.is-visible > * { animation: reveal-up 0.6s var(--ease-brand) both; }
+.stagger.is-visible > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger.is-visible > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger.is-visible > *:nth-child(3) { animation-delay: 0.16s; }
+.stagger.is-visible > *:nth-child(4) { animation-delay: 0.22s; }
+.stagger.is-visible > *:nth-child(5) { animation-delay: 0.28s; }
+.stagger.is-visible > *:nth-child(6) { animation-delay: 0.34s; }
+.stagger.is-visible > *:nth-child(7) { animation-delay: 0.40s; }
+.stagger.is-visible > *:nth-child(8) { animation-delay: 0.46s; }
+
+/* Card lift on hover — subtle rise + accent shadow */
+.card-hover { transition: transform 0.3s var(--ease-brand), border-color 0.3s ease, box-shadow 0.3s ease; }
+.card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 40px -16px rgba(47, 212, 200, 0.28); }
+
+/* Button press micro-interaction */
+.btn-press { transition: transform 0.12s ease, filter 0.2s ease, box-shadow 0.3s ease; }
+.btn-press:active { transform: translateY(1px) scale(0.985); }
+
+/* Animated gradient underline for nav links */
+.nav-underline { position: relative; }
+.nav-underline::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 1.5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-2));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.32s var(--ease-brand);
+}
+.nav-underline:hover::after,
+.nav-underline[data-active="true"]::after { transform: scaleX(1); }
+
+/* Cart badge pop when count changes */
+@keyframes badge-pop {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.animate-badge-pop { animation: badge-pop 0.35s var(--ease-brand); }
+
+/* Underline sweep for text links */
+.link-sweep {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s var(--ease-brand);
+}
+.link-sweep:hover { background-size: 100% 1.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible,
+  .stagger > *,
+  .stagger.is-visible > * { opacity: 1 !important; animation: none !important; }
+  .card-hover:hover { transform: none; }
+  .btn-press:active { transform: none; }
+  .animate-badge-pop { animation: none; }
+  .nav-underline::after { transition: none; }
+}
