@@ -16,6 +16,7 @@ import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import ViewItemTracker from "@/components/ViewItemTracker";
 import ReviewSummary from "@/components/ReviewSummary";
 import ReviewSection from "@/components/ReviewSection";
+import EmailCapture from "@/components/EmailCapture";
 import { getAggregate } from "@/lib/reviews";
 
 export const revalidate = 300;
@@ -160,21 +161,37 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {descriptor && <p className="mt-3 text-sm leading-relaxed text-muted">{descriptor}</p>}
           <ResearchDisclaimer variant="badge" className="mt-4" />
 
-          <div className="mt-6">
-            <BuyBox
-              product={{
-                id: product.id,
-                name: product.name,
-                slug: product.slug,
-                sku: product.sku,
-                image: product.images?.[0]?.src,
-              }}
-              tiers={tiers}
-              singlePriceMinor={product.prices.price}
-              minorUnit={minorUnit}
-              bacWater={bacWater}
-            />
-          </div>
+          {product.is_in_stock === false ? (
+            <div className="mt-6 rounded-xl border border-line bg-surface p-5">
+              <p className="text-sm font-semibold text-fg">Out of stock — get notified</p>
+              <p className="mt-1 text-xs text-muted">
+                We&apos;ll email you the moment the next tested batch is listed.
+              </p>
+              <div className="mt-3">
+                <EmailCapture
+                  source={`back_in_stock:${product.slug}`}
+                  cta="Notify me"
+                  successMsg="✓ We'll email you when it's back."
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6">
+              <BuyBox
+                product={{
+                  id: product.id,
+                  name: product.name,
+                  slug: product.slug,
+                  sku: product.sku,
+                  image: product.images?.[0]?.src,
+                }}
+                tiers={tiers}
+                singlePriceMinor={product.prices.price}
+                minorUnit={minorUnit}
+                bacWater={bacWater}
+              />
+            </div>
+          )}
         </div>
       </div>
 

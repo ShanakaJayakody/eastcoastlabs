@@ -1,10 +1,22 @@
 import Link from "next/link";
 import ResearchDisclaimer from "./ResearchDisclaimer";
+import EmailCapture from "./EmailCapture";
 
 export default function Footer() {
   return (
     <footer className="mt-20 border-t border-line bg-ink-2">
       <div className="mx-auto max-w-6xl px-4 py-12">
+        {/* Newsletter */}
+        <div className="mb-10 grid gap-5 rounded-2xl border border-line bg-surface/40 p-6 sm:grid-cols-2 sm:items-center sm:p-8">
+          <div>
+            <p className="text-lg font-semibold text-fg">Restock alerts &amp; new compounds</p>
+            <p className="mt-1 text-sm text-muted">
+              Be first to know when a batch is back in stock or a new research compound drops.
+            </p>
+          </div>
+          <EmailCapture source="footer" cta="Subscribe" successMsg="✓ Subscribed — watch your inbox." />
+        </div>
+
         <div className="grid gap-10 md:grid-cols-4">
           <div className="md:col-span-2">
             <p className="text-sm font-semibold tracking-[0.18em] text-fg">EAST COAST LABS</p>

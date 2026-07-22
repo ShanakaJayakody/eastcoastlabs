@@ -5,6 +5,7 @@ import AnnouncementBar from "@/components/AnnouncementBar";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
+import ExitIntentModal from "@/components/ExitIntentModal";
 import Analytics from "@/components/Analytics";
 
 export const metadata: Metadata = {
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-1">{children}</main>
           <Footer />
           <CartDrawer />
+          <ExitIntentModal />
         </Providers>
         <Analytics />
       </body>
