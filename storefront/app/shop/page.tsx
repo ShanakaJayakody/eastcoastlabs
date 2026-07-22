@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { getProducts } from "@/lib/woo";
-import ProductCard from "@/components/ProductCard";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
-import Reveal from "@/components/Reveal";
 import AccessoryGrid from "@/components/AccessoryGrid";
+import ShopFilterGrid from "@/components/ShopFilterGrid";
+import { getCollections } from "@/lib/collections";
+import type { CardProduct } from "@/components/ProductCard";
 
 export const metadata: Metadata = {
   title: "Shop research peptides",
@@ -16,6 +17,17 @@ export const revalidate = 300;
 
 export default async function ShopPage() {
   const products = await getProducts(20);
+  const collections = getCollections();
+  // Slim card data — avoids shipping heavy description HTML to the client filter.
+  const cards: CardProduct[] = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    sku: p.sku,
+    is_in_stock: p.is_in_stock,
+    images: p.images,
+    prices: p.prices,
+  }));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -34,16 +46,10 @@ export default async function ShopPage() {
           Catalog is temporarily unavailable. Please try again shortly.
         </div>
       ) : (
-        <Reveal className="stagger mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </Reveal>
+        <div className="mt-8">
+          <ShopFilterGrid products={cards} collections={collections} />
+        </div>
       )}
-
-      <p className="mt-8 text-xs text-muted-2">
-        Showing {products.length} products from the live catalog.
-      </p>
 
       {/* Research accessories */}
       <section className="mt-16">

@@ -1,0 +1,45 @@
+{
+  "_note": "Collections group products by the research goal buyers shop for. A product can belong to several. Used for /collections/[slug] pages and shop filters.",
+  "collections": [
+    {
+      "slug": "recovery-repair",
+      "name": "Recovery & Repair",
+      "icon": "🧬",
+      "tagline": "Tissue, tendon & connective-tissue research",
+      "description": "The compounds most studied in wound-healing, angiogenesis, and connective-tissue repair models.",
+      "products": ["bpc-157", "tb-500", "ghk-cu", "igf", "mots-c"]
+    },
+    {
+      "slug": "metabolic-weight",
+      "name": "Metabolic & Weight",
+      "icon": "⚖️",
+      "tagline": "GLP-1 analogues & energy-regulation research",
+      "description": "Incretin analogues and mitochondrial-derived peptides used in metabolic and energy-regulation research.",
+      "products": ["semaglutide", "tirzepatide", "retatrutide", "tesamorelin", "mots-c"]
+    },
+    {
+      "slug": "cognitive-focus",
+      "name": "Cognitive & Focus",
+      "icon": "🧠",
+      "tagline": "Neuro-signalling & behavioural research",
+      "description": "Nootropic peptides studied in neuro-signalling, focus, and behavioural research models.",
+      "products": ["semax", "selank"]
+    },
+    {
+      "slug": "longevity-cellular",
+      "name": "Longevity & Cellular",
+      "icon": "♾️",
+      "tagline": "Cellular ageing & mitochondrial research",
+      "description": "Peptides investigated in cellular-ageing, mitochondrial-function, and regenerative research.",
+      "products": ["mots-c", "igf", "ghk-cu", "glow", "klow"]
+    },
+    {
+      "slug": "skin-aesthetics",
+      "name": "Skin & Aesthetics",
+      "icon": "✨",
+      "tagline": "Dermal & extracellular-matrix research",
+      "description": "Copper peptides and blends studied in dermal, pigmentation, and extracellular-matrix research.",
+      "products": ["ghk-cu", "glow", "klow", "mt2"]
+    }
+  ]
+}

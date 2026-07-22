@@ -6,7 +6,13 @@ import { fromPerVialLabel } from "@/lib/pricing";
 import { getAggregate } from "@/lib/reviews";
 import Stars from "./Stars";
 
-export default function ProductCard({ product }: { product: WooProduct }) {
+/** The subset of a product a card needs — lets callers pass slim objects. */
+export type CardProduct = Pick<
+  WooProduct,
+  "id" | "name" | "slug" | "sku" | "is_in_stock" | "images" | "prices"
+>;
+
+export default function ProductCard({ product }: { product: CardProduct }) {
   const img = product.images?.[0];
   const single = minorToMajor(product.prices.price, product.prices.currency_minor_unit);
   const perVialLabel = fromPerVialLabel(product.slug, product.name, single);

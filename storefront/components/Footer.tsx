@@ -1,8 +1,10 @@
 import Link from "next/link";
 import ResearchDisclaimer from "./ResearchDisclaimer";
 import EmailCapture from "./EmailCapture";
+import { getCollections } from "@/lib/collections";
 
 export default function Footer() {
+  const collections = getCollections();
   return (
     <footer className="mt-20 border-t border-line bg-ink-2">
       <div className="mx-auto max-w-6xl px-4 py-12">
@@ -17,7 +19,7 @@ export default function Footer() {
           <EmailCapture source="footer" cta="Subscribe" successMsg="✓ Subscribed — watch your inbox." />
         </div>
 
-        <div className="grid gap-10 md:grid-cols-4">
+        <div className="grid gap-10 md:grid-cols-4 lg:grid-cols-5">
           <div className="md:col-span-2">
             <p className="text-sm font-semibold tracking-[0.18em] text-fg">EAST COAST LABS</p>
             <p className="mt-3 max-w-sm text-sm text-muted">
@@ -32,9 +34,22 @@ export default function Footer() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-2">Explore</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li><Link href="/shop" className="text-fg-2 hover:text-accent">Shop</Link></li>
+              <li><Link href="/stacks" className="text-fg-2 hover:text-accent">Research Stacks</Link></li>
               <li><Link href="/lab-results" className="text-fg-2 hover:text-accent">Lab Results</Link></li>
               <li><Link href="/about" className="text-fg-2 hover:text-accent">About</Link></li>
-              <li><Link href="/cart" className="text-fg-2 hover:text-accent">Cart</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-2">By research goal</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {collections.map((c) => (
+                <li key={c.slug}>
+                  <Link href={`/collections/${c.slug}`} className="text-fg-2 hover:text-accent">
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 

@@ -14,6 +14,7 @@ import StackCard from "@/components/StackCard";
 import { getStacks } from "@/lib/stacks";
 import GuaranteeBand from "@/components/GuaranteeBand";
 import Reveal from "@/components/Reveal";
+import { getCollections } from "@/lib/collections";
 
 export const revalidate = 300;
 
@@ -28,6 +29,7 @@ export default async function HomePage() {
   ]);
   const siteRating = getSiteAggregate();
   const featuredStacks = stacks.slice(0, 2);
+  const collections = getCollections();
 
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
@@ -246,6 +248,25 @@ export default async function HomePage() {
             Browse the full catalog →
           </Link>
         </div>
+      </section>
+
+      {/* Shop by research goal */}
+      <section className="mx-auto max-w-6xl px-4 py-10">
+        <h2 className="text-xl font-semibold text-fg">Shop by research goal</h2>
+        <p className="mt-1 text-sm text-muted">Find the compounds studied for the outcome you&apos;re researching.</p>
+        <Reveal className="stagger mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {collections.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/collections/${c.slug}`}
+              className="card-hover flex flex-col gap-2 rounded-xl border border-line bg-surface p-4 hover:border-accent/40"
+            >
+              <span className="text-2xl" aria-hidden>{c.icon}</span>
+              <span className="text-sm font-semibold text-fg">{c.name}</span>
+              <span className="text-xs text-muted">{c.tagline}</span>
+            </Link>
+          ))}
+        </Reveal>
       </section>
 
       {/* Research stacks */}
