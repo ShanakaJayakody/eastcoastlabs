@@ -10,8 +10,68 @@
 
 import { WOO_API_BASE } from "./env";
 import type { StoreApiPrices } from "./format";
+import localCatalog from "@/data/catalog.json";
 
 const STORE_API = `${WOO_API_BASE}/wp-json/wc/store/v1`;
+
+/**
+ * Local-catalog data source.
+ *
+ * The storefront is a standalone, WordPress-independent site. Its catalog is
+ * seeded from data/catalog.json (real product data — names, prices in minor
+ * units, images, copy). The live Woo Store API is treated as an OPTIONAL
+ * override: if USE_LIVE_WOO is enabled and reachable it takes over, otherwise
+ * everything renders from the local catalog with zero backend. This is what
+ * lets the site build, run, and be reviewed without any WordPress running.
+ */
+const USE_LIVE_WOO = process.env.USE_LIVE_WOO === "1";
+
+interface LocalCatalogEntry {
+  id: number;
+  name: string;
+  slug: string;
+  sku: string;
+  type: string;
+  price: string;
+  regular_price?: string;
+  currency_minor_unit?: number;
+  short_description?: string;
+  description?: string;
+  images?: { src: string; alt?: string }[];
+  categories?: string[];
+}
+
+function mapLocalProduct(entry: LocalCatalogEntry): WooProduct {
+  const minorUnit = entry.currency_minor_unit ?? 2;
+  const regular = entry.regular_price || entry.price;
+  const onSale = regular !== entry.price;
+  return {
+    id: entry.id,
+    name: entry.name,
+    slug: entry.slug,
+    type: entry.type || "simple",
+    sku: entry.sku,
+    permalink: `/product/${entry.slug}`,
+    short_description: entry.short_description ?? "",
+    description: entry.description ?? "",
+    is_in_stock: true,
+    prices: {
+      price: entry.price,
+      regular_price: regular,
+      sale_price: onSale ? entry.price : "",
+      currency_code: "AUD",
+      currency_minor_unit: minorUnit,
+      currency_prefix: "$",
+      currency_suffix: "",
+    },
+    images: (entry.images ?? []).map((img) => ({ src: img.src, alt: img.alt })),
+    variations: [],
+  };
+}
+
+function localProducts(): WooProduct[] {
+  return (localCatalog as LocalCatalogEntry[]).map(mapLocalProduct);
+}
 
 // ---------- Types ----------
 
@@ -101,17 +161,26 @@ async function storeFetch<T>(path: string, revalidate = CATALOG_REVALIDATE): Pro
   }
 }
 
-/** Fetch the product catalog. Returns [] on any failure (never throws). */
+/**
+ * Fetch the product catalog. Local-catalog first (standalone); the live Woo
+ * Store API is used only when USE_LIVE_WOO=1 and it actually returns data.
+ * Never throws — always returns the local catalog as the floor.
+ */
 export async function getProducts(perPage = 20): Promise<WooProduct[]> {
-  const data = await storeFetch<WooProduct[]>(`/products?per_page=${perPage}`);
-  return Array.isArray(data) ? data : [];
+  if (USE_LIVE_WOO) {
+    const data = await storeFetch<WooProduct[]>(`/products?per_page=${perPage}`);
+    if (Array.isArray(data) && data.length > 0) return data;
+  }
+  return localProducts().slice(0, perPage);
 }
 
-/** Fetch a single product by slug. Returns null when not found / on failure. */
+/** Fetch a single product by slug. Local-catalog first; live override optional. */
 export async function getProductBySlug(slug: string): Promise<WooProduct | null> {
-  const data = await storeFetch<WooProduct[]>(`/products?slug=${encodeURIComponent(slug)}`);
-  if (Array.isArray(data) && data.length > 0) return data[0];
-  return null;
+  if (USE_LIVE_WOO) {
+    const data = await storeFetch<WooProduct[]>(`/products?slug=${encodeURIComponent(slug)}`);
+    if (Array.isArray(data) && data.length > 0) return data[0];
+  }
+  return localProducts().find((p) => p.slug === slug) ?? null;
 }
 
 /** Fetch a single product by numeric id. */

@@ -7,13 +7,25 @@ import CoaStrip from "@/components/CoaStrip";
 import Faq from "@/components/Faq";
 import TrustRow from "@/components/TrustRow";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
+import ReviewSummary from "@/components/ReviewSummary";
+import { getSiteAggregate } from "@/lib/reviews";
+import StackCard from "@/components/StackCard";
+import { getStacks } from "@/lib/stacks";
+import GuaranteeBand from "@/components/GuaranteeBand";
 
 export const revalidate = 300;
 
 const BESTSELLER_SLUGS = ["tesamorelin", "mots-c", "semax", "selank", "bpc-157", "tb-500", "glow", "ghk-cu"];
 
 export default async function HomePage() {
-  const [products, coa, copy] = await Promise.all([getProducts(20), getLatestCoa(6), getHomeCopy()]);
+  const [products, coa, copy, stacks] = await Promise.all([
+    getProducts(20),
+    getLatestCoa(6),
+    getHomeCopy(),
+    getStacks(),
+  ]);
+  const siteRating = getSiteAggregate();
+  const featuredStacks = stacks.slice(0, 2);
 
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
@@ -33,6 +45,15 @@ export default async function HomePage() {
               {copy.heroH1}
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted">{copy.heroSub}</p>
+            {siteRating && (
+              <ReviewSummary
+                rating={siteRating.rating}
+                count={siteRating.count}
+                size={16}
+                showSampleTag
+                className="mt-5"
+              />
+            )}
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/shop"
@@ -88,6 +109,29 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Research stacks */}
+      {featuredStacks.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 py-14">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold text-fg">Research stacks — buy the set, save more</h2>
+              <p className="mt-1 max-w-2xl text-sm text-muted">
+                The peptides most commonly studied together, priced below single vials. One
+                shipment, matching COAs.
+              </p>
+            </div>
+            <Link href="/stacks" className="text-sm font-medium text-accent">
+              View all stacks →
+            </Link>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {featuredStacks.map((stack) => (
+              <StackCard key={stack.slug} stack={stack} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* How testing works */}
       {copy.steps.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-14">
@@ -109,6 +153,11 @@ export default async function HomePage() {
       {/* Trust row */}
       <section className="mx-auto max-w-6xl px-4 py-4">
         <TrustRow />
+      </section>
+
+      {/* Purity guarantee band */}
+      <section className="mx-auto max-w-6xl px-4 py-10">
+        <GuaranteeBand />
       </section>
 
       {/* Restock promo */}

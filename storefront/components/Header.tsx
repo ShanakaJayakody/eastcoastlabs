@@ -7,6 +7,7 @@ import { useUI } from "@/lib/ui-context";
 
 const NAV = [
   { href: "/shop", label: "Shop" },
+  { href: "/stacks", label: "Stacks" },
   { href: "/lab-results", label: "Lab Results" },
   { href: "/about", label: "About" },
 ];

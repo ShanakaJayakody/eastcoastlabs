@@ -30,8 +30,14 @@ interface BuyBoxProps {
   bacWater?: BacWaterOption | null;
 }
 
-const RESTOCK_DISCOUNT = 0.1; // save 10% on the restock program
+const SUB_DISCOUNT = 0.1; // save 10% on every subscription delivery
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+const CADENCES = [
+  { weeks: 4, label: "Every 4 weeks" },
+  { weeks: 8, label: "Every 8 weeks" },
+  { weeks: 12, label: "Every 12 weeks" },
+];
 
 export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, bacWater }: BuyBoxProps) {
   const { addLine } = useCart();
@@ -39,11 +45,13 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
 
   const defaultTier = tiers?.find((t) => t.preselected)?.id ?? tiers?.[0]?.id ?? "single";
   const [selected, setSelected] = useState<TierCard["id"]>(defaultTier);
-  const [restock, setRestock] = useState(false);
+  const [mode, setMode] = useState<"once" | "sub">("once");
+  const [cadence, setCadence] = useState(8);
   const [addBac, setAddBac] = useState(false);
   const [showSticky, setShowSticky] = useState(false);
 
   const atcRef = useRef<HTMLDivElement | null>(null);
+  const isSub = mode === "sub";
 
   const activeTier = useMemo(
     () => (tiers ? tiers.find((t) => t.id === selected) ?? tiers[0] : null),
@@ -51,7 +59,9 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
   );
 
   const baseTotal = activeTier ? activeTier.total : minorToMajor(singlePriceMinor, minorUnit);
-  const lineTotal = round2(baseTotal * (1 - (restock ? RESTOCK_DISCOUNT : 0)));
+  const subTotal = round2(baseTotal * (1 - SUB_DISCOUNT));
+  const lineTotal = isSub ? subTotal : round2(baseTotal);
+  const cadenceLabel = CADENCES.find((c) => c.weeks === cadence)?.label ?? "Every 8 weeks";
   const variantLabel = activeTier ? activeTier.label : "1 vial";
 
   // Sticky add-to-cart bar via IntersectionObserver on the primary ATC block.
@@ -67,15 +77,15 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
   }, []);
 
   function handleAdd() {
-    const restockSuffix = restock ? " · Restock (−10%)" : "";
-    const key = `${product.id}:${activeTier?.id ?? "single"}:${restock ? "sub" : "once"}`;
+    const subSuffix = isSub ? ` · Subscribe (${cadenceLabel}, −10%)` : "";
+    const key = `${product.id}:${activeTier?.id ?? "single"}:${isSub ? `sub${cadence}` : "once"}`;
     addLine(
       {
         key,
         productId: product.id,
         name: product.name,
         slug: product.slug,
-        variantLabel: `${variantLabel}${restockSuffix}`,
+        variantLabel: `${variantLabel}${subSuffix}`,
         image: product.image,
         unitPrice: lineTotal,
       },
@@ -85,7 +95,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
       {
         item_id: product.id,
         item_name: product.name,
-        item_variant: `${variantLabel}${restockSuffix}`,
+        item_variant: `${variantLabel}${subSuffix}`,
         price: lineTotal,
         quantity: 1,
       },
@@ -179,22 +189,94 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         </div>
       )}
 
-      {/* Restock toggle */}
-      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3.5">
-        <input
-          type="checkbox"
-          checked={restock}
-          onChange={(e) => setRestock(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
-        />
-        <span className="text-sm">
-          <span className="font-semibold text-fg">Restock program</span>{" "}
-          <span className="text-success">+ save 10%</span>
-          <span className="mt-0.5 block text-xs text-muted">
-            Skip, pause, or cancel anytime. No lock-in.
-          </span>
-        </span>
-      </label>
+      {/* Purchase mode: one-time vs subscribe & save */}
+      <fieldset>
+        <legend className="mb-2 text-sm font-semibold text-fg">Delivery</legend>
+        <div className="grid gap-2.5">
+          {/* One-time */}
+          <label
+            className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition-colors ${
+              !isSub ? "border-accent bg-accent/5" : "border-line bg-surface hover:border-line-2"
+            }`}
+          >
+            <input
+              type="radio"
+              name="mode"
+              checked={!isSub}
+              onChange={() => setMode("once")}
+              className="sr-only"
+            />
+            <span
+              className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
+                !isSub ? "border-accent" : "border-line-2"
+              }`}
+            >
+              {!isSub && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+            </span>
+            <div className="flex-1">
+              <span className="text-sm font-semibold text-fg">One-time purchase</span>
+            </div>
+            <span className="text-sm font-bold text-fg">{formatAud(round2(baseTotal))}</span>
+          </label>
+
+          {/* Subscribe & save */}
+          <label
+            className={`relative flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors ${
+              isSub ? "border-accent bg-accent/5" : "border-line bg-surface hover:border-line-2"
+            }`}
+          >
+            <input
+              type="radio"
+              name="mode"
+              checked={isSub}
+              onChange={() => setMode("sub")}
+              className="sr-only"
+            />
+            <span
+              className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
+                isSub ? "border-accent" : "border-line-2"
+              }`}
+            >
+              {isSub && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-fg">Subscribe &amp; save</span>
+                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success">
+                  Save 10% every order
+                </span>
+              </div>
+              <span className="mt-0.5 block text-xs text-muted">
+                Never run out. Skip, pause, or cancel anytime — no lock-in.
+              </span>
+
+              {isSub && (
+                <div className="mt-3 flex items-center gap-2" onClick={(e) => e.preventDefault()}>
+                  <label htmlFor="cadence" className="text-xs text-muted">
+                    Deliver:
+                  </label>
+                  <select
+                    id="cadence"
+                    value={cadence}
+                    onChange={(e) => setCadence(Number(e.target.value))}
+                    className="rounded-lg border border-line bg-ink px-2.5 py-1.5 text-xs font-medium text-fg outline-none focus:border-accent"
+                  >
+                    {CADENCES.map((c) => (
+                      <option key={c.weeks} value={c.weeks}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-sm font-bold text-fg">{formatAud(subTotal)}</div>
+              <div className="text-xs text-muted-2 line-through">{formatAud(round2(baseTotal))}</div>
+            </div>
+          </label>
+        </div>
+      </fieldset>
 
       {/* Bac-water attach */}
       {bacWater && (

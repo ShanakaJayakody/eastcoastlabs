@@ -1,0 +1,44 @@
+{
+  "_note": "Curated research stacks (bundles). Each stack groups peptides that are commonly researched together and prices them below the sum of single vials. Language is kept to research context only.",
+  "discountFraming": "off buying the vials separately",
+  "stacks": [
+    {
+      "slug": "recovery-repair-stack",
+      "name": "Recovery & Repair Stack",
+      "tagline": "The most-researched combination for connective-tissue studies",
+      "blurb": "BPC-157 and TB-500 are the two compounds most frequently paired in tissue-repair and angiogenesis research. Buy them together as a matched, independently tested set.",
+      "components": ["bpc-157", "tb-500"],
+      "discountPct": 20,
+      "badge": "MOST POPULAR",
+      "freeBacWater": true
+    },
+    {
+      "slug": "metabolic-research-stack",
+      "name": "Metabolic Research Stack",
+      "tagline": "Pairing a GLP-1 analogue with a mitochondrial-derived peptide",
+      "blurb": "Tirzepatide and MOTS-C are studied side by side in metabolic and energy-regulation research models. Documented batches, shipped together.",
+      "components": ["tirzepatide", "mots-c"],
+      "discountPct": 15,
+      "badge": "BEST VALUE",
+      "freeBacWater": true
+    },
+    {
+      "slug": "skin-aesthetics-stack",
+      "name": "Skin & Aesthetics Stack",
+      "tagline": "Copper peptide research, paired",
+      "blurb": "GHK-Cu and the GLOW blend are commonly combined in dermal and extracellular-matrix research. Both arrive with matching published COAs.",
+      "components": ["ghk-cu", "glow"],
+      "discountPct": 18,
+      "freeBacWater": true
+    },
+    {
+      "slug": "cognitive-focus-stack",
+      "name": "Cognitive & Focus Stack",
+      "tagline": "The classic nootropic peptide pairing",
+      "blurb": "Semax and Selank are the two peptides most often studied together in neuro-signalling and behavioural research models.",
+      "components": ["semax", "selank"],
+      "discountPct": 18,
+      "freeBacWater": true
+    }
+  ]
+}

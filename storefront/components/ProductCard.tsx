@@ -3,12 +3,15 @@ import Image from "next/image";
 import type { WooProduct } from "@/lib/woo";
 import { minorToMajor, formatMinor } from "@/lib/format";
 import { fromPerVialLabel } from "@/lib/pricing";
+import { getAggregate } from "@/lib/reviews";
+import Stars from "./Stars";
 
 export default function ProductCard({ product }: { product: WooProduct }) {
   const img = product.images?.[0];
   const single = minorToMajor(product.prices.price, product.prices.currency_minor_unit);
   const perVialLabel = fromPerVialLabel(product.slug, product.name, single);
   const inStock = product.is_in_stock !== false;
+  const rating = getAggregate(product.slug);
 
   return (
     <Link
@@ -38,7 +41,16 @@ export default function ProductCard({ product }: { product: WooProduct }) {
 
       <div className="flex flex-1 flex-col gap-1 p-4">
         <h3 className="text-sm font-semibold text-fg">{product.name}</h3>
-        <p className="text-[11px] uppercase tracking-wider text-muted-2">{product.sku}</p>
+        {rating ? (
+          <div className="flex items-center gap-1.5">
+            <Stars rating={rating.rating} size={12} />
+            <span className="text-[11px] text-muted-2">
+              {rating.rating.toFixed(1)} ({rating.count})
+            </span>
+          </div>
+        ) : (
+          <p className="text-[11px] uppercase tracking-wider text-muted-2">{product.sku}</p>
+        )}
         <div className="mt-auto pt-3">
           {perVialLabel ? (
             <p className="text-sm font-semibold text-accent">{perVialLabel}</p>

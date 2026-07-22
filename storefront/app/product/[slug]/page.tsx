@@ -14,6 +14,9 @@ import Faq from "@/components/Faq";
 import ProductCard from "@/components/ProductCard";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import ViewItemTracker from "@/components/ViewItemTracker";
+import ReviewSummary from "@/components/ReviewSummary";
+import ReviewSection from "@/components/ReviewSection";
+import { getAggregate } from "@/lib/reviews";
 
 export const revalidate = 300;
 
@@ -90,6 +93,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     .slice(0, 3);
 
   const descriptor = copy?.descriptor || stripHtml(product.short_description);
+  const rating = getAggregate(product.slug);
 
   // Product JSON-LD
   const jsonLd = {
@@ -100,6 +104,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     image: (product.images ?? []).map((i) => i.src),
     description: stripHtml(product.short_description || product.description).slice(0, 500),
     brand: { "@type": "Brand", name: "East Coast Labs" },
+    ...(rating
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: rating.rating.toFixed(1),
+            reviewCount: rating.count,
+            bestRating: "5",
+            worstRating: "1",
+          },
+        }
+      : {}),
     offers: {
       "@type": "Offer",
       priceCurrency: product.prices.currency_code || "AUD",
@@ -137,6 +152,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </span>
           </div>
           <h1 className="mt-2 text-3xl font-bold text-fg">{product.name}</h1>
+          {rating && (
+            <a href="#reviews" className="mt-2 inline-block transition-opacity hover:opacity-80">
+              <ReviewSummary rating={rating.rating} count={rating.count} showSampleTag />
+            </a>
+          )}
           {descriptor && <p className="mt-3 text-sm leading-relaxed text-muted">{descriptor}</p>}
           <ResearchDisclaimer variant="badge" className="mt-4" />
 
@@ -208,6 +228,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <Faq items={homeCopy.faq} />
         </section>
       )}
+
+      {/* Reviews */}
+      <div id="reviews">
+        <ReviewSection slug={product.slug} />
+      </div>
 
       {/* Cross-sells */}
       {crossSells.length > 0 && (

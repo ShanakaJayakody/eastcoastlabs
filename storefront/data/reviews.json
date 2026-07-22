@@ -1,0 +1,102 @@
+{
+  "_note": "SAMPLE reviews for layout/development only. NOT real customer content. Replace `sample` with false and swap in real, verified reviews (or an imported feed) before go-live. The UI renders a visible 'Sample data' marker while sample=true so nothing here is presented to shoppers as genuine.",
+  "sample": true,
+  "verifiedLabel": "Verified buyer",
+  "products": {
+    "bpc-157": {
+      "rating": 4.9,
+      "count": 214,
+      "reviews": [
+        { "author": "Daniel R.", "location": "VIC", "rating": 5, "date": "2025-12-14", "verified": true, "title": "COA matched the vial", "body": "Fourth order from ECL. The batch number on my vial matched the published COA to the decimal — 99.8% purity. Reconstituted completely clear, no residue." },
+        { "author": "Marcus T.", "location": "QLD", "rating": 5, "date": "2025-12-02", "verified": true, "title": "Fast and discreet", "body": "Ordered Sunday night, tracking Monday, in my hands Wednesday in Brisbane. Plain packaging, vials packed with foam and a cold pack. No mention of contents on the label or statement." },
+        { "author": "Priya S.", "location": "NSW", "rating": 5, "date": "2025-11-21", "verified": true, "title": "Consistent between batches", "body": "Been using ECL for lab work across three restocks now. Purity has stayed above 99% every time, which is the whole reason I stopped shopping around." },
+        { "author": "Jordan K.", "location": "WA", "rating": 4, "date": "2025-11-08", "verified": true, "title": "Good, wanted more stock notice", "body": "Product and testing are solid. Only reason for 4 stars is it went out of stock briefly — a restock alert would've helped. Quality itself is excellent." }
+      ]
+    },
+    "tb-500": {
+      "rating": 4.8,
+      "count": 176,
+      "reviews": [
+        { "author": "Aaron M.", "location": "NSW", "rating": 5, "date": "2025-12-10", "verified": true, "title": "Exactly as listed", "body": "10mg vial, lyophilised powder, tight seal. COA on the lab-results page was already published before I ordered. That transparency is rare." },
+        { "author": "Beth L.", "location": "SA", "rating": 5, "date": "2025-11-27", "verified": true, "title": "Paired with BPC in the recovery stack", "body": "Bought the stack — arrived together, both with matching batch documentation. Saved a bit versus buying separately and only one shipping wait." },
+        { "author": "Chris D.", "location": "VIC", "rating": 4, "date": "2025-11-05", "verified": true, "title": "Reliable", "body": "No complaints on quality or dispatch. Packaging could use a little more padding but nothing arrived damaged." }
+      ]
+    },
+    "tesamorelin": {
+      "rating": 4.9,
+      "count": 88,
+      "reviews": [
+        { "author": "Nathan P.", "location": "QLD", "rating": 5, "date": "2025-12-12", "verified": true, "title": "High purity, well documented", "body": "99.5% on the COA, matched the vial batch. Freeze-dried powder was intact, no clumping. Reconstituted cleanly with bac water." },
+        { "author": "Elise W.", "location": "NSW", "rating": 5, "date": "2025-11-30", "verified": true, "title": "Second restock", "body": "Ordering again because the first batch was exactly what the paperwork said. Dispatch was next business day both times." }
+      ]
+    },
+    "mots-c": {
+      "rating": 4.8,
+      "count": 74,
+      "reviews": [
+        { "author": "Sam H.", "location": "WA", "rating": 5, "date": "2025-12-08", "verified": true, "title": "Clean product", "body": "Vial sealed properly, powder looked right, COA published on site. Reconstituted without any cloudiness." },
+        { "author": "Tara J.", "location": "VIC", "rating": 4, "date": "2025-11-18", "verified": true, "title": "Good value in the 3-pack", "body": "Per-vial price on the 3-pack made it worth it. All three vials from the same tested batch." }
+      ]
+    },
+    "semax": {
+      "rating": 4.9,
+      "count": 96,
+      "reviews": [
+        { "author": "Oliver B.", "location": "NSW", "rating": 5, "date": "2025-12-05", "verified": true, "title": "Purity as advertised", "body": "COA showed 99.4%. Vial and batch ID matched. This is my go-to supplier now for exactly this reason." },
+        { "author": "Hannah C.", "location": "QLD", "rating": 5, "date": "2025-11-22", "verified": true, "title": "Quick dispatch", "body": "Shipped same business day, arrived in two. Discreet outer packaging, well sealed inside." }
+      ]
+    },
+    "selank": {
+      "rating": 4.8,
+      "count": 81,
+      "reviews": [
+        { "author": "Liam F.", "location": "SA", "rating": 5, "date": "2025-12-03", "verified": true, "title": "Documentation on point", "body": "Everything traceable to a published COA before purchase. That's the difference with ECL — you see the test first." },
+        { "author": "Grace N.", "location": "VIC", "rating": 4, "date": "2025-11-12", "verified": true, "title": "Solid", "body": "No issues. Paired it with Semax in the cognitive stack and saved on the bundle." }
+      ]
+    },
+    "glow": {
+      "rating": 4.9,
+      "count": 132,
+      "reviews": [
+        { "author": "Isabella M.", "location": "NSW", "rating": 5, "date": "2025-12-11", "verified": true, "title": "Blend was consistent", "body": "The GLOW blend arrived properly lyophilised, sealed, and with batch documentation. Reconstituted evenly." },
+        { "author": "Ryan T.", "location": "QLD", "rating": 5, "date": "2025-11-25", "verified": true, "title": "Repeat customer", "body": "Third time buying. Purity and packaging have been consistent every order. Dispatch is genuinely next-day." }
+      ]
+    },
+    "ghk-cu": {
+      "rating": 4.8,
+      "count": 118,
+      "reviews": [
+        { "author": "Sophie A.", "location": "WA", "rating": 5, "date": "2025-12-09", "verified": true, "title": "Correct colour and purity", "body": "GHK-Cu came through the expected blue tint, sealed, with a matching COA on the lab-results page. Clean reconstitution." },
+        { "author": "Ben K.", "location": "VIC", "rating": 4, "date": "2025-11-16", "verified": true, "title": "Good supplier", "body": "Reliable quality and testing. Would like a loyalty discount for repeat orders but that's minor." }
+      ]
+    },
+    "semaglutide": {
+      "rating": 4.9,
+      "count": 143,
+      "reviews": [
+        { "author": "Michael O.", "location": "NSW", "rating": 5, "date": "2025-12-13", "verified": true, "title": "Batch fully documented", "body": "99.7% on the COA and the batch matched. Vial sealed, powder intact. The published-before-listing testing is exactly what I look for." },
+        { "author": "Amelia R.", "location": "QLD", "rating": 5, "date": "2025-11-29", "verified": true, "title": "Careful packaging", "body": "Cold pack included, well insulated, arrived quickly. Discreet outer box." }
+      ]
+    },
+    "tirzepatide": {
+      "rating": 4.9,
+      "count": 121,
+      "reviews": [
+        { "author": "James W.", "location": "VIC", "rating": 5, "date": "2025-12-07", "verified": true, "title": "High grade", "body": "COA verified against the batch, purity above 99%. Reconstituted clear. Trust the documentation here." },
+        { "author": "Chloe D.", "location": "SA", "rating": 4, "date": "2025-11-19", "verified": true, "title": "Great, restocks fast", "body": "Sold out once but was back within a week. Quality is consistent between the two batches I've had." }
+      ]
+    },
+    "retatrutide": {
+      "rating": 4.8,
+      "count": 67,
+      "reviews": [
+        { "author": "Ethan L.", "location": "NSW", "rating": 5, "date": "2025-12-06", "verified": true, "title": "Well tested", "body": "Published COA, matching batch, intact vial. Everything you want from a research supplier." },
+        { "author": "Zoe M.", "location": "WA", "rating": 5, "date": "2025-11-14", "verified": true, "title": "Fast dispatch", "body": "Next business day out the door, two-day arrival. Packaged discreetly and securely." }
+      ]
+    },
+    "klow": { "rating": 4.9, "count": 54, "reviews": [] },
+    "igf": { "rating": 4.8, "count": 49, "reviews": [] },
+    "mt2": { "rating": 4.7, "count": 62, "reviews": [] },
+    "bacteriostatic-water": { "rating": 4.9, "count": 203, "reviews": [] }
+  }
+}
