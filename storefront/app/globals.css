@@ -97,3 +97,45 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-in { animation: fade-in-up 0.28s ease-out both; }
+
+/* ---- Hero flourishes ---- */
+
+/* Accent gradient text (headline highlight) */
+.text-gradient {
+  background: linear-gradient(100deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Grid backdrop that fades out toward the edges */
+.bg-grid-fade {
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(ellipse 80% 70% at 60% 40%, #000 30%, transparent 78%);
+}
+
+/* Slow vertical float for the hero product + floating cards */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.animate-float-slow { animation: float-slow 7s ease-in-out infinite; }
+
+@keyframes float-slow-2 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float-slow-2 { animation: float-slow-2 5.5s ease-in-out infinite; }
+
+/* Pulsing glow behind the hero product */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.06); }
+}
+.animate-glow { animation: glow-pulse 6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-slow,
+  .animate-float-slow-2,
+  .animate-glow { animation: none; }
+}
