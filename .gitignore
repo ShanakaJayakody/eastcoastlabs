@@ -19,3 +19,9 @@ package-lock.json
 
 # Logs
 *.log
+
+# Secrets — never commit
+.supabase-secrets.env
+.env
+.env.local
+.env*.local
