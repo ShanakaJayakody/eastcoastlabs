@@ -30,6 +30,36 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ---- Mobile ergonomics ---- */
+
+/* Kill the gray tap flash and the double-tap-zoom delay on interactive elements */
+a,
+button,
+input,
+select,
+label {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a {
+  touch-action: manipulation;
+}
+
+/* iOS Safari zooms the page when a focused input's font-size is below 16px.
+   Force 16px on small screens for all text-entry controls. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe-area padding for elements pinned to the bottom edge (iPhone home bar) */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 body {
   background-color: var(--color-ink);
   color: var(--color-fg);

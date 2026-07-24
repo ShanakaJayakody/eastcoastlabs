@@ -314,7 +314,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
 
       {/* Sticky add-to-cart bar (appears on scroll) */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 backdrop-blur transition-transform duration-300 ${
+        className={`pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 backdrop-blur transition-transform duration-300 ${
           showSticky ? "translate-y-0" : "translate-y-full"
         }`}
       >

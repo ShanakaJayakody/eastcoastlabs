@@ -18,9 +18,15 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
 
   // Free bacteriostatic-water gift once the basket clears the gift threshold.
   // The gift line is $0 so it never affects the threshold check itself.
-  const hasGift = lines.some((l) => l.key === GIFT_KEY);
+  const giftLine = lines.find((l) => l.key === GIFT_KEY);
+  const hasGift = !!giftLine;
   const giftEligible = subtotal >= GIFT_THRESHOLD;
   useEffect(() => {
+    // The gift is always exactly one unit — clamp if a stale line drifted.
+    if (giftLine && giftLine.quantity !== 1) {
+      updateQty(GIFT_KEY, 1);
+      return;
+    }
     if (giftEligible && !hasGift) {
       addLine({
         key: GIFT_KEY,
@@ -33,7 +39,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
     } else if (!giftEligible && hasGift) {
       removeLine(GIFT_KEY);
     }
-  }, [giftEligible, hasGift, addLine, removeLine]);
+  }, [giftEligible, hasGift, giftLine, addLine, removeLine, updateQty]);
 
   if (ready && lines.length === 0) {
     return (
@@ -87,18 +93,21 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
                   <button
                     type="button"
                     onClick={() => removeLine(line.key)}
-                    className="text-xs text-muted-2 hover:text-warn"
+                    className="-m-2 p-2 text-xs text-muted-2 hover:text-warn"
                     aria-label={`Remove ${line.name}`}
                   >
                     Remove
                   </button>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
+                  {line.key === GIFT_KEY ? (
+                    <span className="text-xs font-medium text-success">Included free</span>
+                  ) : (
                   <div className="inline-flex items-center rounded-md border border-line">
                     <button
                       type="button"
                       onClick={() => updateQty(line.key, line.quantity - 1)}
-                      className="grid h-7 w-7 place-items-center text-fg-2 hover:text-fg"
+                      className="btn-press grid h-10 w-10 place-items-center text-base text-fg-2 hover:text-fg"
                       aria-label="Decrease quantity"
                     >
                       –
@@ -107,12 +116,13 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
                     <button
                       type="button"
                       onClick={() => updateQty(line.key, line.quantity + 1)}
-                      className="grid h-7 w-7 place-items-center text-fg-2 hover:text-fg"
+                      className="btn-press grid h-10 w-10 place-items-center text-base text-fg-2 hover:text-fg"
                       aria-label="Increase quantity"
                     >
                       +
                     </button>
                   </div>
+                  )}
                   <span className="text-sm font-semibold text-fg">
                     {formatAud(line.unitPrice * line.quantity)}
                   </span>
@@ -125,7 +135,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
         <CartUpsell />
       </div>
 
-      <div className="space-y-3 border-t border-line bg-ink-2 px-4 py-4">
+      <div className="pb-safe space-y-3 border-t border-line bg-ink-2 px-4 py-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted">Subtotal ({itemCount} {itemCount === 1 ? "item" : "items"})</span>
           <span className="text-base font-bold text-fg">{formatAud(subtotal)}</span>
