@@ -18,6 +18,7 @@ import ReviewSummary from "@/components/ReviewSummary";
 import ReviewSection from "@/components/ReviewSection";
 import EmailCapture from "@/components/EmailCapture";
 import { getAggregate } from "@/lib/reviews";
+import { getGuideForCompound } from "@/lib/guides";
 
 export const revalidate = 300;
 
@@ -72,10 +73,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const singleMajor = minorToMajor(product.prices.price, minorUnit);
   const tiers = resolveTiers(product, singleMajor);
 
-  const [copy, coa, homeCopy] = await Promise.all([
+  const [copy, coa, homeCopy, guide] = await Promise.all([
     getProductCopy(product.name, product.slug),
     getCoaForProduct(product.name, product.slug),
     getHomeCopy(),
+    getGuideForCompound(product.slug),
   ]);
 
   const bacWaterProduct = product.slug === "bacteriostatic-water" ? null : bySlug.get("bacteriostatic-water");
@@ -159,6 +161,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </a>
           )}
           {descriptor && <p className="mt-3 text-sm leading-relaxed text-muted">{descriptor}</p>}
+          {guide && (
+            <a
+              href={`/learn/${guide.slug}`}
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
+            >
+              📖 Read the {product.name} research overview →
+            </a>
+          )}
           <ResearchDisclaimer variant="badge" className="mt-4" />
 
           {product.is_in_stock === false ? (
