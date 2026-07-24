@@ -39,7 +39,42 @@ export default async function LabResultsPage() {
           Published results will appear here shortly.
         </div>
       ) : (
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-line">
+        <>
+        {/* Mobile: stacked cards (no horizontal scroll) */}
+        <ul className="mt-8 grid gap-3 sm:hidden">
+          {records.map((r) => (
+            <li key={r.batch_id} className="rounded-xl border border-line bg-surface p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-fg">{r.compound}</span>
+                <span className="rounded bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                  {r.purity_pct.toFixed(2)}%
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
+                <span className="font-mono">#{r.batch_id}</span>
+                <span>{r.lab}</span>
+                <span>{r.test_date}</span>
+              </div>
+              {(r.coa_url || r.lab_verify_url) && (
+                <div className="mt-3 flex gap-4 text-sm">
+                  {r.coa_url && (
+                    <a href={r.coa_url} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
+                      View COA →
+                    </a>
+                  )}
+                  {r.lab_verify_url && (
+                    <a href={r.lab_verify_url} target="_blank" rel="noopener noreferrer" className="text-fg-2 hover:text-accent hover:underline">
+                      Verify at lab →
+                    </a>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        {/* Desktop: table */}
+        <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-line sm:block">
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
               <tr className="bg-surface-2 text-left text-xs uppercase tracking-wider text-muted-2">
@@ -87,6 +122,7 @@ export default async function LabResultsPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <ResearchDisclaimer variant="badge" className="mt-8" />
