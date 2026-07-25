@@ -24,8 +24,8 @@ export const NAV: NavItem[] = [
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Customers", href: "/admin/customers", icon: Users },
-  { label: "Discounts", href: "/admin/discounts", icon: Ticket, phase: "Phase E" },
-  { label: "COAs", href: "/admin/coas", icon: FlaskConical, phase: "Phase E" },
-  { label: "Reviews", href: "/admin/reviews", icon: Star, phase: "Phase E" },
-  { label: "Settings", href: "/admin/settings", icon: Settings, phase: "Phase E" },
+  { label: "Discounts", href: "/admin/discounts", icon: Ticket },
+  { label: "COAs", href: "/admin/coas", icon: FlaskConical },
+  { label: "Reviews", href: "/admin/reviews", icon: Star },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];

@@ -1,11 +1,20 @@
-import ComingSoon from "@/components/admin/ComingSoon";
+import { requireAdmin } from "@/lib/admin/auth";
+import { adminDb } from "@/lib/admin/db";
+import { getSettings } from "@/lib/settings";
+import SettingsForm from "@/components/admin/SettingsForm";
 
-export default function SettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage() {
+  await requireAdmin();
+  const [settings, { data: admins }] = await Promise.all([
+    getSettings(),
+    adminDb().from("admin_users").select("email").eq("active", true).order("email"),
+  ]);
   return (
-    <ComingSoon
-      title="Settings"
-      phase="Phase E"
-      blurb="Edit the announcement bar, free-shipping and gift thresholds, and manage admin users — no developer required."
+    <SettingsForm
+      settings={settings}
+      adminEmails={(admins ?? []).map((a) => a.email as string)}
     />
   );
 }

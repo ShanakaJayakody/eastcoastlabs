@@ -82,6 +82,16 @@ Service-role never client-side (build-greps enforced) · RLS default-deny · rat
 - **Catalog migration drift** → JSON kept as seed + emergency fallback; seed script diffs counts.
 - **Email deliverability** → Resend domain verification before cutover.
 
+## 8a. Build status (2026-07-25)
+
+**Phases A–E are complete and verified — 55/55 ISCs pass.** Live modules: Dashboard (revenue windows, to-fulfil, awaiting payment, low stock, waitlist, queued emails, audit feed) · Orders (list/filters/search/pagination, detail + timeline, confirm payment, fulfil with tracking, refund/cancel, notes, packing slip with COA, **manual order form**) · Products & Stock (editor, tier pricing, reason-coded ledger adjustments with **Undo**, low-stock thresholds, back-in-stock automation, bulk stock/reprice, CSV export) · Customers (list + detail with LTV) · Discounts (CRUD, limits, expiry — WELCOME10 live) · COAs (CRUD + PDF upload to the `coa` bucket) · Reviews (moderation queue; sample data retired, storefront reads Supabase) · Settings (announcement bar, thresholds, support email, admin users).
+
+**Storefront now tells the truth:** the PDP and shop grid read live DB stock and published reviews via a `server-only` overlay (`lib/storefront-catalog.ts`), so admin edits and restocks are visible to shoppers and sold-out items can't be added to cart.
+
+**Phase F (Bankful) is the only outstanding work and is blocked externally** — it needs the client's Bankful merchant credentials (hosted-payment endpoint, webhook secret, refund API access). Everything up to that boundary is built: native checkout creates real orders, and bank-transfer/manual payment confirmation runs the full stock settlement, so the store is operable today without cards.
+
+**Also outstanding (small, non-blocking):** Resend SMTP for Supabase Auth OTP delivery (login currently uses the `scripts/admin.mjs code` escape hatch) and an outbox sender to drain `email_outbox`; product image upload (images still come from the catalog seed).
+
 ## 9. Acceptance
 
 46 binary criteria in the ISA cover auth/RBAC, schema + ledger invariants, every module end-to-end, UX antecedents (⌘K, <500ms tables at 1k orders, Undo, 390px, theming), and anti-criteria (no Woo dependency, no admin JS in storefront chunks, clean typed build). The build is done when all 46 probe green.

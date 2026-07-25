@@ -4,6 +4,9 @@ const WOO_API_BASE = process.env.WOO_API_BASE ?? "https://eastcoastlabs.com.au";
 const WOO_CHECKOUT_BASE = process.env.WOO_CHECKOUT_BASE ?? "https://eastcoastlabs.com.au";
 
 const nextConfig: NextConfig = {
+  // Allows an isolated build output (e.g. NEXT_DIST_DIR=.next-verify) so a
+  // verification build never clobbers a running dev server's .next chunks.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Surface the Woo base URLs to the browser bundle so the client-side cart and
   // the checkout hand-off can read them. These are non-secret public endpoints.
   env: {

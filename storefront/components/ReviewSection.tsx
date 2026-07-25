@@ -9,8 +9,8 @@ function formatDate(iso: string): string {
 }
 
 /** Ratings distribution bar (share of the aggregate implied by detailed reviews). */
-export default function ReviewSection({ slug }: { slug: string }) {
-  const data = getProductReviews(slug);
+export default async function ReviewSection({ slug }: { slug: string }) {
+  const data = await getProductReviews(slug);
   if (!data || !data.count) return null;
 
   const label = verifiedLabel();

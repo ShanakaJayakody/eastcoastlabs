@@ -240,22 +240,47 @@ export default function ProductEditor({
                     <div className="flex items-end">
                       <button
                         disabled={pending || !adjQty[v.id] || !adjReason[v.id]}
-                        onClick={() =>
-                          run(async () => {
+                        onClick={() => {
+                          const delta = Number(adjQty[v.id]);
+                          const reason = adjReason[v.id];
+                          start(async () => {
                             const res = await adjustStock(
                               product.slug,
                               v.id,
-                              Number(adjQty[v.id]),
-                              adjReason[v.id],
+                              delta,
+                              reason,
                               adjNote[v.id],
                             );
-                            if (res.ok) {
-                              setAdjQty({ ...adjQty, [v.id]: "" });
-                              setAdjNote({ ...adjNote, [v.id]: "" });
+                            if (!res.ok) {
+                              toast.error(res.error ?? "Failed");
+                              return;
                             }
-                            return res;
-                          })
-                        }
+                            setAdjQty({ ...adjQty, [v.id]: "" });
+                            setAdjNote({ ...adjNote, [v.id]: "" });
+                            // Undo = the exact inverse movement, appended to the ledger
+                            // (never a silent edit — the reversal is auditable too).
+                            toast.success(res.message ?? "Stock updated", {
+                              action: {
+                                label: "Undo",
+                                onClick: () =>
+                                  start(async () => {
+                                    const back = await adjustStock(
+                                      product.slug,
+                                      v.id,
+                                      -delta,
+                                      "recount",
+                                      "undo of previous adjustment",
+                                    );
+                                    if (back.ok) {
+                                      toast.success("Reverted");
+                                      router.refresh();
+                                    } else toast.error(back.error ?? "Undo failed");
+                                  }),
+                              },
+                            });
+                            router.refresh();
+                          });
+                        }}
                         className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
                       >
                         Apply

@@ -1,11 +1,11 @@
-import ComingSoon from "@/components/admin/ComingSoon";
+import { requireAdmin } from "@/lib/admin/auth";
+import { adminDb } from "@/lib/admin/db";
+import DiscountsManager, { type DiscountRow } from "@/components/admin/DiscountsManager";
 
-export default function DiscountsPage() {
-  return (
-    <ComingSoon
-      title="Discounts"
-      phase="Phase E"
-      blurb="Create codes like WELCOME10 (your exit-intent modal is already promising it), with limits, min-spend and expiry."
-    />
-  );
+export const dynamic = "force-dynamic";
+
+export default async function DiscountsPage() {
+  await requireAdmin();
+  const { data } = await adminDb().from("discounts").select("*").order("code");
+  return <DiscountsManager discounts={(data ?? []) as DiscountRow[]} />;
 }

@@ -48,6 +48,13 @@ export default async function OrdersPage({
           {total} order{total === 1 ? "" : "s"}
           {status !== "all" && ` · ${status}`}
         </p>
+        <div className="flex items-center gap-2">
+        <Link
+          href="/admin/orders/new"
+          className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink hover:brightness-95"
+        >
+          New order
+        </Link>
         <form action="/admin/orders" className="flex gap-2">
           {status !== "all" && <input type="hidden" name="status" value={status} />}
           <input
@@ -60,6 +67,7 @@ export default async function OrdersPage({
             Search
           </button>
         </form>
+        </div>
       </div>
 
       {/* status filter pills */}

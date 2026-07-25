@@ -101,7 +101,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     .slice(0, 3);
 
   const descriptor = copy?.descriptor || stripHtml(product.short_description);
-  const rating = getAggregate(product.slug);
+  const rating = await getAggregate(product.slug);
 
   // Product JSON-LD
   const jsonLd = {

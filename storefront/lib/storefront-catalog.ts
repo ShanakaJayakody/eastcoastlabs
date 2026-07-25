@@ -11,6 +11,7 @@ import "server-only";
  */
 import { supabaseAdmin } from "./supabase";
 import type { WooProduct } from "./woo";
+import { getAggregates } from "./reviews";
 
 export interface LiveProductOverlay {
   name?: string;
@@ -125,4 +126,25 @@ export async function withLiveData(product: WooProduct): Promise<WooProduct> {
       currency_minor_unit: minor,
     },
   };
+}
+
+/**
+ * Decorate a list of product cards with live availability + published review
+ * aggregates, in two batched queries. Card components stay dumb and client-safe;
+ * all data comes from here (server-only).
+ */
+export async function decorateCards<T extends { slug: string; is_in_stock?: boolean }>(
+  items: T[],
+): Promise<(T & { is_in_stock: boolean; rating: { rating: number; count: number } | null })[]> {
+  const slugs = items.map((i) => i.slug);
+  const [availability, ratings] = await Promise.all([
+    getAvailabilityMap(slugs),
+    getAggregates(slugs),
+  ]);
+  return items.map((item) => ({
+    ...item,
+    // Only override when the DB actually knows about this product.
+    is_in_stock: item.slug in availability ? availability[item.slug] > 0 : item.is_in_stock !== false,
+    rating: ratings[item.slug] ?? null,
+  }));
 }

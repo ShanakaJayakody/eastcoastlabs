@@ -3,21 +3,23 @@ import Image from "next/image";
 import type { WooProduct } from "@/lib/woo";
 import { minorToMajor, formatMinor } from "@/lib/format";
 import { fromPerVialLabel } from "@/lib/pricing";
-import { getAggregate } from "@/lib/reviews";
 import Stars from "./Stars";
 
 /** The subset of a product a card needs — lets callers pass slim objects. */
 export type CardProduct = Pick<
   WooProduct,
   "id" | "name" | "slug" | "sku" | "is_in_stock" | "images" | "prices"
->;
+> & {
+  /** Attached by server callers via decorateCards() — cards never fetch. */
+  rating?: { rating: number; count: number } | null;
+};
 
 export default function ProductCard({ product }: { product: CardProduct }) {
   const img = product.images?.[0];
   const single = minorToMajor(product.prices.price, product.prices.currency_minor_unit);
   const perVialLabel = fromPerVialLabel(product.slug, product.name, single);
   const inStock = product.is_in_stock !== false;
-  const rating = getAggregate(product.slug);
+  const rating = product.rating ?? null;
 
   return (
     <Link

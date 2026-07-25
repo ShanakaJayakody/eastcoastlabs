@@ -137,7 +137,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <p className="text-fg-2">{order.customer_name || "—"}</p>
             <p className="text-muted">{order.customer_email}</p>
             <Link
-              href={`/admin/customers?q=${encodeURIComponent(order.customer_email)}`}
+              href={`/admin/customers/${encodeURIComponent(order.customer_email)}`}
               className="mt-2 inline-block text-xs text-accent-2 hover:underline"
             >
               View customer

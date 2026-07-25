@@ -11,9 +11,13 @@ function titleFor(pathname: string): string {
   return match?.label ?? "Admin";
 }
 
-/** Dispatch a synthetic ⌘K so the (self-contained) CommandPalette opens. */
+/**
+ * Dispatch a synthetic ⌘K so the (self-contained) CommandPalette opens.
+ * Must target `document` — the palette's keydown listener is registered there, and
+ * window.dispatchEvent would never reach it.
+ */
 function openPalette() {
-  window.dispatchEvent(
+  document.dispatchEvent(
     new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }),
   );
 }

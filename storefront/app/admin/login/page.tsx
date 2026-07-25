@@ -88,6 +88,24 @@ function LoginForm() {
               >
                 {pending ? "Sending…" : "Send code"}
               </button>
+              {/* Codes minted out-of-band (scripts/admin.mjs code <email>) must be
+                  usable WITHOUT pressing Send code — every send rotates the OTP and
+                  would invalidate the code the operator is holding. */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!email.trim().includes("@")) {
+                    setError("Enter your email address first.");
+                    return;
+                  }
+                  setError(null);
+                  setNotice("Enter the code you were given.");
+                  setStep("code");
+                }}
+                className="w-full text-center text-xs text-muted hover:text-fg-2"
+              >
+                I already have a code
+              </button>
             </form>
           ) : (
             <form onSubmit={submitCode} className="space-y-4">

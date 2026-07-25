@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getProducts } from "@/lib/woo";
 import { getCollection, getCollections } from "@/lib/collections";
 import ProductCard from "@/components/ProductCard";
+import { decorateCards } from "@/lib/storefront-catalog";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import Reveal from "@/components/Reveal";
 
@@ -34,7 +35,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
 
   const products = await getProducts(50);
   const bySlug = new Map(products.map((p) => [p.slug, p]));
-  const items = collection.products.map((s) => bySlug.get(s)).filter((p) => p != null);
+  const items = await decorateCards(collection.products.map((s) => bySlug.get(s)).filter((p) => p != null));
   const others = getCollections().filter((c) => c.slug !== collection.slug);
 
   return (

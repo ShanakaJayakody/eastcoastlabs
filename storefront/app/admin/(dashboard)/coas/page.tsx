@@ -1,11 +1,20 @@
-import ComingSoon from "@/components/admin/ComingSoon";
+import { requireAdmin } from "@/lib/admin/auth";
+import { adminDb } from "@/lib/admin/db";
+import CoaManager, { type CoaRow } from "@/components/admin/CoaManager";
 
-export default function CoasPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CoasPage() {
+  await requireAdmin();
+  const db = adminDb();
+  const [{ data: batches }, { data: products }] = await Promise.all([
+    db.from("coa_batches").select("*").order("test_date", { ascending: false }),
+    db.from("products").select("name").order("name"),
+  ]);
   return (
-    <ComingSoon
-      title="COA batches"
-      phase="Phase E"
-      blurb="Upload certificates of analysis and link them to products — /lab-results and the verify tool update instantly."
+    <CoaManager
+      batches={(batches ?? []) as CoaRow[]}
+      compounds={(products ?? []).map((p) => p.name as string)}
     />
   );
 }

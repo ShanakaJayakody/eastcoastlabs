@@ -86,7 +86,33 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
           </select>
           <button
             disabled={pending || !qty}
-            onClick={() => run(() => bulkAdjustStock(ids, Number(qty), reason))}
+            onClick={() => {
+              const delta = Number(qty);
+              const sel = [...ids];
+              start(async () => {
+                const res = await bulkAdjustStock(sel, delta, reason);
+                if (!res.ok) {
+                  toast.error(res.error ?? "Failed");
+                  return;
+                }
+                setSelected(new Set());
+                setQty("");
+                toast.success(res.message ?? "Done", {
+                  action: {
+                    label: "Undo",
+                    onClick: () =>
+                      start(async () => {
+                        const back = await bulkAdjustStock(sel, -delta, "recount");
+                        if (back.ok) {
+                          toast.success("Reverted");
+                          router.refresh();
+                        } else toast.error(back.error ?? "Undo failed");
+                      }),
+                  },
+                });
+                router.refresh();
+              });
+            }}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50"
           >
             Apply stock

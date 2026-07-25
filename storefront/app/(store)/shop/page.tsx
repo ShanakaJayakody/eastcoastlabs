@@ -3,6 +3,7 @@ import { getProducts } from "@/lib/woo";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import AccessoryGrid from "@/components/AccessoryGrid";
 import ShopFilterGrid from "@/components/ShopFilterGrid";
+import { decorateCards } from "@/lib/storefront-catalog";
 import { getCollections } from "@/lib/collections";
 import type { CardProduct } from "@/components/ProductCard";
 
@@ -19,7 +20,7 @@ export default async function ShopPage() {
   const products = await getProducts(20);
   const collections = getCollections();
   // Slim card data — avoids shipping heavy description HTML to the client filter.
-  const cards: CardProduct[] = products.map((p) => ({
+  const rawCards: CardProduct[] = products.map((p) => ({
     id: p.id,
     name: p.name,
     slug: p.slug,
@@ -28,6 +29,8 @@ export default async function ShopPage() {
     images: p.images,
     prices: p.prices,
   }));
+  // Live stock + published ratings, batched (server-only).
+  const cards = await decorateCards(rawCards);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">

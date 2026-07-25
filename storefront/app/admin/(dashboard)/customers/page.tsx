@@ -65,7 +65,12 @@ export default async function CustomersPage({
               {rows.map((c) => (
                 <tr key={c.email} className="transition hover:bg-surface-2">
                   <td className="px-4 py-3">
-                    <span className="text-fg-2">{c.name || "—"}</span>
+                    <Link
+                      href={`/admin/customers/${encodeURIComponent(c.email)}`}
+                      className="text-fg-2 hover:text-accent"
+                    >
+                      {c.name || "—"}
+                    </Link>
                     <span className="block text-xs text-muted">{c.email}</span>
                   </td>
                   <td className="px-4 py-3 text-fg-2">{c.orders_count}</td>

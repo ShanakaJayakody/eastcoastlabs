@@ -4,6 +4,7 @@ import { getProducts } from "@/lib/woo";
 import { getLatestCoa } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import ProductCard from "@/components/ProductCard";
+import { decorateCards } from "@/lib/storefront-catalog";
 import CoaStrip from "@/components/CoaStrip";
 import Faq from "@/components/Faq";
 import TrustRow from "@/components/TrustRow";
@@ -27,13 +28,13 @@ export default async function HomePage() {
     getHomeCopy(),
     getStacks(),
   ]);
-  const siteRating = getSiteAggregate();
+  const siteRating = await getSiteAggregate();
   const featuredStacks = stacks.slice(0, 2);
   const collections = getCollections();
 
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
-  const grid = bestsellers.length >= 4 ? bestsellers : products.slice(0, 8);
+  const grid = await decorateCards(bestsellers.length >= 4 ? bestsellers : products.slice(0, 8));
 
   // Hero visual: a featured vial (the teal BPC-157 render matches the accent).
   const heroProduct = bySlug.get("bpc-157") ?? grid[0] ?? products[0];

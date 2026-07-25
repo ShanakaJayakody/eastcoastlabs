@@ -38,11 +38,23 @@ const headers = {
   "Content-Type": "application/json",
 };
 
-async function api(pathname, init = {}) {
+/**
+ * GoTrue intermittently rejects a valid service-role key with
+ * 403 bad_jwt ("unrecognized JWT kid <nil> for algorithm ES256") — a transient
+ * signing-key blip, not a bad credential. Retry those; fail fast on everything else.
+ */
+async function api(pathname, init = {}, attempt = 1) {
   const res = await fetch(`${URL_BASE}${pathname}`, { ...init, headers });
   const text = await res.text();
   const body = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error(`${res.status} ${pathname}: ${text}`);
+  if (!res.ok) {
+    const transient = res.status >= 500 || (res.status === 403 && text.includes("bad_jwt"));
+    if (transient && attempt < 4) {
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+      return api(pathname, init, attempt + 1);
+    }
+    throw new Error(`${res.status} ${pathname}: ${text}`);
+  }
   return body;
 }
 
@@ -103,8 +115,9 @@ switch (cmd) {
       method: "POST",
       body: JSON.stringify({ type: "magiclink", email }),
     });
-    console.log(`\n  6-digit code for ${email}:  ${out.email_otp}\n`);
-    console.log("  Enter it at /admin/login after submitting the same email address.");
+    console.log(`\n  Sign-in code for ${email}:  ${out.email_otp}\n`);
+    console.log("  At /admin/login: enter the email, then click \"I already have a code\".");
+    console.log("  Do NOT click \"Send code\" — every send rotates the OTP and voids this one.");
     console.log("  (Valid ~1 hour, single use.)\n");
     break;
   }

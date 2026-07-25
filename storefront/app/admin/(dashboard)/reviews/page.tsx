@@ -1,11 +1,22 @@
-import ComingSoon from "@/components/admin/ComingSoon";
+import { requireAdmin } from "@/lib/admin/auth";
+import { adminDb } from "@/lib/admin/db";
+import ReviewModeration, { type ReviewRow } from "@/components/admin/ReviewModeration";
 
-export default function ReviewsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ReviewsPage() {
+  await requireAdmin();
+  const db = adminDb();
+
+  const [{ data: reviews }, { data: products }] = await Promise.all([
+    db.from("reviews").select("*").order("created_at", { ascending: false }),
+    db.from("products").select("slug, name").order("name"),
+  ]);
+
   return (
-    <ComingSoon
-      title="Review moderation"
-      phase="Phase E"
-      blurb="Approve or reject the pending review queue. Approving flips the storefront off sample data and onto real reviews."
+    <ReviewModeration
+      reviews={(reviews ?? []) as ReviewRow[]}
+      productSlugs={(products ?? []) as { slug: string; name: string }[]}
     />
   );
 }
