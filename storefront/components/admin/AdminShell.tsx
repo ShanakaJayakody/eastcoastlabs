@@ -7,6 +7,7 @@ import Topbar from "./Topbar";
 import { CommandPalette, type CommandItem } from "./CommandPalette";
 import { NAV } from "@/lib/admin/nav";
 import { signOut } from "@/lib/admin/auth-actions";
+import { searchAdmin } from "@/app/admin/search-actions";
 
 export default function AdminShell({
   email,
@@ -69,7 +70,7 @@ export default function AdminShell({
         <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
 
-      <CommandPalette items={paletteItems} />
+      <CommandPalette items={paletteItems} onSearch={searchAdmin} />
       <Toaster theme="dark" position="top-right" richColors />
     </div>
   );

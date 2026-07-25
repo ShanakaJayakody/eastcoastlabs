@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatAud } from "@/lib/format";
-import { placeOrder, quoteCart, type CheckoutAddress } from "@/app/(store)/checkout/actions";
+import { placeOrder, quoteCart, captureCartEmail, type CheckoutAddress } from "@/app/(store)/checkout/actions";
 
 const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
 
@@ -119,6 +119,15 @@ export default function CheckoutForm() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => {
+                // Best-effort abandoned-cart capture — never blocks or errors checkout.
+                if (email.includes("@") && lines.length) {
+                  void captureCartEmail(
+                    email,
+                    lines.map((l) => ({ key: l.key, slug: l.slug, variantLabel: l.variantLabel, quantity: l.quantity })),
+                  );
+                }
+              }}
               className={`${field} sm:col-span-2`}
             />
             <input

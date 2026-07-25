@@ -7,9 +7,15 @@ import {
   updateVariant,
   setLowStockThreshold,
   adjustStockWithNotify,
+  setProductImages,
+  getProductBySlug,
   type ProductPatch,
 } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
+import { adminDb } from "@/lib/admin/db";
+
+const IMAGE_BUCKET = "product-images";
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export interface ActionResult {
   ok: boolean;
@@ -167,6 +173,83 @@ export async function bulkPriceChange(variantIds: string[], pct: number): Promis
     revalidatePath("/shop");
     revalidatePath("/");
     return { ok: true, message: `Repriced ${(data ?? []).length} variants by ${pct}%` };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export interface ImageResult extends ActionResult {
+  images?: { src: string; alt?: string }[];
+}
+
+/** Upload an image to the public product-images bucket and append it to the
+ *  product's images array. */
+export async function uploadProductImage(slug: string, formData: FormData): Promise<ImageResult> {
+  const session = await requireAdmin();
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose an image file." };
+  if (!file.type.startsWith("image/")) return { ok: false, error: "File must be an image." };
+  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image must be under 8MB." };
+
+  try {
+    const product = await getProductBySlug(slug);
+    if (!product) return { ok: false, error: "Product not found." };
+
+    const db = adminDb();
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const path = `${slug}/${Date.now()}.${ext}`;
+    const { error: upErr } = await db.storage
+      .from(IMAGE_BUCKET)
+      .upload(path, await file.arrayBuffer(), { contentType: file.type, upsert: false });
+    if (upErr) throw new Error(upErr.message);
+
+    const publicUrl = db.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+    const images = [...product.images, { src: publicUrl, alt: product.name }];
+    await setProductImages(slug, images, session.email);
+
+    revalidatePath(`/admin/products/${slug}`);
+    revalidatePath(`/product/${slug}`);
+    return { ok: true, message: "Image uploaded", images };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function removeProductImage(slug: string, src: string): Promise<ImageResult> {
+  const session = await requireAdmin();
+  try {
+    const product = await getProductBySlug(slug);
+    if (!product) return { ok: false, error: "Product not found." };
+    const images = product.images.filter((img) => img.src !== src);
+    await setProductImages(slug, images, session.email);
+
+    // Best-effort storage cleanup — path is the part of the public URL after the bucket name.
+    const marker = `/${IMAGE_BUCKET}/`;
+    const idx = src.indexOf(marker);
+    if (idx !== -1) {
+      const path = src.slice(idx + marker.length);
+      await adminDb().storage.from(IMAGE_BUCKET).remove([path]).catch(() => {});
+    }
+
+    revalidatePath(`/admin/products/${slug}`);
+    revalidatePath(`/product/${slug}`);
+    return { ok: true, message: "Image removed", images };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function reorderProductImages(slug: string, orderedSrcs: string[]): Promise<ImageResult> {
+  const session = await requireAdmin();
+  try {
+    const product = await getProductBySlug(slug);
+    if (!product) return { ok: false, error: "Product not found." };
+    const bySrc = new Map(product.images.map((img) => [img.src, img]));
+    const images = orderedSrcs.map((src) => bySrc.get(src)).filter((img): img is { src: string; alt?: string } => Boolean(img));
+    await setProductImages(slug, images, session.email);
+    revalidatePath(`/admin/products/${slug}`);
+    revalidatePath(`/product/${slug}`);
+    return { ok: true, images };
   } catch (err) {
     return fail(err);
   }

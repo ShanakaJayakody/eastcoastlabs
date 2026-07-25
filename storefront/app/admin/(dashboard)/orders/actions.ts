@@ -3,7 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
 import { adminDb } from "@/lib/admin/db";
-import { markPaid, setStatus, refundOrder, cancelOrder, type OrderStatus } from "@/lib/admin/orders";
+import {
+  markPaid,
+  setStatus,
+  refundOrder,
+  refundOrderItems,
+  updatePendingOrderItemQty,
+  removeOrderItem,
+  cancelOrder,
+  type OrderStatus,
+  type LineRefund,
+} from "@/lib/admin/orders";
 import { queueEmail } from "@/lib/admin/email";
 import { logAudit } from "@/lib/admin/audit";
 
@@ -93,6 +103,61 @@ export async function refund(orderId: string): Promise<ActionResult> {
       });
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+export interface RefundLinesResult {
+  ok: boolean;
+  error?: string;
+  refundedCents?: number;
+  fullyRefunded?: boolean;
+}
+
+/** Refund specific quantities on specific lines — works on pending or paid+ orders. */
+export async function refundLines(orderId: string, refunds: LineRefund[]): Promise<RefundLinesResult> {
+  const session = await requireAdmin();
+  try {
+    const result = await refundOrderItems(orderId, refunds, { actor: session.email });
+    const info = await orderEmail(orderId);
+    if (info)
+      await queueEmail({
+        to: info.email,
+        template: "order_refunded",
+        payload: { order_number: info.number, amount_cents: result.refundedCents },
+        relatedType: "order",
+        // Distinct per call (unlike the full-refund path, which fires once) so a
+        // second partial refund on the same order isn't deduped as identical.
+        relatedId: `${orderId}:${Date.now()}`,
+      });
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath("/admin/orders");
+    return { ok: true, refundedCents: result.refundedCents, fullyRefunded: result.fullyRefunded };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Edit a line's quantity on a still-pending order (server-priced, stock-safe). */
+export async function editItemQty(orderId: string, itemId: string, newQty: number): Promise<ActionResult> {
+  const session = await requireAdmin();
+  try {
+    await updatePendingOrderItemQty(orderId, itemId, newQty, { actor: session.email });
+    revalidatePath(`/admin/orders/${orderId}`);
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Remove a line entirely from a still-pending order. */
+export async function removeItem(orderId: string, itemId: string): Promise<ActionResult> {
+  const session = await requireAdmin();
+  try {
+    await removeOrderItem(orderId, itemId, { actor: session.email });
+    revalidatePath(`/admin/orders/${orderId}`);
     return { ok: true };
   } catch (err) {
     return fail(err);

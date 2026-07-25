@@ -6,6 +6,7 @@ import { getOrder } from "@/lib/admin/order-queries";
 import { formatAud } from "@/lib/format";
 import StatusBadge from "@/components/admin/StatusBadge";
 import OrderActions from "@/components/admin/OrderActions";
+import OrderItemsPanel from "@/components/admin/OrderItemsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -44,57 +45,22 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* Items */}
-          <section className="rounded-xl border border-line bg-surface">
-            <div className="border-b border-line px-4 py-3">
-              <h3 className="text-sm font-semibold text-fg">Items</h3>
-            </div>
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-line">
-                {order.items.map((it) => (
-                  <tr key={it.id}>
-                    <td className="px-4 py-3">
-                      <span className="text-fg-2">{it.product_name}</span>
-                      <span className="block text-xs text-muted">
-                        {it.variant_label}
-                        {it.sku ? ` · ${it.sku}` : " · accessory"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-muted">
-                      {cents(it.unit_price_cents)} × {it.qty}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-fg">
-                      {cents(it.line_total_cents)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <dl className="space-y-1.5 border-t border-line px-4 py-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted">Subtotal</dt>
-                <dd className="text-fg-2">{cents(order.subtotal_cents)}</dd>
-              </div>
-              {order.discount_cents > 0 && (
-                <div className="flex justify-between">
-                  <dt className="text-muted">
-                    Discount {order.discount_code && <span className="font-mono text-xs">{order.discount_code}</span>}
-                  </dt>
-                  <dd className="text-success">−{cents(order.discount_cents)}</dd>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <dt className="text-muted">Shipping</dt>
-                <dd className="text-fg-2">
-                  {order.shipping_cents === 0 ? "Free" : cents(order.shipping_cents)}
-                </dd>
-              </div>
-              <div className="flex justify-between border-t border-line pt-1.5 text-base">
-                <dt className="font-semibold text-fg">Total</dt>
-                <dd className="font-semibold text-fg">{cents(order.total_cents)}</dd>
-              </div>
-            </dl>
-          </section>
+          {/* Items — editable while pending, refundable once paid+ */}
+          <OrderItemsPanel
+            orderId={order.id}
+            status={order.status}
+            items={order.items}
+            subtotalCents={order.subtotal_cents}
+            discountCents={order.discount_cents}
+            discountCode={order.discount_code}
+            shippingCents={order.shipping_cents}
+            totalCents={order.total_cents}
+          />
+          {order.refunded_cents > 0 && (
+            <p className="text-right text-xs text-warn">
+              Total refunded to date: {cents(order.refunded_cents)}
+            </p>
+          )}
 
           {/* Timeline */}
           <section className="rounded-xl border border-line bg-surface">

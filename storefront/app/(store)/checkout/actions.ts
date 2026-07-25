@@ -13,6 +13,7 @@
 import { resolveCart, type ClientCartLine } from "@/lib/checkout";
 import { createOrder } from "@/lib/admin/orders";
 import { validateDiscount } from "@/lib/admin/discounts";
+import { captureCart, markCartRecovered } from "@/lib/admin/cart-recovery";
 
 export interface CheckoutAddress {
   line1: string;
@@ -85,6 +86,23 @@ export async function quoteCart(
   };
 }
 
+/** Capture email + cart for abandoned-cart recovery. Fire-and-forget from the
+ *  client (email blur); never blocks or errors the checkout flow. */
+export async function captureCartEmail(email: string, lines: ClientCartLine[]): Promise<void> {
+  if (!email?.includes("@") || !lines?.length) return;
+  try {
+    const resolved = await resolveCart(lines);
+    const named = lines.map((l) => ({
+      name: l.slug,
+      variantLabel: l.variantLabel,
+      quantity: l.quantity,
+    }));
+    await captureCart(email, named, resolved.subtotalCents);
+  } catch {
+    /* best-effort — never surfaces to the shopper */
+  }
+}
+
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   const invalid = validate(input);
   if (invalid) return { ok: false, error: invalid };
@@ -113,6 +131,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       paymentMethod: "bank_transfer",
       actor: input.email.trim().toLowerCase(),
     });
+
+    // Best-effort: suppression failing must never break checkout, but it should
+    // be visible server-side rather than silently swallowed (a failure here means
+    // a real customer could get a stale "you left this in your cart" email).
+    await markCartRecovered(input.email, order.orderId).catch((err) =>
+      console.error("markCartRecovered failed:", err),
+    );
 
     return {
       ok: true,

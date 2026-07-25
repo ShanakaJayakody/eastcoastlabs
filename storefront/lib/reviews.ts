@@ -104,6 +104,21 @@ export async function getSiteAggregate(): Promise<{ rating: number; count: numbe
   return { rating: round1(sum / rows.length), count: rows.length };
 }
 
+/** Most recent published reviews site-wide, for testimony sections. Empty when none exist — never padded. */
+export async function getRecentReviews(limit = 3): Promise<(Review & { productSlug: string })[]> {
+  const rows = await fetchPublished();
+  return rows.slice(0, limit).map((r) => ({
+    productSlug: r.product_slug,
+    author: r.author,
+    location: r.location ?? undefined,
+    rating: r.rating,
+    date: r.created_at.slice(0, 10),
+    verified: r.verified,
+    title: r.title,
+    body: r.body,
+  }));
+}
+
 /** Batched aggregates for a list of slugs — used by decorateCards(). */
 export async function getAggregates(
   slugs: string[],

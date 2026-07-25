@@ -65,11 +65,13 @@ export interface OrderDetail {
   tracking_number: string | null;
   notes: string | null;
   stock_settled: boolean;
+  refunded_cents: number;
   created_at: string;
   paid_at: string | null;
   shipped_at: string | null;
   items: {
     id: string;
+    variant_id: string | null;
     product_name: string | null;
     product_slug: string | null;
     variant_label: string | null;
@@ -77,6 +79,8 @@ export interface OrderDetail {
     unit_price_cents: number;
     qty: number;
     line_total_cents: number;
+    refunded_qty: number;
+    refunded_cents: number;
   }[];
   events: {
     type: string;
@@ -97,7 +101,9 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
   const [{ data: items }, { data: events }] = await Promise.all([
     db
       .from("order_items")
-      .select("id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents")
+      .select(
+        "id, variant_id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents, refunded_qty, refunded_cents",
+      )
       .eq("order_id", id),
     db
       .from("order_events")

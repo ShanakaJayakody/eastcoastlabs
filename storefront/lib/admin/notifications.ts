@@ -2,8 +2,12 @@
  * Back-in-stock automation — the storefront has been collecting these emails
  * (stock_notifications) with nothing to trigger them. A restock now queues them.
  *
- * Idempotent: rows are flipped to notified=true as they're queued, so a second
- * restock of the same variant never re-emails the same person.
+ * Atomic claim: the UPDATE...RETURNING below claims (flips notified=true) and
+ * reads the rows in ONE statement, not a select-then-loop-then-update. The old
+ * three-step version had a real race (a second restock landing between the
+ * select and the update would re-queue the same waiting shopper) — SystemsThinking
+ * review surfaced this pattern; fixed here rather than only in the new
+ * abandoned-cart code that would otherwise have copied it.
  */
 import { adminDb } from "./db";
 import { queueEmail } from "./email";
@@ -21,13 +25,16 @@ export async function queueBackInStock(variantId: string): Promise<number> {
 
   const product = (variant as unknown as { products: { slug: string; name: string } }).products;
 
-  const { data: waiting } = await db
+  // Atomic claim: flips notified=true and returns the claimed rows in one round
+  // trip, so a concurrent restock can never see (and re-queue) the same rows.
+  const { data: claimed } = await db
     .from("stock_notifications")
-    .select("id, email")
+    .update({ notified: true })
     .eq("product_slug", product.slug)
-    .eq("notified", false);
+    .eq("notified", false)
+    .select("id, email");
 
-  const rows = waiting ?? [];
+  const rows = claimed ?? [];
   if (!rows.length) return 0;
 
   for (const row of rows) {
@@ -43,7 +50,6 @@ export async function queueBackInStock(variantId: string): Promise<number> {
       relatedType: "product_variant",
       relatedId: variantId,
     });
-    await db.from("stock_notifications").update({ notified: true }).eq("id", row.id as string);
   }
 
   return rows.length;

@@ -12,6 +12,8 @@ import {
   saveThreshold,
   adjustStock,
 } from "@/app/admin/(dashboard)/products/actions";
+import RichTextEditor from "./RichTextEditor";
+import ProductImages from "./ProductImages";
 
 const REASONS: { value: MovementReason; label: string }[] = [
   { value: "received", label: "Stock received" },
@@ -75,17 +77,12 @@ export default function ProductEditor({
               <input value={name} onChange={(e) => setName(e.target.value)} className={field} />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-muted">Short description (HTML)</label>
-              <textarea
-                rows={3}
-                value={shortDesc}
-                onChange={(e) => setShortDesc(e.target.value)}
-                className={field}
-              />
+              <label className="mb-1 block text-xs text-muted">Short description</label>
+              <RichTextEditor value={shortDesc} onChange={setShortDesc} minHeight={80} />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-muted">Full description (HTML)</label>
-              <textarea rows={8} value={desc} onChange={(e) => setDesc(e.target.value)} className={field} />
+              <label className="mb-1 block text-xs text-muted">Full description</label>
+              <RichTextEditor value={desc} onChange={setDesc} minHeight={200} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
@@ -134,6 +131,8 @@ export default function ProductEditor({
             </button>
           </div>
         </section>
+
+        <ProductImages slug={product.slug} images={product.images} />
 
         {/* ---- Variants: price, threshold, stock ---- */}
         <section className="rounded-xl border border-line bg-surface">

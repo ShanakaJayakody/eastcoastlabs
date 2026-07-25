@@ -77,7 +77,7 @@ interface RawProduct {
   name: string;
   sku: string | null;
   status: string;
-  images: { src?: string }[] | null;
+  images: { src?: string; alt?: string }[] | null;
   short_description: string | null;
   description: string | null;
   seo_title: string | null;
@@ -128,6 +128,7 @@ export interface ProductDetail extends ProductListRow {
   description: string | null;
   seo_title: string | null;
   seo_description: string | null;
+  images: { src: string; alt?: string }[];
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
@@ -155,7 +156,28 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     description: p.description,
     seo_title: p.seo_title,
     seo_description: p.seo_description,
+    images: (p.images ?? []).filter((img): img is { src: string; alt?: string } => Boolean(img?.src)),
   };
+}
+
+/** Replace a product's images array (upload/remove/reorder all funnel through this). */
+export async function setProductImages(
+  slug: string,
+  images: { src: string; alt?: string }[],
+  actor: string,
+): Promise<void> {
+  const { error } = await adminDb()
+    .from("products")
+    .update({ images, updated_at: new Date().toISOString() })
+    .eq("slug", slug);
+  if (error) throw new Error(`setProductImages: ${error.message}`);
+  await logAudit({
+    actor,
+    action: "product.images",
+    entityType: "product",
+    entityId: slug,
+    diff: { count: images.length },
+  });
 }
 
 export interface ProductPatch {

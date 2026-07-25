@@ -4,11 +4,16 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Pencil } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { ProductListRow } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
-import { bulkAdjustStock, bulkPriceChange } from "@/app/admin/(dashboard)/products/actions";
+import {
+  bulkAdjustStock,
+  bulkPriceChange,
+  saveVariantPrice,
+  adjustStock,
+} from "@/app/admin/(dashboard)/products/actions";
 
 const cents = (c: number) => formatAud(c / 100);
 
@@ -26,6 +31,15 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
   const [reason, setReason] = useState<MovementReason>("received");
   const [pct, setPct] = useState("");
   const [pending, start] = useTransition();
+
+  // Inline price edit: click the price cell, type, Enter/blur to save.
+  const [editingPrice, setEditingPrice] = useState<string | null>(null);
+  const [priceDraft, setPriceDraft] = useState("");
+
+  // Inline stock quick-adjust: click "Available" to expand a compact form row.
+  const [editingStock, setEditingStock] = useState<string | null>(null);
+  const [stockQty, setStockQty] = useState("");
+  const [stockReason, setStockReason] = useState<MovementReason>("received");
 
   const allVariantIds = useMemo(
     () => products.flatMap((p) => p.variants.map((v) => v.id)),
@@ -199,24 +213,122 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
                       {v.label}
                       <span className="block font-mono text-xs text-muted-2">{v.sku}</span>
                     </td>
-                    <td className="px-3 py-2 text-right text-fg-2">{cents(v.price_cents)}</td>
+                    <td className="px-3 py-2 text-right">
+                      {editingPrice === v.id ? (
+                        <input
+                          autoFocus
+                          value={priceDraft}
+                          onChange={(e) => setPriceDraft(e.target.value.replace(/[^\d.]/g, ""))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.currentTarget.blur();
+                            if (e.key === "Escape") setEditingPrice(null);
+                          }}
+                          onBlur={() => {
+                            const next = Number(priceDraft);
+                            setEditingPrice(null);
+                            if (!Number.isFinite(next) || next < 0 || next === v.price_cents / 100) return;
+                            start(async () => {
+                              const res = await saveVariantPrice(p.slug, v.id, next);
+                              if (res.ok) {
+                                toast.success(res.message ?? "Price updated");
+                                router.refresh();
+                              } else toast.error(res.error ?? "Failed");
+                            });
+                          }}
+                          className="w-20 rounded-md border border-accent bg-ink-2 px-1.5 py-0.5 text-right text-sm text-fg outline-none"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditingPrice(v.id);
+                            setPriceDraft((v.price_cents / 100).toFixed(2));
+                          }}
+                          className="group inline-flex items-center gap-1 text-fg-2 hover:text-accent"
+                        >
+                          {cents(v.price_cents)}
+                          <Pencil size={11} className="opacity-0 group-hover:opacity-100" />
+                        </button>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-right text-fg-2">{v.on_hand}</td>
                     <td className="px-3 py-2 text-right">
-                      <span
-                        className={`inline-flex items-center gap-1 font-medium ${
-                          low ? "text-warn" : "text-fg"
-                        }`}
+                      <button
+                        onClick={() => {
+                          setEditingStock(editingStock === v.id ? null : v.id);
+                          setStockQty("");
+                        }}
+                        className="inline-flex items-center gap-1 hover:opacity-80"
                       >
-                        {low && <AlertTriangle size={13} />}
-                        {v.available}
-                      </span>
+                        <span
+                          className={`inline-flex items-center gap-1 font-medium ${
+                            low ? "text-warn" : "text-fg"
+                          }`}
+                        >
+                          {low && <AlertTriangle size={13} />}
+                          {v.available}
+                        </span>
+                      </button>
                       {v.reserved > 0 && (
                         <span className="block text-xs text-muted-2">{v.reserved} reserved</span>
                       )}
                     </td>
                   </tr>
                 );
-              }),
+              }).concat(
+                p.variants
+                  .filter((v) => editingStock === v.id)
+                  .map((v) => (
+                    <tr key={`${v.id}-stock`} className="bg-ink-2">
+                      <td colSpan={6} className="px-3 py-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs text-muted">Quick stock adjust for {v.sku}:</span>
+                          <input
+                            autoFocus
+                            placeholder="Qty ±"
+                            value={stockQty}
+                            onChange={(e) => setStockQty(e.target.value.replace(/[^\d-]/g, ""))}
+                            className={`${field} w-20`}
+                          />
+                          <select
+                            value={stockReason}
+                            onChange={(e) => setStockReason(e.target.value as MovementReason)}
+                            className={field}
+                          >
+                            {REASONS.map((r) => (
+                              <option key={r.value} value={r.value}>
+                                {r.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            disabled={pending || !stockQty}
+                            onClick={() => {
+                              const delta = Number(stockQty);
+                              start(async () => {
+                                const res = await adjustStock(p.slug, v.id, delta, stockReason);
+                                if (res.ok) {
+                                  toast.success(res.message ?? "Stock updated");
+                                  setEditingStock(null);
+                                  setStockQty("");
+                                  router.refresh();
+                                } else toast.error(res.error ?? "Failed");
+                              });
+                            }}
+                            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink disabled:opacity-50"
+                          >
+                            Apply
+                          </button>
+                          <button
+                            onClick={() => setEditingStock(null)}
+                            className="text-xs text-muted hover:text-fg"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )),
+              ),
             )}
           </tbody>
         </table>

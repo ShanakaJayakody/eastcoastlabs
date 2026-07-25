@@ -12,6 +12,10 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
+    "@tiptap/extension-link": "^3.29.0",
+    "@tiptap/pm": "^3.29.0",
+    "@tiptap/react": "^3.29.0",
+    "@tiptap/starter-kit": "^3.29.0",
     "cmdk": "^1.1.1",
     "lucide-react": "^1.26.0",
     "marked": "^15.0.7",
@@ -19,6 +23,7 @@
     "pg": "^8.22.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "resend": "^6.18.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7"
   },

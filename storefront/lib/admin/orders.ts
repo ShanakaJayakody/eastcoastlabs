@@ -95,7 +95,7 @@ interface VariantRow {
 
 async function addEvent(
   orderId: string,
-  type: "created" | "status" | "note" | "email" | "payment" | "stock",
+  type: "created" | "status" | "note" | "email" | "payment" | "stock" | "refund" | "edit",
   opts: { from?: OrderStatus; to?: OrderStatus; message?: string; actor?: string } = {},
 ): Promise<void> {
   await adminDb().from("order_events").insert({
@@ -251,12 +251,17 @@ interface OrderRow {
   stock_reserved: boolean;
   stock_settled: boolean;
   stock_restored: boolean;
+  refunded_cents: number;
+  shipping_cents: number;
+  total_cents: number;
 }
 
 async function loadOrder(orderId: string): Promise<OrderRow> {
   const { data, error } = await adminDb()
     .from("orders")
-    .select("id, status, discount_code, stock_reserved, stock_settled, stock_restored")
+    .select(
+      "id, status, discount_code, stock_reserved, stock_settled, stock_restored, refunded_cents, shipping_cents, total_cents",
+    )
     .eq("id", orderId)
     .maybeSingle();
   if (error) throw new Error(`loadOrder: ${error.message}`);
@@ -393,4 +398,262 @@ export async function refundOrder(orderId: string, opts: { actor?: string } = {}
   await db.from("orders").update({ status: "refunded", updated_at: new Date().toISOString() }).eq("id", orderId);
   await addEvent(orderId, "status", { from: order.status, to: "refunded", actor: opts.actor });
   await logAudit({ actor: opts.actor ?? "system", action: "order.refund", entityType: "order", entityId: orderId });
+}
+
+// ---------------------------------------------------------------------------
+// Partial refunds (line-level)
+//
+// FirstPrinciples invariants (see ISA Changelog for the full analysis):
+//  1. "how much is left to refund" is read from order_items.refunded_qty —
+//     NEVER trusted from the caller. qty <= item.qty - item.refunded_qty, always.
+//  2. Stock is restored only if the order's stock was actually decremented
+//     (stock_settled). A still-pending order's lines were only RESERVED, so
+//     refunding them releases the reservation instead of fabricating a return.
+//  3. "Fully refunded" is DERIVED (every line's refunded_qty == qty), not a
+//     second flag that can drift from the line data.
+// ---------------------------------------------------------------------------
+
+export interface LineRefund {
+  itemId: string;
+  qty: number;
+}
+
+interface FullOrderItemRow {
+  id: string;
+  variant_id: string | null;
+  qty: number;
+  refunded_qty: number;
+  refunded_cents: number;
+  unit_price_cents: number;
+}
+
+export interface RefundItemsResult {
+  refundedCents: number;
+  fullyRefunded: boolean;
+}
+
+/** Refund specific quantities of specific lines. Works on pending or paid+ orders. */
+export async function refundOrderItems(
+  orderId: string,
+  refunds: LineRefund[],
+  opts: { actor?: string } = {},
+): Promise<RefundItemsResult> {
+  const db = adminDb();
+  const order = await loadOrder(orderId);
+  if (order.status === "cancelled" || order.status === "refunded")
+    throw new Error(`Cannot refund an order that is already ${order.status}.`);
+  if (!refunds.length) throw new Error("No refund lines provided.");
+
+  const ids = refunds.map((r) => r.itemId);
+  const { data: rows, error } = await db
+    .from("order_items")
+    .select("id, variant_id, qty, refunded_qty, refunded_cents, unit_price_cents")
+    .in("id", ids)
+    .eq("order_id", orderId);
+  if (error) throw new Error(`refundOrderItems: ${error.message}`);
+  const byId = new Map((rows as FullOrderItemRow[]).map((r) => [r.id, r]));
+
+  let refundedCents = 0;
+  for (const r of refunds) {
+    const item = byId.get(r.itemId);
+    if (!item) throw new Error(`Order item ${r.itemId} not found on this order.`);
+    const remaining = item.qty - item.refunded_qty;
+    if (r.qty <= 0 || r.qty > remaining)
+      throw new Error(`Cannot refund ${r.qty} — only ${remaining} left to refund on this line.`);
+
+    const amountCents = item.unit_price_cents * r.qty;
+    refundedCents += amountCents;
+
+    // Absolute-value write from the row just read. Refund calls on a single order
+    // are issued sequentially by one admin action — never concurrently — so this
+    // read-then-write is safe without a Postgres-side atomic increment.
+    await db
+      .from("order_items")
+      .update({
+        refunded_qty: item.refunded_qty + r.qty,
+        refunded_cents: item.refunded_cents + amountCents,
+      })
+      .eq("id", r.itemId);
+
+    // Stock: restore only what was actually decremented. A pending order's lines
+    // were only reserved — release the reservation instead of a phantom return.
+    if (item.variant_id) {
+      if (order.stock_settled) {
+        await recordMovement({
+          variantId: item.variant_id,
+          qty: r.qty,
+          reason: "return",
+          orderId,
+          actor: opts.actor,
+          note: "partial refund",
+        });
+      } else {
+        await releaseStock(item.variant_id, r.qty);
+      }
+    }
+  }
+
+  // Fully refunded is derived: re-read every line and check the sums.
+  const { data: allItems } = await db
+    .from("order_items")
+    .select("qty, refunded_qty")
+    .eq("order_id", orderId);
+  const fullyRefunded = (allItems ?? []).every((i) => i.refunded_qty >= i.qty);
+
+  // When every line is refunded, shipping is refunded too (parity with the
+  // full-order refundOrder() path) — orders.refunded_cents lands exactly on
+  // total_cents rather than stopping short by the shipping amount.
+  const newRefundedCents = fullyRefunded
+    ? order.total_cents
+    : order.refunded_cents + refundedCents;
+
+  await db
+    .from("orders")
+    .update({ refunded_cents: newRefundedCents, updated_at: new Date().toISOString() })
+    .eq("id", orderId);
+
+  if (fullyRefunded && canTransition(order.status, "refunded")) {
+    await db.from("orders").update({ status: "refunded", stock_restored: true }).eq("id", orderId);
+    await addEvent(orderId, "status", { from: order.status, to: "refunded", actor: opts.actor });
+  }
+
+  await addEvent(orderId, "refund", {
+    message: `Refunded ${refunds.reduce((s, r) => s + r.qty, 0)} item(s) — $${(refundedCents / 100).toFixed(2)}`,
+    actor: opts.actor,
+  });
+  await logAudit({
+    actor: opts.actor ?? "system",
+    action: "order.refund_partial",
+    entityType: "order",
+    entityId: orderId,
+    diff: { refunds, refundedCents, fullyRefunded },
+  });
+
+  return { refundedCents, fullyRefunded };
+}
+
+// ---------------------------------------------------------------------------
+// Pending-order editing (pre-payment only — stock is still just a reservation)
+// ---------------------------------------------------------------------------
+
+/** Adjust a line's quantity on a still-pending order. Re-reserves/releases stock
+ *  and recalculates totals server-side. Throws if stock is insufficient. */
+export async function updatePendingOrderItemQty(
+  orderId: string,
+  itemId: string,
+  newQty: number,
+  opts: { actor?: string } = {},
+): Promise<void> {
+  const db = adminDb();
+  const order = await loadOrder(orderId);
+  if (order.status !== "pending")
+    throw new Error("Only pending orders can have their quantities edited.");
+  if (newQty < 0) throw new Error("Quantity cannot be negative.");
+
+  const { data: item } = await db
+    .from("order_items")
+    .select("id, variant_id, qty, unit_price_cents")
+    .eq("id", itemId)
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (!item) throw new Error("Order item not found.");
+
+  if (newQty === 0) {
+    await removeOrderItem(orderId, itemId, opts);
+    return;
+  }
+
+  const delta = newQty - item.qty;
+  if (item.variant_id && delta > 0) {
+    const ok = await reserveStock(item.variant_id, delta);
+    if (!ok) throw new Error("Not enough stock available for that quantity.");
+  } else if (item.variant_id && delta < 0) {
+    await releaseStock(item.variant_id, -delta);
+  }
+
+  await db
+    .from("order_items")
+    .update({ qty: newQty, line_total_cents: item.unit_price_cents * newQty })
+    .eq("id", itemId);
+
+  await recalculateOrderTotals(orderId);
+  await addEvent(orderId, "edit", { message: `Item quantity changed to ${newQty}.`, actor: opts.actor });
+  await logAudit({
+    actor: opts.actor ?? "system",
+    action: "order.edit_qty",
+    entityType: "order",
+    entityId: orderId,
+    diff: { itemId, from: item.qty, to: newQty },
+  });
+}
+
+/** Remove a line entirely from a still-pending order (releases its reservation). */
+export async function removeOrderItem(
+  orderId: string,
+  itemId: string,
+  opts: { actor?: string } = {},
+): Promise<void> {
+  const db = adminDb();
+  const order = await loadOrder(orderId);
+  if (order.status !== "pending")
+    throw new Error("Only pending orders can have items removed.");
+
+  const { data: item } = await db
+    .from("order_items")
+    .select("id, variant_id, qty, product_name")
+    .eq("id", itemId)
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (!item) throw new Error("Order item not found.");
+
+  if (item.variant_id) await releaseStock(item.variant_id, item.qty);
+  await db.from("order_items").delete().eq("id", itemId);
+
+  await recalculateOrderTotals(orderId);
+  await addEvent(orderId, "edit", { message: `Removed ${item.product_name ?? "item"} from order.`, actor: opts.actor });
+  await logAudit({
+    actor: opts.actor ?? "system",
+    action: "order.remove_item",
+    entityType: "order",
+    entityId: orderId,
+    diff: { itemId },
+  });
+}
+
+/** Recompute subtotal/discount/shipping/total from the current line items —
+ *  the same server-authoritative math createOrder uses, so an edited order's
+ *  total is never hand-adjusted. */
+async function recalculateOrderTotals(orderId: string): Promise<void> {
+  const db = adminDb();
+  const { data: items } = await db
+    .from("order_items")
+    .select("line_total_cents")
+    .eq("order_id", orderId);
+  const subtotal = (items ?? []).reduce((s, i) => s + (i.line_total_cents as number), 0);
+
+  const { data: order } = await db
+    .from("orders")
+    .select("discount_code")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  let discountCents = 0;
+  if (order?.discount_code) {
+    const d = await validateDiscount(order.discount_code, subtotal);
+    if (d.ok) discountCents = d.discountCents;
+  }
+  const afterDiscount = subtotal - discountCents;
+  const shippingCents = afterDiscount >= FREE_SHIPPING_THRESHOLD * 100 ? 0 : afterDiscount > 0 ? 1200 : 0;
+  const total = afterDiscount + shippingCents;
+
+  await db
+    .from("orders")
+    .update({
+      subtotal_cents: subtotal,
+      discount_cents: discountCents,
+      shipping_cents: shippingCents,
+      total_cents: total,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
 }

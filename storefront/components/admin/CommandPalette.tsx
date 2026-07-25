@@ -57,12 +57,45 @@ function groupItems(items: CommandItem[]): CommandGroup[] {
  * invokes `onSelect`, then closes. SSR-safe: the portal is only created on the
  * client, after mount.
  */
-export function CommandPalette({ items }: { items: CommandItem[] }): JSX.Element {
+export interface CommandPaletteProps {
+  items: CommandItem[];
+  /** Optional async data search (orders/products/customers). Debounced client-side;
+   *  results are merged ahead of the static nav items so they surface first. */
+  onSearch?: (query: string) => Promise<CommandItem[]>;
+}
+
+export function CommandPalette({ items, onSearch }: CommandPaletteProps): JSX.Element {
   const [mounted, setMounted] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
+  const [query, setQuery] = useState("");
+  const [dynamicItems, setDynamicItems] = useState<CommandItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const groups = useMemo(() => groupItems(items), [items]);
+  // Debounced async search: fires 250ms after typing stops, cancelled on unmount
+  // or the next keystroke. Two chars minimum keeps single-key noise off the wire.
+  useEffect(() => {
+    if (!onSearch) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = query.trim();
+    if (q.length < 2) {
+      setDynamicItems([]);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      onSearch(q)
+        .then(setDynamicItems)
+        .catch(() => setDynamicItems([]));
+    }, 250);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, onSearch]);
+
+  const groups = useMemo(
+    () => groupItems([...dynamicItems, ...items]),
+    [items, dynamicItems],
+  );
 
   // Mark as mounted so the portal is never created during SSR / first paint.
   useEffect(() => {
@@ -80,6 +113,8 @@ export function CommandPalette({ items }: { items: CommandItem[] }): JSX.Element
       }
       if (event.key === "Escape") {
         setOpen(false);
+        setQuery("");
+        setDynamicItems([]);
       }
     };
 
@@ -108,19 +143,28 @@ export function CommandPalette({ items }: { items: CommandItem[] }): JSX.Element
     };
   }, [open]);
 
-  const handleSelect = useCallback((item: CommandItem): void => {
-    if (item.href) {
-      window.location.href = item.href;
-    } else {
-      item.onSelect?.();
-    }
+  const close = useCallback((): void => {
     setOpen(false);
+    setQuery("");
+    setDynamicItems([]);
   }, []);
+
+  const handleSelect = useCallback(
+    (item: CommandItem): void => {
+      if (item.href) {
+        window.location.href = item.href;
+      } else {
+        item.onSelect?.();
+      }
+      close();
+    },
+    [close],
+  );
 
   const dialog = (
     <div
       role="presentation"
-      onClick={() => setOpen(false)}
+      onClick={close}
       className="fixed inset-0 z-[100] flex items-start justify-center bg-ink/70 px-4 pt-[12vh] backdrop-blur-sm"
     >
       <div
@@ -148,7 +192,9 @@ export function CommandPalette({ items }: { items: CommandItem[] }): JSX.Element
             </svg>
             <Command.Input
               ref={inputRef}
-              placeholder="Search commands…"
+              value={query}
+              onValueChange={setQuery}
+              placeholder="Search orders, products, customers…"
               className="w-full bg-transparent py-4 text-sm text-fg placeholder:text-muted focus:outline-none"
             />
           </div>

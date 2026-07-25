@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { DollarSign, PackageCheck, BellRing, Star, FlaskConical, Mail, AlertTriangle, Clock } from "lucide-react";
+import { DollarSign, PackageCheck, BellRing, Star, FlaskConical, Mail, AlertTriangle, Clock, ShoppingCart } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { orderMetrics } from "@/lib/admin/order-queries";
 import { lowStockVariants } from "@/lib/admin/products";
 import { queuedEmailCount } from "@/lib/admin/email";
+import { listAbandonedCarts, abandonedCartCount } from "@/lib/admin/cart-recovery";
 import { formatAud } from "@/lib/format";
 import StatCard from "@/components/admin/StatCard";
 import Badge from "@/components/admin/Badge";
@@ -37,7 +38,7 @@ export default async function AdminDashboard() {
     return count ?? 0;
   };
 
-  const [metrics, lowStock, waitlist, subscribers, pendingReviews, coas, queuedEmails] =
+  const [metrics, lowStock, waitlist, subscribers, pendingReviews, coas, queuedEmails, abandonedCount, abandonedCarts] =
     await Promise.all([
       orderMetrics(),
       lowStockVariants(),
@@ -46,6 +47,8 @@ export default async function AdminDashboard() {
       pendingReviewCount(),
       tableCount("coa_batches"),
       queuedEmailCount(),
+      abandonedCartCount(1),
+      listAbandonedCarts(1, 5),
     ]);
 
   const { data: activity } = (await admin
@@ -96,6 +99,12 @@ export default async function AdminDashboard() {
             icon={AlertTriangle}
           />
         </Link>
+        <StatCard
+          label="Abandoned carts"
+          value={String(abandonedCount)}
+          sub="Idle 1h+ · recovery email queued hourly"
+          icon={ShoppingCart}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -175,6 +184,35 @@ export default async function AdminDashboard() {
           </section>
         </div>
       </div>
+
+      {abandonedCarts.length > 0 && (
+        <section className="rounded-xl border border-line bg-surface">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <h3 className="text-sm font-semibold text-fg">Abandoned carts</h3>
+            <span className="text-xs text-muted">
+              {abandonedCarts.filter((c) => c.reminder_sent_at).length} reminder(s) sent
+            </span>
+          </div>
+          <div className="divide-y divide-line">
+            {abandonedCarts.map((c) => (
+              <div key={c.email} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <div>
+                  <span className="text-fg-2">{c.email}</span>
+                  <span className="block text-xs text-muted">
+                    Idle since {new Date(c.updated_at).toLocaleString("en-AU")}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="font-medium text-fg">{cents(c.subtotal_cents)}</span>
+                  <span className="block text-xs text-muted-2">
+                    {c.reminder_sent_at ? "reminder sent" : "not yet reminded"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-xl border border-line bg-surface">
         <div className="border-b border-line px-4 py-3">
