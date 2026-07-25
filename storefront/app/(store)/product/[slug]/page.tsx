@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProducts, type WooProduct } from "@/lib/woo";
+import { withLiveData } from "@/lib/storefront-catalog";
 import { getPricing, type TierCard } from "@/lib/pricing";
 import { getCrossSellSlugs } from "@/lib/crosssells";
 import { getCoaForProduct } from "@/lib/coa";
@@ -66,8 +67,12 @@ function resolveTiers(product: WooProduct, singleMajor: number): TierCard[] | nu
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { products, bySlug } = await loadCatalog();
-  const product = bySlug.get(slug);
-  if (!product) notFound();
+  const base = bySlug.get(slug);
+  if (!base) notFound();
+
+  // Overlay live DB data (admin edits + REAL availability) on top of the JSON
+  // catalog. Server-only module — see lib/storefront-catalog.ts for why.
+  const product = await withLiveData(base);
 
   const minorUnit = product.prices.currency_minor_unit;
   const singleMajor = minorToMajor(product.prices.price, minorUnit);

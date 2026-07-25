@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   env: {
     WOO_API_BASE,
     WOO_CHECKOUT_BASE,
+    // Emergency fallback: "1" restores the legacy WooCommerce checkout hand-off.
+    USE_WOO_CHECKOUT: process.env.USE_WOO_CHECKOUT ?? "",
+  },
+  // Enables forbidden()/unauthorized() so the admin can return a real 403 to an
+  // authenticated-but-not-allow-listed user (see lib/admin/auth.ts).
+  experimental: {
+    authInterrupts: true,
   },
   images: {
     remotePatterns: [

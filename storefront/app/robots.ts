@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/cart", "/api/"],
+      disallow: ["/cart", "/api/", "/admin"],
     },
     sitemap: "https://eastcoastlabs.com.au/sitemap.xml",
   };

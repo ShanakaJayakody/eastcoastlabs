@@ -1,0 +1,40 @@
+import Providers from "@/components/Providers";
+import AnnouncementBar from "@/components/AnnouncementBar";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import CartDrawer from "@/components/CartDrawer";
+import ExitIntentModal from "@/components/ExitIntentModal";
+import Analytics from "@/components/Analytics";
+
+// The storefront shell: everything a shopper sees. Admin routes deliberately do
+// NOT inherit this — no cart, no exit-intent, no GA4.
+export default function StoreLayout({ children }: { children: React.ReactNode }) {
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "East Coast Labs",
+    url: "https://eastcoastlabs.com.au",
+    description:
+      "Australian-owned supplier of research-use-only peptides. Every batch independently tested by JanoShik with the COA published before it ships.",
+    email: "support@eastcoastlabs.com.au",
+    areaServed: "AU",
+  };
+
+  return (
+    <Providers>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
+      <div className="flex min-h-screen flex-col">
+        <AnnouncementBar />
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
+        <CartDrawer />
+        <ExitIntentModal />
+      </div>
+      <Analytics />
+    </Providers>
+  );
+}

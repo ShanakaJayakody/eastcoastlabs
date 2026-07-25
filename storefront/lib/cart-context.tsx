@@ -118,16 +118,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }));
     trackBeginCheckout(gaItems, subtotal);
 
-    // ---- Checkout hand-off ----------------------------------------------
-    // We navigate the shopper to the WooCommerce /checkout page, where the
-    // Bankful gateway runs. This works because the storefront and WooCommerce
-    // are served from the SAME domain: the guest cart built via the Store API
-    // (identified by the Cart-Token cookie + WooCommerce session cookie set
-    // with credentials:"include") is the SAME server-side cart WooCommerce
-    // reads at /checkout. No cart contents are passed in the URL. If the
-    // storefront is ever hosted on a different origin, this shared-cookie
-    // assumption breaks and the cart must be rehydrated server-side instead.
-    window.location.href = checkoutUrl();
+    // ---- Native checkout -------------------------------------------------
+    // Orders are now created in our own database (Supabase) by the checkout
+    // server action, which re-prices every line server-side and reserves stock.
+    // The legacy WooCommerce hand-off is gone; set USE_WOO_CHECKOUT=1 only as an
+    // emergency fallback while Bankful is being wired up.
+    if (process.env.USE_WOO_CHECKOUT === "1") {
+      window.location.href = checkoutUrl();
+      return;
+    }
+    window.location.href = "/checkout";
   }, [lines, subtotal]);
 
   const value: CartContextValue = {
