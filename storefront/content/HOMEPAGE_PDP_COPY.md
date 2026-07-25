@@ -9,9 +9,9 @@
 
 ### Hero Section
 
-**H1:** Lab-grade peptides. Independently tested. Proof published.
+**H1:** Australia's Most Transparent Peptide Source.
 
-**Subheadline:** Every vial tested by JanoShik with the COA published before it ships. Australian owned, dispatched in 1 business day.
+**Subheadline:** Independent lab reports for every batch. Published online, no paywall. 99%+ purity. Same-day dispatch from local stock — no customs, no delays, no guesswork.
 
 **CTAs:**
 - Primary: [Shop bestsellers](/shop/)
