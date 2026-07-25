@@ -20,9 +20,12 @@ const NAV = [
  * same cart state so the funnel past the landing page is identical.
  */
 export default function VariantHeader() {
-  const { count } = useCart();
+  const { itemCount, ready } = useCart();
   const { openCart } = useUI();
   const [menuOpen, setMenuOpen] = useState(false);
+  // `ready` gates on localStorage hydration — rendering the badge before it
+  // resolves would mismatch the server HTML.
+  const count = ready ? itemCount : 0;
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/85 backdrop-blur">

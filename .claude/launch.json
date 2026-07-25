@@ -6,6 +6,19 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["--cwd=/Users/shanakajayakody/eastcoastlabs/storefront", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "storefront-variant",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "--cwd=/Users/shanakajayakody/eastcoastlabs/storefront",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3100"
+      ],
+      "port": 3100
     }
   ]
 }
