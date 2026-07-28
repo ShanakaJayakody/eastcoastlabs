@@ -31,48 +31,141 @@ html {
 }
 
 /* ============================================================
-   A/B VARIANT THEME — "Clinical Light" (route /1)
+   A/B VARIANT THEME — "The Dossier" (route /1)
    ------------------------------------------------------------
    Scoped re-declaration of the @theme tokens. Because every
    Tailwind utility resolves var(--color-*) from the nearest
-   ancestor that defines it, wrapping a subtree in .theme-light
-   re-themes ALL existing components (ProductCard, CoaStrip,
-   Stars, Faq…) with zero per-component forks. The control page
-   at / is untouched.
+   ancestor that defines it, wrapping a subtree in .theme-paper
+   re-themes shared components (ProductCard-derived, CoaStrip
+   data, Faq…) with zero per-component forks. The control page
+   at / is untouched. Typefaces are set via --font-serif/
+   --font-grotesk/--font-data custom properties supplied by
+   next/font (see lib/fonts.ts) on the variant layout root.
    ============================================================ */
-.theme-light {
-  --color-ink: #f7f9fb;
-  --color-ink-2: #eef2f6;
-  --color-surface: #ffffff;
-  --color-surface-2: #f3f6f9;
-  --color-line: #e2e8f0;
-  --color-line-2: #cbd5e1;
-  --color-muted: #5b6676;
-  --color-muted-2: #74808f;
-  --color-fg: #0c1220;
-  --color-fg-2: #33415c;
-  --color-accent: #0b7d74; /* 5.0:1 on white — AA for body text */
-  --color-accent-2: #0b6fa8;
-  --color-accent-ink: #ffffff; /* text ON an accent-filled button */
-  --color-success: #0f7a4d;
-  --color-warn: #a35a00;
+.theme-paper {
+  --color-ink: #f4f2ed; /* warm archival paper — never cool white */
+  --color-ink-2: #ebe8e1;
+  --color-surface: #fbfaf7;
+  --color-surface-2: #f0ede6;
+  --color-line: #d9d4c9;
+  --color-line-2: #b8b2a4;
+  --color-muted: #6e6759;
+  --color-muted-2: #8a8375;
+  --color-fg: #171512;
+  --color-fg-2: #3e3a33;
+  --color-accent: #1a5c4a; /* laboratory green — 6.4:1 on paper */
+  --color-accent-2: #8c2f1b; /* oxide red — reserved for the stamp + sale marks only */
+  --color-accent-ink: #f8f7f2;
+  --color-success: #1a5c4a;
+  --color-warn: #8c5a1b;
+
+  font-family: var(--font-grotesk), var(--font-sans);
 }
 
-/* Paint the document behind the variant so overscroll doesn't flash the dark theme */
-body:has(.theme-light) {
-  background-color: #f7f9fb;
+.theme-paper .font-serif-display {
+  font-family: var(--font-serif), Georgia, serif;
+}
+.theme-paper .font-data {
+  font-family: var(--font-data), var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Neutral card lift — the dark theme's teal glow reads as haze on white */
-.theme-light .card-hover:hover {
-  box-shadow: 0 18px 40px -20px rgba(12, 18, 32, 0.28);
+/* Paint the document behind the variant so overscroll doesn't flash the dark control theme */
+body:has(.theme-paper) {
+  background-color: #f4f2ed;
 }
 
-/* Cool blueprint grid instead of the dark theme's teal grid */
-.theme-light .bg-grid {
-  background-image:
-    linear-gradient(to right, rgba(12, 18, 32, 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(12, 18, 32, 0.045) 1px, transparent 1px);
+/* Dark "specimen viewport" under product photography ONLY. The catalog
+   renders are shot on black with no light-background alternative, so any
+   ink/ink-2 well that directly contains an image becomes a deliberate matte
+   panel — while the same tokens stay paper-light everywhere else (cart-drawer
+   footer, progress tracks). */
+.theme-paper :is(.bg-ink, .bg-ink-2):has(> img, > * > img, > * > * > img) {
+  background-color: #101010;
+  border-color: var(--color-line-2);
+}
+
+/* No card-lift float in the dossier system — flat, hairline-separated */
+.theme-paper .card-hover:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: var(--color-line-2);
+}
+
+/* Corner radius override: 2px max everywhere inside the variant (Tailwind's
+   rounded-xl/rounded-2xl/rounded-full utilities read this custom property
+   indirectly via the arbitrary-radius classes below). Components that use
+   fixed rounded-xl etc. are restyled per-component in v2/*.tsx instead of
+   relying on a blanket override, since Tailwind radii aren't var-driven. */
+
+/* ---- Dossier document furniture ---- */
+
+/* Section number + label rule: "01 / THE CLAIM" with a hairline that draws in */
+.dossier-rule {
+  position: relative;
+  border-top: 1px solid var(--color-line);
+}
+.dossier-rule::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 1px;
+  width: 100%;
+  background: var(--color-line-2);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s var(--ease-brand, ease);
+}
+.dossier-rule.is-visible::before {
+  transform: scaleX(1);
+}
+
+/* Continuous batch ticker */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 42s linear infinite;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* Certificate stamp */
+.stamp-seal {
+  filter: drop-shadow(0 1px 0 rgba(23, 21, 18, 0.08));
+}
+
+/* Subtle paper grain on the certificate sheet — fine fractal noise at low
+   opacity via SVG filter, layered under the content with a pseudo-element so
+   it never affects text rendering or hit-testing. */
+.dossier-noise {
+  position: relative;
+  isolation: isolate;
+}
+.dossier-noise::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.05;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Purity count-up target — JS toggles a data attribute; CSS just guarantees
+   tabular numerals so digits don't jitter in width while counting */
+.count-up {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dossier-rule::before { transition: none; transform: scaleX(1); }
+  .ticker-track { animation: none; }
 }
 
 /* ---- Mobile ergonomics ---- */

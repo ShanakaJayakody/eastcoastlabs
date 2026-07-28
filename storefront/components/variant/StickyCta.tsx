@@ -19,20 +19,20 @@ export default function StickyCta() {
 
   return (
     <div
-      className={`pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur transition-transform duration-300 md:hidden ${
+      className={`pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line-2 bg-ink/97 px-4 py-3 backdrop-blur transition-transform duration-300 md:hidden ${
         shown ? "translate-y-0" : "translate-y-full"
       }`}
     >
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-fg">Every batch COA-verified</p>
+          <p className="truncate font-data text-[11px] uppercase tracking-wide text-fg">Batch-verified</p>
           <p className="truncate text-[11px] text-muted">Free shipping over $150 · AU dispatch</p>
         </div>
         <Link
           href="/shop"
-          className="btn-press shrink-0 rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-accent-ink"
+          className="shrink-0 border border-fg bg-fg px-5 py-2.5 font-data text-[12px] font-medium uppercase tracking-wide text-ink"
         >
-          Shop peptides
+          Browse catalog
         </Link>
       </div>
     </div>

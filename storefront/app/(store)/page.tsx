@@ -16,6 +16,7 @@ import { getStacks } from "@/lib/stacks";
 import GuaranteeBand from "@/components/GuaranteeBand";
 import Reveal from "@/components/Reveal";
 import { getCollections } from "@/lib/collections";
+import VariantTag from "@/components/VariantTag";
 
 export const revalidate = 300;
 
@@ -69,6 +70,10 @@ export default async function HomePage() {
 
   return (
     <div>
+      {/* Control arm of the /1 homepage split test. Renders nothing; stamps
+          ecl_variant=control (first touch wins) for conversion attribution. */}
+      <VariantTag variant="control" />
+
       {faqJsonLd && (
         <script
           type="application/ld+json"

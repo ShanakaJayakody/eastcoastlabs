@@ -1,31 +1,35 @@
 import Providers from "@/components/Providers";
 import CartDrawer from "@/components/CartDrawer";
 import Analytics from "@/components/Analytics";
-import VariantHeader from "@/components/variant/VariantHeader";
-import VariantFooter from "@/components/variant/VariantFooter";
+import DossierHeader from "@/components/variant/v2/DossierHeader";
+import DossierFooter from "@/components/variant/v2/DossierFooter";
+import { newsreader, inter, plexMono } from "@/lib/fonts";
 
 /**
- * A/B variant shell (route /1).
+ * A/B variant shell (route /1) — "The Dossier" redesign.
  *
- * Deliberately does NOT reuse the (store) layout: the dark Header/Footer would
- * fight the light page and defeat the point of the test. What it DOES share is
+ * Deliberately does NOT reuse the (store) layout: this is a full visual
+ * redesign, not a re-theme. What it DOES share with the control site is
  * everything downstream of the landing page — Providers (cart + UI state),
- * CartDrawer, and Analytics — so a shopper who lands on /1 hits the exact same
- * funnel as one who lands on /. The test isolates design, not mechanics.
+ * CartDrawer, and Analytics — so a shopper who lands on /1 hits the exact
+ * same funnel as one who lands on /. The test isolates design, not mechanics.
  *
- * ExitIntentModal is intentionally omitted: "calm confidence, no urgency
- * theatre" is part of the hypothesis being tested.
+ * ExitIntentModal is intentionally omitted: calm confidence, no urgency
+ * theatre, is part of the design thesis.
  *
- * `.theme-light` re-declares the design tokens for this subtree only — see
- * globals.css. Every shared component inside re-themes automatically.
+ * `.theme-paper` re-declares the design tokens for this subtree only (see
+ * globals.css); the font variables from next/font are applied on the same
+ * root element so --font-serif/--font-grotesk/--font-data resolve only here.
  */
 export default function VariantLayout({ children }: { children: React.ReactNode }) {
   return (
     <Providers>
-      <div className="theme-light flex min-h-screen flex-col bg-ink text-fg">
-        <VariantHeader />
+      <div
+        className={`theme-paper flex min-h-screen flex-col bg-ink text-fg ${newsreader.variable} ${inter.variable} ${plexMono.variable}`}
+      >
+        <DossierHeader />
         <main className="flex-1">{children}</main>
-        <VariantFooter />
+        <DossierFooter />
         <CartDrawer />
       </div>
       <Analytics />

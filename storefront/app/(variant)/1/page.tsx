@@ -6,26 +6,29 @@ import { getAllCoa } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import { getStacks } from "@/lib/stacks";
 import { getCollections } from "@/lib/collections";
-import { getSiteAggregate } from "@/lib/reviews";
+import { getSiteAggregate, getRecentReviews } from "@/lib/reviews";
 import { getSettings } from "@/lib/settings";
 import { decorateCards } from "@/lib/storefront-catalog";
-import ProductCard from "@/components/ProductCard";
-import CoaStrip from "@/components/CoaStrip";
-import Faq from "@/components/Faq";
-import StackCard from "@/components/StackCard";
-import Reveal from "@/components/Reveal";
-import ReviewSummary from "@/components/ReviewSummary";
-import EmailCapture from "@/components/EmailCapture";
-import TrustStrip from "@/components/variant/TrustStrip";
-import MetricsBand, { type Metric } from "@/components/variant/MetricsBand";
+import VariantTag from "@/components/VariantTag";
 import StickyCta from "@/components/variant/StickyCta";
+import MastheadStrip from "@/components/variant/v2/MastheadStrip";
+import ChapterMarker from "@/components/variant/v2/ChapterMarker";
+import CertificateCard from "@/components/variant/v2/CertificateCard";
+import SquareStars from "@/components/variant/v2/SquareStars";
+import BatchTicker from "@/components/variant/v2/BatchTicker";
+import LedgerTable from "@/components/variant/v2/LedgerTable";
+import CatalogSection from "@/components/variant/v2/CatalogSection";
+import MethodRule from "@/components/variant/v2/MethodRule";
+import ProtocolCard from "@/components/variant/v2/ProtocolCard";
+import ContractPanel from "@/components/variant/v2/ContractPanel";
+import Testimony from "@/components/variant/v2/Testimony";
+import DispatchGrid from "@/components/variant/v2/DispatchGrid";
+import DossierFaq from "@/components/variant/v2/DossierFaq";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/env";
 
 export const revalidate = 300;
 
-/**
- * `/1` is the A/B variant arm of the homepage test. It must never be indexed —
- * it is near-duplicate content of `/`, which stays canonical.
- */
+/** `/1` is the A/B variant arm. Near-duplicate of `/` — never indexed. */
 export const metadata: Metadata = {
   title: "Research peptides, independently tested — East Coast Labs",
   description:
@@ -36,18 +39,26 @@ export const metadata: Metadata = {
 
 const BESTSELLER_SLUGS = ["tesamorelin", "mots-c", "semax", "selank", "bpc-157", "tb-500", "glow", "ghk-cu"];
 
+function formatProofDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+}
+
 export default async function VariantHomePage() {
-  const [products, coaAll, copy, stacks, settings] = await Promise.all([
+  const [products, coaAll, copy, stacks, settings, recentReviews] = await Promise.all([
     getProducts(20),
     getAllCoa(),
     getHomeCopy(),
     getStacks(),
     getSettings(),
+    getRecentReviews(3),
   ]);
   const siteRating = await getSiteAggregate();
   const collections = getCollections();
   const featuredStacks = stacks.slice(0, 2);
-  const coa = coaAll.slice(0, 6);
+  const ledgerRecords = coaAll.slice(0, 6);
+  const latestBatch = coaAll[0];
 
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
@@ -55,279 +66,171 @@ export default async function VariantHomePage() {
 
   const heroProduct = bySlug.get("bpc-157") ?? products[0];
   const heroImage = heroProduct?.images?.[0]?.src;
-  const heroBatch = coa[0];
-
-  // Metrics are COMPUTED from real data — never asserted. Business-scale claims
-  // (orders shipped, years trading) are deliberately absent until substantiated.
-  const avgPurity =
-    coaAll.length > 0 ? coaAll.reduce((s, r) => s + r.purity_pct, 0) / coaAll.length : 0;
-  const metrics: Metric[] = [
-    ...(coaAll.length > 0
-      ? [
-          {
-            value: String(coaAll.length),
-            label: "Batches published",
-            sub: "Every COA on the Lab Results page",
-          },
-          {
-            value: `${avgPurity.toFixed(2)}%`,
-            label: "Average measured purity",
-            sub: "Across all published batches",
-          },
-        ]
-      : []),
-    { value: String(products.length), label: "Compounds stocked", sub: "Research use only" },
-    { value: "1 day", label: "Dispatch time", sub: "Business days, shipped from Australia" },
-  ];
 
   return (
     <div>
-      {/* ── Announcement bar ─────────────────────────────────────── */}
-      <div className="border-b border-line bg-surface-2">
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-x-8 px-4 py-2.5 text-center text-[11px] font-medium text-fg-2 sm:text-xs">
-          {settings.announcementItems.map((item, i) => (
-            <span key={item} className={i === 0 ? "" : i === 1 ? "hidden sm:inline" : "hidden lg:inline"}>
-              {item}
-            </span>
-          ))}
-        </div>
-      </div>
+      <VariantTag variant="v1" />
+      <MastheadStrip items={settings.announcementItems} />
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-line">
-        <div className="pointer-events-none absolute inset-0 bg-grid bg-grid-fade" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-[1.1fr_0.9fr] lg:py-24">
-          <div className="max-w-xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
-              Independently tested · Research use only
+      {/* ══ 01 / THE CLAIM ══════════════════════════════════════ */}
+      <section className="mx-auto max-w-[1200px] px-6">
+        <ChapterMarker n="01" title="The Claim" />
+        <div className="grid gap-12 py-12 lg:grid-cols-12 lg:gap-10 lg:py-20">
+          <div className="lg:col-span-7 lg:border-r lg:border-line lg:pr-10">
+            <p className="font-data text-[11px] uppercase tracking-[0.15em] text-accent">
+              Research-grade peptides — Australia
             </p>
-
-            <h1 className="mt-4 text-balance text-4xl font-bold leading-[1.08] tracking-tight text-fg sm:text-5xl lg:text-[3.4rem]">
-              Lab-grade peptides.
+            <h1 className="font-serif-display mt-4 max-w-xl text-[2.6rem] leading-[1.03] tracking-tight text-fg sm:text-[3.4rem] lg:text-[3.8rem]">
+              Every batch tested.
               <br />
-              Independently tested.
+              Every result published.
               <br />
-              <span className="text-accent">Proof published.</span>
+              Before it ships.
             </h1>
-
-            <p className="mt-6 max-w-lg text-lg leading-relaxed text-muted">
+            <p className="mt-6 max-w-md text-[1.0625rem] leading-relaxed text-muted">
               {copy.heroSub ||
-                "Every vial tested by JanoShik with the COA published before it ships. Australian owned, dispatched in 1 business day."}
+                "Every vial is analysed by JanoShik, an independent laboratory, and the certificate goes public before the product is listed."}
             </p>
 
             {siteRating && (
-              <ReviewSummary rating={siteRating.rating} count={siteRating.count} size={16} className="mt-6" />
+              <div className="mt-6 flex items-center gap-2.5">
+                <SquareStars rating={siteRating.rating} size={10} />
+                <span className="font-data text-[12px] text-muted-2">
+                  {siteRating.rating.toFixed(1)} ({siteRating.count} review{siteRating.count === 1 ? "" : "s"})
+                </span>
+              </div>
             )}
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-9 flex flex-wrap items-center gap-6">
               <Link
                 href="/shop"
-                className="btn-press rounded-lg bg-accent px-7 py-4 text-sm font-semibold text-accent-ink shadow-sm transition hover:brightness-110"
+                className="border border-fg bg-fg px-7 py-3.5 font-data text-[13px] font-medium uppercase tracking-wide text-ink transition hover:opacity-85"
               >
-                Shop peptides
+                Browse the catalog
               </Link>
-              <Link
-                href="/lab-results"
-                className="btn-press rounded-lg border border-line-2 bg-surface px-7 py-4 text-sm font-semibold text-fg transition hover:border-accent hover:text-accent"
-              >
-                See our lab results
+              <Link href="/lab-results" className="font-data text-[13px] uppercase tracking-wide text-accent underline underline-offset-4">
+                Read our lab results →
               </Link>
             </div>
+
+            {latestBatch && (
+              <p className="mt-8 font-data text-[11px] tracking-wide text-muted-2">
+                LATEST: BATCH {latestBatch.batch_id} · {latestBatch.compound.toUpperCase()} ·{" "}
+                {latestBatch.purity_pct.toFixed(2)}% · {latestBatch.lab.toUpperCase()} ·{" "}
+                {formatProofDate(latestBatch.test_date)}
+              </p>
+            )}
 
             <p className="mt-6 text-xs text-muted-2">
               Research use only — not for human or animal consumption.
             </p>
           </div>
 
-          {/* Visual: product on white with a real certificate card. No glow, no
-              particles — the control page owns that language. */}
-          {heroImage && (
-            <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-              <div className="relative aspect-square rounded-3xl border border-line bg-surface shadow-[0_30px_70px_-40px_rgba(12,18,32,0.45)]">
+          <div className="lg:col-span-5">
+            {latestBatch ? (
+              <CertificateCard record={latestBatch} />
+            ) : heroImage ? (
+              <div className="relative aspect-square border border-line-2 bg-ink-2">
                 <Image
                   src={heroImage}
                   alt="East Coast Labs research peptide vial"
                   fill
                   priority
-                  sizes="(max-width: 1024px) 90vw, 45vw"
-                  className="object-contain p-12"
+                  sizes="(max-width: 1024px) 90vw, 40vw"
+                  className="object-contain p-10"
                 />
               </div>
-
-              {heroBatch && (
-                <div className="absolute -bottom-5 left-1/2 w-[min(22rem,92%)] -translate-x-1/2 rounded-xl border border-line bg-surface p-4 shadow-[0_18px_40px_-18px_rgba(12,18,32,0.35)]">
-                  <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-success/10 text-success">
-                      ✓
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-fg">
-                        {heroBatch.compound} · {heroBatch.purity_pct.toFixed(2)}% purity
-                      </p>
-                      <p className="truncate font-mono text-[11px] text-muted-2">
-                        Batch #{heroBatch.batch_id} · {heroBatch.lab} · {heroBatch.test_date}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+            ) : null}
+          </div>
         </div>
       </section>
 
-      {/* ── Trust pillars ────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 pb-4 pt-16 lg:pt-20">
-        <Reveal className="reveal">
-          <TrustStrip />
-        </Reveal>
-      </section>
-
-      {/* ── Latest verified batches ──────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-fg">
-              {copy.proofHeading || "Latest batch results — updated with every restock"}
+      {/* ══ 02 / THE LEDGER ═════════════════════════════════════ */}
+      <section>
+        <div className="mx-auto max-w-[1200px] px-6">
+          <ChapterMarker n="02" title="The Ledger" />
+          <div className="mb-8 mt-6 flex flex-wrap items-end justify-between gap-3">
+            <h2 className="font-serif-display text-3xl text-fg">
+              {copy.proofHeading || "Latest batch results"}
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{copy.proofSupport}</p>
+            <Link href="/lab-results" className="font-data text-[12px] uppercase tracking-wide text-accent underline underline-offset-2">
+              Complete archive →
+            </Link>
           </div>
-          <Link href="/lab-results" className="link-sweep text-sm font-semibold text-accent">
-            View all results →
-          </Link>
         </div>
-        <Reveal className="reveal">
-          <CoaStrip records={coa} />
-        </Reveal>
+        <BatchTicker records={coaAll} />
+        <div className="mx-auto max-w-[1200px] px-6 py-12">
+          <LedgerTable records={ledgerRecords} />
+        </div>
       </section>
 
-      {/* ── Bestsellers ──────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-4">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold tracking-tight text-fg">
-            {copy.bestsellersHeading || "Bestselling research peptides"}
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{copy.bestsellersIntro}</p>
-        </div>
-        <Reveal className="stagger grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {grid.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </Reveal>
+      {/* ══ 03 / THE CATALOG ════════════════════════════════════ */}
+      <section className="mx-auto max-w-[1200px] px-6 py-16">
+        <ChapterMarker n="03" title="The Catalog" />
         <div className="mt-8">
-          <Link
-            href="/shop"
-            className="btn-press inline-block rounded-lg border border-line-2 bg-surface px-6 py-3 text-sm font-semibold text-fg transition hover:border-accent hover:text-accent"
-          >
-            Browse the full catalog →
+          <CatalogSection products={grid} collections={collections} />
+        </div>
+        <div className="mt-8">
+          <Link href="/shop" className="font-data text-[12px] uppercase tracking-wide text-accent underline underline-offset-2">
+            Index: all {products.length} compounds →
           </Link>
         </div>
       </section>
 
-      {/* ── Shop by research goal ────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="text-2xl font-bold tracking-tight text-fg">Shop by research goal</h2>
-        <p className="mt-2 text-sm text-muted">
-          Find the compounds studied for the outcome you&apos;re researching.
-        </p>
-        <Reveal className="stagger mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {collections.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/collections/${c.slug}`}
-              className="card-hover flex flex-col gap-2 rounded-xl border border-line bg-surface p-5 hover:border-accent"
-            >
-              <span className="text-2xl" aria-hidden>
-                {c.icon}
-              </span>
-              <span className="text-sm font-semibold text-fg">{c.name}</span>
-              <span className="text-xs leading-relaxed text-muted">{c.tagline}</span>
-            </Link>
-          ))}
-        </Reveal>
-      </section>
-
-      {/* ── Measured proof ───────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 py-4">
-        <Reveal className="reveal">
-          <MetricsBand metrics={metrics} />
-        </Reveal>
-      </section>
-
-      {/* ── How testing works ────────────────────────────────────── */}
+      {/* ══ 04 / THE METHOD ═════════════════════════════════════ */}
       {copy.steps.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-16">
-          <h2 className="text-2xl font-bold tracking-tight text-fg">How our testing works</h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted">
-            The same four steps for every batch, with nothing tested in-house.
-          </p>
-          <Reveal className="stagger mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {copy.steps.map((step, i) => (
-              <div key={i} className="relative border-t-2 border-line pt-5">
-                <span className="absolute -top-[2px] left-0 h-[2px] w-10 bg-accent" aria-hidden />
-                <p className="font-mono text-xs font-semibold text-accent">
-                  {String(i + 1).padStart(2, "0")}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-fg">{step.title}</p>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{step.body}</p>
-              </div>
-            ))}
-          </Reveal>
+        <section className="mx-auto max-w-[1200px] px-6 py-16">
+          <ChapterMarker n="04" title="The Method" />
+          <h2 className="font-serif-display mt-6 text-3xl text-fg">Chain of custody</h2>
           <div className="mt-8">
-            <Link href="/lab-results" className="link-sweep text-sm font-semibold text-accent">
-              See every published certificate →
-            </Link>
+            <MethodRule steps={copy.steps} />
           </div>
-        </section>
-      )}
-
-      {/* ── Research stacks ──────────────────────────────────────── */}
-      {featuredStacks.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-16">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-fg">Research stacks</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-                The peptides most commonly studied together, priced below single vials. One
-                shipment, matching COAs.
-              </p>
-            </div>
-            <Link href="/stacks" className="link-sweep text-sm font-semibold text-accent">
-              View all stacks →
-            </Link>
-          </div>
-          <Reveal className="stagger grid gap-6 sm:grid-cols-2">
-            {featuredStacks.map((stack) => (
-              <StackCard key={stack.slug} stack={stack} />
-            ))}
-          </Reveal>
-        </section>
-      )}
-
-      {/* ── FAQ ──────────────────────────────────────────────────── */}
-      {copy.faq.length > 0 && (
-        <section className="mx-auto max-w-3xl px-4 py-16">
-          <h2 className="mb-6 text-2xl font-bold tracking-tight text-fg">Frequently asked questions</h2>
-          <Reveal className="reveal">
-            <Faq items={copy.faq} />
-          </Reveal>
-        </section>
-      )}
-
-      {/* ── Email capture ────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 pb-20">
-        <div className="rounded-2xl border border-line bg-surface px-6 py-12 text-center sm:px-12">
-          <h2 className="text-2xl font-bold tracking-tight text-fg">
-            Batch releases and restock alerts
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
-            New COAs and back-in-stock notifications, sent when they happen. No sequences, no
-            pressure.
+          <p className="font-serif-display mt-10 max-w-2xl text-lg italic leading-snug text-fg-2">
+            "If any independent lab finds your batch below our stated purity, we refund it — and pay
+            for the test."
           </p>
-          <div className="mx-auto mt-6 max-w-md text-left">
-            <EmailCapture source="variant_home_v1" cta="Keep me posted" placeholder="you@lab.com" />
+        </section>
+      )}
+
+      {/* ══ 05 / THE PROTOCOLS ══════════════════════════════════ */}
+      {featuredStacks.length > 0 && (
+        <section className="mx-auto max-w-[1200px] px-6 py-16">
+          <ChapterMarker n="05" title="The Protocols" />
+          <div className="mb-8 mt-6 flex flex-wrap items-end justify-between gap-3">
+            <h2 className="font-serif-display text-3xl text-fg">Filed together, priced together</h2>
+            <Link href="/stacks" className="font-data text-[12px] uppercase tracking-wide text-accent underline underline-offset-2">
+              View all protocols →
+            </Link>
           </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {featuredStacks.map((stack, i) => (
+              <ProtocolCard key={stack.slug} stack={stack} index={i + 1} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ══ 06 / THE CONTRACT ═══════════════════════════════════ */}
+      <section className="mx-auto max-w-[1200px] px-6 py-16">
+        <ChapterMarker n="06" title="The Contract" />
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <ContractPanel />
+          <Testimony reviews={recentReviews} aggregate={siteRating} />
         </div>
+      </section>
+
+      {/* ══ 07 / DISPATCH ═══════════════════════════════════════ */}
+      <section className="mx-auto max-w-[1200px] px-6 py-16">
+        <ChapterMarker n="07" title="Dispatch" />
+        <div className="mt-8">
+          <DispatchGrid freeShippingThreshold={FREE_SHIPPING_THRESHOLD} />
+        </div>
+        {copy.faq.length > 0 && (
+          <div className="mt-16">
+            <h2 className="font-serif-display mb-2 text-2xl text-fg">Frequently asked questions</h2>
+            <DossierFaq items={copy.faq} />
+          </div>
+        )}
       </section>
 
       <StickyCta />
