@@ -38,25 +38,41 @@ export default async function AdminDashboard() {
     return count ?? 0;
   };
 
-  const [metrics, lowStock, waitlist, subscribers, pendingReviews, coas, queuedEmails, abandonedCount, abandonedCarts] =
-    await Promise.all([
-      orderMetrics(),
-      lowStockVariants(),
-      tableCount("stock_notifications"),
-      tableCount("subscribers"),
-      pendingReviewCount(),
-      tableCount("coa_batches"),
-      queuedEmailCount(),
-      abandonedCartCount(1),
-      listAbandonedCarts(1, 5),
-    ]);
+  // Every dashboard read fires in one batch — the audit feed used to run after
+  // the others, adding a whole extra database round trip to first paint.
+  const recentActivity = async (): Promise<AuditRow[]> => {
+    if (!admin) return [];
+    const { data } = await admin
+      .from("admin_audit_log")
+      .select("actor_email, action, created_at")
+      .order("created_at", { ascending: false })
+      .limit(8);
+    return (data ?? []) as AuditRow[];
+  };
 
-  const { data: activity } = (await admin
-    ?.from("admin_audit_log")
-    .select("actor_email, action, created_at")
-    .order("created_at", { ascending: false })
-    .limit(8)) ?? { data: [] as AuditRow[] };
-  const events = (activity ?? []) as AuditRow[];
+  const [
+    metrics,
+    lowStock,
+    waitlist,
+    subscribers,
+    pendingReviews,
+    coas,
+    queuedEmails,
+    abandonedCount,
+    abandonedCarts,
+    events,
+  ] = await Promise.all([
+    orderMetrics(),
+    lowStockVariants(),
+    tableCount("stock_notifications"),
+    tableCount("subscribers"),
+    pendingReviewCount(),
+    tableCount("coa_batches"),
+    queuedEmailCount(),
+    abandonedCartCount(1),
+    listAbandonedCarts(1, 5),
+    recentActivity(),
+  ]);
 
   return (
     <div className="space-y-8">
