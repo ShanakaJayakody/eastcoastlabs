@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "// regions": "Run functions in Sydney, next to the Supabase ap-southeast-2 database. Default (iad1, Washington DC) put every query on a ~200ms trans-Pacific round trip.",
   "regions": ["syd1"],
   "crons": [
     { "path": "/api/cron/email-outbox", "schedule": "0 3 * * *" },
