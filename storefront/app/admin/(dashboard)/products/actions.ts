@@ -9,6 +9,9 @@ import {
   adjustStockWithNotify,
   setProductImages,
   getProductBySlug,
+  createProduct,
+  duplicateProduct,
+  tierPriceCents,
   type ProductPatch,
 } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
@@ -45,6 +48,92 @@ export async function saveProduct(slug: string, patch: ProductPatch): Promise<Ac
     await updateProduct(slug, patch, session.email);
     revalidateProduct(slug);
     return { ok: true, message: "Product saved" };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Create a product from the "Add product" form. Lands the operator in the editor. */
+export async function createProductAction(input: {
+  name: string;
+  compound?: string;
+  shortDescription?: string;
+  singlePriceAud: number;
+  pack3PriceAud: number;
+  pack6PriceAud: number;
+  initialStock?: number;
+  status: "active" | "draft";
+}): Promise<ActionResult & { slug?: string }> {
+  const session = await requireAdmin();
+  if (!input.name?.trim()) return { ok: false, error: "Product name is required." };
+  if (!Number.isFinite(input.singlePriceAud) || input.singlePriceAud <= 0) {
+    return { ok: false, error: "Enter a 1-vial price." };
+  }
+  try {
+    const { slug } = await createProduct(
+      {
+        name: input.name,
+        compound: input.compound,
+        short_description: input.shortDescription,
+        status: input.status,
+        initialStock: input.initialStock,
+        variants: [
+          { pack_size: 1, label: "1 vial", price_cents: Math.round(input.singlePriceAud * 100) },
+          { pack_size: 3, label: "3-pack", price_cents: Math.round(input.pack3PriceAud * 100) },
+          { pack_size: 6, label: "6-pack", price_cents: Math.round(input.pack6PriceAud * 100) },
+        ],
+      },
+      session.email,
+    );
+    revalidateProduct(slug);
+    return { ok: true, slug, message: "Product created" };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Clone an existing product as a draft — fastest path to a near-identical SKU. */
+export async function duplicateProductAction(slug: string): Promise<ActionResult & { slug?: string }> {
+  const session = await requireAdmin();
+  try {
+    const created = await duplicateProduct(slug, session.email);
+    revalidateProduct(created.slug);
+    return { ok: true, slug: created.slug, message: "Product duplicated" };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Suggested 3/6-pack prices for a given 1-vial price (used live by the create form). */
+export async function suggestTierPrices(singleAud: number): Promise<{ pack3: number; pack6: number }> {
+  const cents = Math.round(singleAud * 100);
+  return { pack3: tierPriceCents(cents, 3) / 100, pack6: tierPriceCents(cents, 6) / 100 };
+}
+
+/**
+ * Atomic save of everything the editor holds: details, SEO, status, per-variant
+ * prices and thresholds. One dirty-state, one commit, one toast — replaces the
+ * five separate save buttons the editor used to have.
+ */
+export async function saveProductAll(
+  slug: string,
+  patch: ProductPatch,
+  variants: { id: string; priceAud: number; threshold: number }[],
+): Promise<ActionResult> {
+  const session = await requireAdmin();
+  for (const v of variants) {
+    if (!Number.isFinite(v.priceAud) || v.priceAud < 0) {
+      return { ok: false, error: "One of the prices isn't a valid number." };
+    }
+  }
+  try {
+    await updateProduct(slug, patch, session.email);
+    for (const v of variants) {
+      await updateVariant(v.id, { price_cents: Math.round(v.priceAud * 100) }, session.email);
+      await setLowStockThreshold(v.id, Math.round(v.threshold), session.email);
+    }
+    revalidateProduct(slug);
+    return { ok: true, message: "All changes saved" };
   } catch (err) {
     return fail(err);
   }

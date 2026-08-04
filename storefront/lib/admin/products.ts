@@ -180,6 +180,184 @@ export async function setProductImages(
   });
 }
 
+// ---------------------------------------------------------------------------
+// Create / duplicate
+// ---------------------------------------------------------------------------
+
+/** ECL's standard pack economics: 3-pack 15% off, 6-pack 25% off the unit price. */
+export const TIER_DISCOUNTS: Record<number, number> = { 1: 0, 3: 0.15, 6: 0.25 };
+
+export const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+/** Suggested per-pack price in cents, from a 1-vial price. */
+export function tierPriceCents(singleCents: number, packSize: number): number {
+  const discount = TIER_DISCOUNTS[packSize] ?? 0;
+  return Math.round((singleCents * packSize * (1 - discount)) / 100) * 100; // whole dollars
+}
+
+/** Unique-ify a slug/sku by appending -2, -3 … so create/duplicate never 409s. */
+async function uniqueValue(
+  table: "products" | "product_variants",
+  column: "slug" | "sku",
+  base: string,
+): Promise<string> {
+  const db = adminDb();
+  for (let n = 1; n < 50; n++) {
+    const candidate = n === 1 ? base : `${base}-${n}`;
+    const { data } = await db.from(table).select("id").eq(column, candidate).maybeSingle();
+    if (!data) return candidate;
+  }
+  return `${base}-${Date.now()}`;
+}
+
+export interface NewVariantInput {
+  pack_size: number;
+  label: string;
+  price_cents: number;
+}
+
+export interface CreateProductInput {
+  name: string;
+  slug?: string;
+  sku?: string;
+  compound?: string;
+  short_description?: string;
+  description?: string;
+  status?: "active" | "draft" | "archived";
+  variants: NewVariantInput[];
+  /** Optional opening stock, applied to every variant via the ledger. */
+  initialStock?: number;
+}
+
+/**
+ * Create a product with its pack tiers. Variants get inventory rows; opening
+ * stock is recorded as a "received" ledger movement (never a direct on_hand
+ * write) so the audit trail is complete from the very first unit.
+ */
+export async function createProduct(
+  input: CreateProductInput,
+  actor: string,
+): Promise<{ slug: string }> {
+  const db = adminDb();
+  const baseSlug = slugify(input.slug || input.name);
+  if (!baseSlug) throw new Error("A product name is required.");
+  const slug = await uniqueValue("products", "slug", baseSlug);
+  const sku = await uniqueValue(
+    "products",
+    "sku",
+    (input.sku || `ECL-${baseSlug.toUpperCase().replace(/-/g, "").slice(0, 10)}`).toUpperCase(),
+  );
+
+  const { data: product, error } = await db
+    .from("products")
+    .insert({
+      slug,
+      name: input.name.trim(),
+      sku,
+      compound: input.compound?.trim() || null,
+      short_description: input.short_description ?? null,
+      description: input.description ?? null,
+      status: input.status ?? "draft",
+      images: [],
+      categories: [],
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`createProduct: ${error.message}`);
+  const productId = product.id as string;
+
+  const variants = input.variants.length
+    ? input.variants
+    : [
+        { pack_size: 1, label: "1 vial", price_cents: 0 },
+        { pack_size: 3, label: "3-pack", price_cents: 0 },
+        { pack_size: 6, label: "6-pack", price_cents: 0 },
+      ];
+
+  for (const [i, v] of variants.entries()) {
+    const variantSku = await uniqueValue("product_variants", "sku", `${sku}-${v.pack_size}`);
+    const { data: created, error: vErr } = await db
+      .from("product_variants")
+      .insert({
+        product_id: productId,
+        sku: variantSku,
+        pack_size: v.pack_size,
+        label: v.label,
+        price_cents: Math.max(0, Math.round(v.price_cents)),
+        position: i,
+      })
+      .select("id")
+      .single();
+    if (vErr) throw new Error(`createProduct(variant ${v.pack_size}): ${vErr.message}`);
+
+    const variantId = created.id as string;
+    await db.from("inventory").insert({ variant_id: variantId }).select().maybeSingle();
+    if (input.initialStock && input.initialStock > 0) {
+      await recordMovement({
+        variantId,
+        qty: Math.round(input.initialStock),
+        reason: "received",
+        actor,
+        note: "opening stock",
+      });
+    }
+  }
+
+  await logAudit({
+    actor,
+    action: "product.create",
+    entityType: "product",
+    entityId: slug,
+    diff: { name: input.name, variants: variants.length, status: input.status ?? "draft" },
+  });
+
+  return { slug };
+}
+
+/**
+ * Clone a product — copy, pricing, images and tier structure, as a draft with a
+ * fresh slug/SKU. Stock is deliberately NOT copied (it's a different physical
+ * item), so the new product starts at zero.
+ */
+export async function duplicateProduct(slug: string, actor: string): Promise<{ slug: string }> {
+  const source = await getProductBySlug(slug);
+  if (!source) throw new Error("Product not found.");
+
+  const created = await createProduct(
+    {
+      name: `${source.name} (copy)`,
+      slug: `${source.slug}-copy`,
+      sku: `${source.sku ?? source.slug.toUpperCase()}-COPY`,
+      short_description: source.short_description ?? undefined,
+      description: source.description ?? undefined,
+      status: "draft",
+      variants: source.variants.map((v) => ({
+        pack_size: v.pack_size,
+        label: v.label,
+        price_cents: v.price_cents,
+      })),
+    },
+    actor,
+  );
+
+  if (source.images.length) {
+    await setProductImages(created.slug, source.images, actor);
+  }
+  await logAudit({
+    actor,
+    action: "product.duplicate",
+    entityType: "product",
+    entityId: created.slug,
+    diff: { from: slug },
+  });
+  return created;
+}
+
 export interface ProductPatch {
   name?: string;
   short_description?: string;

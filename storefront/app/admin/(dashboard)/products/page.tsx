@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { listProducts } from "@/lib/admin/products";
 import ProductsTable from "@/components/admin/ProductsTable";
@@ -52,6 +52,12 @@ export default async function ProductsPage({
           >
             <Download size={15} /> CSV
           </a>
+          <Link
+            href="/admin/products/new"
+            className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink transition hover:brightness-95"
+          >
+            <Plus size={15} /> Add product
+          </Link>
         </div>
       </div>
 

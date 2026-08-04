@@ -26,8 +26,49 @@ export default function AdminShell({
       href: n.href,
       hint: n.phase ? "soon" : undefined,
     }));
+    // Verb-first shortcuts for the jobs done many times a day, so ⌘K reaches an
+    // action — not just a page — in two keystrokes.
+    const actions: CommandItem[] = [
+      {
+        id: "action:new-product",
+        label: "Add product",
+        group: "Actions",
+        href: "/admin/products/new",
+        keywords: ["create", "new", "add", "product", "sku"],
+      },
+      {
+        id: "action:new-order",
+        label: "Create manual order",
+        group: "Actions",
+        href: "/admin/orders/new",
+        keywords: ["new", "order", "manual", "phone", "bank transfer"],
+      },
+      {
+        id: "action:to-fulfil",
+        label: "Orders to fulfil",
+        group: "Actions",
+        href: "/admin/orders",
+        keywords: ["ship", "fulfil", "fulfill", "queue", "pack"],
+      },
+      {
+        id: "action:low-stock",
+        label: "Low stock products",
+        group: "Actions",
+        href: "/admin/products?low=1",
+        keywords: ["restock", "stock", "inventory", "reorder", "low"],
+      },
+      {
+        id: "action:pending-reviews",
+        label: "Review moderation queue",
+        group: "Actions",
+        href: "/admin/reviews",
+        keywords: ["review", "moderate", "approve", "pending"],
+      },
+    ];
+
     return [
       ...nav,
+      ...actions,
       {
         id: "action:signout",
         label: "Sign out",

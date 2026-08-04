@@ -13,8 +13,13 @@ export interface OrderListRow {
   item_count: number;
 }
 
+/** "to_fulfil" is the operator's real default: paid work waiting to go out. */
+export type OrderFilter = OrderStatus | "all" | "to_fulfil";
+
+export const TO_FULFIL: OrderStatus[] = ["paid", "processing"];
+
 export interface OrderListFilters {
-  status?: OrderStatus | "all";
+  status?: OrderFilter;
   search?: string;
   limit?: number;
   offset?: number;
@@ -32,7 +37,8 @@ export async function listOrders(
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (status !== "all") q = q.eq("status", status);
+  if (status === "to_fulfil") q = q.in("status", TO_FULFIL);
+  else if (status !== "all") q = q.eq("status", status);
   if (search?.trim()) {
     const s = search.trim();
     q = q.or(`order_number.ilike.%${s}%,customer_email.ilike.%${s}%,customer_name.ilike.%${s}%`);
@@ -46,6 +52,23 @@ export async function listOrders(
     return { ...rec, item_count: rec.order_items?.[0]?.count ?? 0 };
   });
   return { rows, total: count ?? 0 };
+}
+
+/**
+ * Row counts per status (plus the to_fulfil and all rollups) so the filter tabs
+ * can show live numbers — a queue you can't count isn't a queue.
+ */
+export async function orderStatusCounts(): Promise<Record<string, number>> {
+  const { data, error } = await adminDb().from("orders").select("status");
+  if (error) throw new Error(`orderStatusCounts: ${error.message}`);
+  const counts: Record<string, number> = { all: 0, to_fulfil: 0 };
+  for (const row of data ?? []) {
+    const s = row.status as OrderStatus;
+    counts[s] = (counts[s] ?? 0) + 1;
+    counts.all += 1;
+    if (TO_FULFIL.includes(s)) counts.to_fulfil += 1;
+  }
+  return counts;
 }
 
 export interface OrderDetail {

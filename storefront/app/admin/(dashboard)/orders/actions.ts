@@ -88,6 +88,49 @@ export async function advanceStatus(
   }
 }
 
+/**
+ * Bulk fulfilment: advance many orders at once (typically → shipped). Each order
+ * still goes through setStatus, so stock settlement, events and emails stay
+ * identical to the single-order path. Failures are collected, not swallowed —
+ * a partial batch reports exactly which orders didn't move.
+ */
+export async function bulkAdvanceStatus(
+  orderIds: string[],
+  to: OrderStatus,
+): Promise<ActionResult & { moved?: number; failed?: string[] }> {
+  const session = await requireAdmin();
+  if (!orderIds.length) return { ok: false, error: "No orders selected." };
+
+  const failed: string[] = [];
+  let moved = 0;
+  for (const id of orderIds) {
+    try {
+      await setStatus(id, to, { actor: session.email });
+      if (to === "shipped") {
+        const info = await orderEmail(id);
+        if (info)
+          await queueEmail({
+            to: info.email,
+            template: "order_shipped",
+            payload: { order_number: info.number, tracking_number: null },
+            relatedType: "order",
+            relatedId: id,
+          });
+      }
+      moved += 1;
+    } catch (err) {
+      const info = await orderEmail(id).catch(() => null);
+      failed.push(info?.number ?? id.slice(0, 8));
+      console.error(`bulkAdvanceStatus(${id}):`, err);
+    }
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.join(", ")}`, failed };
+  return { ok: true, moved, failed };
+}
+
 export async function refund(orderId: string): Promise<ActionResult> {
   const session = await requireAdmin();
   try {
