@@ -15,6 +15,7 @@
 import { adminDb } from "./db";
 import { logAudit } from "./audit";
 import { recordMovement, reserveStock, releaseStock } from "./inventory";
+import { snapshotOrderCosts } from "./costs";
 import { validateDiscount, incrementDiscountUsage } from "./discounts";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/env";
 
@@ -300,6 +301,10 @@ export async function markPaid(
     });
     await releaseStock(it.variant_id, it.qty);
   }
+
+  // Freeze COGS onto the lines at the moment of sale. Later supplier price
+  // changes must never rewrite this order's profit.
+  await snapshotOrderCosts(orderId);
 
   await db
     .from("orders")

@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Copy, ExternalLink } from "lucide-react";
 import { formatAud } from "@/lib/format";
+import { marginOf, tierCostCents } from "@/lib/admin/costs";
 import type { ProductDetail, MovementRow } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
 import {
   saveProductAll,
   adjustStock,
   duplicateProductAction,
+  saveUnitCost,
 } from "@/app/admin/(dashboard)/products/actions";
 import RichTextEditor from "./RichTextEditor";
 import ProductImages from "./ProductImages";
@@ -113,19 +115,25 @@ export default function ProductEditor({
   const [adjQty, setAdjQty] = useState<Record<string, string>>({});
   const [adjReason, setAdjReason] = useState<Record<string, MovementReason>>({});
   const [adjNote, setAdjNote] = useState<Record<string, string>>({});
+  const [adjCost, setAdjCost] = useState<Record<string, string>>({});
   const [openHistory, setOpenHistory] = useState<string | null>(null);
+  const [costDraft, setCostDraft] = useState(
+    product.unit_cost_cents == null ? "" : (product.unit_cost_cents / 100).toFixed(2),
+  );
 
   function applyStock(variantId: string) {
     const delta = Number(adjQty[variantId]);
     const reason = adjReason[variantId];
+    const cost = Number(adjCost[variantId]) || null;
     start(async () => {
-      const res = await adjustStock(product.slug, variantId, delta, reason, adjNote[variantId]);
+      const res = await adjustStock(product.slug, variantId, delta, reason, adjNote[variantId], cost);
       if (!res.ok) {
         toast.error(res.error ?? "Failed");
         return;
       }
       setAdjQty((s) => ({ ...s, [variantId]: "" }));
       setAdjNote((s) => ({ ...s, [variantId]: "" }));
+      setAdjCost((s) => ({ ...s, [variantId]: "" }));
       toast.success(res.message ?? "Stock updated", {
         action: {
           label: "Undo",
@@ -203,6 +211,8 @@ export default function ProductEditor({
                 <tr className="border-b border-line">
                   <th className="px-5 py-2 font-medium">Pack</th>
                   <th className="px-3 py-2 font-medium">Price (AUD)</th>
+                  <th className="px-3 py-2 font-medium">Cost</th>
+                  <th className="px-3 py-2 font-medium">Margin</th>
                   <th className="px-3 py-2 font-medium">Low-stock at</th>
                   <th className="px-5 py-2 text-right font-medium">Available</th>
                 </tr>
@@ -210,6 +220,11 @@ export default function ProductEditor({
               <tbody className="divide-y divide-line">
                 {product.variants.map((v) => {
                   const low = v.available <= v.low_stock_threshold;
+                  // Margin follows the price being edited, so the effect of a
+                  // price change is visible before it's saved.
+                  const livePrice = Math.round((Number(form.prices[v.id]) || 0) * 100);
+                  const cost = tierCostCents(product.unit_cost_cents, v.pack_size);
+                  const m = marginOf(livePrice, cost);
                   return (
                     <tr key={v.id}>
                       <td className="px-5 py-3">
@@ -225,6 +240,19 @@ export default function ProductEditor({
                           }
                           className={`${field} max-w-[110px]`}
                         />
+                      </td>
+                      <td className="px-3 py-3 text-muted">
+                        {cost == null ? "—" : formatAud(cost / 100)}
+                      </td>
+                      <td className="px-3 py-3">
+                        {m.marginCents == null ? (
+                          <span className="text-muted-2">—</span>
+                        ) : (
+                          <span className={m.marginCents < 0 ? "text-warn" : "text-success"}>
+                            {formatAud(m.marginCents / 100)}
+                            <span className="ml-1 text-xs opacity-80">({m.marginPct}%)</span>
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-3">
                         <input
@@ -279,6 +307,7 @@ export default function ProductEditor({
                     className={field}
                     aria-label="Vial quantity change"
                   />
+                  {/* Cost only applies to inbound stock; hidden for other reasons. */}
                   <select
                     value={adjReason[pool.id] ?? ""}
                     onChange={(e) =>
@@ -308,6 +337,29 @@ export default function ProductEditor({
                     Apply
                   </button>
                 </div>
+
+                {adjReason[pool.id] === "received" && (
+                  <div className="rounded-lg border border-accent/25 bg-accent/5 p-3">
+                    <label className="mb-1 block text-xs font-medium text-fg-2">
+                      Cost per vial (what you paid) — optional
+                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        inputMode="decimal"
+                        placeholder="e.g. 18.50"
+                        value={adjCost[pool.id] ?? ""}
+                        onChange={(e) =>
+                          setAdjCost({ ...adjCost, [pool.id]: e.target.value.replace(/[^\d.]/g, "") })
+                        }
+                        className={`${field} max-w-[140px]`}
+                      />
+                      <span className="text-xs text-muted">
+                        Updates the weighted-average cost and records this purchase price. Leave
+                        blank to keep the current average.
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* What those vials mean per tier */}
                 <div className="rounded-lg border border-line bg-ink-2 p-3">
@@ -430,6 +482,51 @@ export default function ProductEditor({
               </p>
             </section>
           )}
+
+          {/* ---- Cost basis ---- */}
+          <section className={`${card} p-4`}>
+            <h3 className="mb-1 text-sm font-semibold text-fg">Cost per vial</h3>
+            <p className="mb-2 text-xs text-muted">
+              Weighted average of what you&apos;ve paid. Updates automatically when you enter a cost
+              on a stock receipt.
+            </p>
+            <div className="flex gap-2">
+              <input
+                inputMode="decimal"
+                placeholder={product.unit_cost_cents == null ? "not set" : ""}
+                value={costDraft}
+                onChange={(e) => setCostDraft(e.target.value.replace(/[^\d.]/g, ""))}
+                className={field}
+                aria-label="Cost per vial"
+              />
+              <button
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    const res = await saveUnitCost(
+                      product.slug,
+                      costDraft.trim() === "" ? null : Number(costDraft),
+                    );
+                    if (res.ok) {
+                      toast.success(res.message ?? "Cost updated");
+                      router.refresh();
+                    } else toast.error(res.error ?? "Failed");
+                  })
+                }
+                className={`${btn} shrink-0 border border-line-2 bg-surface-2 text-fg`}
+              >
+                Set
+              </button>
+            </div>
+            {product.unit_cost_cents != null && (
+              <p className="mt-2 text-xs text-muted-2">
+                Stock on hand at cost:{" "}
+                <span className="text-fg-2">
+                  {formatAud((product.unit_cost_cents * vialsOnHand) / 100)}
+                </span>
+              </p>
+            )}
+          </section>
 
           <section className={`${card} p-4 text-sm`}>
             <h3 className="mb-2 text-sm font-semibold text-fg">Summary</h3>

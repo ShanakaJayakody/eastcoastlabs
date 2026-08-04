@@ -27,6 +27,8 @@ export interface ProductListRow {
   name: string;
   sku: string | null;
   status: string;
+  /** Weighted-average cost of ONE vial, in cents (admin-only). */
+  unit_cost_cents: number | null;
   image: string | null;
   variants: VariantRow[];
   totalOnHand: number;
@@ -85,7 +87,7 @@ export function vialsOnHand(variants: { pack_size: number; on_hand: number }[]):
 }
 
 const SELECT_PRODUCT = `
-  id, slug, name, sku, status, images, short_description, description, seo_title, seo_description,
+  id, slug, name, sku, status, images, short_description, description, seo_title, seo_description, unit_cost_cents,
   product_variants (
     id, sku, pack_size, label, price_cents, compare_at_cents, active, position,
     inventory ( on_hand, reserved, low_stock_threshold )
@@ -103,6 +105,7 @@ interface RawProduct {
   description: string | null;
   seo_title: string | null;
   seo_description: string | null;
+  unit_cost_cents: number | null;
   product_variants: RawVariant[];
 }
 
@@ -128,6 +131,7 @@ export async function listProducts(opts: { search?: string; lowStockOnly?: boole
       name: p.name,
       sku: p.sku,
       status: p.status,
+      unit_cost_cents: p.unit_cost_cents ?? null,
       image: firstImage(p.images),
       variants,
       totalOnHand,
@@ -172,6 +176,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     name: p.name,
     sku: p.sku,
     status: p.status,
+    unit_cost_cents: p.unit_cost_cents ?? null,
     image: firstImage(p.images),
     variants,
     totalOnHand: pool.onHand, // vials
@@ -549,6 +554,9 @@ export async function productsCsv(): Promise<string> {
     "label",
     "price_aud",
     "compare_at_aud",
+    "cost_aud",
+    "margin_aud",
+    "margin_pct",
     "on_hand",
     "reserved",
     "available",
@@ -566,6 +574,16 @@ export async function productsCsv(): Promise<string> {
         esc(v.label),
         (v.price_cents / 100).toFixed(2),
         v.compare_at_cents != null ? (v.compare_at_cents / 100).toFixed(2) : "",
+        p.unit_cost_cents != null ? ((p.unit_cost_cents * v.pack_size) / 100).toFixed(2) : "",
+        p.unit_cost_cents != null
+          ? ((v.price_cents - p.unit_cost_cents * v.pack_size) / 100).toFixed(2)
+          : "",
+        p.unit_cost_cents != null && v.price_cents > 0
+          ? (
+              ((v.price_cents - p.unit_cost_cents * v.pack_size) / v.price_cents) *
+              100
+            ).toFixed(1)
+          : "",
         String(v.on_hand),
         String(v.reserved),
         String(v.available),

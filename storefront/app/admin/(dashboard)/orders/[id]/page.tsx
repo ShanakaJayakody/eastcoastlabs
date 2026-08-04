@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Printer } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { getOrder } from "@/lib/admin/order-queries";
+import { profitForOrders } from "@/lib/admin/costs";
 import { formatAud } from "@/lib/format";
 import StatusBadge from "@/components/admin/StatusBadge";
 import OrderActions from "@/components/admin/OrderActions";
@@ -18,6 +19,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const order = await getOrder(id);
   if (!order) notFound();
 
+  const profit = await profitForOrders([id]);
   const addr = order.shipping_address ?? {};
 
   return (
@@ -60,6 +62,31 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
             <p className="text-right text-xs text-warn">
               Total refunded to date: {cents(order.refunded_cents)}
             </p>
+          )}
+
+          {/* Profit — admin-only, from the COGS frozen at payment */}
+          {profit.cogsCents > 0 && (
+            <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Cost of goods</span>
+                <span className="text-fg-2">{cents(profit.cogsCents)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between font-medium">
+                <span className="text-fg">Gross profit</span>
+                <span className={profit.profitCents < 0 ? "text-warn" : "text-success"}>
+                  {cents(profit.profitCents)}
+                  {profit.marginPct != null && (
+                    <span className="ml-1 text-xs opacity-80">({profit.marginPct}%)</span>
+                  )}
+                </span>
+              </div>
+              {profit.uncostedLines > 0 && (
+                <p className="mt-1.5 text-xs text-muted-2">
+                  {profit.uncostedLines} line(s) have no recorded cost — profit is overstated until
+                  those products get a cost per vial.
+                </p>
+              )}
+            </div>
           )}
 
           {/* Timeline */}

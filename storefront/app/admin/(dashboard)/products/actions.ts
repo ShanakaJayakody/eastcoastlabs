@@ -16,6 +16,8 @@ import {
 } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
 import { adminDb } from "@/lib/admin/db";
+import { applyReceiptCost, tagMovementCost, setUnitCost } from "@/lib/admin/costs";
+import { formatAud } from "@/lib/format";
 
 const IMAGE_BUCKET = "product-images";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -186,6 +188,8 @@ export async function adjustStock(
   qty: number,
   reason: MovementReason,
   note?: string,
+  /** Optional purchase price per vial (AUD) — only meaningful on a receipt. */
+  unitCostAud?: number | null,
 ): Promise<ActionResult> {
   const session = await requireAdmin();
   if (!Number.isFinite(qty) || qty === 0) return { ok: false, error: "Enter a non-zero quantity." };
@@ -198,13 +202,50 @@ export async function adjustStock(
       actor: session.email,
       note,
     });
+
+    // A costed receipt updates the weighted-average cost and stamps the price
+    // paid onto the ledger row, so the movement history doubles as the buying
+    // history. Only ever on inbound stock.
+    let costMsg = "";
+    if (reason === "received" && qty > 0 && unitCostAud != null && unitCostAud > 0) {
+      const paidCents = Math.round(unitCostAud * 100);
+      const product = await getProductBySlug(slug);
+      if (product) {
+        await tagMovementCost({ variantId, unitCostCents: paidCents });
+        const avg = await applyReceiptCost({
+          productId: product.id,
+          receivedVials: Math.round(qty),
+          paidCostCents: paidCents,
+        });
+        costMsg = avg != null ? ` · avg cost now ${formatAud(avg / 100)}/vial` : "";
+      }
+    }
+
     revalidateProduct(slug);
     return {
       ok: true,
-      message: notified
-        ? `Stock updated — ${notified} back-in-stock ${notified === 1 ? "email" : "emails"} queued`
-        : "Stock updated",
+      message:
+        (notified
+          ? `Stock updated — ${notified} back-in-stock ${notified === 1 ? "email" : "emails"} queued`
+          : "Stock updated") + costMsg,
     };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/** Manually set a product's cost per vial (no receipt involved). */
+export async function saveUnitCost(slug: string, unitCostAud: number | null): Promise<ActionResult> {
+  await requireAdmin();
+  if (unitCostAud != null && (!Number.isFinite(unitCostAud) || unitCostAud < 0)) {
+    return { ok: false, error: "Enter a valid cost." };
+  }
+  try {
+    const product = await getProductBySlug(slug);
+    if (!product) return { ok: false, error: "Product not found." };
+    await setUnitCost(product.id, unitCostAud == null ? null : Math.round(unitCostAud * 100));
+    revalidateProduct(slug);
+    return { ok: true, message: "Cost updated" };
   } catch (err) {
     return fail(err);
   }

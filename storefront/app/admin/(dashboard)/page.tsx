@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DollarSign, PackageCheck, BellRing, Star, FlaskConical, Mail, AlertTriangle, Clock, ShoppingCart } from "lucide-react";
+import { DollarSign, PackageCheck, BellRing, Star, FlaskConical, Mail, AlertTriangle, Clock, ShoppingCart, TrendingUp } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { orderMetrics } from "@/lib/admin/order-queries";
@@ -8,6 +8,7 @@ import { queuedEmailCount } from "@/lib/admin/email";
 import { listAbandonedCarts, abandonedCartCount } from "@/lib/admin/cart-recovery";
 import { formatAud } from "@/lib/format";
 import StatCard from "@/components/admin/StatCard";
+import { profitSince } from "@/lib/admin/costs";
 import Badge from "@/components/admin/Badge";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +62,8 @@ export default async function AdminDashboard() {
     abandonedCount,
     abandonedCarts,
     events,
+    profitToday,
+    profit30d,
   ] = await Promise.all([
     orderMetrics(),
     lowStockVariants(),
@@ -72,6 +75,8 @@ export default async function AdminDashboard() {
     abandonedCartCount(1),
     listAbandonedCarts(1, 5),
     recentActivity(),
+    profitSince(0),
+    profitSince(30),
   ]);
 
   return (
@@ -90,6 +95,16 @@ export default async function AdminDashboard() {
           value={cents(metrics.revenueToday)}
           sub={`${cents(metrics.revenue7d)} last 7d · ${cents(metrics.revenue30d)} last 30d`}
           icon={DollarSign}
+        />
+        <StatCard
+          label="Gross profit today"
+          value={profitToday.cogsCents > 0 || profitToday.revenueCents > 0 ? cents(profitToday.profitCents) : "—"}
+          sub={
+            profit30d.revenueCents > 0
+              ? `${cents(profit30d.profitCents)} last 30d${profit30d.marginPct != null ? ` · ${profit30d.marginPct}% margin` : ""}${profit30d.uncostedLines > 0 ? ` · ${profit30d.uncostedLines} line(s) uncosted` : ""}`
+              : "Enter a cost per vial to track margin"
+          }
+          icon={TrendingUp}
         />
         <Link href="/admin/orders?status=paid">
           <StatCard
