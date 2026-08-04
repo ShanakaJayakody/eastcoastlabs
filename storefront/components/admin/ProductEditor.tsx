@@ -106,6 +106,10 @@ export default function ProductEditor({
   }
 
   // ---- Stock adjustments stay immediate: they're ledger entries, not edits ----
+  // Stock lives once per product, in vials, on the 1-vial tier.
+  const pool = product.variants.find((v) => v.pack_size === 1) ?? null;
+  const vialsOnHand = pool?.on_hand ?? 0;
+
   const [adjQty, setAdjQty] = useState<Record<string, string>>({});
   const [adjReason, setAdjReason] = useState<Record<string, MovementReason>>({});
   const [adjNote, setAdjNote] = useState<Record<string, string>>({});
@@ -248,92 +252,110 @@ export default function ProductEditor({
             </table>
           </section>
 
-          {/* ---- Inventory (immediate, ledgered) ---- */}
+          {/* ---- Inventory: ONE pool of vials ---- */}
           <section className={card}>
             <div className="border-b border-line px-5 py-3">
               <h3 className="text-sm font-semibold text-fg">Inventory</h3>
               <p className="mt-0.5 text-xs text-muted">
-                Applied immediately and written to the stock ledger — not part of the save above.
+                Stock is counted in vials. Pack tiers draw from this one pool — applied immediately
+                and written to the stock ledger, not part of the save above.
               </p>
             </div>
-            <div className="divide-y divide-line">
-              {product.variants.map((v) => (
-                <div key={v.id} className="space-y-2 px-5 py-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-sm font-medium text-fg">{v.label}</span>
-                    <span className="text-xs text-muted">{v.on_hand} on hand</span>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-[90px_1fr_1fr_auto]">
-                    <input
-                      placeholder="+10"
-                      value={adjQty[v.id] ?? ""}
-                      onChange={(e) =>
-                        setAdjQty({ ...adjQty, [v.id]: e.target.value.replace(/[^\d-]/g, "") })
-                      }
-                      className={field}
-                      aria-label="Quantity change"
-                    />
-                    <select
-                      value={adjReason[v.id] ?? ""}
-                      onChange={(e) =>
-                        setAdjReason({ ...adjReason, [v.id]: e.target.value as MovementReason })
-                      }
-                      className={field}
-                      aria-label="Reason"
-                    >
-                      <option value="">Reason…</option>
-                      {REASONS.map((r) => (
-                        <option key={r.value} value={r.value}>
-                          {r.label}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      placeholder="Note (optional)"
-                      value={adjNote[v.id] ?? ""}
-                      onChange={(e) => setAdjNote({ ...adjNote, [v.id]: e.target.value })}
-                      className={field}
-                    />
-                    <button
-                      disabled={pending || !adjQty[v.id] || !adjReason[v.id]}
-                      onClick={() => applyStock(v.id)}
-                      className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
-                    >
-                      Apply
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setOpenHistory(openHistory === v.id ? null : v.id)}
-                    className="text-xs text-accent-2 hover:underline"
-                  >
-                    {openHistory === v.id ? "Hide" : "Show"} movement history (
-                    {movements[v.id]?.length ?? 0})
-                  </button>
-                  {openHistory === v.id && (
-                    <ul className="space-y-1 rounded-lg border border-line bg-ink-2 p-3 text-xs">
-                      {(movements[v.id] ?? []).length === 0 ? (
-                        <li className="text-muted">No movements recorded.</li>
-                      ) : (
-                        movements[v.id].map((m, i) => (
-                          <li key={i} className="flex justify-between gap-2">
-                            <span className={m.qty > 0 ? "text-success" : "text-warn"}>
-                              {m.qty > 0 ? "+" : ""}
-                              {m.qty}
-                            </span>
-                            <span className="text-muted">{m.reason}</span>
-                            <span className="flex-1 truncate text-muted-2">{m.note ?? ""}</span>
-                            <span className="text-muted-2">{m.actor_email ?? "system"}</span>
-                            <span className="whitespace-nowrap text-muted-2">
-                              {new Date(m.created_at).toLocaleDateString("en-AU")}
-                            </span>
-                          </li>
-                        ))
-                      )}
-                    </ul>
-                  )}
+
+            {pool ? (
+              <div className="space-y-3 px-5 py-4">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium text-fg">Vials on hand</span>
+                  <span className="text-lg font-bold text-fg">{vialsOnHand}</span>
                 </div>
-              ))}
-            </div>
+
+                <div className="grid gap-2 sm:grid-cols-[90px_1fr_1fr_auto]">
+                  <input
+                    placeholder="+10"
+                    value={adjQty[pool.id] ?? ""}
+                    onChange={(e) =>
+                      setAdjQty({ ...adjQty, [pool.id]: e.target.value.replace(/[^\d-]/g, "") })
+                    }
+                    className={field}
+                    aria-label="Vial quantity change"
+                  />
+                  <select
+                    value={adjReason[pool.id] ?? ""}
+                    onChange={(e) =>
+                      setAdjReason({ ...adjReason, [pool.id]: e.target.value as MovementReason })
+                    }
+                    className={field}
+                    aria-label="Reason"
+                  >
+                    <option value="">Reason…</option>
+                    {REASONS.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    placeholder="Note (optional)"
+                    value={adjNote[pool.id] ?? ""}
+                    onChange={(e) => setAdjNote({ ...adjNote, [pool.id]: e.target.value })}
+                    className={field}
+                  />
+                  <button
+                    disabled={pending || !adjQty[pool.id] || !adjReason[pool.id]}
+                    onClick={() => applyStock(pool.id)}
+                    className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
+                  >
+                    Apply
+                  </button>
+                </div>
+
+                {/* What those vials mean per tier */}
+                <div className="rounded-lg border border-line bg-ink-2 p-3">
+                  <p className="mb-1.5 text-xs text-muted">These vials can fill:</p>
+                  <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
+                    {product.variants.map((v) => (
+                      <span key={v.id} className={v.available <= 0 ? "text-warn" : "text-fg-2"}>
+                        <span className="font-semibold">{v.available}</span> × {v.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setOpenHistory(openHistory === pool.id ? null : pool.id)}
+                  className="text-xs text-accent-2 hover:underline"
+                >
+                  {openHistory === pool.id ? "Hide" : "Show"} movement history (
+                  {movements[pool.id]?.length ?? 0})
+                </button>
+                {openHistory === pool.id && (
+                  <ul className="space-y-1 rounded-lg border border-line bg-ink-2 p-3 text-xs">
+                    {(movements[pool.id] ?? []).length === 0 ? (
+                      <li className="text-muted">No movements recorded.</li>
+                    ) : (
+                      movements[pool.id].map((m, i) => (
+                        <li key={i} className="flex justify-between gap-2">
+                          <span className={m.qty > 0 ? "text-success" : "text-warn"}>
+                            {m.qty > 0 ? "+" : ""}
+                            {m.qty}
+                          </span>
+                          <span className="text-muted">{m.reason}</span>
+                          <span className="flex-1 truncate text-muted-2">{m.note ?? ""}</span>
+                          <span className="text-muted-2">{m.actor_email ?? "system"}</span>
+                          <span className="whitespace-nowrap text-muted-2">
+                            {new Date(m.created_at).toLocaleDateString("en-AU")}
+                          </span>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <p className="px-5 py-4 text-sm text-muted">
+                This product has no 1-vial tier, so there is no stock pool to manage.
+              </p>
+            )}
           </section>
 
           {/* ---- SEO ---- */}

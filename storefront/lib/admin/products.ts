@@ -4,7 +4,7 @@
  */
 import { adminDb } from "./db";
 import { logAudit } from "./audit";
-import { recordMovement, type MovementReason } from "./inventory";
+import { recordMovement, packsAvailable, type MovementReason } from "./inventory";
 import { queueBackInStock } from "./notifications";
 
 export interface VariantRow {
@@ -45,9 +45,16 @@ interface RawVariant {
   inventory: { on_hand: number; reserved: number; low_stock_threshold: number } | null;
 }
 
-function mapVariant(v: RawVariant): VariantRow {
-  const onHand = v.inventory?.on_hand ?? 0;
-  const reserved = v.inventory?.reserved ?? 0;
+/**
+ * Map a variant, deriving its availability from the product's VIAL POOL.
+ *
+ * Stock lives once per product, in vials, on the pack_size = 1 variant. A tier's
+ * availability is how many whole packs those vials can fill — so 30 vials means
+ * 30 singles OR 10 three-packs OR 5 six-packs, never all at once.
+ */
+function mapVariant(v: RawVariant, pool: { onHand: number; reserved: number }): VariantRow {
+  const packSize = Math.max(1, v.pack_size || 1);
+  const vialsAvailable = pool.onHand - pool.reserved;
   return {
     id: v.id,
     sku: v.sku,
@@ -56,11 +63,25 @@ function mapVariant(v: RawVariant): VariantRow {
     price_cents: v.price_cents,
     compare_at_cents: v.compare_at_cents,
     low_stock_threshold: v.inventory?.low_stock_threshold ?? 5,
-    on_hand: onHand,
-    reserved,
-    available: onHand - reserved,
+    on_hand: packsAvailable(pool.onHand, packSize),
+    reserved: packSize > 1 ? Math.floor(pool.reserved / packSize) : pool.reserved,
+    available: packsAvailable(vialsAvailable, packSize),
     active: v.active,
   };
+}
+
+/** The vial pool for a product: its pack_size = 1 inventory row. */
+function poolOf(variants: RawVariant[]): { onHand: number; reserved: number } {
+  const single = variants.find((v) => v.pack_size === 1);
+  return {
+    onHand: single?.inventory?.on_hand ?? 0,
+    reserved: single?.inventory?.reserved ?? 0,
+  };
+}
+
+/** Vials physically on hand for a product (the number an operator manages). */
+export function vialsOnHand(variants: { pack_size: number; on_hand: number }[]): number {
+  return variants.find((v) => v.pack_size === 1)?.on_hand ?? 0;
 }
 
 const SELECT_PRODUCT = `
@@ -95,10 +116,12 @@ export async function listProducts(opts: { search?: string; lowStockOnly?: boole
   if (error) throw new Error(`listProducts: ${error.message}`);
 
   let rows: ProductListRow[] = (data as unknown as RawProduct[]).map((p) => {
-    const variants = (p.product_variants ?? [])
-      .map(mapVariant)
+    const raw = p.product_variants ?? [];
+    const pool = poolOf(raw);
+    const variants = raw
+      .map((v) => mapVariant(v, pool))
       .sort((a, b) => a.pack_size - b.pack_size);
-    const totalOnHand = variants.reduce((s, v) => s + v.on_hand, 0);
+    const totalOnHand = pool.onHand; // vials — summing derived pack counts would double-count
     return {
       id: p.id,
       slug: p.slug,
@@ -140,7 +163,9 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   if (error) throw new Error(`getProductBySlug: ${error.message}`);
   if (!data) return null;
   const p = data as unknown as RawProduct;
-  const variants = (p.product_variants ?? []).map(mapVariant).sort((a, b) => a.pack_size - b.pack_size);
+  const raw = p.product_variants ?? [];
+  const pool = poolOf(raw);
+  const variants = raw.map((v) => mapVariant(v, pool)).sort((a, b) => a.pack_size - b.pack_size);
   return {
     id: p.id,
     slug: p.slug,
@@ -149,7 +174,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     status: p.status,
     image: firstImage(p.images),
     variants,
-    totalOnHand: variants.reduce((s, v) => s + v.on_hand, 0),
+    totalOnHand: pool.onHand, // vials
     lowStock: variants.some((v) => v.available <= v.low_stock_threshold),
     minPriceCents: variants.length ? Math.min(...variants.map((v) => v.price_cents)) : 0,
     short_description: p.short_description,
@@ -297,7 +322,9 @@ export async function createProduct(
 
     const variantId = created.id as string;
     await db.from("inventory").insert({ variant_id: variantId }).select().maybeSingle();
-    if (input.initialStock && input.initialStock > 0) {
+    // Opening stock is vials, so it goes to the pool (pack_size 1) only — the
+    // pack tiers derive their availability from it.
+    if (input.initialStock && input.initialStock > 0 && v.pack_size === 1) {
       await recordMovement({
         variantId,
         qty: Math.round(input.initialStock),
