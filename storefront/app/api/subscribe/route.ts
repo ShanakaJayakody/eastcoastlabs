@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { queueEmail } from "@/lib/admin/email";
+import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
 /**
  * Email-capture endpoint — the single seam for the email platform.
  *
  * Persists to Supabase: a `back_in_stock:<slug>` source goes to
  * stock_notifications; everything else (newsletter, exit-intent) goes to
- * subscribers. If Supabase is unconfigured it degrades to a server log, so the
- * form never errors. (A future ESP forward — Klaviyo — slots in right here.)
+ * subscribers, which also queues welcome email 1 immediately (stages 2/3 are
+ * sent by the lifecycle cron sweep). Subscribing again clears any prior
+ * unsubscribe — an explicit opt-in renews consent. If Supabase is unconfigured
+ * it degrades to a server log, so the form never errors.
  */
 export async function POST(req: Request) {
   try {
@@ -29,7 +33,19 @@ export async function POST(req: Request) {
       } else {
         await sb
           .from("subscribers")
-          .upsert({ email, source }, { onConflict: "email,source" });
+          .upsert({ email, source, unsubscribed_at: null }, { onConflict: "email,source" });
+        // Renew consent across every prior source row, then start the welcome series.
+        await sb.from("subscribers").update({ unsubscribed_at: null }).eq("email", email);
+        const unsub = unsubscribeUrl(email);
+        if (unsub) {
+          await queueEmail({
+            to: email,
+            template: "welcome_1",
+            payload: { unsubscribe_url: unsub },
+            relatedType: "subscriber",
+            relatedId: `${email}:welcome:1`,
+          }).catch((err) => console.error("[subscribe] welcome_1 queue failed:", err));
+        }
       }
     } else {
       console.log(`[subscribe] (no supabase) ${email} · source=${source}`);

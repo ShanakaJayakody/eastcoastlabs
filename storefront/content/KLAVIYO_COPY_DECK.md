@@ -10,7 +10,7 @@
 
 ### Email 1 — Immediate (code + differentiation)
 
-**Subject:** Your 15% off code is inside ↓
+**Subject:** Your 10% off code is inside ↓
 **Preview:** Welcome to East Coast Labs — independently tested peptides, dispatched from Australia.
 
 **Body:**
@@ -20,9 +20,9 @@ Hi {{ first_name||"there" }},
 
 Here's your code:
 
-    WELCOME15
+    WELCOME10
 
-Enter it at checkout for 15% off your first order.
+Enter it at checkout for 10% off your first order.
 
 We do things differently from most peptide suppliers. Here's what sets East Coast Labs apart:
 
@@ -103,7 +103,7 @@ From $48.67/vial in 6-packs
 
 6-packs also include free Bacteriostatic Water and free Express Post.
 
-Remember: use code WELCOME15 for 15% off your first order.
+Remember: use code WELCOME10 for 10% off your first order.
 
 [Shop all peptides →](https://eastcoastlabs.com.au/shop/)
 
@@ -170,14 +170,14 @@ Your cart is still saved:
 ### Email 3 — 72 hours after abandonment
 
 **Subject:** Last reminder — 10% off your order
-**Preview:** Use code WELCOME15 for 15% off your first order.
+**Preview:** Use code WELCOME10 for 10% off your first order.
 
 **Body:**
 
 ```
 Hi {{ first_name||"there" }},
 
-This is the last nudge. Your cart is still saved, and if this is your first order, you can use WELCOME15 for 15% off at checkout.
+This is the last nudge. Your cart is still saved, and if this is your first order, you can use WELCOME10 for 10% off at checkout.
 
 {{ items.list }}
 
@@ -456,7 +456,7 @@ Every order includes an independent COA. Every batch is tested by JanoShik befor
 ```
 ┌─────────────────────────────────────────┐
 │                                         │
-│        15% OFF YOUR FIRST ORDER         │
+│        10% OFF YOUR FIRST ORDER         │
 │                                         │
 │  Lab-grade peptides. Independently      │
 │  tested. COA included with every         │
@@ -466,14 +466,14 @@ Every order includes an independent COA. Every batch is tested by JanoShik befor
 │  [ Get my code ]                        │
 │                                         │
 │  No spam. Unsubscribe anytime.          │
-│  Code: WELCOME15 (auto-applied)         │
+│  Code: WELCOME10 (auto-applied)         │
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
 **On submit:**
-- Show success: "Check your inbox — your code WELCOME15 is on its way."
-- Auto-apply WELCOME15 if they click through to shop from the success screen
+- Show success: "Check your inbox — your code WELCOME10 is on its way."
+- Auto-apply WELCOME10 if they click through to shop from the success screen
 - Add to "Welcome Flow" (Section 1 above)
 
 ---

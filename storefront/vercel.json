@@ -5,6 +5,7 @@
   "crons": [
     { "path": "/api/cron/email-outbox", "schedule": "0 3 * * *" },
     { "path": "/api/cron/abandoned-carts", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/payment-ops", "schedule": "0 5 * * *" }
+    { "path": "/api/cron/payment-ops", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/lifecycle", "schedule": "30 3 * * *" }
   ]
 }

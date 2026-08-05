@@ -39,7 +39,8 @@ Transactional templates (order/payment emails) are exempt from the Australian Sp
 
 ### 2. Welcome series (3 emails: immediate / +2d / +4d)
 
-- New templates in `templates.ts`: `welcome_1`, `welcome_2`, `welcome_3` (copy: `content/KLAVIYO_COPY_DECK.md:11-113`).
+- **Discount code decision (confirmed with owner): WELCOME10 everywhere.** The copy deck's WELCOME15 references are replaced with the existing WELCOME10 (10%) in all welcome templates; no new discount row is seeded for the welcome flow; the exit-intent popup already matches. Update `content/KLAVIYO_COPY_DECK.md` sections 1 and 6 to say WELCOME10/10% so the copy source of truth stays consistent (also resolves audit item 1.6's code mismatch).
+- New templates in `templates.ts`: `welcome_1`, `welcome_2`, `welcome_3` (copy: `content/KLAVIYO_COPY_DECK.md:11-113`, with the code substitution above).
 - `app/api/subscribe/route.ts`: after the `subscribers` upsert succeeds (source not `back_in_stock:*`), call `queueEmail({ to: email, template: "welcome_1", relatedType: "subscriber", relatedId: email })`.
 - `lib/admin/lifecycle.ts` (new file, mirrors `payment-ops.ts` style): `sweepWelcomeSeries()` — query `subscribers` where `created_at` age ≥ 2d/4d, `unsubscribed_at is null`, and no `orders` row exists for that email created after `subscribers.created_at` (the deck's "exclude if already purchased" rule). Queue `welcome_2`/`welcome_3` with `relatedId: ${email}:welcome:2|3`.
 

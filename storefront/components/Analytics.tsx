@@ -1,10 +1,10 @@
 import Script from "next/script";
-import { GA4_ID, KLAVIYO_ID } from "@/lib/env";
+import { GA4_ID } from "@/lib/env";
 
 /**
- * GA4 + Klaviyo loader. Renders nothing (and injects no scripts) when the
- * corresponding env var is unset, so the storefront runs cleanly with no
- * analytics configured.
+ * GA4 loader. Renders nothing (and injects no scripts) when the env var is
+ * unset, so the storefront runs cleanly with no analytics configured. Email
+ * lifecycle runs natively on Resend — no marketing-platform script needed.
  */
 export default function Analytics() {
   return (
@@ -22,13 +22,6 @@ gtag('js', new Date());
 gtag('config', '${GA4_ID}');`}
           </Script>
         </>
-      )}
-      {KLAVIYO_ID !== "" && (
-        <Script
-          id="klaviyo-onsite"
-          strategy="afterInteractive"
-          src={`https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=${KLAVIYO_ID}`}
-        />
       )}
     </>
   );

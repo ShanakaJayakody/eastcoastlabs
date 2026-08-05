@@ -1,15 +1,19 @@
 /**
- * Abandoned-cart capture + recovery.
+ * Abandoned-cart capture + recovery — three touches (+1h / +24h / +72h).
  *
  * Known structural limit (SystemsThinking review): recovery matching is
  * email-only. If a shopper browses under one email and checks out under a
  * DIFFERENT email, there is no signal connecting the two identities — that cart
- * cannot be suppressed. Mitigation: cap recovery to exactly ONE send per capture
- * (reminder_sent_at not null = permanently excluded, never repeats) and the
- * SAME-email case is fully suppressed via markCartRecovered().
+ * cannot be suppressed. Mitigation: each capture gets at most one send per
+ * stage (reminder_stage is claimed atomically before queuing) and the
+ * SAME-email completed-order case is fully suppressed via markCartRecovered().
+ *
+ * Stage timing anchors on updated_at (last cart activity), not on the previous
+ * send — a fresh capture resets the stage counter and restarts the sequence.
  */
 import { adminDb } from "./db";
-import { queueEmail } from "./email";
+import { queueEmail, type EmailTemplate } from "./email";
+import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
 export interface CapturedLine {
   name: string;
@@ -34,6 +38,7 @@ export async function captureCart(
       subtotal_cents: subtotalCents,
       status: "active",
       reminder_sent_at: null,
+      reminder_stage: 0,
       recovered_order_id: null,
       updated_at: new Date().toISOString(),
     },
@@ -55,34 +60,74 @@ export async function markCartRecovered(email: string, orderId: string): Promise
 }
 
 /**
- * Atomically claim carts eligible for a recovery email (active, never reminded,
- * idle past the threshold) and queue their emails. UPDATE...RETURNING claims and
- * reads in one statement — the same fix applied to queueBackInStock — so an
- * overlapping cron tick can never double-queue the same cart.
+ * Recovery touches with DISJOINT idle-time windows (hours since last cart
+ * activity). Disjoint windows mean a cart matches at most one stage per sweep,
+ * so a stale cart discovered late (first deploy, cron outage) gets the single
+ * currently-due touch — never a burst of all three. Carts idle past the last
+ * window get nothing: recovering a week-old cart reads as surveillance, not
+ * service.
  */
-export async function queueAbandonedCartEmails(idleHours = 1): Promise<number> {
+const CART_STAGES: { from: number; until: number; template: EmailTemplate }[] = [
+  { from: 1, until: 24, template: "abandoned_cart" },
+  { from: 24, until: 72, template: "abandoned_cart_2" },
+  { from: 72, until: 168, template: "abandoned_cart_3" },
+];
+
+/**
+ * Atomically claim carts eligible for their next recovery touch and queue the
+ * stage's email. UPDATE...RETURNING claims and reads in one statement — the
+ * same fix applied to queueBackInStock — so an overlapping cron tick can never
+ * double-queue the same cart+stage. The outbox's dedupe index is the second
+ * seatbelt: relatedId carries the capture's updated_at, so re-captures start a
+ * fresh sequence while a re-run of the same capture can't double-send.
+ */
+export async function queueAbandonedCartEmails(): Promise<number> {
   const db = adminDb();
-  const cutoff = new Date(Date.now() - idleHours * 60 * 60 * 1000).toISOString();
+  let queued = 0;
 
-  const { data: claimed } = await db
-    .from("cart_sessions")
-    .update({ reminder_sent_at: new Date().toISOString() })
-    .eq("status", "active")
-    .is("reminder_sent_at", null)
-    .lt("updated_at", cutoff)
-    .select("email, cart, subtotal_cents");
+  for (let stage = 0; stage < CART_STAGES.length; stage++) {
+    const { from, until, template } = CART_STAGES[stage];
+    const idleSince = new Date(Date.now() - from * 60 * 60 * 1000).toISOString();
+    const idleUntil = new Date(Date.now() - until * 60 * 60 * 1000).toISOString();
 
-  const rows = claimed ?? [];
-  for (const row of rows) {
-    await queueEmail({
-      to: row.email as string,
-      template: "abandoned_cart",
-      payload: { cart: row.cart, subtotal_cents: row.subtotal_cents },
-      relatedType: "cart_session",
-      relatedId: row.email as string,
-    });
+    const { data: claimed } = await db
+      .from("cart_sessions")
+      .update({ reminder_stage: stage + 1, reminder_sent_at: new Date().toISOString() })
+      .eq("status", "active")
+      .lte("reminder_stage", stage)
+      .lt("updated_at", idleSince)
+      .gt("updated_at", idleUntil)
+      .select("email, cart, subtotal_cents, updated_at");
+
+    const rows = claimed ?? [];
+    if (!rows.length) continue;
+
+    const { data: unsubRows } = await db
+      .from("subscribers")
+      .select("email")
+      .in("email", rows.map((r) => r.email as string))
+      .not("unsubscribed_at", "is", null);
+    const suppressed = new Set((unsubRows ?? []).map((r) => (r as { email: string }).email));
+
+    for (const row of rows) {
+      const email = row.email as string;
+      if (suppressed.has(email)) continue;
+      const unsub = unsubscribeUrl(email);
+      if (!unsub) {
+        console.error("cart-recovery: no unsubscribe secret configured — marketing sends skipped");
+        return queued;
+      }
+      await queueEmail({
+        to: email,
+        template,
+        payload: { cart: row.cart, subtotal_cents: row.subtotal_cents, unsubscribe_url: unsub },
+        relatedType: "cart_session",
+        relatedId: `${email}:cart:${stage + 1}:${Date.parse(row.updated_at as string)}`,
+      });
+      queued++;
+    }
   }
-  return rows.length;
+  return queued;
 }
 
 export interface AbandonedCartRow {

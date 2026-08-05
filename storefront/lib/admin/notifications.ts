@@ -11,6 +11,7 @@
  */
 import { adminDb } from "./db";
 import { queueEmail } from "./email";
+import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
 export async function queueBackInStock(variantId: string): Promise<number> {
   const db = adminDb();
@@ -37,22 +38,42 @@ export async function queueBackInStock(variantId: string): Promise<number> {
   const rows = claimed ?? [];
   if (!rows.length) return 0;
 
+  // A restock alert is a commercial message, so it carries an unsubscribe link
+  // like every other marketing send. Shoppers who opted out are skipped even
+  // though they're on the waitlist — the opt-out is the later, stronger signal.
+  const { data: unsubRows } = await db
+    .from("subscribers")
+    .select("email")
+    .in("email", rows.map((r) => r.email as string))
+    .not("unsubscribed_at", "is", null);
+  const suppressed = new Set((unsubRows ?? []).map((r) => (r as { email: string }).email));
+
+  let queued = 0;
   for (const row of rows) {
+    const email = row.email as string;
+    if (suppressed.has(email)) continue;
+    const unsub = unsubscribeUrl(email);
+    if (!unsub) {
+      console.error("queueBackInStock: no unsubscribe secret configured — restock alerts skipped");
+      break;
+    }
     await queueEmail({
-      to: row.email as string,
+      to: email,
       template: "back_in_stock",
       payload: {
         product_name: product.name,
         product_slug: product.slug,
         variant_label: (variant as unknown as { label: string }).label,
         url: `/product/${product.slug}`,
+        unsubscribe_url: unsub,
       },
       relatedType: "product_variant",
       relatedId: variantId,
     });
+    queued++;
   }
 
-  return rows.length;
+  return queued;
 }
 
 /** How many shoppers are waiting on a given product slug. */

@@ -3,7 +3,7 @@ import { queueAbandonedCartEmails } from "@/lib/admin/cart-recovery";
 
 export const dynamic = "force-dynamic";
 
-/** Hourly sweep: queues recovery emails for carts idle 1h+. Protected by CRON_SECRET. */
+/** Hourly sweep: queues staged recovery emails (+1h/+24h/+72h). Protected by CRON_SECRET. */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
@@ -12,6 +12,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
-  const queued = await queueAbandonedCartEmails(1);
+  const queued = await queueAbandonedCartEmails();
   return NextResponse.json({ queued });
 }

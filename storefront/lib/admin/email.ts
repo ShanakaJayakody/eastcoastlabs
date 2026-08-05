@@ -17,9 +17,20 @@ export type EmailTemplate =
   | "order_refunded"
   | "back_in_stock"
   | "abandoned_cart"
+  | "abandoned_cart_2"
+  | "abandoned_cart_3"
   | "payment_instructions"
   | "payment_reminder"
-  | "payment_expired";
+  | "payment_expired"
+  | "welcome_1"
+  | "welcome_2"
+  | "welcome_3"
+  | "post_purchase_coa"
+  | "post_purchase_review"
+  | "replenishment"
+  | "winback_60"
+  | "winback_90"
+  | "second_purchase_nudge";
 
 export async function queueEmail(opts: {
   to: string;
