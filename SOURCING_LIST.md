@@ -10,25 +10,76 @@
 Tesamorelin · MOTS-C · Semax · Selank · Semaglutide · Tirzepatide · Retatrutide ·
 TB-500 · MT2 · KLOW · IGF-1 LR3 · GLOW · GHK-Cu · BPC-157 · Bacteriostatic Water
 
-**Assessment:** the universal core is covered cleanly. The median enumerable AU
-catalog is ~25 SKUs; competitors advertise 45–150. The gaps are not scattered —
-they cluster in two places: **growth-hormone secretagogues** (where ECL has zero
-presence) and the **BPC-157 + TB-500 blend** (where ECL owns both inputs already).
+**Assessment:** the universal core is covered cleanly, but the catalog sits below
+the market's baseline breadth — the median enumerable AU catalog is ~25 SKUs and
+competitors advertise 45–150. The gaps cluster in three places: **growth-hormone
+secretagogues** (zero presence), the **BPC-157 + TB-500 blend** (both inputs
+already owned), and **mitochondrial** (MOTS-C sells, but nothing pairs with it).
+
+---
+
+## ⚑ The finding that reframes this whole document
+
+A third research pass ran a **962-comment census** of the six r/Peptides threads
+where the community explicitly ranks compounds against each other, then tested
+the result against Australian vendor catalogs.
+
+It was briefed to find the highest-value thing a competitor audit structurally
+cannot: a compound **discussed a lot but rarely stocked**. It went looking,
+deliberately picked candidates it expected to be obscure — and found none.
+
+| Compound tested | Community mentions (of 962) | AU vendors stocking it |
+|---|---|---|
+| PE-22-28 | **0** | 8+ |
+| AHK-Cu | **0** | 9+ |
+| 5-Amino-1MQ | **0** | 8+ |
+| ARA-290 | 2 | 8+ |
+| Adamax | 2 | 10+ |
+| SS-31 | 35 | 10+ |
+
+**There is no white space.** The Australian research-peptide market is
+commoditised to the point where catalog breadth is not a differentiator. ECL's 15
+SKUs are not sitting on a hidden gap — they are sitting *below the market's
+baseline breadth*, while competitors run 20 to 150+.
+
+**So these are parity gaps, not opportunities.** The value of adding SS-31 is not
+that you would own an uncontested niche — it is that today you lose the *entire
+basket* when someone wants MOTS-C and SS-31 together. Rank by basket completion
+against what you already sell, which is exactly what the pipeline now does.
+
+**And the real differentiator is not the catalog at all.** Every AU peptide
+subreddit is banned (r/PeptideAustralia, r/AustralianPeptides, r/auspeptides,
+r/PeptidesAU — all of them). Australian buyers have no local forum, so they ask
+in US-dominated threads where AU answers are thin, and what they actually discuss
+is **logistics: shipping, customs, interstate transport**. Every competitor
+markets on the same axis — "same-day dispatch", "shipped from Melbourne", AUD
+pricing, Janoshik COAs.
+
+Local stock, a verified COA, and fast Australian dispatch is where this market is
+won. You already have the COA programme and 1-business-day dispatch. That is
+worth more marketing weight than another twenty SKUs.
 
 ---
 
 ## Tier 1 — source these first
 
-Ranked by return per unit of sourcing effort, not by market size.
+Final order after all three research passes. Ranked by **basket completion
+against SKUs you already sell**, because there is no white space to capture.
 
-| # | Compound | AU vendors stocking | Format to buy | Why it's first |
+| # | Compound | Format | Evidence | Why it's here |
 |---|---|---|---|---|
-| 1 | **BPC-157 + TB-500 blend** | 9 / 12 | **10mg** (20mg as premium tier) | Both inputs already in the warehouse. Zero new supplier relationships. The single most conspicuous omission in the catalog. |
-| 2 | **NAD+** | 8 / 12 | **500mg** | Highest-frequency compound ECL doesn't carry. Commodity pricing, no blend complexity, fills the near-empty Longevity collection. |
-| 3 | **Ipamorelin** | 6 / 12 | **10mg** (AU convention) | Unlocks the whole GH category — see below. Note: supply is visibly tight. |
-| 4 | **CJC-1295 no-DAC** | 6 / 12 | **10mg** (AU convention) | Pairs with #3. Also sold as "Mod GRF 1-29". |
-| 5 | **CJC-1295 + Ipamorelin blend** | 6 / 12 | **10mg** | The most common GH blend in the AU market. Free once #3 and #4 land. |
-| 6 | **KPV standalone** | 6 / 12 | **10mg** | Already purchased as a KLOW input — near-zero incremental sourcing effort. |
+| 1 | **SS-31** | **10mg** | #2 by community volume (35 of 962) — more than TB-500, which you stock | **49% of SS-31 discussion also mentions MOTS-C, which you sell.** Three separate threads ask what pairs with MOTS-C; the answer is a compound you don't carry. The strongest basket-completion play on the list. |
+| 2 | **BPC-157 + TB-500 blend** | **10mg** (20mg premium) | #1 bestseller at PepC.Labs; outranks standalone TB-500 at every AU vendor | Both inputs already in your warehouse. Zero new suppliers. Blends consistently outsell their own components. |
+| 3 | **Ipamorelin** | **10mg** | **#1 by community volume** (40 of 962) | Unlocks the GH cluster. Supply is visibly tight — secure it before listing. |
+| 4 | **CJC-1295 no-DAC** | **10mg** | #3 community; maximum AU autocomplete breadth | no-DAC clearly outsells DAC. Also sold as "Mod GRF 1-29". |
+| 5 | **CJC-1295 + Ipamorelin blend** | **10mg** | #2 in Aussie Peptide's own Top Sellers | Outranks either component sold alone. Free SKU once #3 and #4 land. |
+| 6 | **KPV standalone** | **10mg** | #4 community (28 of 962); out of stock at 2 AU vendors | **You already buy it** — KLOW is GHK-Cu + BPC-157 + TB-500 + KPV. Near-zero marginal cost. |
+| 7 | **Tesamorelin + Ipamorelin blend** | **10mg** | Direct adjacency to a SKU you stock | Turns your dead-end Tesamorelin listing into a stack. Free once #3 lands. |
+
+**Moved down on better evidence:** NAD+ was #2 on vendor ubiquity alone; global
+interest is actually down 49% YoY and it ranks 6th on community volume, so it now
+sits at #9. **DSIP moved up sharply** — 5th by community volume, and it was
+buried at 15th in the first draft.
 
 ### Why the GH cluster is the big one
 
@@ -49,50 +100,91 @@ securing genuinely tight supply.
 
 ---
 
-### Demand cross-check (added 2026-08-05)
+### Demand cross-check (added 2026-08-05, revised)
 
-A second research pass looked for search-volume and trend evidence to test the
-ranking above. **Treat every number below as directional, not measured** — almost
-all of it traces back to peptide-vendor and affiliate SEO blogs rather than
-primary analytics (Ahrefs, SEMrush, Google Keyword Planner). Sources contradict
-each other on basic figures, and one live-data source failed on an expired SSL
-certificate. It is corroboration, not proof.
+Two research passes ran. **The second supersedes the first.**
 
-**What it confirms:**
+The first tried to find search-volume figures and came back with numbers sourced
+almost entirely from peptide-vendor and affiliate SEO blogs. Those sources
+contradict each other, publish no methodology, and one of them called GHK-Cu a
+"GLP-class peptide", which it is not. **Those figures have been removed from this
+document.** They were not good enough to plan a catalog on.
 
-- **BPC-157 + TB-500** — the combined query "bpc 157 and tb 500" is reported at
-  ~27,100/mo and **+235% over six months**. The one compound both research passes
-  independently put first.
-- **CJC-1295 + Ipamorelin** — reported ~27,000/mo rising to 60,000+/mo. Sourced
-  from a single clinic marketing blog, so weak evidence, but directionally
-  consistent with the 6/12 vendor stocking rate.
-- **Melanotan I** — the "tanning peptide" category is reported up ~9× in twelve
-  months, which lifts an otherwise Tier-2 item.
-- **Adamax / cognitive** — "nootropic peptides" as a category reported at
-  +1,285% YoY. Supports filling out Cognitive & Focus, currently your thinnest
-  collection at 2 products.
+The second pass built its ranking from signals that can actually be measured:
 
-**What it changes — PT-141 should move up.**
-PT-141 is reported at **49,500/mo with +309% growth over six months**, the
-highest single-compound figure of anything on the gap list. Vendor stocking
-(5/12) understated it. Treat it as Tier 1-adjacent rather than mid-Tier 2.
+| Signal | What it is | Confidence |
+|---|---|---|
+| Wikipedia pageviews | Hard monthly counts via the Wikimedia REST API, Feb–Jul 2026 vs 2025, global | High |
+| AU autocomplete probes | Google suggestions with `gl=au` — real Australian query mass, ordinal not absolute | Medium-high |
+| **AU vendor bestseller orderings** | 15 AU storefronts' own "Bestsellers" sorts and stock-out markers | **High — revealed purchase preference** |
 
-**What it could not measure:** no search data was found at all for NAD+, KPV,
-Epitalon, 5-Amino-1MQ, DSIP, Cagrilintide, SS-31, Glutathione, AOD-9604,
-Thymosin Alpha-1, ARA-290, LL-37, SNAP-8, AHK-Cu, Sermorelin, GHRP-2/6,
-Survodutide or Mazdutide. **Absence of data is not absence of demand** — NAD+ is
-still stocked by 8 of 12 competitors, which is the stronger evidence for it.
+Google Trends was bot-blocked (HTTP 429) on every path, so **no absolute
+Australian search volume exists in this document for any compound.** Everything
+AU-specific is either a growth percentage from one news story or an ordinal
+measurement.
 
-**No Australia-specific search data exists** for any compound. Every figure above
-is US. That is the single biggest weakness in the demand evidence, and it is
-exactly why the coming-soon shelf matters — see below.
+**The finding that reorders the list: blends outrank their own components.**
+Across every AU vendor surveyed, BPC-157+TB-500 ranks above standalone TB-500,
+and CJC-1295+Ipamorelin ranks above either half sold alone. You already stock
+both halves of the first pair and neither the blend. The pipeline has been
+re-ranked accordingly — blends first.
 
-**Regulatory note picked up in passing (unverified):** KPV, BPC-157, TB-500 and
-MOTS-C were reportedly named in a US FDA compounding advisory docket for July
-2026, with Epitalon, DSIP and Semax in a second. That is FDA, not TGA, and I
-could not confirm it against primary sources — but two of those are compounds you
-already sell and two more are on this list, so it is worth including in whatever
-regulatory read you commission.
+**Corrections to the earlier pass:**
+
+- **PT-141** — the earlier "49,500/mo, +309%" figure was from a weak source and
+  is withdrawn. Measured interest is more modest (~30% of BPC-157's Wikipedia
+  traffic, +23% YoY). It remains a strong buy on better evidence — it is **sold
+  out at three AU vendors** — but now sits at #10 rather than near the top.
+- **NAD+** — global informational interest is actually **down 49% YoY**, and its
+  Wikipedia traffic is inflated by general-science readers. It drops from #2 to #9 — held up
+  only by the fact that ~every AU vendor stocks it. Order conservatively.
+- **Sermorelin — demoted.** Reasonable global interest, but it is **absent from
+  every AU vendor** and returns almost no Australian commercial autocomplete. A US
+  signal with no local pull-through.
+- **SNAP-8 — promoted within Tier 3.** Near-zero informational search, yet it sits
+  at **#5 in one AU vendor's bestsellers**. Cosmetic buyers don't read Wikipedia;
+  trust the vendor signal.
+
+**The clearest negative finding — do NOT stock Survodutide or Mazdutide.**
+The obvious assumption is that the newest GLP-1 compounds are the gap. The
+Australian data says the opposite: Survodutide returns **zero** AU autocomplete on
+both probes — the only compound in the entire set to do so — no AU vendor stocks
+either, and Mazdutide's global interest is **down 35%**. Neither has been listed.
+
+**Best speculative pick: Adamax.** Its Wikipedia article did not exist in 2025 and
+now draws ~2,200 views/month, and exactly one Australian vendor carries it. That
+is a genuine first-mover window, and it fills Cognitive & Focus — your thinnest
+collection at two products.
+
+**Already-stocked compounds worth knowing about:** Retatrutide is up **+900% YoY
+in Australia** and is the #1 bestseller on nearly every AU vendor — it is your
+strongest asset, not just another SKU. GHK-Cu is up **+450% YoY in Australia**.
+Conversely Semaglutide (−61%) and Tirzepatide (−58%) are in steep decline as
+mainstream pharmacy channels absorb that demand.
+
+---
+
+## ⚠️ Regulatory findings — act on these independently of sourcing
+
+These surfaced during demand research and matter more than anything on the gap
+list. **I could not verify all of them against primary sources — treat as leads
+for a proper regulatory review, not as settled fact.**
+
+- **Victorian Department of Health alert, 19 June 2026:** six cases of acute liver
+  injury linked to an unapproved product **labelled "Retatrutide"** (also sold as
+  "Reta", "R-10", "R-20"), bought online and via social media, with similar cases
+  suspected in other states. **Retatrutide is your single best-selling compound.**
+  This warrants immediate attention regardless of what you source next.
+- **TGA enforcement:** an eight-month joint operation with Australian Border Force
+  and Victoria Police reportedly seized ~$2M of peptides, and the TGA has named
+  peptides a **2026–27 compliance priority**.
+- **BPC-157 reportedly moved to Schedule 4 (Prescription Only) in Australia in
+  June 2024.** This appears only in vendor and blog sources — **I could not find a
+  primary TGA scheduling document.** BPC-157 is one of your top sellers, so this
+  is the single most important thing on this page to confirm or rule out.
+- A US FDA compounding advisory docket for July 2026 reportedly names BPC-157,
+  TB-500, MOTS-C, KPV, Epitalon, DSIP and Semax. FDA, not TGA — but five of those
+  are compounds you sell or plan to.
 
 ### The better demand signal is now live
 
@@ -106,17 +198,19 @@ source in this document.
 
 ## Tier 2 — strong second wave
 
-| Compound | AU vendors | Format | Note |
+In pipeline order (positions 8–16 overall).
+
+| # | Compound | Format | Note |
 |---|---|---|---|
-| **Epitalon / Epithalon** | 5 / 12 | **10mg** | Longevity category is ECL's thinnest — MOTS-C is the only entry. |
-| **PT-141** | 5 / 12 | **10mg** | Format is universal; no ambiguity. |
-| **5-Amino-1MQ** | 5 / 12 | 10mg or 50mg | Frequently out of stock market-wide — supply is tight. |
-| **DSIP** | 5 / 12 | **10mg** | Sleep is a near-empty category in AU; DSIP is essentially the only entrant. |
-| **Cagrilintide** | 4 / 12 | 5mg **and** 10mg | Climbing fast. The most-requested addition after the GLP-1 trio. |
-| **SS-31** | 4 / 12 | 10mg (50mg upsell) | Mitochondrial; complements MOTS-C. |
-| **Glutathione** | 4 / 12 | 600 / 1200 / 1500mg | Format unsettled — pick one and hold it. |
-| **AOD-9604** | 3 / 12 | 5mg | Metabolic adjacent. |
-| **Melanotan I** | 3 / 12 | 10mg | Natural pair with the existing MT2 SKU. |
+| 8 | **DSIP** | **10mg** | 5th by community volume — was buried at 15th before the community data landed. Sleep is a near-empty category in AU. |
+| 9 | **NAD+** | **500mg** | Stocked by ~every AU vendor, but global interest is down 49% YoY and its Wikipedia traffic is inflated by general-science readers. **Order conservatively.** |
+| 10 | **PT-141** | **10mg** | **Sold out at three AU vendors** — supply-constrained demand, which is the real signal here. Format is universal. |
+| 11 | **Glutathione** | 600 / 1200 / **1500mg** | 9th by community volume, but AU autocomplete is mainstream retail ("chemist warehouse", "skin whitening") rather than research channel. Format unsettled — pick one and hold it. |
+| 12 | **AOD-9604** | **5mg** | 10th by community volume. |
+| 13 | **Epitalon / Epithalon** | **10mg** | +42% YoY; in VCP's Longevity Starter bundle. |
+| 14 | **Cagrilintide** | 5mg **and** 10mg | AU autocomplete now spontaneously pairs it with Retatrutide — your #1 seller. That co-search pattern is a blend signal. |
+| 15 | **Melanotan I** | **10mg** | Natural pair with your existing MT2. **The one candidate whose AU stocking could not be verified** (the check hit a CAPTCHA) — so it's the nearest thing to a genuine gap on this list. Worth a manual look. |
+| 16 | **Oxytocin** | 5 / **10mg** | 11th by community volume — above Epitalon and Cagrilintide. Missed in the first pass, added after the community census. |
 
 ---
 
@@ -229,3 +323,49 @@ rather than leaving buried in the catalog.
 3. **Then the GH cluster:** Ipamorelin + CJC-1295 no-DAC → five SKUs. Secure
    supply first; this is the one with real availability risk.
 4. **Then Tier 2**, led by Epitalon, PT-141, DSIP, Cagrilintide.
+
+---
+
+## Bundle opportunities (from stack co-occurrence)
+
+Community discussion shows which compounds people research *together*. You
+already sell `/stacks` bundles, so these are direct product ideas — and each pairs
+something new with something you already stock.
+
+| You already sell | Add | Evidence |
+|---|---|---|
+| **MOTS-C** | **SS-31** | 49% co-occurrence; three dedicated "what pairs with MOTS-C" threads |
+| **Tesamorelin** | **Ipamorelin** (+ blend) | "TESA+IPA vs CJC+IPA" threads; 8 co-mentions |
+| **GHK-Cu** | **AHK-Cu** | GHK-Cu appears in 4 of 7 AHK-Cu thread titles |
+| **GHK-Cu / KLOW / GLOW** | **KPV, SNAP-8** | "KPV and GHK-Cu in same vial"; SNAP-8 co-occurs with all three |
+| **Semax / Selank** | **Adamax** | Adamax is discussed almost exclusively as a Semax comparator |
+| **BPC-157 + TB-500** | **the blend** | 17 comments pair them; the "Wolverine stack" |
+| **Retatrutide / Tirzepatide** | **Cagrilintide** | Cagri+Reta named directly; AU autocomplete pairs them |
+| **MT2** | **Melanotan I** | Discussed head-to-head; MT1 has its own active thread cluster |
+
+## Confirmed: do NOT stock
+
+Two independent research passes agree, which is rare enough to act on.
+
+- **Survodutide** — zero community mentions in 962 comments, **zero** Australian
+  autocomplete on both probes (the only compound in the set to return nothing at
+  all), no AU vendor stocks it.
+- **Mazdutide** — zero community mentions, global interest **down 35%**, no AU
+  vendor stocks it.
+- **GHRP-2 / GHRP-6** — 1 mention in 962. Named mainly to be dismissed in favour
+  of Ipamorelin. Legacy compounds.
+- **PE-22-28, Kisspeptin-10** — at or near zero mentions.
+
+The intuition that the newest GLP-1 compounds must be the gap is wrong for this
+market. None of these have been listed on the shelf.
+
+## Live pipeline
+
+All 24 compounds are listed on the shop as **coming soon** with per-compound
+"notify me" capture, ranked in the order above. `/admin/pipeline` re-sorts them by
+actual signups as they arrive.
+
+Within a few weeks that will be first-party Australian demand data from your own
+customers — which is worth more than every external source in this document,
+particularly given that no Australian search-volume data exists for any compound
+and every Australian peptide forum has been banned.
