@@ -1,0 +1,19 @@
+# Deploys run from the repo ROOT (the Vercel project's Root Directory is
+# `storefront`), and Vercel only reads the top-level ignore file — nested
+# .gitignore rules like storefront/.gitignore do NOT filter the upload. Without
+# this file the local build caches get uploaded, which is ~670MB and trips the
+# 100MB per-file limit on `.next/cache/webpack/*.pack`.
+
+# Build output + caches (regenerated on Vercel)
+**/.next
+**/.next-verify
+**/node_modules
+**/*.tsbuildinfo
+
+# Coverage artifacts
+**/*.profraw
+
+# Legacy WordPress work — superseded by the Next.js storefront, never built
+ecl-conversion/
+hello-elementor-child/
+migration/
