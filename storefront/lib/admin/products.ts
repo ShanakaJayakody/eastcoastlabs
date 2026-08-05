@@ -284,7 +284,7 @@ export interface CreateProductInput {
   compound?: string;
   short_description?: string;
   description?: string;
-  status?: "active" | "draft" | "archived";
+  status?: "active" | "draft" | "archived" | "coming_soon";
   variants: NewVariantInput[];
   /** Optional opening stock, applied to every variant via the ledger. */
   initialStock?: number;
@@ -422,7 +422,7 @@ export interface ProductPatch {
   description?: string;
   seo_title?: string;
   seo_description?: string;
-  status?: "active" | "draft" | "archived";
+  status?: "active" | "draft" | "archived" | "coming_soon";
 }
 
 export async function updateProduct(slug: string, patch: ProductPatch, actor: string): Promise<void> {

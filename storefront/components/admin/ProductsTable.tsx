@@ -181,6 +181,33 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
           </thead>
           <tbody className="divide-y divide-line">
             {products.map((p) =>
+              // A product with no variants (coming-soon listings) has nothing to
+              // map over, so it would vanish from this table entirely. Give it a
+              // single placeholder row so it stays reachable and its status is
+              // visible — it has no price or stock to show yet by design.
+              p.variants.length === 0 ? (
+                <tr key={p.id} className="transition hover:bg-surface-2">
+                  <td className="px-3 py-2" />
+                  <td className="px-3 py-2">
+                    <Link
+                      href={`/admin/products/${p.slug}`}
+                      className="font-medium text-fg hover:text-accent"
+                    >
+                      {p.name}
+                    </Link>
+                    <span className="block text-xs text-muted">{p.sku}</span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+                      {p.status === "coming_soon" ? "Coming soon" : p.status}
+                    </span>
+                    <span className="mt-1 block text-xs text-muted-2">No tiers yet</span>
+                  </td>
+                  <td className="px-3 py-2 text-right text-muted-2">—</td>
+                  <td className="px-3 py-2 text-right text-muted-2">—</td>
+                  <td className="px-3 py-2 text-right text-muted-2">—</td>
+                </tr>
+              ) : (
               p.variants.map((v, vi) => {
                 const low = v.available <= v.low_stock_threshold;
                 return (
@@ -328,7 +355,8 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
                       </td>
                     </tr>
                   )),
-              ),
+              )
+            ),
             )}
           </tbody>
         </table>

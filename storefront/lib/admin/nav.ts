@@ -7,6 +7,7 @@ import {
   FlaskConical,
   Star,
   Settings,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +24,7 @@ export const NAV: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Pipeline", href: "/admin/pipeline", icon: Sparkles },
   { label: "Customers", href: "/admin/customers", icon: Users },
   { label: "Discounts", href: "/admin/discounts", icon: Ticket },
   { label: "COAs", href: "/admin/coas", icon: FlaskConical },

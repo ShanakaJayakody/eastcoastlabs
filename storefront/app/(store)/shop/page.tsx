@@ -5,6 +5,8 @@ import AccessoryGrid from "@/components/AccessoryGrid";
 import ShopFilterGrid from "@/components/ShopFilterGrid";
 import { decorateCards } from "@/lib/storefront-catalog";
 import { getCollections } from "@/lib/collections";
+import { getComingSoonProducts } from "@/lib/coming-soon";
+import ComingSoonShelf from "@/components/ComingSoonShelf";
 import type { CardProduct } from "@/components/ProductCard";
 
 export const metadata: Metadata = {
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function ShopPage() {
-  const products = await getProducts(20);
+  const [products, comingSoon] = await Promise.all([getProducts(20), getComingSoonProducts()]);
   const collections = getCollections();
   // Slim card data — avoids shipping heavy description HTML to the client filter.
   const rawCards: CardProduct[] = products.map((p) => ({
@@ -64,6 +66,9 @@ export default async function ShopPage() {
         </div>
         <AccessoryGrid />
       </section>
+
+      {/* Pipeline — sourcing candidates, with waitlist capture per compound */}
+      <ComingSoonShelf products={comingSoon} />
     </div>
   );
 }
