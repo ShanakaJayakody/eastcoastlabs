@@ -15,7 +15,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { wooCart } from "./woo";
-import { checkoutUrl, FREE_SHIPPING_THRESHOLD } from "./env";
+import { checkoutUrl, FREE_SHIPPING_THRESHOLD, GIFT_THRESHOLD } from "./env";
 import { trackBeginCheckout, type GaItem } from "./analytics";
 
 export interface CartLine {
@@ -37,12 +37,24 @@ interface CartContextValue {
   amountToFreeShipping: number;
   hasFreeShipping: boolean;
   freeShippingThreshold: number;
+  giftThreshold: number;
   ready: boolean;
   addLine: (line: Omit<CartLine, "quantity">, quantity?: number) => void;
   updateQty: (key: string, quantity: number) => void;
   removeLine: (key: string) => void;
   clear: () => void;
   goToCheckout: () => void;
+}
+
+/**
+ * Reward thresholds come from admin settings, resolved server-side in the
+ * layout and passed down. The env constants remain only as the fallback for
+ * when settings are unreachable — they are no longer the source of truth, so
+ * changing a threshold in /admin now actually changes what shoppers see.
+ */
+export interface CartThresholds {
+  freeShipping: number;
+  gift: number;
 }
 
 const STORAGE_KEY = "ecl_cart_v1";
@@ -60,7 +72,15 @@ function loadLines(): CartLine[] {
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({
+  children,
+  thresholds,
+}: {
+  children: ReactNode;
+  thresholds?: CartThresholds;
+}) {
+  const freeShippingThreshold = thresholds?.freeShipping ?? FREE_SHIPPING_THRESHOLD;
+  const giftThreshold = thresholds?.gift ?? GIFT_THRESHOLD;
   const [lines, setLines] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -106,7 +126,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const subtotal = useMemo(() => lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0), [lines]);
   const itemCount = useMemo(() => lines.reduce((sum, l) => sum + l.quantity, 0), [lines]);
-  const amountToFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+  const amountToFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
 
   const goToCheckout = useCallback(() => {
     const gaItems: GaItem[] = lines.map((l) => ({
@@ -122,7 +142,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Orders are now created in our own database (Supabase) by the checkout
     // server action, which re-prices every line server-side and reserves stock.
     // The legacy WooCommerce hand-off is gone; set USE_WOO_CHECKOUT=1 only as an
-    // emergency fallback while Bankful is being wired up.
+    // emergency fallback if the native checkout ever needs to be bypassed.
     if (process.env.USE_WOO_CHECKOUT === "1") {
       window.location.href = checkoutUrl();
       return;
@@ -135,8 +155,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     itemCount,
     subtotal,
     amountToFreeShipping,
-    hasFreeShipping: subtotal >= FREE_SHIPPING_THRESHOLD,
-    freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
+    hasFreeShipping: subtotal >= freeShippingThreshold,
+    freeShippingThreshold,
+    giftThreshold,
     ready,
     addLine,
     updateQty,

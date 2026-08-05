@@ -32,7 +32,7 @@ export async function sendOne(row: OutboxRow): Promise<{ ok: boolean; error?: st
   const resend = client();
   if (!resend) return { ok: false, error: "RESEND_API_KEY not configured" };
   try {
-    const { subject, html } = renderTemplate(row.template, row.payload ?? {});
+    const { subject, html } = await renderTemplate(row.template, row.payload ?? {});
     const { error } = await resend.emails.send({ from: FROM, to: row.to_email, subject, html });
     if (error) return { ok: false, error: error.message };
     return { ok: true };

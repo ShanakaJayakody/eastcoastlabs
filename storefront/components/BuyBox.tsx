@@ -48,6 +48,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
   const [mode, setMode] = useState<"once" | "sub">("once");
   const [cadence, setCadence] = useState(8);
   const [addBac, setAddBac] = useState(false);
+  const [qty, setQty] = useState(1);
   const [showSticky, setShowSticky] = useState(false);
 
   const atcRef = useRef<HTMLDivElement | null>(null);
@@ -89,7 +90,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         image: product.image,
         unitPrice: lineTotal,
       },
-      1,
+      qty,
     );
     trackAddToCart(
       {
@@ -97,9 +98,9 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         item_name: product.name,
         item_variant: `${variantLabel}${subSuffix}`,
         price: lineTotal,
-        quantity: 1,
+        quantity: qty,
       },
-      lineTotal,
+      lineTotal * qty,
     );
 
     if (addBac && bacWater) {
@@ -299,13 +300,38 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
 
       {/* Add to cart */}
       <div ref={atcRef}>
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="btn-press flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-5 py-4 text-base font-semibold text-accent-ink transition hover:brightness-95"
-        >
-          Add to Cart · {formatAud(lineTotal)}
-        </button>
+        <div className="flex items-stretch gap-2.5">
+          <div className="inline-flex shrink-0 items-center rounded-xl border border-line bg-surface">
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              disabled={qty <= 1}
+              className="btn-press grid h-full w-11 place-items-center text-lg text-fg-2 transition hover:text-fg disabled:opacity-40"
+              aria-label="Decrease quantity"
+            >
+              –
+            </button>
+            <span className="w-8 text-center text-sm font-semibold text-fg" aria-live="polite">
+              {qty}
+            </span>
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.min(99, q + 1))}
+              disabled={qty >= 99}
+              className="btn-press grid h-full w-11 place-items-center text-lg text-fg-2 transition hover:text-fg disabled:opacity-40"
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="btn-press flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-4 text-base font-semibold text-accent-ink transition hover:brightness-95"
+          >
+            Add to Cart · {formatAud(lineTotal * qty)}
+          </button>
+        </div>
         {/* Guarantee microcopy */}
         <p className="mt-3 text-center text-xs text-muted">
           🛡️ Purity guaranteed — we cover the test. 1-business-day dispatch.
@@ -322,7 +348,9 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-fg">{product.name}</p>
             <p className="text-xs text-muted">
-              {variantLabel} · <span className="font-semibold text-fg-2">{formatAud(lineTotal)}</span>
+              {variantLabel}
+              {qty > 1 && ` × ${qty}`} ·{" "}
+              <span className="font-semibold text-fg-2">{formatAud(lineTotal * qty)}</span>
             </p>
           </div>
           <button

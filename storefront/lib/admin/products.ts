@@ -72,18 +72,44 @@ function mapVariant(v: RawVariant, pool: { onHand: number; reserved: number }): 
   };
 }
 
-/** The vial pool for a product: its pack_size = 1 inventory row. */
+/**
+ * The vial pool for a product: normally its pack_size = 1 inventory row.
+ *
+ * Products sold only in multi-vial packs have no 1-vial tier, and reading the
+ * pool as "the single's row or zero" made every tier of those products display
+ * 0 in stock while they were genuinely sellable. When there is no 1-vial tier,
+ * fall back to the smallest pack that carries inventory and convert its count
+ * into vials, which is the unit the rest of the system works in.
+ */
 function poolOf(variants: RawVariant[]): { onHand: number; reserved: number } {
   const single = variants.find((v) => v.pack_size === 1);
+  if (single?.inventory) {
+    return { onHand: single.inventory.on_hand ?? 0, reserved: single.inventory.reserved ?? 0 };
+  }
+
+  const holder = variants
+    .filter((v) => v.inventory)
+    .sort((a, b) => (a.pack_size || 1) - (b.pack_size || 1))[0];
+  if (!holder) return { onHand: 0, reserved: 0 };
+
+  const packSize = Math.max(1, holder.pack_size || 1);
   return {
-    onHand: single?.inventory?.on_hand ?? 0,
-    reserved: single?.inventory?.reserved ?? 0,
+    onHand: (holder.inventory?.on_hand ?? 0) * packSize,
+    reserved: (holder.inventory?.reserved ?? 0) * packSize,
   };
 }
 
-/** Vials physically on hand for a product (the number an operator manages). */
+/**
+ * Vials physically on hand for a product (the number an operator manages).
+ * Mirrors poolOf's fallback so the editor's stock figure and the tier
+ * availability it explains can never disagree.
+ */
 export function vialsOnHand(variants: { pack_size: number; on_hand: number }[]): number {
-  return variants.find((v) => v.pack_size === 1)?.on_hand ?? 0;
+  const single = variants.find((v) => v.pack_size === 1);
+  if (single) return single.on_hand;
+  // mapVariant already reports pack-level counts, so convert back to vials.
+  const smallest = variants.slice().sort((a, b) => (a.pack_size || 1) - (b.pack_size || 1))[0];
+  return smallest ? smallest.on_hand * Math.max(1, smallest.pack_size || 1) : 0;
 }
 
 const SELECT_PRODUCT = `

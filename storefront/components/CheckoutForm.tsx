@@ -5,23 +5,22 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatAud } from "@/lib/format";
-import { placeOrder, quoteCart, captureCartEmail, type CheckoutAddress } from "@/app/(store)/checkout/actions";
+import {
+  placeOrder,
+  quoteCart,
+  captureCartEmail,
+  type CheckoutAddress,
+  type CartQuote,
+} from "@/app/(store)/checkout/actions";
+import type { PaymentMethod } from "@/lib/payments";
+import type { ShippingMethod } from "@/lib/shipping";
+import CheckoutBump, { type BumpProduct } from "./CheckoutBump";
 
 const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
 
-interface Quote {
-  subtotalCents: number;
-  discountCents: number;
-  shippingCents: number;
-  totalCents: number;
-  giftApplied: boolean;
-  discountError?: string;
-  warnings: string[];
-}
-
 const cents = (c: number) => formatAud(c / 100);
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) {
   const router = useRouter();
   const { lines, ready, clear } = useCart();
 
@@ -38,7 +37,10 @@ export default function CheckoutForm() {
   });
   const [code, setCode] = useState("");
   const [appliedCode, setAppliedCode] = useState("");
-  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quote, setQuote] = useState<CartQuote | null>(null);
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -53,15 +55,23 @@ export default function CheckoutForm() {
       variantLabel: l.variantLabel,
       quantity: l.quantity,
     }));
-    quoteCart(payload, appliedCode || undefined)
+    quoteCart(payload, appliedCode || undefined, shippingMethod)
       .then((q) => {
-        if (!cancelled) setQuote(q);
+        if (cancelled) return;
+        setQuote(q);
+        // Default to the first offered method, but never override a choice the
+        // shopper has already made.
+        setPaymentMethod((current) =>
+          current && q.paymentOptions.some((o) => o.method === current)
+            ? current
+            : q.paymentOptions[0]?.method ?? null,
+        );
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [lines, ready, appliedCode]);
+  }, [lines, ready, appliedCode, shippingMethod]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +82,9 @@ export default function CheckoutForm() {
         name,
         address,
         discountCode: appliedCode || undefined,
+        paymentMethod: paymentMethod ?? undefined,
+        shippingMethod,
+        deliveryInstructions: deliveryInstructions || undefined,
         lines: lines.map((l) => ({
           key: l.key,
           slug: l.slug,
@@ -199,15 +212,144 @@ export default function CheckoutForm() {
               onChange={(e) => setAddress({ ...address, phone: e.target.value })}
               className={`${field} sm:col-span-2`}
             />
+            <div className="sm:col-span-2">
+              <textarea
+                placeholder="Delivery instructions (optional) — e.g. leave behind the pot plant"
+                value={deliveryInstructions}
+                maxLength={500}
+                rows={2}
+                onChange={(e) => setDeliveryInstructions(e.target.value)}
+                className={`${field} resize-none`}
+              />
+              <p className="mt-1 text-[11px] text-muted-2">
+                Passed to the courier and our packers. Not printed on the label.
+              </p>
+            </div>
           </div>
         </section>
 
+        {/* ---- Order bump: the accessory every peptide order needs ---- */}
+        {bumps.length > 0 && <CheckoutBump products={bumps} />}
+
+        {/* ---- Shipping method ---- */}
+        {quote && quote.shippingOptions.length > 1 && (
+          <section className="rounded-xl border border-line bg-surface p-5">
+            <h2 className="mb-3 text-sm font-semibold text-fg">Shipping method</h2>
+            <div className="grid gap-2.5">
+              {quote.shippingOptions.map((opt) => {
+                const isSel = opt.method === shippingMethod;
+                return (
+                  <label
+                    key={opt.method}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3.5 transition-colors ${
+                      isSel ? "border-accent bg-accent/5" : "border-line bg-ink-2 hover:border-line-2"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="shipping"
+                      checked={isSel}
+                      onChange={() => setShippingMethod(opt.method)}
+                      className="sr-only"
+                    />
+                    <span
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
+                        isSel ? "border-accent" : "border-line-2"
+                      }`}
+                    >
+                      {isSel && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-fg">{opt.label}</span>
+                      <span className="block text-xs text-muted">
+                        {opt.eta}
+                        {!opt.isFree && opt.remainingCents > 0 && (
+                          <>
+                            {" · "}
+                            <span className="text-accent">
+                              {cents(opt.remainingCents)} more for free
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      {opt.isFree ? (
+                        <>
+                          <span className="text-sm font-bold text-success">Free</span>
+                          <span className="ml-1.5 text-xs text-muted-2 line-through">
+                            {cents(opt.baseCents)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-bold text-fg">{cents(opt.cents)}</span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ---- Payment method ---- */}
         <section className="rounded-xl border border-line bg-surface p-5">
-          <h2 className="mb-2 text-sm font-semibold text-fg">Payment</h2>
-          <p className="text-sm text-muted">
-            Your order is placed now and we email bank-transfer details immediately.
-            Card payment is coming shortly — nothing is charged on this page.
+          <h2 className="mb-1 text-sm font-semibold text-fg">Payment</h2>
+          <p className="mb-3 text-xs text-muted">
+            Nothing is charged on this page. You&apos;ll get the transfer details — with a reference
+            and the exact amount — the moment you place the order.
           </p>
+
+          {quote && quote.paymentOptions.length === 0 ? (
+            <p className="rounded-lg border border-warn/40 bg-warn/5 p-3 text-sm text-warn">
+              Payments are temporarily unavailable. Please contact support before ordering.
+            </p>
+          ) : (
+            <div className="grid gap-2.5">
+              {(quote?.paymentOptions ?? []).map((opt) => {
+                const isSel = opt.method === paymentMethod;
+                return (
+                  <label
+                    key={opt.method}
+                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors ${
+                      isSel ? "border-accent bg-accent/5" : "border-line bg-ink-2 hover:border-line-2"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={isSel}
+                      onChange={() => setPaymentMethod(opt.method)}
+                      className="sr-only"
+                    />
+                    <span
+                      className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
+                        isSel ? "border-accent" : "border-line-2"
+                      }`}
+                    >
+                      {isSel && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-fg">{opt.label}</span>
+                        {opt.badges.map((b) => (
+                          <span
+                            key={b}
+                            className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success"
+                          >
+                            {b}
+                          </span>
+                        ))}
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted">
+                        {opt.blurb}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
 
@@ -264,6 +406,14 @@ export default function CheckoutForm() {
                 {quote ? (quote.shippingCents === 0 ? "Free" : cents(quote.shippingCents)) : "—"}
               </dd>
             </div>
+            {/* GST is included in every displayed price — say so, so nobody
+                expects a surprise line at the end. */}
+            {quote && quote.totalCents > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted-2 text-xs">Includes GST</dt>
+                <dd className="text-muted-2 text-xs">{cents(Math.round(quote.totalCents / 11))}</dd>
+              </div>
+            )}
             {quote?.giftApplied && (
               <div className="flex justify-between">
                 <dt className="text-muted">Free bacteriostatic water</dt>
@@ -278,11 +428,14 @@ export default function CheckoutForm() {
 
           <button
             type="submit"
-            disabled={pending || !quote}
+            disabled={pending || !quote || !paymentMethod}
             className="mt-5 w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-60"
           >
             {pending ? "Placing order…" : "Place order"}
           </button>
+          <p className="mt-2 text-center text-[11px] text-muted-2">
+            No card details needed. You&apos;ll get transfer details next.
+          </p>
 
           {error && <p className="mt-3 text-sm text-warn">{error}</p>}
           {quote?.warnings?.map((w) => (

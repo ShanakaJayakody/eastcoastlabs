@@ -4,6 +4,7 @@ import Analytics from "@/components/Analytics";
 import DossierHeader from "@/components/variant/v2/DossierHeader";
 import DossierFooter from "@/components/variant/v2/DossierFooter";
 import { newsreader, inter, plexMono } from "@/lib/fonts";
+import { getSettings } from "@/lib/settings";
 
 /**
  * A/B variant shell (route /1) — "The Dossier" redesign.
@@ -21,9 +22,15 @@ import { newsreader, inter, plexMono } from "@/lib/fonts";
  * globals.css); the font variables from next/font are applied on the same
  * root element so --font-serif/--font-grotesk/--font-data resolve only here.
  */
-export default function VariantLayout({ children }: { children: React.ReactNode }) {
+export default async function VariantLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSettings();
   return (
-    <Providers>
+    <Providers
+      thresholds={{
+        freeShipping: settings.freeShippingThreshold,
+        gift: settings.giftThreshold,
+      }}
+    >
       <div
         className={`theme-paper flex min-h-screen flex-col bg-ink text-fg ${newsreader.variable} ${inter.variable} ${plexMono.variable}`}
       >

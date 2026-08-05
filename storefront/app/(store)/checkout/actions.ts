@@ -1,19 +1,31 @@
 "use server";
 
 /**
- * Native checkout. Replaces the old WooCommerce /checkout hand-off.
+ * Native checkout.
  *
  * The client posts contact + shipping details and its cart lines WITHOUT prices;
  * lib/checkout.ts re-derives every amount server-side, then createOrder() writes
- * a `pending` order and atomically reserves stock. Payment comes after: Bankful
- * when credentials land (Phase F), bank transfer in the meantime — either way the
- * order exists in the admin the moment the shopper submits.
+ * a `pending` order and atomically reserves stock.
+ *
+ * Payment is customer-initiated (PayID or bank transfer), so "place order" and
+ * "pay" are two separate events. The order exists the moment the shopper
+ * submits; the payment details, reference, and hold window are shown next.
  */
 
 import { resolveCart, type ClientCartLine } from "@/lib/checkout";
-import { createOrder } from "@/lib/admin/orders";
+import { createOrder, setOrderPaymentPlan } from "@/lib/admin/orders";
 import { validateDiscount } from "@/lib/admin/discounts";
 import { captureCart, markCartRecovered } from "@/lib/admin/cart-recovery";
+import { getSettings } from "@/lib/settings";
+import { quoteShipping, shippingCentsFor, isShippingMethod, type ShippingMethod, type ShippingQuote } from "@/lib/shipping";
+import {
+  availablePaymentOptions,
+  isPaymentMethod,
+  referenceForOrderNumber,
+  type PaymentMethod,
+  type PaymentOption,
+} from "@/lib/payments";
+import { queueEmail } from "@/lib/admin/email";
 
 export interface CheckoutAddress {
   line1: string;
@@ -31,10 +43,13 @@ export interface PlaceOrderInput {
   address: CheckoutAddress;
   lines: ClientCartLine[];
   discountCode?: string;
+  paymentMethod?: PaymentMethod;
+  shippingMethod?: ShippingMethod;
+  deliveryInstructions?: string;
 }
 
 export type PlaceOrderResult =
-  | { ok: true; orderNumber: string; totalCents: number; warnings: string[] }
+  | { ok: true; orderNumber: string; orderId: string; totalCents: number; warnings: string[] }
   | { ok: false; error: string; outOfStockSku?: string };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -51,21 +66,27 @@ function validate(input: PlaceOrderInput): string | null {
   return null;
 }
 
+export interface CartQuote {
+  subtotalCents: number;
+  discountCents: number;
+  shippingCents: number;
+  shippingMethod: ShippingMethod;
+  shippingOptions: ShippingQuote[];
+  totalCents: number;
+  giftApplied: boolean;
+  discountError?: string;
+  warnings: string[];
+  paymentOptions: PaymentOption[];
+}
+
 /** Quote the cart server-side (used by the checkout summary so displayed totals
  *  are the same numbers the order will be written with). */
 export async function quoteCart(
   lines: ClientCartLine[],
   discountCode?: string,
-): Promise<{
-  subtotalCents: number;
-  discountCents: number;
-  shippingCents: number;
-  totalCents: number;
-  giftApplied: boolean;
-  discountError?: string;
-  warnings: string[];
-}> {
-  const resolved = await resolveCart(lines);
+  shippingMethod?: ShippingMethod,
+): Promise<CartQuote> {
+  const [resolved, settings] = await Promise.all([resolveCart(lines), getSettings()]);
   let discountCents = 0;
   let discountError: string | undefined;
   if (discountCode?.trim()) {
@@ -74,15 +95,20 @@ export async function quoteCart(
     else discountError = d.error;
   }
   const afterDiscount = resolved.subtotalCents - discountCents;
-  const shippingCents = afterDiscount >= 15000 ? 0 : afterDiscount > 0 ? 1200 : 0;
+  const requested = isShippingMethod(shippingMethod) ? shippingMethod : "standard";
+  const shipping = shippingCentsFor(afterDiscount, requested, settings);
+
   return {
     subtotalCents: resolved.subtotalCents,
     discountCents,
-    shippingCents,
-    totalCents: afterDiscount + shippingCents,
+    shippingCents: shipping.cents,
+    shippingMethod: shipping.method,
+    shippingOptions: quoteShipping(afterDiscount, settings),
+    totalCents: afterDiscount + shipping.cents,
     giftApplied: resolved.giftApplied,
     discountError,
     warnings: resolved.warnings,
+    paymentOptions: availablePaymentOptions(settings),
   };
 }
 
@@ -108,10 +134,37 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (invalid) return { ok: false, error: invalid };
 
   try {
-    const resolved = await resolveCart(input.lines);
+    const [resolved, settings] = await Promise.all([resolveCart(input.lines), getSettings()]);
     if (!resolved.items.length && !resolved.extraItems.length) {
       return { ok: false, error: "None of the items in your cart are available." };
     }
+
+    // The payment method must be one we currently offer — a stale or tampered
+    // value falls back to the first configured method rather than writing an
+    // order nobody can pay for.
+    const offered = availablePaymentOptions(settings);
+    if (!offered.length) {
+      return {
+        ok: false,
+        error: "Payments are temporarily unavailable. Please contact support before ordering.",
+      };
+    }
+    const paymentMethod: PaymentMethod =
+      isPaymentMethod(input.paymentMethod) && offered.some((o) => o.method === input.paymentMethod)
+        ? input.paymentMethod
+        : offered[0].method;
+
+    // Shipping is priced server-side from the discounted subtotal for the same
+    // reason prices are: the client may ask for express, it may not decide what
+    // express costs.
+    const discount = input.discountCode?.trim()
+      ? await validateDiscount(input.discountCode, resolved.subtotalCents)
+      : null;
+    const discountCents = discount?.ok ? discount.discountCents : 0;
+    const requested = isShippingMethod(input.shippingMethod) ? input.shippingMethod : "standard";
+    const shipping = shippingCentsFor(resolved.subtotalCents - discountCents, requested, settings);
+
+    const instructions = input.deliveryInstructions?.trim().slice(0, 500);
 
     const order = await createOrder({
       email: input.email,
@@ -124,13 +177,42 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         postcode: input.address.postcode.trim(),
         country: input.address.country?.trim() || "AU",
         phone: input.address.phone?.trim() || null,
+        shipping_method: shipping.method,
+        delivery_instructions: instructions || null,
       },
       items: resolved.items,
       extraItems: resolved.extraItems,
       discountCode: input.discountCode?.trim() || undefined,
-      paymentMethod: "bank_transfer",
+      shippingCents: shipping.cents,
+      paymentMethod,
       actor: input.email.trim().toLowerCase(),
     });
+
+    // The reference and the hold window are what make a customer-initiated
+    // payment matchable and time-bounded. Written immediately after create so an
+    // order can never exist in `pending` without them.
+    const reference = referenceForOrderNumber(order.orderNumber);
+    await setOrderPaymentPlan(order.orderId, {
+      reference,
+      expiryHours: settings.paymentExpiryHours,
+    });
+
+    // Payment instructions email. Best-effort: a mail failure must not lose the
+    // order — the details are also on the confirmation page the shopper is about
+    // to land on, and the reminder sweep will try again.
+    await queueEmail({
+      to: input.email,
+      template: "payment_instructions",
+      payload: {
+        order_number: order.orderNumber,
+        order_id: order.orderId,
+        payment_method: paymentMethod,
+        reference,
+        amount_cents: order.totalCents,
+      },
+      relatedType: "order",
+      relatedId: order.orderId,
+    }).catch((err) => console.error("payment_instructions email failed:", err));
 
     // Best-effort: suppression failing must never break checkout, but it should
     // be visible server-side rather than silently swallowed (a failure here means
@@ -142,6 +224,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     return {
       ok: true,
       orderNumber: order.orderNumber,
+      orderId: order.orderId,
       totalCents: order.totalCents,
       warnings: resolved.warnings,
     };

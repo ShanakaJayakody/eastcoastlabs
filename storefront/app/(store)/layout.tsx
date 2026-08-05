@@ -5,10 +5,14 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import ExitIntentModal from "@/components/ExitIntentModal";
 import Analytics from "@/components/Analytics";
+import { getSettings } from "@/lib/settings";
 
 // The storefront shell: everything a shopper sees. Admin routes deliberately do
 // NOT inherit this — no cart, no exit-intent, no GA4.
-export default function StoreLayout({ children }: { children: React.ReactNode }) {
+export default async function StoreLayout({ children }: { children: React.ReactNode }) {
+  // Reward thresholds are resolved here, once, and handed to the cart provider.
+  // The cart is a client component and can't read settings itself.
+  const settings = await getSettings();
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -21,7 +25,12 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <Providers>
+    <Providers
+      thresholds={{
+        freeShipping: settings.freeShippingThreshold,
+        gift: settings.giftThreshold,
+      }}
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}

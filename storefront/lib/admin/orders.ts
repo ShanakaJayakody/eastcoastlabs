@@ -17,7 +17,8 @@ import { logAudit } from "./audit";
 import { recordMovement, reserveStock, releaseStock } from "./inventory";
 import { snapshotOrderCosts } from "./costs";
 import { validateDiscount, incrementDiscountUsage } from "./discounts";
-import { FREE_SHIPPING_THRESHOLD } from "@/lib/env";
+import { getSettings } from "@/lib/settings";
+import { shippingCentsFor, isShippingMethod } from "@/lib/shipping";
 
 export type OrderStatus =
   | "pending"
@@ -42,7 +43,10 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from]?.includes(to) ?? false;
 }
 
-const FLAT_SHIPPING_CENTS = 1200;
+/** Standard-method shipping for a given discounted subtotal, from settings. */
+async function standardShippingCentsFor(afterDiscountCents: number): Promise<number> {
+  return shippingCentsFor(afterDiscountCents, "standard", await getSettings()).cents;
+}
 
 export interface NewOrderItem {
   variantId: string;
@@ -168,9 +172,11 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
     }
 
     const afterDiscount = subtotal - discountCents;
+    // Callers that already priced shipping (the storefront checkout, which also
+    // picked the method) pass it in. Everything else — manual admin orders —
+    // falls back to the configured standard rate.
     const shippingCents =
-      input.shippingCents ??
-      (afterDiscount >= FREE_SHIPPING_THRESHOLD * 100 ? 0 : FLAT_SHIPPING_CENTS);
+      input.shippingCents ?? (await standardShippingCentsFor(afterDiscount));
     const total = afterDiscount + shippingCents;
 
     const { data: order, error: oErr } = await db
@@ -280,6 +286,30 @@ async function orderItems(orderId: string): Promise<{ variant_id: string; qty: n
 }
 
 /** Confirm payment: pending → paid, decrement stock (sale movements), release reservations. */
+/**
+ * Attach the payment reference and hold window to a freshly-created order.
+ *
+ * Split out of createOrder because the reference is derived from the order
+ * NUMBER, which the database assigns on insert — it cannot be known before the
+ * row exists. Called immediately after create, so a pending order is never
+ * without one for longer than a round trip.
+ */
+export async function setOrderPaymentPlan(
+  orderId: string,
+  opts: { reference: string; expiryHours: number },
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + opts.expiryHours * 3600_000).toISOString();
+  const { error } = await adminDb()
+    .from("orders")
+    .update({
+      payment_reference: opts.reference,
+      payment_expires_at: expiresAt,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+  if (error) throw new Error(`setOrderPaymentPlan: ${error.message}`);
+}
+
 export async function markPaid(
   orderId: string,
   opts: { actor?: string; paymentRef?: string; paymentMethod?: string } = {},
@@ -638,7 +668,7 @@ async function recalculateOrderTotals(orderId: string): Promise<void> {
 
   const { data: order } = await db
     .from("orders")
-    .select("discount_code")
+    .select("discount_code, shipping_address")
     .eq("id", orderId)
     .maybeSingle();
 
@@ -648,7 +678,12 @@ async function recalculateOrderTotals(orderId: string): Promise<void> {
     if (d.ok) discountCents = d.discountCents;
   }
   const afterDiscount = subtotal - discountCents;
-  const shippingCents = afterDiscount >= FREE_SHIPPING_THRESHOLD * 100 ? 0 : afterDiscount > 0 ? 1200 : 0;
+  // Re-price shipping on the method the customer actually chose — recalculating
+  // an express order at the standard rate would quietly refund them the
+  // difference every time an admin edited a line.
+  const chosen = (order?.shipping_address as { shipping_method?: unknown } | null)?.shipping_method;
+  const method = isShippingMethod(chosen) ? chosen : "standard";
+  const shippingCents = shippingCentsFor(afterDiscount, method, await getSettings()).cents;
   const total = afterDiscount + shippingCents;
 
   await db

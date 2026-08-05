@@ -6,7 +6,8 @@
 --   * on_hand is NEVER authored — it is the running sum of stock_movements,
 --     maintained by an AFTER INSERT trigger. Correcting stock = append a movement.
 --   * reserved is a separate claim on availability; available = on_hand - reserved.
---   * Stock is decremented on PAYMENT, not on order-create (Bankful is slow/manual);
+--   * Stock is decremented on PAYMENT, not on order-create (payment is customer-
+--     initiated and confirmed manually — see 20260804140000_payments.sql);
 --     the reservation is authoritative until paid. Every transition is idempotent
 --     via orders.stock_reserved / stock_settled / stock_restored guard flags.
 --   * The concurrent last-unit race is closed by reserve_stock(): an atomic

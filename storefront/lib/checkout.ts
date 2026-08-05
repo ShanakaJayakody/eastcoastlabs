@@ -11,7 +11,8 @@
  */
 import { adminDb } from "./admin/db";
 import { getAccessory } from "./accessories";
-import { GIFT_THRESHOLD } from "./env";
+import { getSettings } from "./settings";
+import { getStackBySlug } from "./stacks";
 import type { NewOrderItem, ExtraOrderItem } from "./admin/orders";
 
 /** Subscribe-and-save rate, mirrored from the storefront BuyBox. */
@@ -44,6 +45,9 @@ export function packSizeFromLabel(label: string): number {
 
 const isSubscription = (label: string) => /subscribe/i.test(label);
 const isGiftKey = (key: string) => key.startsWith("gift:");
+/** Stacks are bundles of several products added as ONE cart line (key
+ *  "stack:<slug>"). They resolve to real, individually-stocked order items. */
+const isStackKey = (key: string) => key.startsWith("stack:");
 
 interface VariantLookup {
   id: string;
@@ -70,8 +74,25 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const paidLines = clean.filter((l) => !isGiftKey(l.key));
   const giftClaimed = clean.some((l) => isGiftKey(l.key));
 
-  // Look up every catalog variant referenced by the cart, in one query.
-  const slugs = [...new Set(paidLines.map((l) => l.slug))];
+  // Stacks are bundle lines: one cart row that stands for several real products.
+  // They must be expanded BEFORE the variant query so their components are
+  // included in it — otherwise a stack matches no variant and no accessory, and
+  // gets silently dropped as an unrecognised item.
+  const stackLines = paidLines.filter((l) => isStackKey(l.key));
+  const resolvedStacks = await Promise.all(
+    stackLines.map(async (line) => ({ line, stack: await getStackBySlug(line.slug) })),
+  );
+
+  // Look up every catalog variant referenced by the cart, in one query —
+  // including the single-vial variant behind each stack component.
+  const slugs = [
+    ...new Set([
+      ...paidLines.filter((l) => !isStackKey(l.key)).map((l) => l.slug),
+      ...resolvedStacks.flatMap(({ stack }) => stack?.components.map((c) => c.slug) ?? []),
+      // A stack that includes free bacteriostatic water needs that variant too.
+      ...(resolvedStacks.some(({ stack }) => stack?.freeBacWater) ? ["bacteriostatic-water"] : []),
+    ]),
+  ];
   let variants: VariantLookup[] = [];
   if (slugs.length) {
     const { data, error } = await adminDb()
@@ -90,7 +111,66 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const items: NewOrderItem[] = [];
   const extraItems: ExtraOrderItem[] = [];
 
+  // ---- Stack (bundle) lines --------------------------------------------
+  // A stack is priced as a set: bundlePrice is below the sum of its parts. To
+  // keep every component a real, stocked order item while still charging
+  // exactly the bundle price, the discount is distributed across components
+  // proportionally and the rounding remainder lands on the last one — so the
+  // line totals always add up to the advertised price to the cent.
+  for (const { line, stack } of resolvedStacks) {
+    if (!stack) {
+      warnings.push(`Removed unavailable bundle "${line.slug}".`);
+      continue;
+    }
+
+    const componentVariants = stack.components.map((c) => ({
+      component: c,
+      variant: byKey.get(variantKey(c.slug, 1)),
+    }));
+    const missing = componentVariants.filter((c) => !c.variant);
+    if (missing.length) {
+      warnings.push(`Removed "${stack.name}" — ${missing[0].component.name} is unavailable.`);
+      continue;
+    }
+
+    const bundleCents = Math.round(stack.bundlePrice * 100);
+    const componentsCents = componentVariants.map(({ variant }) => variant!.price_cents);
+    const componentsTotal = componentsCents.reduce((a, b) => a + b, 0);
+
+    for (let unit = 0; unit < line.quantity; unit++) {
+      let allocated = 0;
+      componentVariants.forEach(({ variant }, i) => {
+        const isLast = i === componentVariants.length - 1;
+        const share = isLast
+          ? bundleCents - allocated
+          : Math.round((componentsCents[i] / componentsTotal) * bundleCents);
+        allocated += share;
+        items.push({
+          variantId: variant!.id,
+          qty: 1,
+          priceOverrideCents: Math.max(0, share),
+          labelSuffix: ` · ${stack.name}`,
+        });
+      });
+
+      // Stacks that advertise free bacteriostatic water ship a real $0 vial —
+      // it reserves and decrements stock exactly like a sold one.
+      if (stack.freeBacWater) {
+        const bac = byKey.get(variantKey("bacteriostatic-water", 1));
+        if (bac) {
+          items.push({
+            variantId: bac.id,
+            qty: 1,
+            priceOverrideCents: 0,
+            labelSuffix: ` · ${stack.name} (included)`,
+          });
+        }
+      }
+    }
+  }
+
   for (const line of paidLines) {
+    if (isStackKey(line.key)) continue; // handled above
     const pack = packSizeFromLabel(line.variantLabel);
     const variant = byKey.get(variantKey(line.slug, pack));
 
@@ -122,8 +202,12 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   }
 
   // Server-computed subtotal of everything that is genuinely payable.
+  // A priceOverrideCents line (stack component, $0 gift) is worth exactly its
+  // override — reading the variant's list price here would charge bundle buyers
+  // full freight and inflate the gift threshold.
   const subtotalCents =
     items.reduce((sum, i) => {
+      if (typeof i.priceOverrideCents === "number") return sum + i.priceOverrideCents * i.qty;
       const v = variants.find((x) => x.id === i.variantId)!;
       const pct = i.discountPct ?? 0;
       return sum + Math.round(v.price_cents * (1 - pct / 100)) * i.qty;
@@ -132,9 +216,10 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   // Gift: only if the SERVER's subtotal clears the threshold. A forged gift line
   // on a small cart is dropped here. The gift is a real vial, so it resolves to a
   // stocked variant at $0 — it reserves and decrements inventory like any sale.
+  const { giftThreshold } = await getSettings();
   let giftApplied = false;
   if (giftClaimed) {
-    if (subtotalCents >= GIFT_THRESHOLD * 100) {
+    if (subtotalCents >= giftThreshold * 100) {
       const giftVariant = await findGiftVariant();
       if (giftVariant) {
         items.push({

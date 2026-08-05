@@ -1,9 +1,15 @@
 # East Coast Labs — Storefront
 
 Production Next.js headless-commerce storefront for **East Coast Labs**, a research-use-only
-peptide supplier. The storefront reads the catalog and COA data from a headless WooCommerce
-backend over REST and hands the cart off to WooCommerce's own `/checkout` (where the Bankful
-gateway runs). **Payment stays on WooCommerce — this app never touches card data.**
+peptide supplier. Catalog, inventory, orders, and settings live in Supabase; the storefront
+owns its own cart, checkout, and order lifecycle end to end.
+
+**Payment is customer-initiated — PayID or direct bank transfer.** Mainstream card processors
+do not serve this category, so there is no gateway and the app never touches card data. An
+order is created in `pending` with a payment reference and a hold window; the customer
+transfers; an admin confirms receipt, which is what settles stock. Unpaid orders send
+themselves reminders and auto-cancel at expiry, releasing their reserved stock. See
+`lib/payments.ts`, `lib/admin/payment-ops.ts`, and `/pay/[id]`.
 
 ## Stack
 

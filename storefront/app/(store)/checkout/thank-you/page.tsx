@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase";
 import { formatAud } from "@/lib/format";
+import { instructionsForOrder, isPaymentMethod, referenceForOrderNumber } from "@/lib/payments";
+import PaymentInstructionsPanel from "@/components/PaymentInstructions";
 
 export const metadata: Metadata = {
   title: "Order confirmed",
@@ -32,7 +34,9 @@ export default async function ThankYouPage({
       ? (
           await db
             .from("orders")
-            .select("id, order_number, customer_email, total_cents, status")
+            .select(
+              "id, order_number, customer_email, total_cents, status, payment_method, payment_reference, payment_expires_at",
+            )
             .eq("order_number", orderNumber)
             .maybeSingle()
         ).data
@@ -66,18 +70,54 @@ export default async function ThankYouPage({
     );
   }
 
+  // Payment details belong here, not in a follow-up email: this is the moment
+  // the customer is holding their phone and can transfer immediately. The email
+  // repeats them for later.
+  const isPending = order.status === "pending";
+  const method = isPaymentMethod(order.payment_method) ? order.payment_method : "bank_transfer";
+  const reference = order.payment_reference ?? referenceForOrderNumber(order.order_number);
+  const instructions = isPending
+    ? await instructionsForOrder({ method, reference, amountCents: order.total_cents })
+    : null;
+
   return (
     <div className="mx-auto max-w-xl px-4 py-16">
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-success/40 bg-success/10 text-xl text-success">
           ✓
         </div>
-        <h1 className="text-2xl font-bold text-fg">Thanks — your order is in</h1>
+        <h1 className="text-2xl font-bold text-fg">Thanks — your order is reserved</h1>
         <p className="mt-2 text-sm text-muted">
-          Order <span className="font-mono text-fg-2">{order.order_number}</span> · confirmation
+          Order <span className="font-mono text-fg-2">{order.order_number}</span> · details also
           sent to {order.customer_email}
         </p>
       </div>
+
+      {isPending && (
+        <div className="mt-8">
+          {instructions ? (
+            <>
+              <PaymentInstructionsPanel instructions={instructions} />
+              <div className="mt-3 text-center">
+                <Link
+                  href={`/pay/${order.id}`}
+                  className="text-sm text-accent-2 underline underline-offset-2"
+                >
+                  Open your payment page →
+                </Link>
+                <p className="mt-1 text-xs text-muted-2">
+                  Bookmark it — it confirms itself the moment your transfer lands.
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-xl border border-line bg-surface p-5 text-sm text-fg-2">
+              We&apos;re finalising the payment details for this order and will email them to you
+              shortly.
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-8 rounded-xl border border-line bg-surface p-5">
         <ul className="space-y-3 text-sm">
@@ -102,9 +142,12 @@ export default async function ThankYouPage({
       <div className="mt-6 rounded-xl border border-line bg-ink-2 p-5 text-sm">
         <h2 className="font-semibold text-fg">What happens next</h2>
         <ol className="mt-2 space-y-1.5 text-muted">
-          <li>1. We email bank-transfer details for this order.</li>
-          <li>2. Once payment clears we pack and dispatch, with the batch COA.</li>
-          <li>3. You get a tracking number by email.</li>
+          <li>
+            1. Transfer {cents(order.total_cents)} using the reference{" "}
+            <span className="font-mono text-fg-2">{reference}</span>.
+          </li>
+          <li>2. We confirm your payment — usually within a few hours.</li>
+          <li>3. We pack and dispatch with the batch COA, then email your tracking number.</li>
         </ol>
       </div>
 

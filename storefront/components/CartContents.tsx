@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 import { formatAud } from "@/lib/format";
-import { GIFT_THRESHOLD } from "@/lib/env";
 import FreeShippingProgress from "./FreeShippingProgress";
 import CartUpsell from "./CartUpsell";
 import ResearchDisclaimer from "./ResearchDisclaimer";
@@ -13,14 +12,24 @@ import ResearchDisclaimer from "./ResearchDisclaimer";
 const GIFT_KEY = "gift:bac-water";
 
 export default function CartContents({ onNavigate }: { onNavigate?: () => void }) {
-  const { lines, subtotal, itemCount, updateQty, removeLine, addLine, goToCheckout, freeShippingThreshold, ready } =
-    useCart();
+  const {
+    lines,
+    subtotal,
+    itemCount,
+    updateQty,
+    removeLine,
+    addLine,
+    goToCheckout,
+    freeShippingThreshold,
+    giftThreshold,
+    ready,
+  } = useCart();
 
   // Free bacteriostatic-water gift once the basket clears the gift threshold.
   // The gift line is $0 so it never affects the threshold check itself.
   const giftLine = lines.find((l) => l.key === GIFT_KEY);
   const hasGift = !!giftLine;
-  const giftEligible = subtotal >= GIFT_THRESHOLD;
+  const giftEligible = subtotal >= giftThreshold;
   useEffect(() => {
     // The gift is always exactly one unit — clamp if a stale line drifted.
     if (giftLine && giftLine.quantity !== 1) {
@@ -65,7 +74,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
         <FreeShippingProgress
           subtotal={subtotal}
           threshold={freeShippingThreshold}
-          giftThreshold={GIFT_THRESHOLD}
+          giftThreshold={giftThreshold}
         />
 
         <ul className="space-y-3">
