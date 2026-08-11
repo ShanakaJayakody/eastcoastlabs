@@ -476,3 +476,127 @@ body {
   .animate-badge-pop { animation: none; }
   .nav-underline::after { transition: none; }
 }
+
+/* ============================================================
+   ADMIN THEME — "Midnight Console"
+   ------------------------------------------------------------
+   Scoped re-declaration of the @theme tokens for /admin only,
+   exactly like .theme-paper: every Tailwind utility resolves
+   var(--color-*) from the nearest ancestor, so wrapping the
+   admin shell in .admin-theme re-skins every admin component
+   with zero storefront impact. Deeper indigo-cast inks, more
+   luminous accents, and a shared motion vocabulary.
+   ============================================================ */
+.admin-theme {
+  --color-ink: #070a13;      /* blue-black, one step deeper than the store */
+  --color-ink-2: #0b111d;
+  --color-surface: #101828;
+  --color-surface-2: #16213a;
+  --color-line: #1e2a44;
+  --color-line-2: #2c3c5e;
+  --color-muted: #8b96b0;
+  --color-muted-2: #64708c;
+  --color-fg: #ecf1fb;
+  --color-fg-2: #c4cde0;
+  --color-accent: #37e2d4;   /* brighter lab teal */
+  --color-accent-2: #6ea8ff; /* periwinkle — secondary actions + info */
+  --color-accent-ink: #04110f;
+  --color-success: #3ddc97;
+  --color-warn: #f5b544;
+
+  --admin-glow: 0 0 0 1px rgba(55, 226, 212, 0.12), 0 8px 32px -12px rgba(55, 226, 212, 0.25);
+  --admin-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+}
+
+/* Ambient aurora behind the whole console — fixed, non-interactive */
+.admin-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 30rem at 12% -8%, rgba(55, 226, 212, 0.07), transparent 60%),
+    radial-gradient(48rem 30rem at 88% -12%, rgba(110, 168, 255, 0.06), transparent 60%);
+}
+
+/* One consistent motion vocabulary for every interactive admin element */
+.admin-theme :is(a, button, input, select, textarea, [role="button"]) {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.2s ease,
+    opacity 0.15s ease,
+    transform 0.2s var(--ease-brand);
+}
+.admin-theme :is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Card treatment: soft top-light gradient + lift on hover for links */
+.admin-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0) 42%) var(--color-surface);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--admin-shadow);
+}
+.admin-card-hover {
+  transition: transform 0.25s var(--ease-brand), border-color 0.2s ease, box-shadow 0.25s ease;
+}
+.admin-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-line-2);
+  box-shadow: var(--admin-shadow), var(--admin-glow);
+}
+
+/* Page content entrance — applied to the routed main region, keyed by pathname */
+@keyframes admin-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.admin-enter { animation: admin-enter 0.35s var(--ease-brand) both; }
+
+/* Staggered entrance for dashboard sections */
+.admin-stagger > * { animation: admin-enter 0.4s var(--ease-brand) both; }
+.admin-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.admin-stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.admin-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.admin-stagger > *:nth-child(4) { animation-delay: 0.17s; }
+.admin-stagger > *:nth-child(5) { animation-delay: 0.22s; }
+.admin-stagger > *:nth-child(6) { animation-delay: 0.27s; }
+
+/* Sidebar active-item accent rail */
+.admin-nav-item {
+  position: relative;
+}
+.admin-nav-item::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 50%;
+  height: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--color-accent), var(--color-accent-2));
+  transform: translateY(-50%);
+  transition: height 0.25s var(--ease-brand), opacity 0.2s ease;
+  opacity: 0;
+}
+.admin-nav-item[data-active="true"]::before {
+  height: 60%;
+  opacity: 1;
+}
+
+/* Revenue chart bars grow from the baseline with a per-bar stagger */
+@keyframes admin-bar-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-enter,
+  .admin-stagger > * { animation: none !important; opacity: 1 !important; }
+  .admin-card-hover:hover { transform: none; }
+  .admin-nav-item::before { transition: none; }
+}

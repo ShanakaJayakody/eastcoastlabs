@@ -195,3 +195,107 @@ export async function orderMetrics(): Promise<{
     pendingPayment: pendingPayment ?? 0,
   };
 }
+
+/* ---------------- Revenue series (dashboard chart) ---------------- */
+
+export interface RevenueBucket {
+  label: string;
+  cents: number;
+}
+
+export interface RevenueSeries {
+  month: RevenueBucket[]; // current calendar month, one bucket per elapsed day
+  week: RevenueBucket[]; // last 7 days incl. today, one per day
+  day: RevenueBucket[]; // today, one per hour
+}
+
+const TZ = "Australia/Sydney";
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Calendar components of an instant in Sydney time. Orders are stored in UTC;
+ *  the operator thinks in local days, so all bucketing happens here. */
+function sydneyParts(date: Date): { y: number; m: number; d: number; h: number; weekday: string } {
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    hour12: false,
+    weekday: "short",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "0";
+  return {
+    y: parseInt(get("year"), 10),
+    m: parseInt(get("month"), 10),
+    d: parseInt(get("day"), 10),
+    h: parseInt(get("hour"), 10) % 24,
+    weekday: get("weekday"),
+  };
+}
+
+function hourLabel(h: number): string {
+  if (h === 0) return "12am";
+  if (h === 12) return "12pm";
+  return h < 12 ? `${h}am` : `${h - 12}pm`;
+}
+
+/**
+ * Bucketed paid revenue for the dashboard chart: current month by day,
+ * last 7 days by day, today by hour — all in Sydney time. One DB round trip;
+ * bucketing is pure JS so the three views stay perfectly consistent.
+ */
+export async function revenueSeries(): Promise<RevenueSeries> {
+  const now = new Date();
+  const today = sydneyParts(now);
+
+  // Fetch window: whichever reaches further back — start of the Sydney month
+  // or 7 days ago — with a 2-day buffer to absorb the UTC/AEST offset.
+  const monthStartApprox = new Date(Date.UTC(today.y, today.m - 1, 1));
+  monthStartApprox.setUTCDate(monthStartApprox.getUTCDate() - 2);
+  const weekStartApprox = new Date(now.getTime() - 9 * 24 * 3600 * 1000);
+  const from = monthStartApprox < weekStartApprox ? monthStartApprox : weekStartApprox;
+
+  const PAID: OrderStatus[] = ["paid", "processing", "shipped", "completed"];
+  const { data, error } = await adminDb()
+    .from("orders")
+    .select("created_at, total_cents")
+    .in("status", PAID)
+    .gte("created_at", from.toISOString());
+  if (error) throw new Error(`revenueSeries: ${error.message}`);
+
+  // Empty scaffolds first, so zero-revenue periods still chart cleanly.
+  const month: RevenueBucket[] = Array.from({ length: today.d }, (_, i) => ({
+    label: `${i + 1} ${MONTHS_SHORT[today.m - 1]}`,
+    cents: 0,
+  }));
+
+  const weekKeys: string[] = [];
+  const week: RevenueBucket[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const p = sydneyParts(new Date(now.getTime() - i * 24 * 3600 * 1000));
+    weekKeys.push(`${p.y}-${p.m}-${p.d}`);
+    week.push({ label: i === 0 ? "Today" : `${p.weekday} ${p.d}`, cents: 0 });
+  }
+
+  const day: RevenueBucket[] = Array.from({ length: 24 }, (_, h) => ({
+    label: hourLabel(h),
+    cents: 0,
+  }));
+
+  for (const row of data ?? []) {
+    const p = sydneyParts(new Date(row.created_at as string));
+    const cents = (row.total_cents as number) ?? 0;
+
+    if (p.y === today.y && p.m === today.m && p.d <= today.d) {
+      month[p.d - 1].cents += cents;
+    }
+    const wi = weekKeys.indexOf(`${p.y}-${p.m}-${p.d}`);
+    if (wi >= 0) week[wi].cents += cents;
+    if (p.y === today.y && p.m === today.m && p.d === today.d) {
+      day[p.h].cents += cents;
+    }
+  }
+
+  return { month, week, day };
+}

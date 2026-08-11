@@ -26,22 +26,24 @@ export default function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line bg-ink/80 px-4 backdrop-blur">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-line/70 bg-ink/70 px-4 shadow-[0_1px_12px_rgba(0,0,0,0.3)] backdrop-blur-md">
       <button
         onClick={onOpenNav}
         aria-label="Open menu"
-        className="rounded-md p-1.5 text-muted hover:text-fg lg:hidden"
+        className="rounded-md p-1.5 text-muted hover:bg-surface hover:text-fg lg:hidden"
       >
         <Menu size={20} />
       </button>
 
-      <h1 className="text-sm font-semibold text-fg">{titleFor(pathname)}</h1>
+      <h1 key={pathname} className="admin-enter text-sm font-semibold text-fg">
+        {titleFor(pathname)}
+      </h1>
 
       <div className="flex-1" />
 
       <button
         onClick={openPalette}
-        className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-muted transition hover:border-line-2 hover:text-fg-2"
+        className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-muted hover:border-accent/40 hover:text-fg-2 hover:shadow-[0_0_16px_-6px_rgba(55,226,212,0.5)]"
       >
         <Search size={14} />
         <span className="hidden sm:inline">Search</span>

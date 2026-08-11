@@ -25,10 +25,10 @@ export default function Sidebar({
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-line bg-ink-2">
+    <div className="flex h-full w-64 flex-col border-r border-line bg-ink-2/90 backdrop-blur">
       <div className="flex items-center justify-between px-5 py-4">
         <Link href="/admin" onClick={onNavigate} className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-line-2 bg-surface font-mono text-sm font-bold text-accent">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/25 bg-gradient-to-br from-accent/15 to-accent-2/10 font-mono text-sm font-bold text-accent shadow-[0_0_16px_-4px_rgba(55,226,212,0.4)]">
             EC
           </span>
           <span className="text-sm font-semibold text-fg">East Coast Labs</span>
@@ -53,9 +53,10 @@ export default function Sidebar({
               key={item.href}
               href={item.href}
               onClick={onNavigate}
-              className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+              data-active={active}
+              className={`admin-nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
                 active
-                  ? "bg-surface-2 font-medium text-fg"
+                  ? "bg-gradient-to-r from-surface-2 to-surface font-medium text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   : "text-fg-2 hover:bg-surface hover:text-fg"
               }`}
             >

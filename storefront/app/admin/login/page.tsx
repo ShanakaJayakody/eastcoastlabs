@@ -53,17 +53,18 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-ink px-4 bg-grid">
-      <div className="w-full max-w-sm">
+    <main className="admin-theme relative flex min-h-screen items-center justify-center bg-ink px-4 bg-grid">
+      <div className="admin-aurora" aria-hidden />
+      <div className="admin-enter relative z-10 w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line-2 bg-surface text-accent">
+          <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-accent/25 bg-gradient-to-br from-accent/15 to-accent-2/10 text-accent shadow-[0_0_24px_-6px_rgba(55,226,212,0.5)]">
             <span className="font-mono text-lg font-bold">EC</span>
           </div>
           <h1 className="text-xl font-semibold text-fg">East Coast Labs</h1>
           <p className="mt-1 text-sm text-muted">Admin sign-in</p>
         </div>
 
-        <div className="rounded-2xl border border-line-2 bg-surface p-6 shadow-xl">
+        <div className="admin-card rounded-2xl p-6">
           {step === "email" ? (
             <form onSubmit={submitEmail} className="space-y-4">
               <div>

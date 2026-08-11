@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { DollarSign, PackageCheck, BellRing, Star, FlaskConical, Mail, AlertTriangle, Clock, ShoppingCart, TrendingUp } from "lucide-react";
+import { PackageCheck, BellRing, Star, FlaskConical, Mail, AlertTriangle, Clock, ShoppingCart } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { orderMetrics } from "@/lib/admin/order-queries";
+import { orderMetrics, revenueSeries } from "@/lib/admin/order-queries";
 import { lowStockVariants } from "@/lib/admin/products";
 import { queuedEmailCount } from "@/lib/admin/email";
 import { listAbandonedCarts, abandonedCartCount } from "@/lib/admin/cart-recovery";
 import { formatAud } from "@/lib/format";
 import StatCard from "@/components/admin/StatCard";
-import { profitSince } from "@/lib/admin/costs";
+import RevenueChart from "@/components/admin/RevenueChart";
 import Badge from "@/components/admin/Badge";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +53,7 @@ export default async function AdminDashboard() {
 
   const [
     metrics,
+    revenue,
     lowStock,
     waitlist,
     subscribers,
@@ -62,10 +63,9 @@ export default async function AdminDashboard() {
     abandonedCount,
     abandonedCarts,
     events,
-    profitToday,
-    profit30d,
   ] = await Promise.all([
     orderMetrics(),
+    revenueSeries(),
     lowStockVariants(),
     tableCount("stock_notifications"),
     tableCount("subscribers"),
@@ -75,12 +75,10 @@ export default async function AdminDashboard() {
     abandonedCartCount(1),
     listAbandonedCarts(1, 5),
     recentActivity(),
-    profitSince(0),
-    profitSince(30),
   ]);
 
   return (
-    <div className="space-y-8">
+    <div className="admin-stagger space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-fg">
           Welcome back, {session.email.split("@")[0]}
@@ -88,30 +86,35 @@ export default async function AdminDashboard() {
         <p className="mt-1 text-sm text-muted">Here&apos;s what needs you today.</p>
       </div>
 
-      {/* Revenue + fulfilment */}
+      {/* Revenue hero — month by default, click into week and day */}
+      <section className="admin-card overflow-hidden rounded-2xl">
+        <RevenueChart series={revenue} />
+        <div className="grid grid-cols-3 divide-x divide-line border-t border-line bg-ink-2/40 text-center">
+          {[
+            { label: "Today", value: cents(metrics.revenueToday) },
+            { label: "Last 7 days", value: cents(metrics.revenue7d) },
+            { label: "Last 30 days", value: cents(metrics.revenue30d) },
+          ].map((s) => (
+            <div key={s.label} className="px-4 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted">
+                {s.label}
+              </div>
+              <div className="mt-0.5 text-sm font-semibold tabular-nums text-fg">{s.value}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Fulfilment + attention queue */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          label="Revenue today"
-          value={cents(metrics.revenueToday)}
-          sub={`${cents(metrics.revenue7d)} last 7d · ${cents(metrics.revenue30d)} last 30d`}
-          icon={DollarSign}
-        />
-        <StatCard
-          label="Gross profit today"
-          value={profitToday.cogsCents > 0 || profitToday.revenueCents > 0 ? cents(profitToday.profitCents) : "—"}
-          sub={
-            profit30d.revenueCents > 0
-              ? `${cents(profit30d.profitCents)} last 30d${profit30d.marginPct != null ? ` · ${profit30d.marginPct}% margin` : ""}${profit30d.uncostedLines > 0 ? ` · ${profit30d.uncostedLines} line(s) uncosted` : ""}`
-              : "Enter a cost per vial to track margin"
-          }
-          icon={TrendingUp}
-        />
         <Link href="/admin/orders?status=paid">
           <StatCard
             label="To fulfil"
             value={String(metrics.toFulfil)}
             sub="Paid orders awaiting dispatch"
             icon={PackageCheck}
+            tone="accent"
+            interactive
           />
         </Link>
         <Link href="/admin/orders?status=pending">
@@ -120,6 +123,7 @@ export default async function AdminDashboard() {
             value={String(metrics.pendingPayment)}
             sub="Bank transfer not yet confirmed"
             icon={Clock}
+            interactive
           />
         </Link>
         <Link href="/admin/products?low=1">
@@ -128,6 +132,8 @@ export default async function AdminDashboard() {
             value={String(lowStock.length)}
             sub="Variants at or below threshold"
             icon={AlertTriangle}
+            tone={lowStock.length > 0 ? "warn" : "default"}
+            interactive
           />
         </Link>
         <StatCard
@@ -140,7 +146,7 @@ export default async function AdminDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Low stock detail */}
-        <section className="rounded-xl border border-line bg-surface lg:col-span-2">
+        <section className="admin-card rounded-xl lg:col-span-2">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <h3 className="text-sm font-semibold text-fg">Low stock</h3>
             <Link href="/admin/products?low=1" className="text-xs text-accent-2 hover:underline">
@@ -152,7 +158,10 @@ export default async function AdminDashboard() {
               <p className="px-4 py-6 text-sm text-muted">Everything is above its threshold.</p>
             ) : (
               lowStock.slice(0, 8).map((v) => (
-                <div key={v.sku} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                <div
+                  key={v.sku}
+                  className="flex items-center justify-between px-4 py-2.5 text-sm transition hover:bg-surface-2/50"
+                >
                   <div>
                     <Link href={`/admin/products/${v.slug}`} className="text-fg-2 hover:text-accent">
                       {v.productName}
@@ -172,44 +181,44 @@ export default async function AdminDashboard() {
 
         {/* Growth + trust */}
         <div className="space-y-6">
-          <section className="rounded-xl border border-line bg-surface p-4">
+          <section className="admin-card rounded-xl p-4">
             <h3 className="text-sm font-semibold text-fg">Pipeline</h3>
             <ul className="mt-3 space-y-3 text-sm">
               <li className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-fg-2">
                   <BellRing size={15} className="text-accent" /> Restock waitlist
                 </span>
-                <span className="font-medium text-fg">{waitlist}</span>
+                <span className="font-medium tabular-nums text-fg">{waitlist}</span>
               </li>
               <li className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-fg-2">
                   <Mail size={15} className="text-accent-2" /> Emails queued
                 </span>
-                <span className="font-medium text-fg">{queuedEmails}</span>
+                <span className="font-medium tabular-nums text-fg">{queuedEmails}</span>
               </li>
               <li className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-fg-2">
                   <Mail size={15} className="text-muted" /> Subscribers
                 </span>
-                <span className="font-medium text-fg">{subscribers}</span>
+                <span className="font-medium tabular-nums text-fg">{subscribers}</span>
               </li>
             </ul>
           </section>
 
-          <section className="rounded-xl border border-line bg-surface p-4">
+          <section className="admin-card rounded-xl p-4">
             <h3 className="text-sm font-semibold text-fg">Trust signals</h3>
             <ul className="mt-3 space-y-3 text-sm">
               <li className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-fg-2">
                   <FlaskConical size={15} className="text-accent" /> COAs published
                 </span>
-                <span className="font-medium text-fg">{coas}</span>
+                <span className="font-medium tabular-nums text-fg">{coas}</span>
               </li>
               <li className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-fg-2">
                   <Star size={15} className="text-warn" /> Reviews to moderate
                 </span>
-                <span className="font-medium text-fg">{pendingReviews}</span>
+                <span className="font-medium tabular-nums text-fg">{pendingReviews}</span>
               </li>
             </ul>
           </section>
@@ -217,7 +226,7 @@ export default async function AdminDashboard() {
       </div>
 
       {abandonedCarts.length > 0 && (
-        <section className="rounded-xl border border-line bg-surface">
+        <section className="admin-card rounded-xl">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <h3 className="text-sm font-semibold text-fg">Abandoned carts</h3>
             <span className="text-xs text-muted">
@@ -226,7 +235,10 @@ export default async function AdminDashboard() {
           </div>
           <div className="divide-y divide-line">
             {abandonedCarts.map((c) => (
-              <div key={c.email} className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <div
+                key={c.email}
+                className="flex items-center justify-between px-4 py-2.5 text-sm transition hover:bg-surface-2/50"
+              >
                 <div>
                   <span className="text-fg-2">{c.email}</span>
                   <span className="block text-xs text-muted">
@@ -234,7 +246,7 @@ export default async function AdminDashboard() {
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="font-medium text-fg">{cents(c.subtotal_cents)}</span>
+                  <span className="font-medium tabular-nums text-fg">{cents(c.subtotal_cents)}</span>
                   <span className="block text-xs text-muted-2">
                     {c.reminder_sent_at ? "reminder sent" : "not yet reminded"}
                   </span>
@@ -245,7 +257,7 @@ export default async function AdminDashboard() {
         </section>
       )}
 
-      <section className="rounded-xl border border-line bg-surface">
+      <section className="admin-card rounded-xl">
         <div className="border-b border-line px-4 py-3">
           <h3 className="text-sm font-semibold text-fg">Recent activity</h3>
         </div>
@@ -254,7 +266,10 @@ export default async function AdminDashboard() {
             <p className="px-4 py-6 text-sm text-muted">No admin activity yet.</p>
           ) : (
             events.map((e, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-2.5 text-sm">
+              <div
+                key={i}
+                className="flex items-center justify-between px-4 py-2.5 text-sm transition hover:bg-surface-2/50"
+              >
                 <div className="flex items-center gap-2">
                   <Badge tone="info">{e.action}</Badge>
                   <span className="text-fg-2">{e.actor_email}</span>

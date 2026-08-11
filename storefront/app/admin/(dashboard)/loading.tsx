@@ -4,6 +4,8 @@ export default function Loading() {
   return (
     <div className="space-y-5">
       <Bar className="h-6 w-56" />
+      {/* Revenue hero placeholder mirrors the chart card's footprint */}
+      <Bar className="h-80 w-full rounded-2xl" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="space-y-3 rounded-xl border border-line bg-surface p-4">

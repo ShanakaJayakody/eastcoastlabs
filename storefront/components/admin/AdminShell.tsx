@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -17,6 +18,7 @@ export default function AdminShell({
   children: React.ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
+  const pathname = usePathname();
 
   const paletteItems: CommandItem[] = useMemo(() => {
     const nav = NAV.map((n) => ({
@@ -82,7 +84,9 @@ export default function AdminShell({
   }, []);
 
   return (
-    <div className="min-h-screen bg-ink text-fg">
+    <div className="admin-theme min-h-screen bg-ink text-fg">
+      <div className="admin-aurora" aria-hidden />
+
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden lg:flex">
         <Sidebar email={email} />
@@ -106,9 +110,12 @@ export default function AdminShell({
         </div>
       )}
 
-      <div className="lg:pl-64">
+      <div className="relative z-10 lg:pl-64">
         <Topbar onOpenNav={() => setNavOpen(true)} />
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        {/* Keyed by route so every navigation gets the entrance animation */}
+        <main key={pathname} className="admin-enter mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </main>
       </div>
 
       <CommandPalette items={paletteItems} onSearch={searchAdmin} />
