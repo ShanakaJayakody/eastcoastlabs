@@ -73,7 +73,7 @@ class ECL_Checkout_Trust {
                     <summary>What payment methods can I use?</summary>
                     <p>We accept Visa and Mastercard via our secure hosted payment gateway.
                     Unfortunately, services like PayPal and Afterpay are not available for this product category.
-                    If you have trouble with a payment, email <?php echo esc_html( ecl_setting( 'support_email', 'support@eastcoastlabs.com.au' ) ); ?>.</p>
+                    If you have trouble with a payment, email <?php echo esc_html( ecl_setting( 'support_email', 'eclpeptides@gmail.com' ) ); ?>.</p>
                 </details>
                 <details>
                     <summary>Is my payment information secure?</summary>

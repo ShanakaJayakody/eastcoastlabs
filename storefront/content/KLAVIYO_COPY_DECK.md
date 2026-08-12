@@ -183,7 +183,7 @@ This is the last nudge. Your cart is still saved, and if this is your first orde
 
 [Complete your order →]({{ cart.url }})
 
-If you have questions before ordering, reply to this email or contact support@eastcoastlabs.com.au. We respond within one business day.
+If you have questions before ordering, reply to this email or contact eclpeptides@gmail.com. We respond within one business day.
 
 — East Coast Labs
 ```
@@ -222,7 +222,7 @@ Order summary:
 Total: {{ order.total }}
 Shipping: {{ order.shipping_method }}
 
-Questions? support@eastcoastlabs.com.au
+Questions? eclpeptides@gmail.com
 
 — East Coast Labs
 ```

@@ -62,8 +62,8 @@ export default function Footer() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-2">Support</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
-                <a href="mailto:support@eastcoastlabs.com.au" className="text-fg-2 hover:text-accent">
-                  support@eastcoastlabs.com.au
+                <a href="mailto:eclpeptides@gmail.com" className="text-fg-2 hover:text-accent">
+                  eclpeptides@gmail.com
                 </a>
               </li>
               <li className="text-muted">ABN: [PENDING]</li>

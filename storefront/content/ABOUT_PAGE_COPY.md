@@ -95,7 +95,7 @@ We do not provide dosing information, administration guidance, or therapeutic ad
 
 ### Support
 
-**Email**: support@eastcoastlabs.com.au  
+**Email**: eclpeptides@gmail.com  
 **Response time**: We reply to all inquiries within 1 business day  
 **Support hours**: Monday–Friday, 9:00 AM – 5:00 PM AEST
 

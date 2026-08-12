@@ -247,7 +247,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </li>
             </ul>
             <p className="mt-4 text-xs text-muted-2">
-              Questions? <a href="mailto:support@eastcoastlabs.com.au" className="text-accent">support@eastcoastlabs.com.au</a>
+              Questions? <a href="mailto:eclpeptides@gmail.com" className="text-accent">eclpeptides@gmail.com</a>
             </p>
           </aside>
         </section>

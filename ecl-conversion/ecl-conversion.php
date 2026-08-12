@@ -62,7 +62,7 @@ if ( ! defined( 'ECL_STATEMENT_DESCRIPTOR' ) ) {
 
 // Support email address.
 if ( ! defined( 'ECL_SUPPORT_EMAIL' ) ) {
-    define( 'ECL_SUPPORT_EMAIL', 'support@eastcoastlabs.com.au' );
+    define( 'ECL_SUPPORT_EMAIL', 'eclpeptides@gmail.com' );
 }
 
 // -----------------------------------------------------------------------------
@@ -249,7 +249,7 @@ function ecl_render_settings_page(): void {
         'free_shipping_threshold' => 150,
         'bac_water_product_id' => 0,
         'statement_descriptor' => 'EAST COAST LABS',
-        'support_email'        => 'support@eastcoastlabs.com.au',
+        'support_email'        => 'eclpeptides@gmail.com',
         'announcement_text'    => 'Free shipping over $150 · Every batch independently tested',
         'announcement_link'    => '/lab-results/',
         'guarantee_text'       => '',

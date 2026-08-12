@@ -188,11 +188,11 @@ class ECL_Restock {
         $message .= "Delivery date: " . wp_date( 'j F Y', $next_payment ) . "\n\n";
         $message .= "Need to skip, pause, or change this delivery?\n";
         $message .= "Manage your restock schedule here: " . wc_get_account_endpoint_url( 'subscriptions' ) . "\n\n";
-        $message .= "Questions? Reply to this email or contact " . ecl_setting( 'support_email', 'support@eastcoastlabs.com.au' ) . ".\n\n";
+        $message .= "Questions? Reply to this email or contact " . ecl_setting( 'support_email', 'eclpeptides@gmail.com' ) . ".\n\n";
         $message .= "— East Coast Labs\n";
 
         wp_mail( $customer_email, $subject, $message, array(
-            'From: East Coast Labs <' . ecl_setting( 'support_email', 'support@eastcoastlabs.com.au' ) . '>',
+            'From: East Coast Labs <' . ecl_setting( 'support_email', 'eclpeptides@gmail.com' ) . '>',
         ) );
 
         $subscription->update_meta_data( $sent_flag, true );
@@ -338,7 +338,7 @@ class ECL_Restock {
         $message .= "— East Coast Labs\n";
 
         wp_mail( $email, $subject, $message, array(
-            'From: East Coast Labs <' . ecl_setting( 'support_email', 'support@eastcoastlabs.com.au' ) . '>',
+            'From: East Coast Labs <' . ecl_setting( 'support_email', 'eclpeptides@gmail.com' ) . '>',
         ) );
     }
 

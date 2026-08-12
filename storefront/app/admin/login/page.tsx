@@ -78,7 +78,7 @@ function LoginForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@eastcoastlabs.com.au"
+                  placeholder="eclpeptides@gmail.com"
                   className="w-full rounded-lg border border-line bg-ink-2 px-3 py-2.5 text-fg outline-none transition focus:border-accent"
                 />
               </div>

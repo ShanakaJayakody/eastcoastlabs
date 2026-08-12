@@ -23,5 +23,5 @@ insert into public.settings (key, value) values
    ]'::jsonb),
   ('free_shipping_threshold', '150'::jsonb),
   ('gift_threshold', '250'::jsonb),
-  ('support_email', '"support@eastcoastlabs.com.au"'::jsonb)
+  ('support_email', '"eclpeptides@gmail.com"'::jsonb)
 on conflict (key) do nothing;

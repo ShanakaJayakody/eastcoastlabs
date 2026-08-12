@@ -41,7 +41,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   ],
   freeShippingThreshold: 150,
   giftThreshold: 250,
-  supportEmail: "support@eastcoastlabs.com.au",
+  supportEmail: "eclpeptides@gmail.com",
   payidEnabled: true,
   payidIdentifier: "",
   payidName: "",

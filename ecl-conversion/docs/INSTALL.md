@@ -51,7 +51,7 @@ Go to **WP Admin → WooCommerce → ECL Conversion** and set:
 | Free Shipping Threshold ($) | `150` |
 | Bacteriostatic Water Product ID | [find via `wp wc product list --fields=id,name \| grep Bacteriostatic`] |
 | Bank Statement Descriptor | `EAST COAST LABS` (confirm with Bankful) |
-| Support Email | `support@eastcoastlabs.com.au` |
+| Support Email | `eclpeptides@gmail.com` |
 | Announcement Bar Text | `Free shipping over $150 · Every batch independently tested → See lab results` |
 | Announcement Bar Link | `/lab-results/` (or `/coa/` until renamed) |
 

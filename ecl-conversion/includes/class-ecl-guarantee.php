@@ -10,7 +10,7 @@
  * "Every vial ships with an independent COA. If any independent lab test
  * shows your batch below [98/99]% purity, we refund or replace it — and we
  * cover the cost of the test. Wrong, damaged, or missing items are replaced
- * free within 30 days. One email: support@eastcoastlabs.com.au."
+ * free within 30 days. One email: eclpeptides@gmail.com."
  *
  * @package ECL_Conversion
  */
@@ -49,7 +49,7 @@ class ECL_Guarantee {
      */
     private function get_default_text(): string {
         $purity = ecl_setting( 'purity_pct', '98' );
-        $email = ecl_setting( 'support_email', 'support@eastcoastlabs.com.au' );
+        $email = ecl_setting( 'support_email', 'eclpeptides@gmail.com' );
 
         return "Every vial ships with an independent COA. If any independent lab test shows your batch below {$purity}% purity, we refund or replace it — and we cover the cost of the test. Wrong, damaged, or missing items are replaced free within 30 days. One email: {$email}.";
     }
@@ -83,7 +83,7 @@ class ECL_Guarantee {
     public function render_guarantee_shortcode( array $atts = array() ): string {
         $text = $this->get_guarantee_text();
         $purity = ecl_setting( 'purity_pct', '98' );
-        $email = ecl_setting( 'support_email', 'support@eastcoastlabs.com.au' );
+        $email = ecl_setting( 'support_email', 'eclpeptides@gmail.com' );
 
         ob_start();
         ?>

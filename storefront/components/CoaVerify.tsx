@@ -52,7 +52,7 @@ export default function CoaVerify({ records }: { records: CoaRecord[] }) {
       {result === "none" && (
         <p className="mt-4 rounded-lg border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn">
           No published COA matches that batch number. Double-check the digits, or email{" "}
-          <a href="mailto:support@eastcoastlabs.com.au" className="underline">support@eastcoastlabs.com.au</a>.
+          <a href="mailto:eclpeptides@gmail.com" className="underline">eclpeptides@gmail.com</a>.
         </p>
       )}
 

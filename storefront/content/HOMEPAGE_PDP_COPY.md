@@ -89,7 +89,7 @@ You'll see "EAST COAST LABS" on your card statement. No product names appear. Bi
 Yes. Every peptide is available in 1-vial, 3-pack, and 6-pack options. The more you buy, the less you pay per vial. See our Bulk Packs page for details.
 
 **Q: What if my batch fails an independent test?**  
-If any independent lab test shows your batch below our purity guarantee, we refund or replace it — and we cover the cost of the test. One email: support@eastcoastlabs.com.au.
+If any independent lab test shows your batch below our purity guarantee, we refund or replace it — and we cover the cost of the test. One email: eclpeptides@gmail.com.
 
 ---
 

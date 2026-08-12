@@ -19,7 +19,7 @@ const COLUMNS = [
   },
   {
     title: "Correspondence",
-    links: [{ href: "mailto:support@eastcoastlabs.com.au", label: "support@eastcoastlabs.com.au" }],
+    links: [{ href: "mailto:eclpeptides@gmail.com", label: "eclpeptides@gmail.com" }],
   },
 ];
 

@@ -20,7 +20,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     url: "https://eastcoastlabs.com.au",
     description:
       "Australian-owned supplier of research-use-only peptides. Every batch independently tested by JanoShik with the COA published before it ships.",
-    email: "support@eastcoastlabs.com.au",
+    email: "eclpeptides@gmail.com",
     areaServed: "AU",
   };
 

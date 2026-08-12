@@ -154,7 +154,7 @@ Tasks:
 4. lib/content.ts: load the markdown copy decks from /docs (PRODUCT_DESCRIPTIONS.md,
    ABOUT_PAGE_COPY.md, HOMEPAGE_PDP_COPY.md) at build time; map to products by name/slug.
 5. Global layout: header (Shop / Lab Results / About / Cart with item count), footer (ABN,
-   support@eastcoastlabs.com.au, "Australian owned & operated", research-use disclaimer).
+   eclpeptides@gmail.com, "Australian owned & operated", research-use disclaimer).
    Dark clinical-premium theme with Tailwind tokens.
 6. Home page: hero (copy from HOMEPAGE_PDP_COPY.md — "Lab-grade peptides. Independently tested.
    Proof published."), a live "latest batch results" strip from the COA API, bestsellers grid

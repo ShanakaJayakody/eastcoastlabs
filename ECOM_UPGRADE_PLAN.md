@@ -109,7 +109,7 @@ Stop the self-inflicted damage before building anything.
 | 0.3 Remove the stale red "ON BACK ORDER… JUNE 20" banner; replace with real per-product stock status driven by Woo inventory (in stock → "In stock — dispatched within 1 business day"; backorder → honest lead time). Kill the hardcoded "ships today" line | GLM |
 | 0.4 Resolve purity claim to ONE number everywhere (recommend "≥99%" only if every current COA supports it — check `/coa/` data; else "≥98%"). Update trust icons, spec tables, refund policy | GLM+HUMAN (you confirm the number) |
 | 0.5 Align dispatch claims: pick "dispatched within 1 business day" (or whatever is true) across homepage, PDPs, shipping policy | GLM |
-| 0.6 Branded email: set up `support@eastcoastlabs.com.au` (host mailbox or Google Workspace), update Contact page, policies, WooCommerce sender | HUMAN, then GLM updates site copy |
+| 0.6 Branded email: set up `eclpeptides@gmail.com` (host mailbox or Google Workspace), update Contact page, policies, WooCommerce sender | HUMAN, then GLM updates site copy |
 | 0.7 Change welcome code from `WELCOME!` to `WELCOME15` (matches the "15% off" promise; no punctuation typos); update announcement bar + popup + policies | GLM |
 | 0.8 Remove the 6 stock-named homepage testimonials — especially the "rotator cuff… KLOW" one (human-use implication = legal exposure). Leave the section empty or swap in the COA proof module from Phase 1.2 until real reviews exist | GLM+HUMAN (Elementor edit — GLM writes replacement copy) |
 
@@ -139,7 +139,7 @@ Tasks:
 3. Sitewide consistency sweep with `wp db search`: report and fix (where editable via
    post content/options) all instances of: "≥99%" vs "≥98%" purity (target: [OWNER TO CONFIRM]),
    "24h" dispatch claims (target: "dispatched within 1 business day"), "eclpeptides@gmail.com"
-   (target: "support@eastcoastlabs.com.au"), coupon "WELCOME!" (create WooCommerce coupon
+   (target: "eclpeptides@gmail.com"), coupon "WELCOME!" (create WooCommerce coupon
    WELCOME15, 15% off first order, then report old-code locations).
 4. List every location (page ID + widget) containing the testimonial names Sarah Johnson,
    Michael Chen, Emma Williams, Daniel Lee, Olivia Brown, James Martinez so the owner can
@@ -169,7 +169,7 @@ output. Report anything you could not change with exact locations. Do not touch 
 
 #### 1.3 Risk reversal at the point of sale — **[GLM+HUMAN]**
 Current refund policy is a trust killer ("no returns; pay for your own lab test to claim purity refund"). Compliant, affordable guarantee:
-> **"Purity Guaranteed. Every vial ships with an independent COA. If any independent lab test shows your batch below [98/99]% purity, we refund or replace it — and we cover the cost of the test. Wrong, damaged, or missing items are replaced free within 30 days. One email: support@eastcoastlabs.com.au."**
+> **"Purity Guaranteed. Every vial ships with an independent COA. If any independent lab test shows your batch below [98/99]% purity, we refund or replace it — and we cover the cost of the test. Wrong, damaged, or missing items are replaced free within 30 days. One email: eclpeptides@gmail.com."**
 - The "we cover the test" reversal flips the single worst clause in the current policy into a confidence signal — you already publish JanoShik results, so the actuarial risk is near zero.
 - Render as a guarantee block on every PDP (under COA module) + a badge row site-wide. Update `/refund-policy/` to match. **You approve final legal wording.**
 

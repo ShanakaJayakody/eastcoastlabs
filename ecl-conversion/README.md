@@ -55,7 +55,7 @@ wp ecl scan-consistency
 All module settings are managed at **WooCommerce → ECL Conversion** in WP Admin, or via `wp option`:
 
 ```bash
-wp option update ecl_settings '{"purity_pct":"98","free_shipping_threshold":150,"statement_descriptor":"EAST COAST LABS","support_email":"support@eastcoastlabs.com.au"}' --format=json
+wp option update ecl_settings '{"purity_pct":"98","free_shipping_threshold":150,"statement_descriptor":"EAST COAST LABS","support_email":"eclpeptides@gmail.com"}' --format=json
 ```
 
 ## WP-CLI Commands

@@ -5,7 +5,7 @@
  * Provides helpers to detect and report consistency issues across the site:
  * - Purity claim conflicts (≥99% vs ≥98%)
  * - Dispatch claim conflicts (24h vs 1 business day)
- * - Gmail address references (eclpeptides@gmail.com)
+ * - Stale @eastcoastlabs.com.au address references (target: eclpeptides@gmail.com)
  * - Old coupon code (WELCOME!)
  *
  * This module provides:
@@ -45,10 +45,10 @@ class ECL_Consistency {
             'description' => 'Dispatch claim "24h" — target: "dispatched within 1 business day"',
             'fix_to'      => 'dispatched within 1 business day',
         ),
-        'gmail_address' => array(
-            'pattern'     => '/eclpeptides@gmail\.com/i',
-            'description' => 'Gmail support address found — target: support@eastcoastlabs.com.au',
-            'fix_to'      => 'support@eastcoastlabs.com.au',
+        'stale_domain_address' => array(
+            'pattern'     => '/(support|orders)@eastcoastlabs\.com\.au/i',
+            'description' => 'Stale @eastcoastlabs.com.au address found — target: eclpeptides@gmail.com',
+            'fix_to'      => 'eclpeptides@gmail.com',
         ),
         'old_coupon' => array(
             'pattern'     => '/\bWELCOME!/i',
