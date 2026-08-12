@@ -102,8 +102,7 @@ export async function sweepWelcomeSeries(): Promise<{ queued: number }> {
     .in("customer_email", [...bySubscriber.keys()]);
   const purchased = new Set((orderRows ?? []).map((r) => (r as { customer_email: string }).customer_email));
 
-  const stages: { days: number; n: 2 | 3; template: EmailTemplate }[] = [
-    { days: 2, n: 2, template: "welcome_2" },
+  const stages: { days: number; n: 3; template: EmailTemplate }[] = [
     { days: 4, n: 3, template: "welcome_3" },
   ];
 
@@ -133,7 +132,7 @@ interface FulfilledOrderRow {
   shipped_at: string;
 }
 
-/** Post-purchase: COA walkthrough at shipped+2d, review request at shipped+14d. */
+/** Post-purchase: review request at shipped+14d. */
 export async function sweepPostPurchase(): Promise<{ queued: number }> {
   const db = adminDb();
   const { data } = await db
@@ -155,15 +154,6 @@ export async function sweepPostPurchase(): Promise<{ queued: number }> {
   const sends: MarketingSend[] = [];
   for (const order of orders) {
     const age = daysSince(order.shipped_at);
-    if (age >= 2 && age < 14) {
-      sends.push({
-        to: order.customer_email,
-        template: "post_purchase_coa",
-        payload: { order_number: order.order_number },
-        relatedType: "order",
-        relatedId: `${order.id}:pp:coa`,
-      });
-    }
     if (age >= 14 && age < 35 && !reviewed.has(order.id)) {
       const reviewUrl = `${SITE}/leave-a-review?order=${encodeURIComponent(order.order_number)}&email=${encodeURIComponent(order.customer_email)}`;
       sends.push({

@@ -15,9 +15,7 @@ export const MARKETING_TEMPLATES: EmailTemplate[] = [
   "abandoned_cart_3",
   "back_in_stock",
   "welcome_1",
-  "welcome_2",
   "welcome_3",
-  "post_purchase_coa",
   "post_purchase_review",
   "replenishment",
   "winback_60",
@@ -46,7 +44,7 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
     label: "Cart recovery",
     templates: [
       { id: "abandoned_cart", name: "Abandoned cart 1", trigger: "Cart idle +1h (no discount)" },
-      { id: "abandoned_cart_2", name: "Abandoned cart 2", trigger: "Cart idle +24h (COA objection)" },
+      { id: "abandoned_cart_2", name: "Abandoned cart 2", trigger: "Cart idle +24h" },
       { id: "abandoned_cart_3", name: "Abandoned cart 3", trigger: "Cart idle +72h (last call)" },
     ],
   },
@@ -54,14 +52,12 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
     label: "Welcome series",
     templates: [
       { id: "welcome_1", name: "Welcome 1 — code", trigger: "Subscribed (immediate)" },
-      { id: "welcome_2", name: "Welcome 2 — verify a COA", trigger: "Subscribed +2 days" },
       { id: "welcome_3", name: "Welcome 3 — pack pricing", trigger: "Subscribed +4 days" },
     ],
   },
   {
     label: "Post-purchase & retention",
     templates: [
-      { id: "post_purchase_coa", name: "COA walkthrough", trigger: "Shipped +2 days" },
       { id: "post_purchase_review", name: "Review request", trigger: "Shipped +14 days" },
       { id: "replenishment", name: "Replenishment", trigger: "Shipped +3/10/22wk by pack size" },
       { id: "second_purchase_nudge", name: "Second-purchase nudge", trigger: "1 order, +30 days" },
@@ -87,7 +83,6 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
   switch (template) {
     case "order_confirmation":
     case "payment_expired":
-    case "post_purchase_coa":
       return { ...base, order_number: "ECL-1042" };
     case "order_shipped":
       return { ...base, order_number: "ECL-1042", tracking_number: "33ABC1234567890" };

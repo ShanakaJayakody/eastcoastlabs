@@ -44,14 +44,13 @@ export default function CoaModule({ record }: { record: CoaRecord | null }) {
             )}
           </div>
           <p className="mt-3 text-xs text-muted-2">
-            Every order ships with the batch COA. Independently verify your batch, or send it to any
-            lab — if it&apos;s below our purity guarantee, we cover the test.
+            Independently verify your batch against the published result, or send it to any lab — if
+            it&apos;s below our purity guarantee, we cover the test.
           </p>
         </>
       ) : (
         <p className="mt-4 text-sm text-muted">
-          The Certificate of Analysis for the current batch is being published. Every order ships with
-          the batch COA, and results appear on our{" "}
+          The Certificate of Analysis for the current batch is being published. Results appear on our{" "}
           <a href="/lab-results" className="text-accent">
             Lab Results
           </a>{" "}

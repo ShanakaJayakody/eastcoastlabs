@@ -27,8 +27,18 @@ interface OutboxRow {
   payload: Record<string, unknown>;
 }
 
+/**
+ * Templates that have been retired. Rows queued before removal are still sitting
+ * in the outbox; without this guard they'd fall through renderTemplate's default
+ * branch and mail a customer a blank "Notification." email.
+ */
+const RETIRED_TEMPLATES = new Set<string>(["post_purchase_coa", "welcome_2"]);
+
 /** Send one outbox row. Never throws — returns a result the caller persists. */
 export async function sendOne(row: OutboxRow): Promise<{ ok: boolean; error?: string }> {
+  if (RETIRED_TEMPLATES.has(row.template)) {
+    return { ok: false, error: `Template "${row.template}" is retired — not sent.` };
+  }
   const resend = client();
   if (!resend) return { ok: false, error: "RESEND_API_KEY not configured" };
   try {

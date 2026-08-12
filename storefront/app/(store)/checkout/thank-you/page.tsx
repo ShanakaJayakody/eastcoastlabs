@@ -147,7 +147,7 @@ export default async function ThankYouPage({
             <span className="font-mono text-fg-2">{reference}</span>.
           </li>
           <li>2. We confirm your payment — usually within a few hours.</li>
-          <li>3. We pack and dispatch with the batch COA, then email your tracking number.</li>
+          <li>3. We pack and dispatch your order, then email your tracking number.</li>
         </ol>
       </div>
 

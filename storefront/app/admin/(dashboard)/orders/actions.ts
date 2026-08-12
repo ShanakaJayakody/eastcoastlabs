@@ -131,6 +131,46 @@ export async function bulkAdvanceStatus(
   return { ok: true, moved, failed };
 }
 
+/**
+ * Bulk payment confirmation: mark many pending orders paid at once. Each order
+ * goes through markPaid, so stock settlement, COGS snapshots, events and the
+ * receipt email stay identical to the single-order path. Failures are collected
+ * per order — a partial batch reports exactly which orders didn't move.
+ */
+export async function bulkConfirmPayment(
+  orderIds: string[],
+): Promise<ActionResult & { moved?: number; failed?: string[] }> {
+  const session = await requireAdmin();
+  if (!orderIds.length) return { ok: false, error: "No orders selected." };
+
+  const failed: string[] = [];
+  let moved = 0;
+  for (const id of orderIds) {
+    try {
+      await markPaid(id, { actor: session.email });
+      const info = await orderEmail(id);
+      if (info)
+        await queueEmail({
+          to: info.email,
+          template: "order_confirmation",
+          payload: { order_number: info.number },
+          relatedType: "order",
+          relatedId: id,
+        });
+      moved += 1;
+    } catch (err) {
+      const info = await orderEmail(id).catch(() => null);
+      failed.push(info?.number ?? id.slice(0, 8));
+      console.error(`bulkConfirmPayment(${id}):`, err);
+    }
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.join(", ")}`, failed };
+  return { ok: true, moved, failed };
+}
+
 export async function refund(orderId: string): Promise<ActionResult> {
   const session = await requireAdmin();
   try {

@@ -5,7 +5,7 @@ import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "East Coast Labs is an Australian-owned supplier of research-use-only peptides. Every batch independently tested by JanoShik.",
+    "East Coast Labs is an Australian-owned supplier of research-use-only peptides.",
 };
 
 export default async function AboutPage() {

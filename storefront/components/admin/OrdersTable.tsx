@@ -4,16 +4,18 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Printer, Truck } from "lucide-react";
+import { BadgeCheck, Printer, Truck } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { OrderListRow } from "@/lib/admin/order-queries";
-import { bulkAdvanceStatus } from "@/app/admin/(dashboard)/orders/actions";
+import { bulkAdvanceStatus, bulkConfirmPayment } from "@/app/admin/(dashboard)/orders/actions";
 import StatusBadge from "./StatusBadge";
 
 const cents = (c: number) => formatAud(c / 100);
 
 /** Orders that can still be shipped — drives whether the bulk bar offers it. */
 const SHIPPABLE = new Set(["paid", "processing"]);
+/** Orders still awaiting payment — drives whether the bulk bar offers "Mark paid". */
+const PAYABLE = new Set(["pending"]);
 
 export default function OrdersTable({ rows }: { rows: OrderListRow[] }) {
   const router = useRouter();
@@ -33,6 +35,25 @@ export default function OrdersTable({ rows }: { rows: OrderListRow[] }) {
 
   const selectedRows = rows.filter((r) => selected.has(r.id));
   const shippableSelected = selectedRows.filter((r) => SHIPPABLE.has(r.status));
+  const payableSelected = selectedRows.filter((r) => PAYABLE.has(r.status));
+
+  function markPaid() {
+    const ids = payableSelected.map((r) => r.id);
+    start(async () => {
+      const res = await bulkConfirmPayment(ids);
+      if (res.ok) {
+        toast.success(
+          `${res.moved} order${res.moved === 1 ? "" : "s"} marked paid${
+            res.failed?.length ? ` · ${res.failed.length} failed` : ""
+          }`,
+        );
+        setSelected(new Set());
+        router.refresh();
+      } else {
+        toast.error(res.error ?? "Bulk update failed");
+      }
+    });
+  }
 
   function markShipped() {
     const ids = shippableSelected.map((r) => r.id);
@@ -134,9 +155,10 @@ export default function OrdersTable({ rows }: { rows: OrderListRow[] }) {
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="text-sm text-fg-2">
             {selected.size} selected
-            {shippableSelected.length !== selected.size && (
+            {payableSelected.length + shippableSelected.length < selected.size && (
               <span className="ml-2 text-xs text-muted">
-                ({shippableSelected.length} can ship)
+                ({selected.size - payableSelected.length - shippableSelected.length} with no bulk
+                action)
               </span>
             )}
           </p>
@@ -153,14 +175,26 @@ export default function OrdersTable({ rows }: { rows: OrderListRow[] }) {
             >
               <Printer size={15} /> Print slips
             </button>
-            <button
-              disabled={pending || shippableSelected.length === 0}
-              onClick={markShipped}
-              className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-50"
-            >
-              <Truck size={15} />
-              {pending ? "Working…" : `Mark ${shippableSelected.length || ""} shipped`}
-            </button>
+            {payableSelected.length > 0 && (
+              <button
+                disabled={pending}
+                onClick={markPaid}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
+              >
+                <BadgeCheck size={15} />
+                {pending ? "Working…" : `Mark ${payableSelected.length} paid`}
+              </button>
+            )}
+            {shippableSelected.length > 0 && (
+              <button
+                disabled={pending}
+                onClick={markShipped}
+                className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-50"
+              >
+                <Truck size={15} />
+                {pending ? "Working…" : `Mark ${shippableSelected.length} shipped`}
+              </button>
+            )}
           </div>
         </div>
       </div>

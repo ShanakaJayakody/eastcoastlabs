@@ -157,6 +157,7 @@ export function buildInstructions(
     notes: [
       ...notes,
       "Standard bank transfers between Australian banks usually clear the same business day, and often within minutes on Osko.",
+      "If your bank's name-check says the account name doesn't match, don't worry — just make sure the BSB and account number are entered correctly and the transfer will still go through the same.",
     ],
   };
 }
