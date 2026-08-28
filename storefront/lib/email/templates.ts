@@ -41,6 +41,9 @@ const cents = (c: number) => formatAud(c / 100);
 
 const SITE = "https://eastcoastlabs.com.au";
 
+/** Monitored support inbox — the same address the site footer publishes. */
+const SUPPORT_EMAIL = "eclpeptides@gmail.com";
+
 /** Payment details as a two-column table — the same fields the pay page shows. */
 function instructionsTable(ins: PaymentInstructions): string {
   const rows = ins.fields
@@ -80,6 +83,40 @@ async function paymentBlock(payload: Record<string, unknown>): Promise<{
 
 const payButton = (url: string, label: string) =>
   `<a href="${url}" style="display:inline-block;margin-top:20px;background:${ACCENT};color:${INK};font-weight:600;padding:11px 22px;border-radius:8px;text-decoration:none;font-size:14px;">${label}</a>`;
+
+const esc = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const withParam = (url: string, key: string, value: string) =>
+  `${url}${url.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(value)}`;
+
+/**
+ * Five tappable stars, each deep-linking to the review form with that rating
+ * pre-selected. Tapping a star is a far smaller first commitment than "write a
+ * review", and it carries the rating across so the form opens half-finished.
+ */
+const starRow = (reviewUrl: string) =>
+  `<table role="presentation" style="margin:20px 0;"><tr>${[1, 2, 3, 4, 5]
+    .map(
+      (n) =>
+        `<td style="padding-right:6px;"><a href="${withParam(reviewUrl, "rating", String(n))}" style="display:inline-block;width:40px;height:40px;line-height:40px;text-align:center;font-size:20px;text-decoration:none;color:${ACCENT};background:#0d131b;border:1px solid #232c38;border-radius:8px;">&#9733;</a></td>`,
+    )
+    .join("")}</tr></table>
+   <div style="color:#8b96a8;font-size:12px;margin-top:-8px;">Tap a star to open the form with your rating filled in.</div>`;
+
+/**
+ * The products from the order, prose-joined and escaped — or null when the sweep
+ * supplied none. Naming what someone actually bought is the difference between a
+ * form letter and a real question, so every review touch uses this.
+ */
+function productNames(payload: Record<string, unknown>): string | null {
+  const names = Array.isArray(payload.products)
+    ? (payload.products as unknown[]).filter((n): n is string => typeof n === "string" && n !== "")
+    : [];
+  if (!names.length) return null;
+  if (names.length === 1) return esc(names[0]);
+  return `${names.slice(0, -1).map(esc).join(", ")} and ${esc(names[names.length - 1])}`;
+}
 
 export async function renderTemplate(
   template: EmailTemplate,
@@ -322,28 +359,96 @@ export async function renderTemplate(
         ),
       };
     }
+    case "arrival_checkin": {
+      const orderNumber = String(payload.order_number ?? "");
+      return {
+        subject: `Did ${orderNumber} arrive OK?`,
+        html: shell(
+          "Quick check that your order landed as it should have.",
+          `<h1 style="font-size:20px;margin:0 0 8px;">Did everything arrive OK?</h1>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             Order <strong style="font-family:monospace;">${orderNumber}</strong> shipped a few days ago, so it
+             should be with you by now. This is a real check-in, not a sales email — if anything is
+             missing, damaged, or still hasn't turned up, tell us and we'll sort it out.
+           </p>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             All good? Nothing to do. We'll be in touch once more in a couple of weeks to ask how we did.
+           </p>
+           ${payButton(
+             `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Problem with order ${orderNumber}`)}`,
+             "Something's not right",
+           )}`,
+          unsubOf(payload),
+        ),
+      };
+    }
     case "post_purchase_review": {
       const orderNumber = String(payload.order_number ?? "");
       const reviewUrl = typeof payload.review_url === "string" ? payload.review_url : `${SITE}/leave-a-review`;
+      const bought = productNames(payload);
       return {
         subject: "How was your order from East Coast Labs?",
         html: shell(
           "Share your experience — honest feedback only.",
           `<h1 style="font-size:20px;margin:0 0 8px;">How did we do?</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Your order <strong style="font-family:monospace;">${orderNumber}</strong> was delivered about two
-             weeks ago. We'd value your honest review. We're specifically interested in:
+             Your order <strong style="font-family:monospace;">${orderNumber}</strong>${
+               bought ? ` — ${bought} —` : ""
+             } was delivered about two weeks ago. We'd value your honest review. We're specifically interested in:
            </p>
            <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
              <li>Dispatch speed — did your order arrive when expected?</li>
              <li>Packaging — was it discreet and secure?</li>
              <li>Overall experience — would you order again?</li>
            </ul>
+           ${starRow(reviewUrl)}
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Every review helps other researchers make informed decisions. We never edit or remove reviews
              based on rating — honest feedback only.
            </p>
            ${payButton(reviewUrl, "Leave a review")}`,
+          unsubOf(payload),
+        ),
+      };
+    }
+    case "post_purchase_review_reminder": {
+      const reviewUrl = typeof payload.review_url === "string" ? payload.review_url : `${SITE}/leave-a-review`;
+      const bought = productNames(payload);
+      return {
+        subject: "One question, 30 seconds",
+        html: shell(
+          "Would you order from us again? Tap a star.",
+          `<h1 style="font-size:20px;margin:0 0 8px;">One question before we leave you alone</h1>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             We asked a couple of weeks ago and didn't hear back, which is completely fine. If you have
+             thirty seconds, though: how was ${bought ? `the ${bought}` : "your order"}?
+           </p>
+           ${starRow(reviewUrl)}
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             A single sentence is plenty. This is the last time we'll ask about this order.
+           </p>`,
+          unsubOf(payload),
+        ),
+      };
+    }
+    case "review_thank_you": {
+      const rating = Number(payload.rating ?? 0);
+      return {
+        subject: "Thanks for the review",
+        html: shell(
+          "Your review is with our team — here's what happens next.",
+          `<h1 style="font-size:20px;margin:0 0 8px;">Thank you — that genuinely helps</h1>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             Your ${rating >= 1 && rating <= 5 ? `${rating}-star ` : ""}review is with our team. We screen
+             for spam and nothing else — we don't edit or drop reviews based on what they say — so it
+             should appear on the product page shortly.
+           </p>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             Most people find us because someone they trust pointed them here. If you know another
+             researcher weighing up suppliers, forwarding this email is the most useful thing you can do
+             for them — and for us.
+           </p>
+           ${payButton(`${SITE}/shop`, "Browse the range")}`,
           unsubOf(payload),
         ),
       };

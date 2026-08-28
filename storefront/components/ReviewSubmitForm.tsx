@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { lookupOrder, submitReview, type OrderProduct } from "@/app/(store)/leave-a-review/actions";
 
 const field =
@@ -9,15 +9,21 @@ const field =
 interface Props {
   initialOrder?: string;
   initialEmail?: string;
+  /** Pre-selected star from a review-request email's deep link (0 = none). */
+  initialRating?: number;
 }
 
-export default function ReviewSubmitForm({ initialOrder = "", initialEmail = "" }: Props) {
+export default function ReviewSubmitForm({
+  initialOrder = "",
+  initialEmail = "",
+  initialRating = 0,
+}: Props) {
   const [orderNumber, setOrderNumber] = useState(initialOrder);
   const [email, setEmail] = useState(initialEmail);
   const [products, setProducts] = useState<OrderProduct[] | null>(null);
   const [productSlug, setProductSlug] = useState("");
   const [author, setAuthor] = useState("");
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(initialRating);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +41,18 @@ export default function ReviewSubmitForm({ initialOrder = "", initialEmail = "" 
       setProducts(res.products);
       setProductSlug(res.products[0]?.slug ?? "");
     });
+
+  // Arriving from a review-request email already carries proof of purchase in
+  // the link, so re-asking the customer to press "Find my order" is a step that
+  // only loses people. Verify once on mount when both fields came prefilled.
+  const autoVerified = useRef(false);
+  useEffect(() => {
+    if (autoVerified.current) return;
+    if (!initialOrder || !initialEmail) return;
+    autoVerified.current = true;
+    verify();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submit = () =>
     startTransition(async () => {

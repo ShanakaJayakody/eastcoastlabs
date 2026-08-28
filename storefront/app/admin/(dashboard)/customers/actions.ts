@@ -402,12 +402,24 @@ async function buildPayload(
     case "post_purchase_review": {
       const order = person.orders.find((o) => o.id === state.orderId);
       if (!order) return null;
+      const { data } = await adminDb()
+        .from("order_items")
+        .select("product_name")
+        .eq("order_id", order.id);
+      const products = [
+        ...new Set(((data ?? []) as { product_name: string }[]).map((i) => i.product_name)),
+      ];
       return {
         order_number: order.order_number,
+        products,
         review_url: `https://eastcoastlabs.com.au/leave-a-review?order=${encodeURIComponent(
           order.order_number,
         )}&email=${encodeURIComponent(email)}`,
       };
+    }
+    case "review_thank_you": {
+      const review = person.reviews[0];
+      return review ? { rating: review.rating } : null;
     }
     case "replenishment": {
       const order = person.orders.find((o) => o.id === state.orderId);

@@ -120,15 +120,25 @@ These are the operating rules. Everything in Part 2 should be checked against th
 |---|-------|---------|--------|------|--------|
 | 4.1 | Thank you + what happens next | Order placed | +1 hour | Reduce buyer's remorse | ⬜ (partly in 3.1) |
 | 4.2 | COA verification walkthrough | Fulfilled | +2 days | Deliver on the core promise | ✅ |
-| 4.3 | "Did it arrive OK?" check-in | Fulfilled | +5 days | Catch problems before reviews | ⬜ |
+| 4.3 | "Did it arrive OK?" check-in | Fulfilled | +5 days | Catch problems before reviews | ✅ |
 | 4.4 | Review / testimonial request | Fulfilled | +14 days | Social proof engine | ✅ |
-| 4.5 | Review reminder (non-responders) | ↑, no review | +21 days | Doubles review volume | ⬜ |
-| 4.6 | Post-review thank you + referral ask | Review submitted | +1 day | Convert goodwill into referral | ⬜ |
+| 4.5 | Review reminder (non-responders) | ↑, no review | +24 days | Doubles review volume | ✅ |
+| 4.6 | Post-review thank you + referral ask | Review submitted | +1 day | Convert goodwill into referral | ✅ |
 | 4.7 | Cross-sell — complementary items | Fulfilled | +10 days | AOV expansion | ⬜ |
 | 4.8 | Upsell to pack pricing ("you bought 1, here's 3-pack math") | Fulfilled, 1-vial buyer | +7 days | Move to higher LTV tier | ⬜ |
 | 4.9 | First-order-only: how we publish batch results | First order fulfilled | +3 days | Onboarding, differentiation | ⬜ |
 | 4.10 | Second-purchase nudge (the critical conversion) | 1 order, none since | +30 days | 1→2 orders is the LTV hinge | ⬜ |
 
+> **The review sequence (4.3 → 4.4 → 4.5 → 4.6) is built.** Stage order is the design: the day-5 arrival
+> check-in routes a bad delivery to support *before* the day-14 review ask, so problems become tickets
+> instead of one-star reviews — without filtering any sentiment. The reminder sits at day 24 rather than
+> 21 to stay clear of a 1-vial buyer's replenishment nudge, and yields entirely if any other marketing
+> email reached that person in the previous three days. No incentives: under ACCC guidance an
+> incentivised review must be disclosed and offered regardless of rating, and "proof, not outcome" is
+> the whole differentiation. Review asks skip accessory-only orders. Code:
+> [lifecycle.ts](../storefront/lib/admin/lifecycle.ts), timings in
+> [sequences.ts](../storefront/lib/admin/sequences.ts).
+>
 > **4.10 is the most under-built email in ecommerce.** The probability a customer buys a third time after buying twice is roughly double the probability they buy a second time after buying once. Every dollar spent moving order 1 → order 2 compounds.
 >
 > **4.8 is nearly free margin** for you specifically — you already have per-vial pack pricing as a differentiator; this email just does the arithmetic for a 1-vial buyer.
@@ -241,7 +251,7 @@ Ordered by expected revenue per unit of effort, given what already exists.
 2. `2.8` Payment-failed recovery — pure recovered revenue
 3. `0.3` Back-in-stock flow — template exists, needs waitlist + trigger
 4. `4.10` Second-purchase nudge (day 30) — the LTV hinge
-5. `4.5` Review reminder — roughly doubles review volume
+5. ~~`4.5` Review reminder~~ — done, shipped with the 4.3/4.5/4.6 review sequence
 
 **Tier 2 — high value, moderate effort:**
 6. `2.6/2.7` Split abandoned checkout from abandoned cart
@@ -271,12 +281,12 @@ Ordered by expected revenue per unit of effort, given what already exists.
 | 1 — Welcome | 3 | 7 | 43% |
 | 2 — Cart & browse | 3 | 9 | 33% |
 | 3 — Transactional | 2 (+2 partial) | 11 | ~27% |
-| 4 — Post-purchase | 2 | 10 | 20% |
+| 4 — Post-purchase | 5 | 10 | 50% |
 | 5 — Retention | 3 | 10 | 30% |
 | 6 — Reactivation | 2 | 9 | 22% |
 | 7 — Advocacy | 0 | 5 | 0% |
 | 8 — Operational | 0 | 5 | 0% |
-| **Total** | **16** | **72** | **~22%** |
+| **Total** | **19** | **72** | **~26%** |
 
 The foundation is solid — the five core flows exist and the copy is compliance-clean. The gap is depth within flows (second touches, reminders, non-responder branches) and the entire advocacy + hygiene layer.
 

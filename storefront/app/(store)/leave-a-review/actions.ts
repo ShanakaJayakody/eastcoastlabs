@@ -66,13 +66,31 @@ async function findReviewableOrder(
   return { order };
 }
 
+/**
+ * Slugs the review form should not offer. Syringes and swabs are stock a
+ * researcher consumes, not a product they have an opinion about — listing them
+ * beside the peptide only invites a review that helps nobody. Falls open: if the
+ * lookup fails we offer everything rather than blocking the review.
+ */
+async function accessorySlugs(): Promise<Set<string>> {
+  const db = supabaseAdmin();
+  if (!db) return new Set();
+  const { data } = await db.from("products").select("slug").contains("categories", ["accessory"]);
+  return new Set((data ?? []).map((p) => (p as { slug: string }).slug));
+}
+
 export async function lookupOrder(orderNumber: string, email: string): Promise<LookupResult> {
   const result = await findReviewableOrder(orderNumber, email);
   if ("error" in result) return { ok: false, error: result.error };
 
+  const accessories = await accessorySlugs();
   const seen = new Map<string, string>();
   for (const item of result.order.order_items) {
+    if (accessories.has(item.product_slug)) continue;
     if (!seen.has(item.product_slug)) seen.set(item.product_slug, item.product_name);
+  }
+  if (!seen.size) {
+    return { ok: false, error: "This order doesn't have anything we collect reviews for." };
   }
   return {
     ok: true,

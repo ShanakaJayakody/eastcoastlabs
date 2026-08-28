@@ -22,9 +22,11 @@ import "server-only";
 import { adminDb } from "./db";
 import { queueEmail, type EmailTemplate } from "./email";
 import {
+  isTransactional,
   replenishmentDays,
   replenishmentRelatedId,
   reviewRelatedId,
+  reviewThanksRelatedId,
   secondPurchaseRelatedId,
   welcomeRelatedId,
   winbackRelatedId,
@@ -57,6 +59,42 @@ interface MarketingSend {
   payload?: Record<string, unknown>;
   relatedType: string;
   relatedId: string;
+}
+
+/**
+ * Slugs of products that are consumables rather than the thing a researcher
+ * would review — syringes, swabs, the starter kit. An order containing only
+ * these gets the arrival check-in but never a review ask: "rate your alcohol
+ * swabs" produces nothing anyone reads.
+ *
+ * Read from `products.categories` so adding an accessory in the admin is enough;
+ * an empty result simply means every order is treated as reviewable, which is
+ * the safe direction to fail.
+ */
+async function accessorySlugs(): Promise<Set<string>> {
+  const { data } = await adminDb().from("products").select("slug").contains("categories", ["accessory"]);
+  return new Set((data ?? []).map((p) => (p as { slug: string }).slug));
+}
+
+/**
+ * Emails that received any NON-transactional email in the last `days` days.
+ * Used to make a low-priority touch yield rather than land on the same day as a
+ * higher-priority one — the "one flow email per person per day" rule, applied at
+ * the only place it currently bites.
+ */
+async function recentMarketingRecipients(emails: string[], days: number): Promise<Set<string>> {
+  const unique = [...new Set(emails)];
+  if (!unique.length) return new Set();
+  const { data } = await adminDb()
+    .from("email_outbox")
+    .select("to_email, template")
+    .in("to_email", unique)
+    .gte("created_at", isoDaysAgo(days));
+  return new Set(
+    ((data ?? []) as { to_email: string; template: EmailTemplate }[])
+      .filter((r) => !isTransactional(r.template))
+      .map((r) => r.to_email),
+  );
 }
 
 /**
@@ -149,40 +187,153 @@ interface FulfilledOrderRow {
   shipped_at: string;
 }
 
-/** Post-purchase: review request at shipped+14d. */
+interface ReviewOrderRow extends FulfilledOrderRow {
+  order_items: { product_slug: string; product_name: string }[];
+}
+
+/** The review form URL for an order — the emails append &rating=N per star. */
+const reviewUrlFor = (order: FulfilledOrderRow) =>
+  `${SITE}/leave-a-review?order=${encodeURIComponent(order.order_number)}&email=${encodeURIComponent(
+    order.customer_email,
+  )}`;
+
+/**
+ * Post-purchase review sequence — three touches off shipped_at.
+ *
+ * Stage order is the whole point. The arrival check-in at day 5 gives a bad
+ * delivery somewhere to go BEFORE we ask for a public rating, so problems arrive
+ * as support tickets rather than one-star reviews. We are not filtering
+ * sentiment: whatever the review says gets published, and the check-in goes to
+ * every fulfilled order regardless of what's in it.
+ *
+ * Only the two review asks are gated on the order actually containing something
+ * reviewable (a peptide, not just syringes) and on no review existing yet.
+ * Refunded and cancelled orders never appear here at all — the status filter
+ * excludes them, which is deliberate: asking someone you refunded to rate you is
+ * the fastest way to earn the rating you deserve for asking.
+ */
 export async function sweepPostPurchase(): Promise<{ queued: number }> {
   const db = adminDb();
   const { data } = await db
     .from("orders")
-    .select("id, order_number, customer_email, created_at, shipped_at")
+    .select(
+      "id, order_number, customer_email, created_at, shipped_at, order_items(product_slug, product_name)",
+    )
     .in("status", ["shipped", "completed"])
     .not("shipped_at", "is", null)
     .gte("shipped_at", isoDaysAgo(45))
     .limit(500);
-  const orders = (data ?? []) as FulfilledOrderRow[];
+  const orders = (data ?? []) as unknown as ReviewOrderRow[];
   if (!orders.length) return { queued: 0 };
 
-  const { data: reviewRows } = await db
-    .from("reviews")
-    .select("order_id")
-    .in("order_id", orders.map((o) => o.id));
+  const [{ data: reviewRows }, accessories] = await Promise.all([
+    db.from("reviews").select("order_id").in("order_id", orders.map((o) => o.id)),
+    accessorySlugs(),
+  ]);
   const reviewed = new Set((reviewRows ?? []).map((r) => (r as { order_id: string }).order_id));
+
+  /** Products worth reviewing — accessories alone aren't social proof. */
+  const reviewableItems = (order: ReviewOrderRow) =>
+    (order.order_items ?? []).filter((i) => !accessories.has(i.product_slug));
+
+  // The reminder is the one touch at real risk of colliding with another
+  // sequence (a 1-vial buyer's replenishment lands at shipped+21d), so it yields
+  // to any marketing email this person received in the last three days.
+  const reminderCandidates = orders.filter((o) => {
+    const age = daysSince(o.shipped_at);
+    return age >= 24 && age < 35;
+  });
+  const recentlyEmailed = await recentMarketingRecipients(
+    reminderCandidates.map((o) => o.customer_email),
+    3,
+  );
 
   const sends: MarketingSend[] = [];
   for (const order of orders) {
     const age = daysSince(order.shipped_at);
-    if (age >= 14 && age < 35 && !reviewed.has(order.id)) {
-      const reviewUrl = `${SITE}/leave-a-review?order=${encodeURIComponent(order.order_number)}&email=${encodeURIComponent(order.customer_email)}`;
+    const relatedId = reviewRelatedId(order.id);
+
+    if (age >= 5 && age < 10) {
+      sends.push({
+        to: order.customer_email,
+        template: "arrival_checkin",
+        payload: { order_number: order.order_number },
+        relatedType: "order",
+        relatedId,
+      });
+      continue;
+    }
+
+    const items = reviewableItems(order);
+    if (!items.length || reviewed.has(order.id)) continue;
+    const payload = {
+      order_number: order.order_number,
+      review_url: reviewUrlFor(order),
+      products: [...new Set(items.map((i) => i.product_name))],
+    };
+
+    if (age >= 14 && age < 21) {
       sends.push({
         to: order.customer_email,
         template: "post_purchase_review",
-        payload: { order_number: order.order_number, review_url: reviewUrl },
+        payload,
         relatedType: "order",
-        relatedId: reviewRelatedId(order.id),
+        relatedId,
+      });
+    } else if (age >= 24 && age < 35 && !recentlyEmailed.has(order.customer_email)) {
+      sends.push({
+        to: order.customer_email,
+        template: "post_purchase_review_reminder",
+        payload,
+        relatedType: "order",
+        relatedId,
       });
     }
   }
   return { queued: await queueMarketing(sends, "post_purchase_review") };
+}
+
+interface ReviewRow {
+  id: string;
+  created_at: string;
+  rating: number;
+  orders: { customer_email: string } | null;
+}
+
+/**
+ * Thank-you the day after a review lands, with a soft referral ask.
+ *
+ * Anchored on the REVIEW's created_at rather than the order's, because the
+ * trigger is the act of reviewing. Runs regardless of moderation outcome and
+ * regardless of rating — a one-star reviewer who took the time deserves the
+ * same acknowledgement, and the copy promises nothing about publication beyond
+ * "we screen for spam".
+ */
+export async function sweepReviewThankYou(): Promise<{ queued: number }> {
+  const db = adminDb();
+  const { data } = await db
+    .from("reviews")
+    .select("id, created_at, rating, orders(customer_email)")
+    .not("order_id", "is", null)
+    .gte("created_at", isoDaysAgo(7))
+    .limit(500);
+  const reviews = (data ?? []) as unknown as ReviewRow[];
+
+  const sends: MarketingSend[] = [];
+  for (const review of reviews) {
+    const email = review.orders?.customer_email;
+    if (!email) continue;
+    const age = daysSince(review.created_at);
+    if (age < 1 || age >= 7) continue;
+    sends.push({
+      to: email,
+      template: "review_thank_you",
+      payload: { rating: review.rating },
+      relatedType: "review",
+      relatedId: reviewThanksRelatedId(review.id),
+    });
+  }
+  return { queued: await queueMarketing(sends, "review_thank_you") };
 }
 
 interface ReplenishmentOrderRow extends FulfilledOrderRow {

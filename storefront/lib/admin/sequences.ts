@@ -27,6 +27,7 @@ export type SequenceId =
   | "payment_reminders"
   | "welcome"
   | "post_purchase_review"
+  | "review_thank_you"
   | "replenishment"
   | "winback"
   | "second_purchase";
@@ -76,8 +77,32 @@ export const WELCOME_STAGES: StageSpec[] = [
   { label: "Welcome 3", template: "welcome_3", from: 4 * 24, until: 18 * 24 },
 ];
 
+/**
+ * Post-purchase review sequence — anchored on shipped_at.
+ *
+ * The arrival check-in exists to route problems to support BEFORE the review ask
+ * lands: a parcel that went missing produces a support ticket at day 5 rather
+ * than a one-star review at day 14. That ordering, not any filtering of
+ * sentiment, is what protects the rating — we publish whatever comes back.
+ *
+ * The reminder sits at day 24 rather than the obvious 21 because a 1-vial
+ * buyer's replenishment nudge fires at shipped+21d; stacking two marketing
+ * emails on the same day is exactly the pattern that trains people to unsubscribe.
+ */
 export const REVIEW_STAGES: StageSpec[] = [
-  { label: "Review request", template: "post_purchase_review", from: 14 * 24, until: 35 * 24 },
+  { label: "Arrival check-in", template: "arrival_checkin", from: 5 * 24, until: 10 * 24 },
+  { label: "Review request", template: "post_purchase_review", from: 14 * 24, until: 21 * 24 },
+  {
+    label: "Review reminder",
+    template: "post_purchase_review_reminder",
+    from: 24 * 24,
+    until: 35 * 24,
+  },
+];
+
+/** Thank-you + soft referral ask — anchored on the review's own created_at. */
+export const REVIEW_THANKS_STAGES: StageSpec[] = [
+  { label: "Thank you", template: "review_thank_you", from: 24, until: 7 * 24 },
 ];
 
 export const WINBACK_STAGES: StageSpec[] = [
@@ -110,6 +135,7 @@ export const SEQUENCE_LABELS: Record<SequenceId, string> = {
   payment_reminders: "Payment reminders",
   welcome: "Welcome series",
   post_purchase_review: "Review request",
+  review_thank_you: "Review thank-you",
   replenishment: "Replenishment",
   winback: "Winback",
   second_purchase: "Second-purchase nudge",
@@ -123,6 +149,7 @@ export const PAUSABLE: SequenceId[] = [
   "payment_reminders",
   "welcome",
   "post_purchase_review",
+  "review_thank_you",
   "replenishment",
   "winback",
   "second_purchase",
@@ -152,7 +179,17 @@ export const paymentReminderRelatedId = (orderId: string, stage: number): string
 export const welcomeRelatedId = (email: string, stage: number): string =>
   `${email}:welcome:${stage}`;
 
+/**
+ * Shared by ALL THREE review stages. The outbox unique index is
+ * (to_email, template, related_id) and each stage has a distinct template, so
+ * one id per order still gives each touch its own once-only guarantee — while
+ * keeping the scheme byte-identical to what already shipped, so review requests
+ * sent before the sequence grew are still recognised as sent instead of
+ * re-firing.
+ */
 export const reviewRelatedId = (orderId: string): string => `${orderId}:pp:review`;
+
+export const reviewThanksRelatedId = (reviewId: string): string => `${reviewId}:review:thanks`;
 
 export const replenishmentRelatedId = (orderId: string): string => `${orderId}:replenishment`;
 

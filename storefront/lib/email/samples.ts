@@ -16,7 +16,10 @@ export const MARKETING_TEMPLATES: EmailTemplate[] = [
   "back_in_stock",
   "welcome_1",
   "welcome_3",
+  "arrival_checkin",
   "post_purchase_review",
+  "post_purchase_review_reminder",
+  "review_thank_you",
   "replenishment",
   "winback_60",
   "winback_90",
@@ -58,7 +61,14 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   {
     label: "Post-purchase & retention",
     templates: [
+      { id: "arrival_checkin", name: "Arrival check-in", trigger: "Shipped +5 days" },
       { id: "post_purchase_review", name: "Review request", trigger: "Shipped +14 days" },
+      {
+        id: "post_purchase_review_reminder",
+        name: "Review reminder",
+        trigger: "Shipped +24 days, no review yet",
+      },
+      { id: "review_thank_you", name: "Review thank-you", trigger: "Review submitted +1 day" },
       { id: "replenishment", name: "Replenishment", trigger: "Shipped +3/10/22wk by pack size" },
       { id: "second_purchase_nudge", name: "Second-purchase nudge", trigger: "1 order, +30 days" },
       { id: "winback_60", name: "Winback 60d", trigger: "60 days since last order" },
@@ -111,12 +121,18 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
     case "abandoned_cart_2":
     case "abandoned_cart_3":
       return { ...base, cart: SAMPLE_CART, subtotal_cents: 24900 };
+    case "arrival_checkin":
+      return { ...base, order_number: "ECL-1042" };
     case "post_purchase_review":
+    case "post_purchase_review_reminder":
       return {
         ...base,
         order_number: "ECL-1042",
         review_url: "https://eastcoastlabs.com.au/leave-a-review?order=ECL-1042",
+        products: ["BPC-157 10mg", "TB-500 10mg"],
       };
+    case "review_thank_you":
+      return { ...base, rating: 5 };
     case "replenishment":
       return {
         ...base,

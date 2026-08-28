@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   sweepWelcomeSeries,
   sweepPostPurchase,
+  sweepReviewThankYou,
   sweepReplenishment,
   sweepWinback,
   sweepSecondPurchaseNudge,
@@ -23,9 +24,10 @@ export async function GET(request: Request) {
     }
   }
 
-  const [welcome, postPurchase, replenishment, winback, nudge] = [
+  const [welcome, postPurchase, reviewThanks, replenishment, winback, nudge] = [
     await sweepWelcomeSeries(),
     await sweepPostPurchase(),
+    await sweepReviewThankYou(),
     await sweepReplenishment(),
     await sweepWinback(),
     await sweepSecondPurchaseNudge(),
@@ -34,6 +36,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     welcome: welcome.queued,
     postPurchase: postPurchase.queued,
+    reviewThankYou: reviewThanks.queued,
     replenishment: replenishment.queued,
     winback: winback.queued,
     secondPurchaseNudge: nudge.queued,

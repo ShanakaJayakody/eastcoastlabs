@@ -10,9 +10,14 @@ export const metadata: Metadata = {
 export default async function LeaveReviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ order?: string; email?: string }>;
+  searchParams: Promise<{ order?: string; email?: string; rating?: string }>;
 }) {
-  const { order, email } = await searchParams;
+  const { order, email, rating } = await searchParams;
+  // The review-request emails deep-link one URL per star, so someone who tapped
+  // "4" arrives with the rating already made rather than facing a blank form.
+  const parsedRating = Number(rating);
+  const initialRating =
+    Number.isInteger(parsedRating) && parsedRating >= 1 && parsedRating <= 5 ? parsedRating : 0;
 
   return (
     <div className="mx-auto max-w-xl px-4 py-12">
@@ -23,7 +28,11 @@ export default async function LeaveReviewPage({
         rating — honest feedback only.
       </p>
       <div className="mt-8">
-        <ReviewSubmitForm initialOrder={order ?? ""} initialEmail={email ?? ""} />
+        <ReviewSubmitForm
+          initialOrder={order ?? ""}
+          initialEmail={email ?? ""}
+          initialRating={initialRating}
+        />
       </div>
     </div>
   );

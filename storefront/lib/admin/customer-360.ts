@@ -19,6 +19,7 @@ import {
   CART_STAGES,
   PAYMENT_STAGES,
   REVIEW_STAGES,
+  REVIEW_THANKS_STAGES,
   SECOND_PURCHASE_STAGES,
   SEQUENCE_LABELS,
   WELCOME_STAGES,
@@ -30,6 +31,7 @@ import {
   replenishmentRelatedId,
   replenishmentStages,
   reviewRelatedId,
+  reviewThanksRelatedId,
   secondPurchaseRelatedId,
   welcomeRelatedId,
   winbackRelatedId,
@@ -120,6 +122,7 @@ export async function loadPerson(email: string) {
     { data: profile },
     { data: waitlist },
     { data: events },
+    { data: reviews },
   ] = await Promise.all([
     db.from("customers").select("*").eq("email", clean).maybeSingle(),
     db
@@ -151,6 +154,13 @@ export async function loadPerson(email: string) {
       .eq("to_email", clean)
       .order("occurred_at", { ascending: true })
       .limit(500),
+    // Reviews reach this person only through the order they reviewed, so the
+    // inner join on customer_email is the filter.
+    db
+      .from("reviews")
+      .select("id, created_at, rating, status, order_id, orders!inner(customer_email)")
+      .eq("orders.customer_email", clean)
+      .order("created_at", { ascending: false }),
   ]);
 
   const orderRows = (orders ?? []) as OrderRow[];
@@ -187,6 +197,13 @@ export async function loadPerson(email: string) {
     waitlist: (waitlist ?? []) as { product_slug: string; notified: boolean }[],
     subscriberRows: subRows,
     emailEvents: (events ?? []) as { outbox_id: string | null; event: string; occurred_at: string }[],
+    reviews: (reviews ?? []) as unknown as {
+      id: string;
+      created_at: string;
+      rating: number;
+      status: string;
+      order_id: string;
+    }[],
   };
 }
 
@@ -337,6 +354,23 @@ export async function deriveSequenceState(person: LoadedPerson): Promise<Sequenc
     );
   }
 
+  // ---- Review thank-you (anchored on the review, not the order) -------------
+  const latestReview = person.reviews[0];
+  if (latestReview) {
+    const thanksStages = deriveStages(
+      REVIEW_THANKS_STAGES,
+      latestReview.created_at,
+      () => reviewThanksRelatedId(latestReview.id),
+      outbox,
+    );
+    push(
+      "review_thank_you",
+      latestReview.created_at,
+      thanksStages,
+      `${latestReview.rating}★ review left ${shortAgo(latestReview.created_at)} · ${latestReview.status}`,
+    );
+  }
+
   // ---- Winback + second-purchase nudge (customer-level) ---------------------
   if (summary.lastOrderAt) {
     const winStages = deriveStages(
@@ -379,7 +413,10 @@ const TEMPLATE_SEQUENCE: Record<string, string> = {
   order_refunded: "Transactional",
   welcome_1: "Welcome series",
   welcome_3: "Welcome series",
+  arrival_checkin: "Review request",
   post_purchase_review: "Review request",
+  post_purchase_review_reminder: "Review request",
+  review_thank_you: "Review thank-you",
   replenishment: "Replenishment",
   winback_60: "Winback",
   winback_90: "Winback",
