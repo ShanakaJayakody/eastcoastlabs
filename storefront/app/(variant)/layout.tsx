@@ -5,9 +5,7 @@ import DossierHeader from "@/components/variant/v2/DossierHeader";
 import DossierFooter from "@/components/variant/v2/DossierFooter";
 import { newsreader, inter, plexMono } from "@/lib/fonts";
 import { getSettings } from "@/lib/settings";
-import { getAvailabilityMap } from "@/lib/storefront-catalog";
-import { getAccessories } from "@/lib/accessories";
-import { BAC_WATER_SLUG } from "@/lib/bumps";
+import { getUpsellStock } from "@/lib/storefront-catalog";
 
 /**
  * A/B variant shell (route /1) — "The Dossier" redesign.
@@ -27,10 +25,7 @@ import { BAC_WATER_SLUG } from "@/lib/bumps";
  */
 export default async function VariantLayout({ children }: { children: React.ReactNode }) {
   // Same funnel as (store): thresholds + upsell availability for the shared cart.
-  const [settings, stock] = await Promise.all([
-    getSettings(),
-    getAvailabilityMap([BAC_WATER_SLUG, ...getAccessories().map((a) => a.slug)]),
-  ]);
+  const [settings, stock] = await Promise.all([getSettings(), getUpsellStock()]);
   return (
     <Providers
       thresholds={{

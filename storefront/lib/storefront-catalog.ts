@@ -12,6 +12,8 @@ import "server-only";
 import { supabaseAdmin } from "./supabase";
 import type { WooProduct } from "./woo";
 import { getAggregates } from "./reviews";
+import { getAccessories, RECON_KIT_SLUG } from "./accessories";
+import { BAC_WATER_SLUG } from "./bumps";
 
 export interface LiveProductOverlay {
   name?: string;
@@ -96,6 +98,19 @@ export async function getAvailabilityMap(slugs: string[]): Promise<Record<string
     );
   }
   return out;
+}
+
+/**
+ * Availability for the upsell surfaces (bac water + accessories), with one
+ * dependency encoded: the Reconstitution Starter Kit ships a bac-water vial
+ * inside it, so when bac water is KNOWN to be out of stock the kit is clamped
+ * to 0 too — regardless of how many kit boxes the ledger holds. Unknown bac
+ * (no DB row) leaves the kit alone: unknown ≠ sold out.
+ */
+export async function getUpsellStock(): Promise<Record<string, number>> {
+  const map = await getAvailabilityMap([BAC_WATER_SLUG, ...getAccessories().map((a) => a.slug)]);
+  if (BAC_WATER_SLUG in map && map[BAC_WATER_SLUG] <= 0) map[RECON_KIT_SLUG] = 0;
+  return map;
 }
 
 /**

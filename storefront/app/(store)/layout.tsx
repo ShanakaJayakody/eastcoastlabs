@@ -6,9 +6,7 @@ import CartDrawer from "@/components/CartDrawer";
 import ExitIntentModal from "@/components/ExitIntentModal";
 import Analytics from "@/components/Analytics";
 import { getSettings } from "@/lib/settings";
-import { getAvailabilityMap } from "@/lib/storefront-catalog";
-import { getAccessories } from "@/lib/accessories";
-import { BAC_WATER_SLUG } from "@/lib/bumps";
+import { getUpsellStock } from "@/lib/storefront-catalog";
 
 // The storefront shell: everything a shopper sees. Admin routes deliberately do
 // NOT inherit this — no cart, no exit-intent, no GA4.
@@ -17,10 +15,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   // The cart is a client component and can't read settings itself. The same
   // applies to upsell availability: the free-gift auto-add and cart cross-sells
   // must not offer bac water / accessories the ledger says are gone.
-  const [settings, stock] = await Promise.all([
-    getSettings(),
-    getAvailabilityMap([BAC_WATER_SLUG, ...getAccessories().map((a) => a.slug)]),
-  ]);
+  const [settings, stock] = await Promise.all([getSettings(), getUpsellStock()]);
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",

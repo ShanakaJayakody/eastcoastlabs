@@ -10,7 +10,7 @@
  * SERVER ONLY — imports the service-role client.
  */
 import { adminDb } from "./admin/db";
-import { getAccessory } from "./accessories";
+import { getAccessory, RECON_KIT_SLUG } from "./accessories";
 import { getAvailability } from "./admin/inventory";
 import { getSettings } from "./settings";
 import { getStackBySlug } from "./stacks";
@@ -113,24 +113,36 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const items: NewOrderItem[] = [];
   const extraItems: ExtraOrderItem[] = [];
 
-  // ---- Free bacteriostatic-water budget ---------------------------------
-  // Both bonuses (stack "reconstitution pack" inclusion and the spend-threshold
-  // gift) ship a REAL vial, so they must be covered by real availability. The
-  // budget is what's available AFTER the paid bac water in this same cart —
-  // paid lines always win; only free lines degrade (with a warning) when the
-  // pool runs dry. Without this check a $0 line could fail reservation and
-  // kill an otherwise-payable order at createOrder.
+  // ---- Bacteriostatic-water dependency budget ---------------------------
+  // Three things in a cart consume bac water beyond plain bac lines: the stack
+  // "reconstitution pack" inclusion, the spend-threshold gift (both ship a REAL
+  // $0 vial), and the Reconstitution Starter Kit (a paid unit with a bac vial
+  // packed inside). All must be covered by real availability, computed AFTER
+  // the paid bac water in this same cart — paid bac lines always win. When the
+  // pool runs dry the dependent lines degrade with a warning instead of a $0
+  // line failing reservation and killing an otherwise-payable order.
+  const kitLines = paidLines.filter((l) => !isStackKey(l.key) && l.slug === RECON_KIT_SLUG);
   const wantsFreeBac =
     clean.some((l) => isGiftKey(l.key)) || resolvedStacks.some(({ stack }) => stack?.freeBacWater);
   let freeBacBudget = 0;
-  if (wantsFreeBac) {
+  // Whether bac water can cover the kits in this cart. Defaults true so a cart
+  // is never blocked when bac isn't resolvable at all (no product / no ledger
+  // knowledge is not the same as sold out for a PAID kit).
+  let kitBacCovered = true;
+  if (wantsFreeBac || kitLines.length) {
     const bacPoolId = byKey.get(variantKey(BAC_WATER_SLUG, 1))?.id ?? (await findGiftVariant());
     if (bacPoolId) {
       const paidBacVials = paidLines
         .filter((l) => !isStackKey(l.key) && l.slug === BAC_WATER_SLUG)
         .reduce((sum, l) => sum + packSizeFromLabel(l.variantLabel) * l.quantity, 0);
       const avail = await getAvailability(bacPoolId);
-      freeBacBudget = Math.max(0, (avail?.available ?? 0) - paidBacVials);
+      const net = Math.max(0, (avail?.available ?? 0) - paidBacVials);
+      // Kits claim their vials first (they're paid), free bonuses get the rest.
+      // If the kits can't be covered they get dropped below, so their vials
+      // return to the free-bonus budget rather than being double-counted.
+      const kitVials = kitLines.reduce((sum, l) => sum + l.quantity, 0);
+      kitBacCovered = net >= kitVials;
+      freeBacBudget = kitBacCovered ? net - kitVials : net;
     }
   }
 
@@ -200,6 +212,15 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
 
   for (const line of paidLines) {
     if (isStackKey(line.key)) continue; // handled above
+    // The starter kit ships a bac-water vial inside it — it cannot be sold
+    // when the bac pool can't cover the kits in this cart, no matter how many
+    // kit boxes are on the shelf.
+    if (line.slug === RECON_KIT_SLUG && !kitBacCovered) {
+      warnings.push(
+        "Removed Reconstitution Starter Kit — the bacteriostatic water it includes is out of stock.",
+      );
+      continue;
+    }
     // Accessory labels describe contents ("100 pack" of swabs), not vial pack
     // tiers — an accessory unit is always ONE stock unit, so its variant lives
     // at pack_size 1. Parsing "100 pack" as a 100-vial tier would miss the
