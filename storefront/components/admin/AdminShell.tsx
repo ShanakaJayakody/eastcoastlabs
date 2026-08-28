@@ -66,6 +66,27 @@ export default function AdminShell({
         href: "/admin/reviews",
         keywords: ["review", "moderate", "approve", "pending"],
       },
+      {
+        id: "action:recovery",
+        label: "Cart recovery centre",
+        group: "Actions",
+        href: "/admin/recovery",
+        keywords: ["cart", "abandoned", "recovery", "sequence", "follow up", "reminder"],
+      },
+      {
+        id: "action:in-recovery",
+        label: "People in cart recovery",
+        group: "Actions",
+        href: "/admin/customers?segment=in_recovery",
+        keywords: ["customer", "people", "recovery", "abandoned", "segment"],
+      },
+      {
+        id: "action:lapsed",
+        label: "Lapsed customers",
+        group: "Actions",
+        href: "/admin/customers?segment=lapsed",
+        keywords: ["lapsed", "winback", "inactive", "churn", "segment"],
+      },
     ];
 
     return [

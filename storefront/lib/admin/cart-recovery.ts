@@ -12,7 +12,9 @@
  * send — a fresh capture resets the stage counter and restarts the sequence.
  */
 import { adminDb } from "./db";
-import { queueEmail, type EmailTemplate } from "./email";
+import { queueEmail } from "./email";
+import { CART_STAGES, cartRelatedId } from "./sequences";
+import { inList, pausedEmailsFor } from "./overrides";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
 export interface CapturedLine {
@@ -61,17 +63,13 @@ export async function markCartRecovered(email: string, orderId: string): Promise
 
 /**
  * Recovery touches with DISJOINT idle-time windows (hours since last cart
- * activity). Disjoint windows mean a cart matches at most one stage per sweep,
- * so a stale cart discovered late (first deploy, cron outage) gets the single
- * currently-due touch — never a burst of all three. Carts idle past the last
- * window get nothing: recovering a week-old cart reads as surveillance, not
- * service.
+ * activity) now live in sequences.ts, shared with the admin UI so the stepper
+ * predicts exactly what this sweep will do. Disjoint windows mean a cart matches
+ * at most one stage per sweep, so a stale cart discovered late (first deploy,
+ * cron outage) gets the single currently-due touch — never a burst of all three.
+ * Carts idle past the last window get nothing: recovering a week-old cart reads
+ * as surveillance, not service.
  */
-const CART_STAGES: { from: number; until: number; template: EmailTemplate }[] = [
-  { from: 1, until: 24, template: "abandoned_cart" },
-  { from: 24, until: 72, template: "abandoned_cart_2" },
-  { from: 72, until: 168, template: "abandoned_cart_3" },
-];
 
 /**
  * Atomically claim carts eligible for their next recovery touch and queue the
@@ -85,19 +83,26 @@ export async function queueAbandonedCartEmails(): Promise<number> {
   const db = adminDb();
   let queued = 0;
 
+  // Paused carts are excluded BEFORE the claim, not after: the claim bumps
+  // reminder_stage, so claiming a paused cart would silently consume its next
+  // touch and the operator's pause would cost them the email they were trying
+  // to hold back.
+  const paused = inList(await pausedEmailsFor("cart_recovery"));
+
   for (let stage = 0; stage < CART_STAGES.length; stage++) {
     const { from, until, template } = CART_STAGES[stage];
     const idleSince = new Date(Date.now() - from * 60 * 60 * 1000).toISOString();
     const idleUntil = new Date(Date.now() - until * 60 * 60 * 1000).toISOString();
 
-    const { data: claimed } = await db
+    let claim = db
       .from("cart_sessions")
       .update({ reminder_stage: stage + 1, reminder_sent_at: new Date().toISOString() })
       .eq("status", "active")
       .lte("reminder_stage", stage)
       .lt("updated_at", idleSince)
-      .gt("updated_at", idleUntil)
-      .select("email, cart, subtotal_cents, updated_at");
+      .gt("updated_at", idleUntil);
+    if (paused) claim = claim.not("email", "in", paused);
+    const { data: claimed } = await claim.select("email, cart, subtotal_cents, updated_at");
 
     const rows = claimed ?? [];
     if (!rows.length) continue;
@@ -122,7 +127,7 @@ export async function queueAbandonedCartEmails(): Promise<number> {
         template,
         payload: { cart: row.cart, subtotal_cents: row.subtotal_cents, unsubscribe_url: unsub },
         relatedType: "cart_session",
-        relatedId: `${email}:cart:${stage + 1}:${Date.parse(row.updated_at as string)}`,
+        relatedId: cartRelatedId(email, stage + 1, row.updated_at as string),
       });
       queued++;
     }
@@ -148,6 +153,98 @@ export async function listAbandonedCarts(idleHours = 1, limit = 10): Promise<Aba
     .order("updated_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as AbandonedCartRow[];
+}
+
+export interface RecoveryCartRow {
+  email: string;
+  cart: CapturedLine[];
+  subtotal_cents: number;
+  status: string;
+  reminder_stage: number | null;
+  reminder_sent_at: string | null;
+  recovered_order_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Carts for the recovery centre's three tabs. */
+export async function listCartsFor(
+  tab: "active" | "recovered" | "expired",
+  limit = 50,
+): Promise<RecoveryCartRow[]> {
+  const db = adminDb();
+  const deadline = new Date(Date.now() - 168 * 60 * 60 * 1000).toISOString();
+
+  let q = db
+    .from("cart_sessions")
+    .select(
+      "email, cart, subtotal_cents, status, reminder_stage, reminder_sent_at, recovered_order_id, created_at, updated_at",
+    )
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (tab === "recovered") q = q.eq("status", "recovered");
+  // "Expired" is an active cart that aged past the last recovery window — the
+  // sweep will never touch it again, which is precisely why it needs a list.
+  else if (tab === "expired") q = q.eq("status", "active").lt("updated_at", deadline);
+  else q = q.eq("status", "active").gte("updated_at", deadline);
+
+  const { data } = await q;
+  return (data ?? []) as RecoveryCartRow[];
+}
+
+export interface RecoveryMetrics {
+  activeCarts: number;
+  inSequence: number;
+  recovered30d: number;
+  revenueRecoveredCents: number;
+  /** Recovered ÷ (recovered + still-active + expired), over carts captured in window. */
+  recoveryRatePct: number | null;
+}
+
+export async function recoveryMetrics(days = 30): Promise<RecoveryMetrics> {
+  const db = adminDb();
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const idleCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+  const [{ data: windowCarts }, { count: activeCarts }, { data: staged }] = await Promise.all([
+    db
+      .from("cart_sessions")
+      .select("status, recovered_order_id")
+      .gte("created_at", since),
+    db
+      .from("cart_sessions")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "active")
+      .lt("updated_at", idleCutoff),
+    db
+      .from("cart_sessions")
+      .select("email")
+      .eq("status", "active")
+      .gt("reminder_stage", 0),
+  ]);
+
+  const rows = (windowCarts ?? []) as { status: string; recovered_order_id: string | null }[];
+  const recovered = rows.filter((r) => r.status === "recovered");
+  const denominator = rows.length;
+
+  let revenueRecoveredCents = 0;
+  const orderIds = recovered.map((r) => r.recovered_order_id).filter(Boolean) as string[];
+  if (orderIds.length) {
+    const { data: orders } = await db.from("orders").select("total_cents").in("id", orderIds);
+    revenueRecoveredCents = (orders ?? []).reduce(
+      (sum, o) => sum + ((o as { total_cents: number }).total_cents ?? 0),
+      0,
+    );
+  }
+
+  return {
+    activeCarts: activeCarts ?? 0,
+    inSequence: (staged ?? []).length,
+    recovered30d: recovered.length,
+    revenueRecoveredCents,
+    recoveryRatePct: denominator > 0 ? Math.round((recovered.length / denominator) * 100) : null,
+  };
 }
 
 export async function abandonedCartCount(idleHours = 1): Promise<number> {

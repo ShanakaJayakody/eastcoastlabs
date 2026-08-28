@@ -23,11 +23,12 @@ import "server-only";
 import { adminDb } from "./db";
 import { cancelOrder } from "./orders";
 import { queueEmail } from "./email";
+import { REMINDER_STAGES, paymentReminderRelatedId } from "./sequences";
+import { pausedEmailsFor } from "./overrides";
 import { getSettings } from "@/lib/settings";
 import { referenceForOrderNumber } from "@/lib/payments";
 
-/** Hours after order creation at which each reminder is due. */
-export const REMINDER_STAGES = [4, 24] as const;
+export { REMINDER_STAGES };
 
 interface PendingOrderRow {
   id: string;
@@ -66,8 +67,13 @@ export async function remindUnpaidOrders(): Promise<{ reminded: number }> {
     .limit(200);
   if (error) throw new Error(`remindUnpaidOrders: ${error.message}`);
 
+  const paused = await pausedEmailsFor("payment_reminders");
+
   let reminded = 0;
   for (const order of (data ?? []) as PendingOrderRow[]) {
+    // An operator settling this payment by phone shouldn't have the system
+    // nagging behind them.
+    if (paused.has(order.customer_email)) continue;
     const stage = order.payment_reminders_sent;
     const dueAfter = REMINDER_STAGES[stage];
     if (dueAfter === undefined) continue;
@@ -99,7 +105,7 @@ export async function remindUnpaidOrders(): Promise<{ reminded: number }> {
       relatedType: "order",
       // The related_id carries the stage so the outbox's dedupe index treats
       // reminder 1 and reminder 2 as distinct notifications for one order.
-      relatedId: `${order.id}:reminder:${stage + 1}`,
+      relatedId: paymentReminderRelatedId(order.id, stage + 1),
     });
 
     await db

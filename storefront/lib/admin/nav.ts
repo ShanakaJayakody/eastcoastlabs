@@ -9,6 +9,7 @@ import {
   Settings,
   Sparkles,
   Mail,
+  LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const NAV: NavItem[] = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Pipeline", href: "/admin/pipeline", icon: Sparkles },
   { label: "Customers", href: "/admin/customers", icon: Users },
+  { label: "Recovery", href: "/admin/recovery", icon: LifeBuoy },
   { label: "Discounts", href: "/admin/discounts", icon: Ticket },
   { label: "COAs", href: "/admin/coas", icon: FlaskConical },
   { label: "Reviews", href: "/admin/reviews", icon: Star },

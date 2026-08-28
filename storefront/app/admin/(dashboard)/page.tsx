@@ -136,12 +136,15 @@ export default async function AdminDashboard() {
             interactive
           />
         </Link>
-        <StatCard
-          label="Abandoned carts"
-          value={String(abandonedCount)}
-          sub="Idle 1h+ · recovery email queued hourly"
-          icon={ShoppingCart}
-        />
+        <Link href="/admin/recovery">
+          <StatCard
+            label="Abandoned carts"
+            value={String(abandonedCount)}
+            sub="Idle 1h+ · recovery email queued hourly"
+            icon={ShoppingCart}
+            interactive
+          />
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -229,9 +232,9 @@ export default async function AdminDashboard() {
         <section className="admin-card rounded-xl">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <h3 className="text-sm font-semibold text-fg">Abandoned carts</h3>
-            <span className="text-xs text-muted">
-              {abandonedCarts.filter((c) => c.reminder_sent_at).length} reminder(s) sent
-            </span>
+            <Link href="/admin/recovery" className="text-xs text-accent-2 hover:underline">
+              Recovery centre
+            </Link>
           </div>
           <div className="divide-y divide-line">
             {abandonedCarts.map((c) => (

@@ -21,6 +21,16 @@ import "server-only";
 
 import { adminDb } from "./db";
 import { queueEmail, type EmailTemplate } from "./email";
+import {
+  replenishmentDays,
+  replenishmentRelatedId,
+  reviewRelatedId,
+  secondPurchaseRelatedId,
+  welcomeRelatedId,
+  winbackRelatedId,
+  type SequenceId,
+} from "./sequences";
+import { pausedEmailsFor } from "./overrides";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
 const SITE = "https://eastcoastlabs.com.au";
@@ -49,13 +59,20 @@ interface MarketingSend {
   relatedId: string;
 }
 
-/** Queue marketing sends, applying suppression + unsubscribe-link injection. */
-async function queueMarketing(sends: MarketingSend[]): Promise<number> {
+/**
+ * Queue marketing sends, applying suppression, operator pauses, and
+ * unsubscribe-link injection. The pause check lives HERE rather than in each
+ * sweep's query so a paused person is skipped no matter which sweep reached
+ * them — one place to be right instead of five.
+ */
+async function queueMarketing(sends: MarketingSend[], sequence?: SequenceId): Promise<number> {
   if (!sends.length) return 0;
   const suppressed = await suppressedEmails(sends.map((s) => s.to));
+  const paused = sequence ? await pausedEmailsFor(sequence) : new Set<string>();
   let queued = 0;
   for (const send of sends) {
     if (suppressed.has(send.to)) continue;
+    if (paused.has(send.to)) continue;
     const unsub = unsubscribeUrl(send.to);
     if (!unsub) {
       console.error("lifecycle: no UNSUBSCRIBE_SECRET/CRON_SECRET configured — marketing sends skipped");
@@ -116,12 +133,12 @@ export async function sweepWelcomeSeries(): Promise<{ queued: number }> {
           to: email,
           template: stage.template,
           relatedType: "subscriber",
-          relatedId: `${email}:welcome:${stage.n}`,
+          relatedId: welcomeRelatedId(email, stage.n),
         });
       }
     }
   }
-  return { queued: await queueMarketing(sends) };
+  return { queued: await queueMarketing(sends, "welcome") };
 }
 
 interface FulfilledOrderRow {
@@ -161,11 +178,11 @@ export async function sweepPostPurchase(): Promise<{ queued: number }> {
         template: "post_purchase_review",
         payload: { order_number: order.order_number, review_url: reviewUrl },
         relatedType: "order",
-        relatedId: `${order.id}:pp:review`,
+        relatedId: reviewRelatedId(order.id),
       });
     }
   }
-  return { queued: await queueMarketing(sends) };
+  return { queued: await queueMarketing(sends, "post_purchase_review") };
 }
 
 interface ReplenishmentOrderRow extends FulfilledOrderRow {
@@ -181,9 +198,6 @@ const packSizeFromLabel = (label: string): number => {
   const m = /(\d+)\s*-?\s*pack/i.exec(label);
   return m ? parseInt(m[1], 10) : 1;
 };
-
-/** Replenishment thresholds in days, by largest pack size in the order. */
-const replenishmentDays = (packSize: number) => (packSize >= 6 ? 154 : packSize >= 3 ? 70 : 21);
 
 /**
  * Replenishment: nudge each customer's LATEST fulfilled order once its
@@ -245,10 +259,10 @@ export async function sweepReplenishment(): Promise<{ queued: number }> {
         items: order.order_items.map((i) => ({ name: i.product_name, qty: i.qty })),
       },
       relatedType: "order",
-      relatedId: `${order.id}:replenishment`,
+      relatedId: replenishmentRelatedId(order.id),
     });
   }
-  return { queued: await queueMarketing(sends) };
+  return { queued: await queueMarketing(sends, "replenishment") };
 }
 
 interface CustomerRow {
@@ -276,18 +290,18 @@ export async function sweepWinback(): Promise<{ queued: number }> {
         to: customer.email,
         template: "winback_60",
         relatedType: "customer",
-        relatedId: `${customer.email}:winback:60:${customer.last_order_at.slice(0, 10)}`,
+        relatedId: winbackRelatedId(customer.email, 60, customer.last_order_at),
       });
     } else if (age >= 90 && age < 150) {
       sends.push({
         to: customer.email,
         template: "winback_90",
         relatedType: "customer",
-        relatedId: `${customer.email}:winback:90:${customer.last_order_at.slice(0, 10)}`,
+        relatedId: winbackRelatedId(customer.email, 90, customer.last_order_at),
       });
     }
   }
-  return { queued: await queueMarketing(sends) };
+  return { queued: await queueMarketing(sends, "winback") };
 }
 
 /**
@@ -323,7 +337,7 @@ export async function sweepSecondPurchaseNudge(): Promise<{ queued: number }> {
       to: c.email,
       template: "second_purchase_nudge",
       relatedType: "customer",
-      relatedId: `${c.email}:nudge:30:${c.last_order_at.slice(0, 10)}`,
+      relatedId: secondPurchaseRelatedId(c.email, c.last_order_at),
     }));
-  return { queued: await queueMarketing(sends) };
+  return { queued: await queueMarketing(sends, "second_purchase") };
 }
