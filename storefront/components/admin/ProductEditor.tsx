@@ -1,45 +1,78 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  Boxes,
+} from "lucide-react";
 import { formatAud } from "@/lib/format";
 import { marginOf, tierCostCents } from "@/lib/admin/costs";
 import type { ProductDetail, MovementRow } from "@/lib/admin/products";
-import type { MovementReason } from "@/lib/admin/inventory";
 import {
   saveProductAll,
-  adjustStock,
   duplicateProductAction,
   saveUnitCost,
 } from "@/app/admin/(dashboard)/products/actions";
 import RichTextEditor from "./RichTextEditor";
 import ProductImages from "./ProductImages";
 import SeoPreview from "./SeoPreview";
-
-const REASONS: { value: MovementReason; label: string }[] = [
-  { value: "received", label: "Stock received" },
-  { value: "recount", label: "Recount / correction" },
-  { value: "adjustment", label: "Adjustment (damage, sample)" },
-  { value: "return", label: "Customer return" },
-];
+import Badge, { type BadgeTone } from "./Badge";
+import StockDrawer, { type StockTarget } from "./StockDrawer";
 
 const field =
   "w-full rounded-lg border border-line bg-ink-2 px-3 py-2 text-sm text-fg outline-none transition focus:border-accent";
 const btn = "rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50";
 const card = "rounded-xl border border-line bg-surface";
 
-type Status = "active" | "draft" | "archived";
+type Status = "active" | "draft" | "archived" | "coming_soon";
+
+const STATUSES: { value: Status; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "draft", label: "Draft" },
+  { value: "coming_soon", label: "Coming soon" },
+  { value: "archived", label: "Archived" },
+];
+
+const STATUS_TONE: Record<Status, BadgeTone> = {
+  active: "success",
+  draft: "neutral",
+  coming_soon: "info",
+  archived: "neutral",
+};
+
+const SECTIONS = [
+  { id: "details", label: "Details" },
+  { id: "media", label: "Media" },
+  { id: "pricing", label: "Pricing" },
+  { id: "inventory", label: "Inventory" },
+  { id: "seo", label: "SEO" },
+];
+
+export interface ProductNeighbour {
+  slug: string;
+  name: string;
+}
 
 export default function ProductEditor({
   product,
   movements,
   waitlist,
+  prev,
+  next,
 }: {
   product: ProductDetail;
-  movements: Record<string, MovementRow[]>;
+  /** Ledger for the vial pool — the only variant stock actually lives on. */
+  movements: MovementRow[];
   waitlist: number;
+  prev: ProductNeighbour | null;
+  next: ProductNeighbour | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -107,55 +140,29 @@ export default function ProductEditor({
     });
   }
 
-  // ---- Stock adjustments stay immediate: they're ledger entries, not edits ----
-  // Stock lives once per product, in vials, on the 1-vial tier.
+  // ---- Stock: one pool of vials, managed in the drawer (ledger, not form) ----
   const pool = product.variants.find((v) => v.pack_size === 1) ?? null;
   const vialsOnHand = pool?.on_hand ?? 0;
+  const [stockOpen, setStockOpen] = useState(false);
 
-  const [adjQty, setAdjQty] = useState<Record<string, string>>({});
-  const [adjReason, setAdjReason] = useState<Record<string, MovementReason>>({});
-  const [adjNote, setAdjNote] = useState<Record<string, string>>({});
-  const [adjCost, setAdjCost] = useState<Record<string, string>>({});
-  const [openHistory, setOpenHistory] = useState<string | null>(null);
+  const stockTarget: StockTarget | null = pool
+    ? {
+        slug: product.slug,
+        name: product.name,
+        poolId: pool.id,
+        vialsOnHand,
+        unitCostCents: product.unit_cost_cents,
+        variants: product.variants,
+      }
+    : null;
+
+  // ---- Cost basis lives here, next to the stock it values ----
   const [costDraft, setCostDraft] = useState(
     product.unit_cost_cents == null ? "" : (product.unit_cost_cents / 100).toFixed(2),
   );
-
-  function applyStock(variantId: string) {
-    const delta = Number(adjQty[variantId]);
-    const reason = adjReason[variantId];
-    const cost = Number(adjCost[variantId]) || null;
-    start(async () => {
-      const res = await adjustStock(product.slug, variantId, delta, reason, adjNote[variantId], cost);
-      if (!res.ok) {
-        toast.error(res.error ?? "Failed");
-        return;
-      }
-      setAdjQty((s) => ({ ...s, [variantId]: "" }));
-      setAdjNote((s) => ({ ...s, [variantId]: "" }));
-      setAdjCost((s) => ({ ...s, [variantId]: "" }));
-      toast.success(res.message ?? "Stock updated", {
-        action: {
-          label: "Undo",
-          onClick: () =>
-            start(async () => {
-              const back = await adjustStock(
-                product.slug,
-                variantId,
-                -delta,
-                "recount",
-                "undo of previous adjustment",
-              );
-              if (back.ok) {
-                toast.success("Reverted");
-                router.refresh();
-              } else toast.error(back.error ?? "Undo failed");
-            }),
-        },
-      });
-      router.refresh();
-    });
-  }
+  useEffect(() => {
+    setCostDraft(product.unit_cost_cents == null ? "" : (product.unit_cost_cents / 100).toFixed(2));
+  }, [product.unit_cost_cents]);
 
   function duplicate() {
     start(async () => {
@@ -167,12 +174,136 @@ export default function ProductEditor({
     });
   }
 
+  const lowStock = product.variants.some((v) => v.available <= v.low_stock_threshold);
+
   return (
     <>
+      {/* ---- Sticky header: identity, status, movement between products ---- */}
+      <div className="sticky top-14 z-20 -mx-4 mb-6 border-b border-line bg-ink/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/products"
+            aria-label="Back to products"
+            className="rounded-md p-1 text-muted transition hover:text-fg"
+          >
+            <ArrowLeft size={18} />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-base font-semibold text-fg">{product.name}</h2>
+            <p className="truncate font-mono text-xs text-muted">{product.slug}</p>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {prev ? (
+              <Link
+                href={`/admin/products/${prev.slug}`}
+                title={`Previous: ${prev.name}`}
+                aria-label={`Previous product: ${prev.name}`}
+                className="rounded-md border border-line-2 p-1.5 text-muted transition hover:text-fg"
+              >
+                <ChevronLeft size={15} />
+              </Link>
+            ) : (
+              <span className="rounded-md border border-line p-1.5 text-muted-2 opacity-40">
+                <ChevronLeft size={15} />
+              </span>
+            )}
+            {next ? (
+              <Link
+                href={`/admin/products/${next.slug}`}
+                title={`Next: ${next.name}`}
+                aria-label={`Next product: ${next.name}`}
+                className="rounded-md border border-line-2 p-1.5 text-muted transition hover:text-fg"
+              >
+                <ChevronRight size={15} />
+              </Link>
+            ) : (
+              <span className="rounded-md border border-line p-1.5 text-muted-2 opacity-40">
+                <ChevronRight size={15} />
+              </span>
+            )}
+          </div>
+
+          <a
+            href={`/product/${product.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 rounded-lg border border-line-2 bg-surface px-3 py-1.5 text-sm text-fg-2 transition hover:text-fg"
+          >
+            <ExternalLink size={14} /> View
+          </a>
+          <button
+            disabled={pending}
+            onClick={duplicate}
+            className="flex items-center gap-1.5 rounded-lg border border-line-2 bg-surface px-3 py-1.5 text-sm text-fg-2 transition hover:text-fg disabled:opacity-50"
+          >
+            <Copy size={14} /> Duplicate
+          </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {/* Status as a segmented control — the single most-changed field
+              shouldn't be a dropdown buried in a sidebar. */}
+          <div
+            role="radiogroup"
+            aria-label="Product status"
+            className="flex rounded-lg border border-line bg-ink-2 p-0.5"
+          >
+            {STATUSES.map((s) => {
+              const on = form.status === s.value;
+              return (
+                <button
+                  key={s.value}
+                  role="radio"
+                  aria-checked={on}
+                  onClick={() => set("status", s.value)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition ${
+                    on ? "bg-accent text-accent-ink" : "text-muted hover:text-fg"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {form.status !== "active" && (
+            <Badge tone={STATUS_TONE[form.status]}>Not on the storefront</Badge>
+          )}
+
+          <button
+            onClick={() => setStockOpen(true)}
+            disabled={!stockTarget}
+            className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1 text-xs text-fg-2 transition hover:text-fg disabled:opacity-50"
+          >
+            <Boxes size={13} />
+            <span className={lowStock ? "font-semibold text-warn" : "font-semibold text-fg"}>
+              {vialsOnHand}
+            </span>
+            vials
+          </button>
+
+          {waitlist > 0 && <Badge tone="info">{waitlist} waiting for restock</Badge>}
+
+          {/* In-page wayfinding — the editor is a long scroll by nature. */}
+          <nav className="ml-auto hidden gap-1 md:flex">
+            {SECTIONS.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="rounded-md px-2 py-1 text-xs text-muted transition hover:bg-surface hover:text-fg"
+              >
+                {s.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       <div className="grid gap-6 pb-24 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {/* ---- Details ---- */}
-          <section className={`${card} p-5`}>
+          <section id="details" className={`${card} scroll-mt-40 p-5`}>
             <h3 className="mb-4 text-sm font-semibold text-fg">Details</h3>
             <div className="space-y-3">
               <div>
@@ -199,12 +330,17 @@ export default function ProductEditor({
           </section>
 
           {/* ---- Media ---- */}
-          <ProductImages slug={product.slug} images={product.images} />
+          <div id="media" className="scroll-mt-40">
+            <ProductImages slug={product.slug} images={product.images} />
+          </div>
 
-          {/* ---- Pricing (compact table) ---- */}
-          <section className={card}>
+          {/* ---- Pricing ---- */}
+          <section id="pricing" className={`${card} scroll-mt-40`}>
             <div className="border-b border-line px-5 py-3">
               <h3 className="text-sm font-semibold text-fg">Tier pricing</h3>
+              <p className="mt-0.5 text-xs text-muted">
+                Cost and margin come from the cost per vial set in Inventory.
+              </p>
             </div>
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-muted">
@@ -236,7 +372,10 @@ export default function ProductEditor({
                           inputMode="decimal"
                           value={form.prices[v.id] ?? ""}
                           onChange={(e) =>
-                            set("prices", { ...form.prices, [v.id]: e.target.value.replace(/[^\d.]/g, "") })
+                            set("prices", {
+                              ...form.prices,
+                              [v.id]: e.target.value.replace(/[^\d.]/g, ""),
+                            })
                           }
                           className={`${field} max-w-[110px]`}
                         />
@@ -280,88 +419,35 @@ export default function ProductEditor({
             </table>
           </section>
 
-          {/* ---- Inventory: ONE pool of vials ---- */}
-          <section className={card}>
-            <div className="border-b border-line px-5 py-3">
-              <h3 className="text-sm font-semibold text-fg">Inventory</h3>
-              <p className="mt-0.5 text-xs text-muted">
-                Stock is counted in vials. Pack tiers draw from this one pool — applied immediately
-                and written to the stock ledger, not part of the save above.
-              </p>
+          {/* ---- Inventory: ledger, NOT part of the save bar ---- */}
+          <section id="inventory" className="scroll-mt-40 rounded-xl border border-accent/25 bg-surface">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-t-xl border-b border-accent/20 bg-accent/5 px-5 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-fg">Inventory</h3>
+                <p className="mt-0.5 text-xs text-muted">
+                  Stock is counted in vials; pack tiers draw from this one pool.
+                </p>
+              </div>
+              <Badge tone="info">Applies immediately</Badge>
             </div>
 
             {pool ? (
-              <div className="space-y-3 px-5 py-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium text-fg">Vials on hand</span>
-                  <span className="text-lg font-bold text-fg">{vialsOnHand}</span>
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-[90px_1fr_1fr_auto]">
-                  <input
-                    placeholder="+10"
-                    value={adjQty[pool.id] ?? ""}
-                    onChange={(e) =>
-                      setAdjQty({ ...adjQty, [pool.id]: e.target.value.replace(/[^\d-]/g, "") })
-                    }
-                    className={field}
-                    aria-label="Vial quantity change"
-                  />
-                  {/* Cost only applies to inbound stock; hidden for other reasons. */}
-                  <select
-                    value={adjReason[pool.id] ?? ""}
-                    onChange={(e) =>
-                      setAdjReason({ ...adjReason, [pool.id]: e.target.value as MovementReason })
-                    }
-                    className={field}
-                    aria-label="Reason"
-                  >
-                    <option value="">Reason…</option>
-                    {REASONS.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    placeholder="Note (optional)"
-                    value={adjNote[pool.id] ?? ""}
-                    onChange={(e) => setAdjNote({ ...adjNote, [pool.id]: e.target.value })}
-                    className={field}
-                  />
+              <div className="space-y-4 px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <span className="block text-xs text-muted">Vials on hand</span>
+                    <span className={`text-2xl font-bold ${lowStock ? "text-warn" : "text-fg"}`}>
+                      {vialsOnHand}
+                    </span>
+                  </div>
                   <button
-                    disabled={pending || !adjQty[pool.id] || !adjReason[pool.id]}
-                    onClick={() => applyStock(pool.id)}
+                    onClick={() => setStockOpen(true)}
                     className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
                   >
-                    Apply
+                    Manage stock
                   </button>
                 </div>
 
-                {adjReason[pool.id] === "received" && (
-                  <div className="rounded-lg border border-accent/25 bg-accent/5 p-3">
-                    <label className="mb-1 block text-xs font-medium text-fg-2">
-                      Cost per vial (what you paid) — optional
-                    </label>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <input
-                        inputMode="decimal"
-                        placeholder="e.g. 18.50"
-                        value={adjCost[pool.id] ?? ""}
-                        onChange={(e) =>
-                          setAdjCost({ ...adjCost, [pool.id]: e.target.value.replace(/[^\d.]/g, "") })
-                        }
-                        className={`${field} max-w-[140px]`}
-                      />
-                      <span className="text-xs text-muted">
-                        Updates the weighted-average cost and records this purchase price. Leave
-                        blank to keep the current average.
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* What those vials mean per tier */}
                 <div className="rounded-lg border border-line bg-ink-2 p-3">
                   <p className="mb-1.5 text-xs text-muted">These vials can fill:</p>
                   <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs">
@@ -373,35 +459,52 @@ export default function ProductEditor({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setOpenHistory(openHistory === pool.id ? null : pool.id)}
-                  className="text-xs text-accent-2 hover:underline"
-                >
-                  {openHistory === pool.id ? "Hide" : "Show"} movement history (
-                  {movements[pool.id]?.length ?? 0})
-                </button>
-                {openHistory === pool.id && (
-                  <ul className="space-y-1 rounded-lg border border-line bg-ink-2 p-3 text-xs">
-                    {(movements[pool.id] ?? []).length === 0 ? (
-                      <li className="text-muted">No movements recorded.</li>
-                    ) : (
-                      movements[pool.id].map((m, i) => (
-                        <li key={i} className="flex justify-between gap-2">
-                          <span className={m.qty > 0 ? "text-success" : "text-warn"}>
-                            {m.qty > 0 ? "+" : ""}
-                            {m.qty}
-                          </span>
-                          <span className="text-muted">{m.reason}</span>
-                          <span className="flex-1 truncate text-muted-2">{m.note ?? ""}</span>
-                          <span className="text-muted-2">{m.actor_email ?? "system"}</span>
-                          <span className="whitespace-nowrap text-muted-2">
-                            {new Date(m.created_at).toLocaleDateString("en-AU")}
-                          </span>
-                        </li>
-                      ))
+                {/* Cost per vial: one home, beside the stock it values. */}
+                <div className="border-t border-line pt-4">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    Cost per vial
+                  </h4>
+                  <p className="mb-2 mt-1 text-xs text-muted">
+                    Weighted average of what you&apos;ve paid. Updates automatically when you enter a
+                    cost on a stock receipt.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      inputMode="decimal"
+                      placeholder={product.unit_cost_cents == null ? "not set" : ""}
+                      value={costDraft}
+                      onChange={(e) => setCostDraft(e.target.value.replace(/[^\d.]/g, ""))}
+                      className={`${field} max-w-[140px]`}
+                      aria-label="Cost per vial"
+                    />
+                    <button
+                      disabled={pending}
+                      onClick={() =>
+                        start(async () => {
+                          const res = await saveUnitCost(
+                            product.slug,
+                            costDraft.trim() === "" ? null : Number(costDraft),
+                          );
+                          if (res.ok) {
+                            toast.success(res.message ?? "Cost updated");
+                            router.refresh();
+                          } else toast.error(res.error ?? "Failed");
+                        })
+                      }
+                      className={`${btn} border border-line-2 bg-surface-2 text-fg`}
+                    >
+                      Set
+                    </button>
+                    {product.unit_cost_cents != null && (
+                      <span className="text-xs text-muted-2">
+                        Stock on hand at cost:{" "}
+                        <span className="text-fg-2">
+                          {formatAud((product.unit_cost_cents * vialsOnHand) / 100)}
+                        </span>
+                      </span>
                     )}
-                  </ul>
-                )}
+                  </div>
+                </div>
               </div>
             ) : (
               <p className="px-5 py-4 text-sm text-muted">
@@ -411,7 +514,7 @@ export default function ProductEditor({
           </section>
 
           {/* ---- SEO ---- */}
-          <section className={`${card} p-5`}>
+          <section id="seo" className={`${card} scroll-mt-40 p-5`}>
             <h3 className="mb-4 text-sm font-semibold text-fg">Search engine listing</h3>
             <div className="space-y-3">
               <div>
@@ -444,22 +547,6 @@ export default function ProductEditor({
 
         {/* ---- Sidebar ---- */}
         <div className="space-y-4">
-          <section className={`${card} p-4`}>
-            <h3 className="mb-2 text-sm font-semibold text-fg">Status</h3>
-            <select
-              value={form.status}
-              onChange={(e) => set("status", e.target.value as Status)}
-              className={field}
-            >
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Archived</option>
-            </select>
-            {form.status !== "active" && (
-              <p className="mt-2 text-xs text-warn">Not visible on the storefront.</p>
-            )}
-          </section>
-
           <section className={`${card} p-4 text-sm`}>
             <h3 className="mb-2 text-sm font-semibold text-fg">Storefront</h3>
             <a
@@ -475,58 +562,15 @@ export default function ProductEditor({
 
           {waitlist > 0 && (
             <section className="rounded-xl border border-accent/30 bg-accent/10 p-4 text-sm">
-              <h3 className="mb-1 text-sm font-semibold text-accent">{waitlist} waiting for restock</h3>
+              <h3 className="mb-1 text-sm font-semibold text-accent">
+                {waitlist} waiting for restock
+              </h3>
               <p className="text-xs text-fg-2">
                 Adding stock while this product is sold out automatically queues their back-in-stock
                 emails.
               </p>
             </section>
           )}
-
-          {/* ---- Cost basis ---- */}
-          <section className={`${card} p-4`}>
-            <h3 className="mb-1 text-sm font-semibold text-fg">Cost per vial</h3>
-            <p className="mb-2 text-xs text-muted">
-              Weighted average of what you&apos;ve paid. Updates automatically when you enter a cost
-              on a stock receipt.
-            </p>
-            <div className="flex gap-2">
-              <input
-                inputMode="decimal"
-                placeholder={product.unit_cost_cents == null ? "not set" : ""}
-                value={costDraft}
-                onChange={(e) => setCostDraft(e.target.value.replace(/[^\d.]/g, ""))}
-                className={field}
-                aria-label="Cost per vial"
-              />
-              <button
-                disabled={pending}
-                onClick={() =>
-                  start(async () => {
-                    const res = await saveUnitCost(
-                      product.slug,
-                      costDraft.trim() === "" ? null : Number(costDraft),
-                    );
-                    if (res.ok) {
-                      toast.success(res.message ?? "Cost updated");
-                      router.refresh();
-                    } else toast.error(res.error ?? "Failed");
-                  })
-                }
-                className={`${btn} shrink-0 border border-line-2 bg-surface-2 text-fg`}
-              >
-                Set
-              </button>
-            </div>
-            {product.unit_cost_cents != null && (
-              <p className="mt-2 text-xs text-muted-2">
-                Stock on hand at cost:{" "}
-                <span className="text-fg-2">
-                  {formatAud((product.unit_cost_cents * vialsOnHand) / 100)}
-                </span>
-              </p>
-            )}
-          </section>
 
           <section className={`${card} p-4 text-sm`}>
             <h3 className="mb-2 text-sm font-semibold text-fg">Summary</h3>
@@ -536,23 +580,19 @@ export default function ProductEditor({
                 <dd className="font-mono text-fg-2">{product.sku}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted">Total on hand</dt>
+                <dt className="text-muted">Vials on hand</dt>
                 <dd className="text-fg-2">{product.totalOnHand}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted">From</dt>
                 <dd className="text-fg-2">{formatAud(product.minPriceCents / 100)}</dd>
               </div>
+              <div className="flex justify-between">
+                <dt className="text-muted">Tiers</dt>
+                <dd className="text-fg-2">{product.variants.length}</dd>
+              </div>
             </dl>
           </section>
-
-          <button
-            disabled={pending}
-            onClick={duplicate}
-            className={`${btn} flex w-full items-center justify-center gap-2 border border-line-2 bg-surface text-fg-2 hover:text-fg`}
-          >
-            <Copy size={14} /> Duplicate product
-          </button>
         </div>
       </div>
 
@@ -563,7 +603,12 @@ export default function ProductEditor({
         }`}
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <p className="text-sm text-fg-2">Unsaved changes</p>
+          <p className="text-sm text-fg-2">
+            Unsaved changes
+            <span className="ml-2 text-xs text-muted">
+              Stock changes are not part of this — they save on their own.
+            </span>
+          </p>
           <div className="flex gap-2">
             <button
               disabled={pending}
@@ -582,6 +627,12 @@ export default function ProductEditor({
           </div>
         </div>
       </div>
+
+      <StockDrawer
+        target={stockOpen ? stockTarget : null}
+        onClose={() => setStockOpen(false)}
+        initialMovements={movements}
+      />
     </>
   );
 }

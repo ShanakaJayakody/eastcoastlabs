@@ -12,6 +12,8 @@ import {
   createProduct,
   duplicateProduct,
   tierPriceCents,
+  variantMovements,
+  type MovementRow,
   type ProductPatch,
 } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
@@ -232,6 +234,13 @@ export async function adjustStock(
   } catch (err) {
     return fail(err);
   }
+}
+
+/** Movement history for one variant, fetched on demand so the stock drawer can
+ *  show a ledger from the products list without every row preloading one. */
+export async function fetchMovements(variantId: string): Promise<MovementRow[]> {
+  await requireAdmin();
+  return variantMovements(variantId);
 }
 
 /** Manually set a product's cost per vial (no receipt involved). */
