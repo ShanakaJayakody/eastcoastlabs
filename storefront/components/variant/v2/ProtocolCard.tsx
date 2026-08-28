@@ -13,8 +13,10 @@ import { trackAddToCart } from "@/lib/analytics";
  * site's StackCard — only the presentation differs.
  */
 export default function ProtocolCard({ stack, index }: { stack: ResolvedStack; index: number }) {
-  const { addLine } = useCart();
+  const { addLine, stockFor } = useCart();
   const { openCart } = useUI();
+  const bacStock = stockFor("bacteriostatic-water");
+  const bacAvailable = bacStock === null || bacStock > 0;
 
   function handleAdd() {
     const variantLabel = `Stack · ${stack.components.map((c) => c.name).join(" + ")}`;
@@ -74,7 +76,7 @@ export default function ProtocolCard({ stack, index }: { stack: ResolvedStack; i
                   <td className="py-1.5 text-right text-muted-2">{formatAud(c.singleVial)}</td>
                 </tr>
               ))}
-              {stack.freeBacWater && (
+              {stack.freeBacWater && bacAvailable && (
                 <tr>
                   <td className="py-1.5 text-accent" colSpan={2}>
                     + Bacteriostatic water included free

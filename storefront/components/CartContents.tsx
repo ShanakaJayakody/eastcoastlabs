@@ -22,14 +22,19 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
     goToCheckout,
     freeShippingThreshold,
     giftThreshold,
+    stockFor,
     ready,
   } = useCart();
 
   // Free bacteriostatic-water gift once the basket clears the gift threshold.
   // The gift line is $0 so it never affects the threshold check itself.
+  // The gift is a REAL vial, so it's only offered while bac water is actually
+  // in stock (stockFor returns null when the server didn't report — untracked
+  // means offer as before). The server re-checks authoritatively in resolveCart.
   const giftLine = lines.find((l) => l.key === GIFT_KEY);
   const hasGift = !!giftLine;
-  const giftEligible = subtotal >= giftThreshold;
+  const bacStock = stockFor("bacteriostatic-water");
+  const giftEligible = subtotal >= giftThreshold && (bacStock === null || bacStock > 0);
   useEffect(() => {
     // The gift is always exactly one unit — clamp if a stale line drifted.
     if (giftLine && giftLine.quantity !== 1) {
@@ -74,7 +79,9 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
         <FreeShippingProgress
           subtotal={subtotal}
           threshold={freeShippingThreshold}
-          giftThreshold={giftThreshold}
+          // No gift tier advertised while its bac-water vial is out of stock —
+          // the progress bar must not promise a reward checkout won't grant.
+          giftThreshold={bacStock === null || bacStock > 0 ? giftThreshold : undefined}
         />
 
         <ul className="space-y-3">

@@ -6,13 +6,21 @@ import CartDrawer from "@/components/CartDrawer";
 import ExitIntentModal from "@/components/ExitIntentModal";
 import Analytics from "@/components/Analytics";
 import { getSettings } from "@/lib/settings";
+import { getAvailabilityMap } from "@/lib/storefront-catalog";
+import { getAccessories } from "@/lib/accessories";
+import { BAC_WATER_SLUG } from "@/lib/bumps";
 
 // The storefront shell: everything a shopper sees. Admin routes deliberately do
 // NOT inherit this — no cart, no exit-intent, no GA4.
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   // Reward thresholds are resolved here, once, and handed to the cart provider.
-  // The cart is a client component and can't read settings itself.
-  const settings = await getSettings();
+  // The cart is a client component and can't read settings itself. The same
+  // applies to upsell availability: the free-gift auto-add and cart cross-sells
+  // must not offer bac water / accessories the ledger says are gone.
+  const [settings, stock] = await Promise.all([
+    getSettings(),
+    getAvailabilityMap([BAC_WATER_SLUG, ...getAccessories().map((a) => a.slug)]),
+  ]);
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -30,6 +38,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         freeShipping: settings.freeShippingThreshold,
         gift: settings.giftThreshold,
       }}
+      stock={stock}
     >
       <script
         type="application/ld+json"

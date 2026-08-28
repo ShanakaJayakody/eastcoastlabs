@@ -40,7 +40,7 @@ const CADENCES = [
 ];
 
 export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, bacWater }: BuyBoxProps) {
-  const { addLine } = useCart();
+  const { addLine, stockFor } = useCart();
   const { openCart } = useUI();
 
   const defaultTier = tiers?.find((t) => t.preselected)?.id ?? tiers?.[0]?.id ?? "single";
@@ -103,7 +103,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
       lineTotal * qty,
     );
 
-    if (addBac && bacWater) {
+    if (addBac && bacWater && (stockFor("bacteriostatic-water") ?? 1) > 0) {
       addLine(
         {
           key: `${bacWater.id}:single`,
@@ -279,8 +279,9 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         </div>
       </fieldset>
 
-      {/* Bac-water attach */}
-      {bacWater && (
+      {/* Bac-water attach — hidden when the ledger says bac water is gone,
+          so the PDP never invites an add that checkout would refuse. */}
+      {bacWater && (stockFor("bacteriostatic-water") ?? 1) > 0 && (
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3.5">
           <input
             type="checkbox"

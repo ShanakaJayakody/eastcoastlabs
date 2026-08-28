@@ -5,6 +5,9 @@ import DossierHeader from "@/components/variant/v2/DossierHeader";
 import DossierFooter from "@/components/variant/v2/DossierFooter";
 import { newsreader, inter, plexMono } from "@/lib/fonts";
 import { getSettings } from "@/lib/settings";
+import { getAvailabilityMap } from "@/lib/storefront-catalog";
+import { getAccessories } from "@/lib/accessories";
+import { BAC_WATER_SLUG } from "@/lib/bumps";
 
 /**
  * A/B variant shell (route /1) — "The Dossier" redesign.
@@ -23,13 +26,18 @@ import { getSettings } from "@/lib/settings";
  * root element so --font-serif/--font-grotesk/--font-data resolve only here.
  */
 export default async function VariantLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSettings();
+  // Same funnel as (store): thresholds + upsell availability for the shared cart.
+  const [settings, stock] = await Promise.all([
+    getSettings(),
+    getAvailabilityMap([BAC_WATER_SLUG, ...getAccessories().map((a) => a.slug)]),
+  ]);
   return (
     <Providers
       thresholds={{
         freeShipping: settings.freeShippingThreshold,
         gift: settings.giftThreshold,
       }}
+      stock={stock}
     >
       <div
         className={`theme-paper flex min-h-screen flex-col bg-ink text-fg ${newsreader.variable} ${inter.variable} ${plexMono.variable}`}

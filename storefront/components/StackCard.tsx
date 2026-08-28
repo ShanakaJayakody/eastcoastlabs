@@ -8,8 +8,12 @@ import { useUI } from "@/lib/ui-context";
 import { trackAddToCart } from "@/lib/analytics";
 
 export default function StackCard({ stack }: { stack: ResolvedStack }) {
-  const { addLine } = useCart();
+  const { addLine, stockFor } = useCart();
   const { openCart } = useUI();
+  // Don't advertise the free bac water inclusion when the ledger says it's
+  // gone — checkout would (correctly) refuse to grant it.
+  const bacStock = stockFor("bacteriostatic-water");
+  const bacAvailable = bacStock === null || bacStock > 0;
 
   function handleAdd() {
     const variantLabel = `Stack · ${stack.components.map((c) => c.name).join(" + ")}`;
@@ -80,7 +84,7 @@ export default function StackCard({ stack }: { stack: ResolvedStack }) {
               <span className="text-muted-2">{formatAud(c.singleVial)}</span>
             </li>
           ))}
-          {stack.freeBacWater && (
+          {stack.freeBacWater && bacAvailable && (
             <li className="flex items-center gap-1.5 text-success">
               <span>✓</span> Bacteriostatic water included free
             </li>

@@ -11,8 +11,10 @@
  */
 import { adminDb } from "./admin/db";
 import { getAccessory } from "./accessories";
+import { getAvailability } from "./admin/inventory";
 import { getSettings } from "./settings";
 import { getStackBySlug } from "./stacks";
+import { BAC_WATER_SLUG } from "./bumps";
 import type { NewOrderItem, ExtraOrderItem } from "./admin/orders";
 
 /** Subscribe-and-save rate, mirrored from the storefront BuyBox. */
@@ -111,6 +113,27 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const items: NewOrderItem[] = [];
   const extraItems: ExtraOrderItem[] = [];
 
+  // ---- Free bacteriostatic-water budget ---------------------------------
+  // Both bonuses (stack "reconstitution pack" inclusion and the spend-threshold
+  // gift) ship a REAL vial, so they must be covered by real availability. The
+  // budget is what's available AFTER the paid bac water in this same cart —
+  // paid lines always win; only free lines degrade (with a warning) when the
+  // pool runs dry. Without this check a $0 line could fail reservation and
+  // kill an otherwise-payable order at createOrder.
+  const wantsFreeBac =
+    clean.some((l) => isGiftKey(l.key)) || resolvedStacks.some(({ stack }) => stack?.freeBacWater);
+  let freeBacBudget = 0;
+  if (wantsFreeBac) {
+    const bacPoolId = byKey.get(variantKey(BAC_WATER_SLUG, 1))?.id ?? (await findGiftVariant());
+    if (bacPoolId) {
+      const paidBacVials = paidLines
+        .filter((l) => !isStackKey(l.key) && l.slug === BAC_WATER_SLUG)
+        .reduce((sum, l) => sum + packSizeFromLabel(l.variantLabel) * l.quantity, 0);
+      const avail = await getAvailability(bacPoolId);
+      freeBacBudget = Math.max(0, (avail?.available ?? 0) - paidBacVials);
+    }
+  }
+
   // ---- Stack (bundle) lines --------------------------------------------
   // A stack is priced as a set: bundlePrice is below the sum of its parts. To
   // keep every component a real, stocked order item while still charging
@@ -154,16 +177,22 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
       });
 
       // Stacks that advertise free bacteriostatic water ship a real $0 vial —
-      // it reserves and decrements stock exactly like a sold one.
+      // it reserves and decrements stock exactly like a sold one, so it is
+      // only added while the free-bac budget covers it.
       if (stack.freeBacWater) {
-        const bac = byKey.get(variantKey("bacteriostatic-water", 1));
-        if (bac) {
+        const bac = byKey.get(variantKey(BAC_WATER_SLUG, 1));
+        if (bac && freeBacBudget >= 1) {
+          freeBacBudget -= 1;
           items.push({
             variantId: bac.id,
             qty: 1,
             priceOverrideCents: 0,
             labelSuffix: ` · ${stack.name} (included)`,
           });
+        } else if (unit === 0) {
+          warnings.push(
+            `${stack.name}: the included free bacteriostatic water is out of stock and was left off this order.`,
+          );
         }
       }
     }
@@ -171,7 +200,12 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
 
   for (const line of paidLines) {
     if (isStackKey(line.key)) continue; // handled above
-    const pack = packSizeFromLabel(line.variantLabel);
+    // Accessory labels describe contents ("100 pack" of swabs), not vial pack
+    // tiers — an accessory unit is always ONE stock unit, so its variant lives
+    // at pack_size 1. Parsing "100 pack" as a 100-vial tier would miss the
+    // variant and silently bypass stock via the JSON fallback below.
+    const accessory = getAccessory(line.slug);
+    const pack = accessory ? 1 : packSizeFromLabel(line.variantLabel);
     const variant = byKey.get(variantKey(line.slug, pack));
 
     if (variant) {
@@ -185,8 +219,8 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
       continue;
     }
 
-    // Not a catalog product — is it a known accessory? (server-side price)
-    const accessory = getAccessory(line.slug);
+    // Accessory with no DB variant yet (pre-seed) — fall back to the JSON
+    // price as an unstocked extra line, exactly the old behaviour.
     if (accessory) {
       extraItems.push({
         name: accessory.name,
@@ -215,13 +249,19 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
 
   // Gift: only if the SERVER's subtotal clears the threshold. A forged gift line
   // on a small cart is dropped here. The gift is a real vial, so it resolves to a
-  // stocked variant at $0 — it reserves and decrements inventory like any sale.
+  // stocked variant at $0 — it reserves and decrements inventory like any sale,
+  // and is therefore only granted while the free-bac budget covers it.
   const { giftThreshold } = await getSettings();
   let giftApplied = false;
   if (giftClaimed) {
-    if (subtotalCents >= giftThreshold * 100) {
+    if (subtotalCents < giftThreshold * 100) {
+      warnings.push("Free gift removed — order no longer meets the threshold.");
+    } else if (freeBacBudget < 1) {
+      warnings.push("Free gift unavailable — bacteriostatic water is currently out of stock.");
+    } else {
       const giftVariant = await findGiftVariant();
       if (giftVariant) {
+        freeBacBudget -= 1;
         items.push({
           variantId: giftVariant,
           qty: 1,
@@ -230,8 +270,6 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
         });
         giftApplied = true;
       }
-    } else {
-      warnings.push("Free gift removed — order no longer meets the threshold.");
     }
   }
 

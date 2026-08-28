@@ -38,6 +38,9 @@ interface CartContextValue {
   hasFreeShipping: boolean;
   freeShippingThreshold: number;
   giftThreshold: number;
+  /** Live availability for a slug, or null when the server didn't report it
+   *  (unknown ≠ sold out — untracked items stay sellable). */
+  stockFor: (slug: string) => number | null;
   ready: boolean;
   addLine: (line: Omit<CartLine, "quantity">, quantity?: number) => void;
   updateQty: (key: string, quantity: number) => void;
@@ -75,9 +78,13 @@ function loadLines(): CartLine[] {
 export function CartProvider({
   children,
   thresholds,
+  stock,
 }: {
   children: ReactNode;
   thresholds?: CartThresholds;
+  /** Live availability per slug (bac water + accessories), resolved server-side
+   *  in the layout. A page-load snapshot — checkout re-verifies authoritatively. */
+  stock?: Record<string, number>;
 }) {
   const freeShippingThreshold = thresholds?.freeShipping ?? FREE_SHIPPING_THRESHOLD;
   const giftThreshold = thresholds?.gift ?? GIFT_THRESHOLD;
@@ -124,6 +131,11 @@ export function CartProvider({
 
   const clear = useCallback(() => setLines([]), []);
 
+  const stockFor = useCallback(
+    (slug: string) => (stock && slug in stock ? stock[slug] : null),
+    [stock],
+  );
+
   const subtotal = useMemo(() => lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0), [lines]);
   const itemCount = useMemo(() => lines.reduce((sum, l) => sum + l.quantity, 0), [lines]);
   const amountToFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
@@ -158,6 +170,7 @@ export function CartProvider({
     hasFreeShipping: subtotal >= freeShippingThreshold,
     freeShippingThreshold,
     giftThreshold,
+    stockFor,
     ready,
     addLine,
     updateQty,

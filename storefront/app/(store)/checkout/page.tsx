@@ -3,6 +3,7 @@ import CheckoutForm from "@/components/CheckoutForm";
 import { getProducts } from "@/lib/woo";
 import { minorToMajor } from "@/lib/format";
 import { buildBumpCandidates, BAC_WATER_SLUG } from "@/lib/bumps";
+import { getAvailabilityMap } from "@/lib/storefront-catalog";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -16,7 +17,7 @@ export default async function CheckoutPage() {
   // cart's contents.
   const products = await getProducts(50);
   const bac = products.find((p) => p.slug === BAC_WATER_SLUG);
-  const bumps = buildBumpCandidates(
+  const candidates = buildBumpCandidates(
     bac
       ? {
           id: bac.id,
@@ -25,6 +26,10 @@ export default async function CheckoutPage() {
         }
       : null,
   );
+  // Never offer what can't ship: drop candidates the DB knows are out of stock.
+  // Slugs the DB doesn't track (no rows yet) stay offered — unknown ≠ sold out.
+  const availability = await getAvailabilityMap(candidates.map((c) => c.slug));
+  const bumps = candidates.filter((c) => !(c.slug in availability) || availability[c.slug] > 0);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
