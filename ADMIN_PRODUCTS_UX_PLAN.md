@@ -1,6 +1,8 @@
 # Admin Products UX Redesign Plan
 
-> Status: **awaiting approval** — no code changed yet.
+> Status: **all four phases implemented and pushed** (commit `7b024cf`, 2026-08-28).
+> Outstanding: no browser verification — the admin needs a Supabase session and the
+> Interceptor CLI isn't installed on this machine. Build + typecheck pass.
 > Scope: `/admin/products` (list), `/admin/products/[slug]` (editor), `/admin/products/new` (create).
 > Files: `storefront/app/admin/(dashboard)/products/*`, `storefront/components/admin/{ProductsTable,ProductEditor,NewProductForm}.tsx`, `storefront/lib/admin/products.ts`.
 
