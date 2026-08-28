@@ -2,7 +2,7 @@ import Link from "next/link";
 import { DollarSign, Percent, ShoppingCart, Send } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatAud } from "@/lib/format";
-import { listCartsFor, recoveryMetrics } from "@/lib/admin/cart-recovery";
+import { listCartsFor, recoveryMetrics, recoveryFunnel } from "@/lib/admin/cart-recovery";
 import { CART_STAGES, cartRelatedId, deriveStages } from "@/lib/admin/sequences";
 import { adminDb } from "@/lib/admin/db";
 import { pausedEmailsFor } from "@/lib/admin/overrides";
@@ -31,8 +31,9 @@ export default async function RecoveryPage({
   const { tab: rawTab } = await searchParams;
   const tab = (TABS.some((t) => t.id === rawTab) ? rawTab : "active") as Tab;
 
-  const [metrics, carts, paused] = await Promise.all([
+  const [metrics, funnel, carts, paused] = await Promise.all([
     recoveryMetrics(30),
+    recoveryFunnel(30),
     listCartsFor(tab, 50),
     pausedEmailsFor("cart_recovery"),
   ]);
@@ -93,6 +94,53 @@ export default async function RecoveryPage({
           tone="accent"
         />
       </div>
+
+      {/* Funnel — only meaningful once delivery webhooks are reporting. */}
+      <section className="admin-card rounded-xl p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-sm font-semibold text-fg">Recovery funnel · 30 days</h3>
+          <span className="text-[11px] text-muted-2">
+            Opens are directional — Apple Mail pre-fetches tracking pixels
+          </span>
+        </div>
+        {funnel.sent === 0 ? (
+          <p className="mt-3 text-sm text-muted">No recovery emails sent in this window.</p>
+        ) : funnel.delivered === 0 && funnel.opened === 0 && funnel.clicked === 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            {funnel.sent} sent · no delivery events yet. Engagement appears once the Resend webhook
+            is configured.
+          </p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {(
+              [
+                { label: "Sent", value: funnel.sent },
+                { label: "Delivered", value: funnel.delivered },
+                { label: "Opened", value: funnel.opened },
+                { label: "Clicked", value: funnel.clicked },
+                { label: "Recovered", value: funnel.recovered },
+              ] as const
+            ).map((step, i) => {
+              const pct = funnel.sent > 0 ? Math.round((step.value / funnel.sent) * 100) : 0;
+              return (
+                <div key={step.label} className="rounded-lg border border-line bg-ink-2/40 p-3">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted">
+                    {step.label}
+                  </div>
+                  <div className="mt-1 text-xl font-semibold tabular-nums text-fg">{step.value}</div>
+                  {i > 0 && <div className="text-[11px] text-muted-2">{pct}% of sent</div>}
+                  <div className="mt-2 h-1 rounded-full bg-line">
+                    <div
+                      className="h-1 rounded-full bg-gradient-to-r from-accent to-accent-2"
+                      style={{ width: `${Math.min(100, pct)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (

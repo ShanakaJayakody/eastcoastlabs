@@ -37,7 +37,7 @@ import {
   type OutboxLookupRow,
   type SequenceId,
 } from "./sequences";
-import type { JourneyItem } from "@/components/admin/JourneyTimeline";
+import type { EmailOutcome, JourneyItem } from "@/components/admin/JourneyTimeline";
 
 export interface CartSessionRow {
   email: string;
@@ -119,6 +119,7 @@ export async function loadPerson(email: string) {
     { data: notes },
     { data: profile },
     { data: waitlist },
+    { data: events },
   ] = await Promise.all([
     db.from("customers").select("*").eq("email", clean).maybeSingle(),
     db
@@ -144,6 +145,12 @@ export async function loadPerson(email: string) {
       .order("created_at", { ascending: false }),
     db.from("customer_profiles").select("tags").eq("email", clean).maybeSingle(),
     db.from("stock_notifications").select("product_slug, notified").eq("email", clean),
+    db
+      .from("email_events")
+      .select("outbox_id, event, occurred_at")
+      .eq("to_email", clean)
+      .order("occurred_at", { ascending: true })
+      .limit(500),
   ]);
 
   const orderRows = (orders ?? []) as OrderRow[];
@@ -179,6 +186,7 @@ export async function loadPerson(email: string) {
     notes: (notes ?? []) as { id: string; note: string; actor_email: string; created_at: string }[],
     waitlist: (waitlist ?? []) as { product_slug: string; notified: boolean }[],
     subscriberRows: subRows,
+    emailEvents: (events ?? []) as { outbox_id: string | null; event: string; occurred_at: string }[],
   };
 }
 
@@ -398,7 +406,26 @@ export async function buildJourney(
   const { summary, orders, outbox, notes, subscriberRows } = person;
   const items: JourneyItem[] = [];
 
+  // Outcomes are ordered by the funnel they describe, not by arrival time, so a
+  // row always reads delivered -> opened -> clicked regardless of webhook order.
+  const OUTCOME_ORDER: EmailOutcome[] = [
+    "delivered",
+    "opened",
+    "clicked",
+    "delayed",
+    "bounced",
+    "complained",
+  ];
+  const outcomesByOutbox = new Map<string, Set<string>>();
+  for (const e of person.emailEvents) {
+    if (!e.outbox_id) continue;
+    const set = outcomesByOutbox.get(e.outbox_id) ?? new Set<string>();
+    set.add(e.event);
+    outcomesByOutbox.set(e.outbox_id, set);
+  }
+
   for (const row of outbox) {
+    const seen = outcomesByOutbox.get(row.id);
     items.push({
       id: `email:${row.id}`,
       at: row.sent_at ?? row.created_at,
@@ -407,6 +434,7 @@ export async function buildJourney(
       group: TEMPLATE_SEQUENCE[row.template] ?? null,
       status: row.status as JourneyItem["status"],
       detail: row.error ? `Failed: ${row.error}` : null,
+      outcomes: seen ? OUTCOME_ORDER.filter((o) => seen.has(o)) : undefined,
       action: renderEmailAction?.(row),
     });
   }

@@ -247,6 +247,61 @@ export async function recoveryMetrics(days = 30): Promise<RecoveryMetrics> {
   };
 }
 
+export interface RecoveryFunnel {
+  sent: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  recovered: number;
+}
+
+/**
+ * Sent → delivered → opened → clicked → recovered, over recovery emails in the
+ * window. Counted per EMAIL rather than per cart: one cart can receive three
+ * touches, and "did this touch land" is the question the funnel answers.
+ *
+ * Opens are inflated by Apple Mail Privacy Protection, which fetches tracking
+ * pixels unprompted — the UI labels the number as directional for that reason.
+ */
+export async function recoveryFunnel(days = 30): Promise<RecoveryFunnel> {
+  const db = adminDb();
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const templates = ["abandoned_cart", "abandoned_cart_2", "abandoned_cart_3"];
+
+  const { data: sentRows } = await db
+    .from("email_outbox")
+    .select("id")
+    .in("template", templates)
+    .eq("status", "sent")
+    .gte("created_at", since);
+  const ids = (sentRows ?? []).map((r) => (r as { id: string }).id);
+
+  const counts = { delivered: 0, opened: 0, clicked: 0 };
+  if (ids.length) {
+    const { data: events } = await db
+      .from("email_events")
+      .select("outbox_id, event")
+      .in("outbox_id", ids);
+    // Distinct outbox rows per event — a single email opened five times is one
+    // open in a funnel, not five.
+    const seen: Record<string, Set<string>> = { delivered: new Set(), opened: new Set(), clicked: new Set() };
+    for (const e of (events ?? []) as { outbox_id: string; event: string }[]) {
+      if (seen[e.event]) seen[e.event].add(e.outbox_id);
+    }
+    counts.delivered = seen.delivered.size;
+    counts.opened = seen.opened.size;
+    counts.clicked = seen.clicked.size;
+  }
+
+  const { count: recovered } = await db
+    .from("cart_sessions")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "recovered")
+    .gte("created_at", since);
+
+  return { sent: ids.length, ...counts, recovered: recovered ?? 0 };
+}
+
 export async function abandonedCartCount(idleHours = 1): Promise<number> {
   const cutoff = new Date(Date.now() - idleHours * 60 * 60 * 1000).toISOString();
   const { count } = await adminDb()

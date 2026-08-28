@@ -11,7 +11,11 @@ export interface JourneyItem {
   status?: "queued" | "sent" | "failed" | "cancelled" | null;
   group?: string | null;
   action?: ReactNode;
+  /** Delivery outcomes reported by the email provider, oldest first. */
+  outcomes?: EmailOutcome[];
 }
+
+export type EmailOutcome = "delivered" | "opened" | "clicked" | "bounced" | "complained" | "delayed";
 
 const ICONS = {
   email: Mail,
@@ -33,6 +37,45 @@ const STATUS_TONE: Record<NonNullable<JourneyItem["status"]>, BadgeTone> = {
   failed: "danger",
   cancelled: "warn",
 };
+
+/** Outcome chips read left-to-right as a funnel; failures shout, successes murmur. */
+const OUTCOME_STYLE: Record<EmailOutcome, string> = {
+  delivered: "border-line-2 bg-surface-2 text-muted",
+  opened: "border-accent-2/30 bg-accent-2/10 text-accent-2",
+  clicked: "border-accent/30 bg-accent/10 text-accent",
+  bounced: "border-red-500/30 bg-red-500/10 text-red-300",
+  complained: "border-red-500/30 bg-red-500/10 text-red-300",
+  delayed: "border-warn/30 bg-warn/10 text-warn",
+};
+
+const OUTCOME_LABEL: Record<EmailOutcome, string> = {
+  delivered: "delivered",
+  opened: "opened",
+  clicked: "clicked",
+  bounced: "bounced",
+  complained: "spam complaint",
+  delayed: "delayed",
+};
+
+function OutcomeChips({ outcomes }: { outcomes: EmailOutcome[] }) {
+  if (!outcomes.length) return null;
+  return (
+    <>
+      {outcomes.map((o) => (
+        <span
+          key={o}
+          className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${OUTCOME_STYLE[o]}`}
+          // Opens are inflated by Apple Mail Privacy Protection, which fetches
+          // the tracking pixel whether or not a human looked. Say so where the
+          // number is read, not only in the docs.
+          title={o === "opened" ? "Directional only — Apple Mail Privacy Protection pre-fetches tracking pixels" : undefined}
+        >
+          {OUTCOME_LABEL[o]}
+        </span>
+      ))}
+    </>
+  );
+}
 
 function relativePast(iso: string): string {
   const then = new Date(iso).getTime();
@@ -114,6 +157,7 @@ export default function JourneyTimeline({
                       {item.status && (
                         <Badge tone={STATUS_TONE[item.status]}>{item.status}</Badge>
                       )}
+                      {item.outcomes && <OutcomeChips outcomes={item.outcomes} />}
                     </div>
                     {item.detail && (
                       <p className="mt-0.5 text-xs text-muted">{item.detail}</p>

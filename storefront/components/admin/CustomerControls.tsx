@@ -37,14 +37,9 @@ import {
   type ActionResult,
 } from "@/app/admin/(dashboard)/customers/actions";
 
-type SequenceId =
-  | "cart_recovery"
-  | "payment_reminders"
-  | "welcome"
-  | "post_purchase_review"
-  | "replenishment"
-  | "winback"
-  | "second_purchase";
+// Imported, never re-declared: a hand-copied union silently rots the moment a
+// sequence is added in sequences.ts, and the failure surfaces far from the cause.
+import type { SequenceId } from "@/lib/admin/sequences";
 
 export interface SequenceCardData {
   id: SequenceId;

@@ -34,8 +34,17 @@ interface OutboxRow {
  */
 const RETIRED_TEMPLATES = new Set<string>(["post_purchase_coa", "welcome_2"]);
 
-/** Send one outbox row. Never throws — returns a result the caller persists. */
-export async function sendOne(row: OutboxRow): Promise<{ ok: boolean; error?: string }> {
+/**
+ * Send one outbox row. Never throws — returns a result the caller persists.
+ *
+ * The returned messageId is what makes Phase C possible: Resend's webhooks
+ * identify an email only by its provider id, so unless we record it at send
+ * time there is no way to attach a later "opened" or "bounced" event back to
+ * the row that caused it.
+ */
+export async function sendOne(
+  row: OutboxRow,
+): Promise<{ ok: boolean; error?: string; messageId?: string }> {
   if (RETIRED_TEMPLATES.has(row.template)) {
     return { ok: false, error: `Template "${row.template}" is retired — not sent.` };
   }
@@ -43,9 +52,14 @@ export async function sendOne(row: OutboxRow): Promise<{ ok: boolean; error?: st
   if (!resend) return { ok: false, error: "RESEND_API_KEY not configured" };
   try {
     const { subject, html } = await renderTemplate(row.template, row.payload ?? {});
-    const { error } = await resend.emails.send({ from: FROM, to: row.to_email, subject, html });
+    const { data, error } = await resend.emails.send({
+      from: FROM,
+      to: row.to_email,
+      subject,
+      html,
+    });
     if (error) return { ok: false, error: error.message };
-    return { ok: true };
+    return { ok: true, messageId: data?.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -66,7 +80,11 @@ export async function sendImmediately(rowId: string): Promise<void> {
     .from("email_outbox")
     .update(
       res.ok
-        ? { status: "sent", sent_at: new Date().toISOString() }
+        ? {
+            status: "sent",
+            sent_at: new Date().toISOString(),
+            provider_message_id: res.messageId ?? null,
+          }
         : { status: "failed", error: res.error },
     )
     .eq("id", rowId);
@@ -89,7 +107,11 @@ export async function drainOutbox(limit = 50): Promise<{ sent: number; failed: n
     if (res.ok) {
       await db
         .from("email_outbox")
-        .update({ status: "sent", sent_at: new Date().toISOString() })
+        .update({
+          status: "sent",
+          sent_at: new Date().toISOString(),
+          provider_message_id: res.messageId ?? null,
+        })
         .eq("id", row.id);
       sent++;
     } else {
