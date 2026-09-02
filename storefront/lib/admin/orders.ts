@@ -430,7 +430,17 @@ export async function refundOrder(orderId: string, opts: { actor?: string } = {}
     await db.from("orders").update({ stock_restored: true }).eq("id", orderId);
   }
 
-  await db.from("orders").update({ status: "refunded", updated_at: new Date().toISOString() }).eq("id", orderId);
+  // Record the amount, not just the status. The line-level path already writes
+  // refunded_cents; without this the whole-order path leaves every reporting
+  // surface reading $0.00 refunded on a fully refunded order.
+  await db
+    .from("orders")
+    .update({
+      status: "refunded",
+      refunded_cents: order.total_cents,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
   await addEvent(orderId, "status", { from: order.status, to: "refunded", actor: opts.actor });
   await logAudit({ actor: opts.actor ?? "system", action: "order.refund", entityType: "order", entityId: orderId });
 }

@@ -1,6 +1,6 @@
 # Admin Dashboard & Experience Revamp Plan
 
-> Status: **proposal — awaiting approval, nothing here is built.**
+> Status: **Phase 1 implemented (2026-09-02). Phases 2–4 remain proposals.**
 > Shipped alongside this plan (2026-09-02): revenue chart period navigation (prev/next by month, calendar week, day; prior-period delta; URL-linkable; arrow keys). Files: `storefront/lib/admin/order-queries.ts` (`revenueWindow`), `storefront/app/admin/(dashboard)/revenue-actions.ts`, `storefront/components/admin/RevenueChart.tsx`, `storefront/app/admin/(dashboard)/page.tsx`.
 > Precedent: `ADMIN_PRODUCTS_UX_PLAN.md` (implemented 2026-08-28). Same shape here: diagnosis, direction, phases with file targets.
 
@@ -81,7 +81,18 @@ The dashboard becomes **three stacked surfaces, in this order**: what needs me (
 
 Everything reuses what exists: `revenueWindow` for any period-scoped number, `ConfirmModal`, `StatCard`, `Badge`, the command palette, the cost columns already in the schema.
 
-## Phase 1 — Dashboard as a work surface (highest value, ~2 days)
+## Phase 1 — Dashboard as a work surface — IMPLEMENTED 2026-09-02
+
+> Shipped: attention queue with inline confirm-payment / mark-shipped / publish-review;
+> money strip (revenue, gross profit, refunds, owed) scoped to the chart's window with
+> prior-period deltas; Revenue/Profit toggle with a zero baseline for negative buckets;
+> sparklines on the three tiles that have real daily history; four sibling Suspense sections.
+> New files: `storefront/lib/admin/attention.ts`, `storefront/components/admin/ActionQueue.tsx`.
+> Decisions taken: profit is net revenue minus COGS only, because shipping cost and payment
+> fees are not tracked; cash owed is unpaid orders raised in the window, any age.
+> Caveat: only 47 of 134 order lines carry a cost snapshot, so profit is overstated until
+> costs are set — the strip says so in place rather than hiding it.
+> Not browser-verified: admin needs a live session and Interceptor is not installed here.
 
 - **Action queue** section above the chart. Rows sourced from: orders `paid`/`processing`; `pending` bank transfers older than 24h (age shown); pending reviews; low-stock variants that also have waitlist demand. Inline actions call existing server actions (`orders/actions.ts`, `reviews/actions.ts`) with `ConfirmModal` where destructive.
   Files: `app/admin/(dashboard)/page.tsx`, new `components/admin/ActionQueue.tsx`, new `lib/admin/attention.ts`.

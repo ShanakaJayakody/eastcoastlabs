@@ -2,6 +2,7 @@
  * Product + stock read/write for the admin. Stock changes always go through the
  * ledger (lib/admin/inventory.ts) — nothing here writes inventory.on_hand.
  */
+import { cache } from "react";
 import { adminDb } from "./db";
 import { logAudit } from "./audit";
 import { recordMovement, packsAvailable, type MovementReason } from "./inventory";
@@ -549,10 +550,20 @@ export async function variantMovements(variantId: string, limit = 20): Promise<M
 }
 
 /** Variants at or below their low-stock threshold — dashboard + products filter. */
+/**
+ * The whole catalogue, once per request. (`lowStockVariants` below filters it.)
+ *
+ * Several dashboard sections need product stock at the same time. React's
+ * `cache()` collapses them into a single read for the lifetime of one render,
+ * which is what keeps the split-into-sections dashboard from multiplying
+ * database round trips.
+ */
+export const listAllProducts = cache(async (): Promise<ProductListRow[]> => listProducts());
+
 export async function lowStockVariants(): Promise<
   { sku: string; productName: string; slug: string; label: string; available: number; threshold: number }[]
 > {
-  const products = await listProducts();
+  const products = await listAllProducts();
   return products
     .flatMap((p) =>
       p.variants

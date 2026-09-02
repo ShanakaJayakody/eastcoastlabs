@@ -203,6 +203,26 @@ export type RevenueScale = "month" | "week" | "day";
 export interface RevenueBucket {
   label: string;
   cents: number;
+  /** Net revenue minus COGS for the same bucket. Can be negative. */
+  profitCents: number;
+}
+
+/**
+ * Money for one window. Revenue is gross takings on paid orders; profit is
+ * net-of-refunds revenue minus the COGS snapshot frozen at payment. Shipping
+ * cost and payment fees are not tracked anywhere, so they are not deducted —
+ * this is gross profit, and `uncostedLines` says how much of it is guesswork.
+ */
+export interface RevenueTotals {
+  revenueCents: number;
+  refundedCents: number;
+  cogsCents: number;
+  profitCents: number;
+  /** Unpaid orders raised in the window — takings not yet in the bank. */
+  pendingCents: number;
+  pendingCount: number;
+  /** Sold lines with no cost snapshot. Profit is overstated by their cost. */
+  uncostedLines: number;
 }
 
 /**
@@ -219,6 +239,8 @@ export interface RevenueWindow {
   buckets: RevenueBucket[];
   totalCents: number;
   previousTotalCents: number;
+  totals: RevenueTotals;
+  previousTotals: RevenueTotals;
   previousLabel: string; // "August" · "last week" · "yesterday" — reads after "vs"
   prevAnchor: string;
   nextAnchor: string | null; // null when already at the current window
@@ -277,6 +299,25 @@ const sameDay = (a: Civil, b: Civil): boolean => a.y === b.y && a.m === b.m && a
 const toIso = (c: Civil): string =>
   `${c.y}-${String(c.m).padStart(2, "0")}-${String(c.d).padStart(2, "0")}`;
 
+/** The Sydney calendar date of an instant, as `YYYY-MM-DD`. */
+export function sydneyDayKey(date: Date): string {
+  const p = sydneyParts(date);
+  return toIso({ y: p.y, m: p.m, d: p.d });
+}
+
+/**
+ * The last `days` Sydney calendar dates, oldest first, ending today.
+ *
+ * Callers bucket by these keys rather than by dividing elapsed milliseconds:
+ * a day is not always 86,400,000 ms, and on the October DST change that
+ * arithmetic folds two dates onto one index and leaves the newest day empty.
+ */
+export function sydneyRecentDayKeys(days: number): string[] {
+  const today = sydneyParts(new Date());
+  const start = addDays({ y: today.y, m: today.m, d: today.d }, -(days - 1));
+  return Array.from({ length: days }, (_, i) => toIso(addDays(start, i)));
+}
+
 export function parseRevenueScale(value: string | undefined | null): RevenueScale {
   return value === "week" || value === "day" ? value : "month";
 }
@@ -328,8 +369,13 @@ function titleFor(scale: RevenueScale, start: Civil, end: Civil): string {
 
 /**
  * Bucketed paid revenue for one window at one scale, plus the previous
- * window's total. One DB round trip covers both windows; bucketing is pure JS
+ * window's total. Two DB round trips — orders, then the COGS snapshot keyed on
+ * the ids that came back — covering both windows at once. Bucketing is pure JS
  * on the Sydney calendar so the chart and the comparison never disagree.
+ *
+ * Refunds are attributed to the day the order was raised, not the day the money
+ * went back. Revenue and its refund therefore always sit in the same bucket,
+ * which is what makes a closed month's figures stable.
  */
 export async function revenueWindow(input: {
   scale: RevenueScale;
@@ -350,14 +396,48 @@ export async function revenueWindow(input: {
   const fromIso = new Date(proxy(prevStart) - DAY_MS).toISOString();
   const toIsoBound = new Date(proxy(end) + DAY_MS).toISOString();
 
-  const PAID: OrderStatus[] = ["paid", "processing", "shipped", "completed"];
-  const { data, error } = await adminDb()
+  // "refunded" belongs here: a fully-refunded order is still a sale that
+  // happened, and dropping it would make a closed month's revenue shrink
+  // retroactively with nothing in the Refunds cell to explain the gap.
+  const PAID: OrderStatus[] = ["paid", "processing", "shipped", "completed", "refunded"];
+  const db = adminDb();
+  const { data, error } = await db
     .from("orders")
-    .select("created_at, total_cents")
-    .in("status", PAID)
+    .select("id, created_at, total_cents, refunded_cents, status")
+    .in("status", [...PAID, "pending"])
     .gte("created_at", fromIso)
     .lt("created_at", toIsoBound);
   if (error) throw new Error(`revenueWindow: ${error.message}`);
+  const orders = (data ?? []) as unknown as {
+    id: string;
+    created_at: string;
+    total_cents: number;
+    refunded_cents: number | null;
+    status: OrderStatus;
+  }[];
+
+  // Second and last query: the COGS snapshot for every order in range. Cost is
+  // frozen per line at payment, so historical profit never moves when a
+  // supplier reprices — see costs.ts.
+  const cogsByOrder = new Map<string, number>();
+  const uncostedByOrder = new Map<string, number>();
+  const paidIds = orders.filter((o) => o.status !== "pending").map((o) => o.id);
+  if (paidIds.length) {
+    const { data: lines, error: lineError } = await db
+      .from("order_items")
+      .select("order_id, qty, refunded_qty, unit_cost_cents")
+      .in("order_id", paidIds);
+    if (lineError) throw new Error(`revenueWindow lines: ${lineError.message}`);
+    for (const line of lines ?? []) {
+      const orderId = line.order_id as string;
+      const netQty = Math.max(0, (line.qty as number) - ((line.refunded_qty as number) ?? 0));
+      if (line.unit_cost_cents == null) {
+        if (netQty > 0) uncostedByOrder.set(orderId, (uncostedByOrder.get(orderId) ?? 0) + 1);
+        continue;
+      }
+      cogsByOrder.set(orderId, (cogsByOrder.get(orderId) ?? 0) + (line.unit_cost_cents as number) * netQty);
+    }
+  }
 
   // Empty scaffolds first, so zero-revenue periods still chart cleanly. The
   // current window only shows elapsed buckets — future days would be noise.
@@ -368,37 +448,79 @@ export async function revenueWindow(input: {
     buckets = Array.from({ length: count }, (_, i) => ({
       label: `${i + 1} ${MONTHS_SHORT[start.m - 1]}`,
       cents: 0,
+      profitCents: 0,
     }));
     bucketIndex = (p) => p.d - 1;
   } else if (scale === "week") {
     const count = isCurrent ? Math.round((proxy(today) - proxy(start)) / DAY_MS) + 1 : 7;
     buckets = Array.from({ length: count }, (_, i) => {
       const c = addDays(start, i);
-      return { label: sameDay(c, today) ? "Today" : `${WEEKDAYS_SHORT[weekday(c)]} ${c.d}`, cents: 0 };
+      return {
+        label: sameDay(c, today) ? "Today" : `${WEEKDAYS_SHORT[weekday(c)]} ${c.d}`,
+        cents: 0,
+        profitCents: 0,
+      };
     });
     bucketIndex = (p) => Math.round((proxy(p) - proxy(start)) / DAY_MS);
   } else {
-    buckets = Array.from({ length: 24 }, (_, h) => ({ label: hourLabel(h), cents: 0 }));
+    buckets = Array.from({ length: 24 }, (_, h) => ({ label: hourLabel(h), cents: 0, profitCents: 0 }));
     bucketIndex = (p) => p.h;
   }
 
-  let totalCents = 0;
-  let previousTotalCents = 0;
+  const emptyTotals = (): RevenueTotals => ({
+    revenueCents: 0,
+    refundedCents: 0,
+    cogsCents: 0,
+    profitCents: 0,
+    pendingCents: 0,
+    pendingCount: 0,
+    uncostedLines: 0,
+  });
+  const totals = emptyTotals();
+  const previousTotals = emptyTotals();
+
   const startMs = proxy(start);
   const endMs = proxy(end);
   const prevStartMs = proxy(prevStart);
-  for (const row of data ?? []) {
-    const p = sydneyParts(new Date(row.created_at as string));
-    const cents = (row.total_cents as number) ?? 0;
+
+  for (const row of orders) {
+    const p = sydneyParts(new Date(row.created_at));
     const dayMs = proxy(p);
-    if (dayMs >= startMs && dayMs < endMs) {
+    const inWindow = dayMs >= startMs && dayMs < endMs;
+    const inPrevious = !inWindow && dayMs >= prevStartMs && dayMs < startMs;
+    if (!inWindow && !inPrevious) continue;
+    const bucket = inWindow ? totals : previousTotals;
+
+    // Unpaid orders are money owed, never revenue — they must not reach the
+    // chart or the profit line until the transfer lands.
+    if (row.status === "pending") {
+      bucket.pendingCents += row.total_cents ?? 0;
+      bucket.pendingCount += 1;
+      continue;
+    }
+
+    const cents = row.total_cents ?? 0;
+    const refunded = row.refunded_cents ?? 0;
+    const cogs = cogsByOrder.get(row.id) ?? 0;
+    const profit = cents - refunded - cogs;
+
+    bucket.revenueCents += cents;
+    bucket.refundedCents += refunded;
+    bucket.cogsCents += cogs;
+    bucket.profitCents += profit;
+    bucket.uncostedLines += uncostedByOrder.get(row.id) ?? 0;
+
+    if (inWindow) {
       const i = bucketIndex(p);
-      if (i >= 0 && i < buckets.length) buckets[i].cents += cents;
-      totalCents += cents;
-    } else if (dayMs >= prevStartMs && dayMs < startMs) {
-      previousTotalCents += cents;
+      if (i >= 0 && i < buckets.length) {
+        buckets[i].cents += cents;
+        buckets[i].profitCents += profit;
+      }
     }
   }
+
+  const totalCents = totals.revenueCents;
+  const previousTotalCents = previousTotals.revenueCents;
 
   const hint =
     scale === "month"
@@ -422,6 +544,8 @@ export async function revenueWindow(input: {
     buckets,
     totalCents,
     previousTotalCents,
+    totals,
+    previousTotals,
     previousLabel,
     prevAnchor: toIso(prevStart),
     nextAnchor: isCurrent ? null : toIso(end),
