@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PackageCheck, BellRing, Star, FlaskConical, Mail, AlertTriangle, Clock, ShoppingCart } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { supabaseAdmin } from "@/lib/supabase";
-import { orderMetrics, revenueSeries } from "@/lib/admin/order-queries";
+import { orderMetrics, parseRevenueScale, revenueWindow } from "@/lib/admin/order-queries";
 import { lowStockVariants } from "@/lib/admin/products";
 import { queuedEmailCount } from "@/lib/admin/email";
 import { listAbandonedCarts, abandonedCartCount } from "@/lib/admin/cart-recovery";
@@ -21,7 +21,12 @@ interface AuditRow {
 
 const cents = (c: number) => formatAud(c / 100);
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ scale?: string; at?: string }>;
+}) {
+  const sp = await searchParams;
   const session = await requireAdmin();
   const admin = supabaseAdmin();
 
@@ -65,7 +70,7 @@ export default async function AdminDashboard() {
     events,
   ] = await Promise.all([
     orderMetrics(),
-    revenueSeries(),
+    revenueWindow({ scale: parseRevenueScale(sp.scale), anchor: sp.at }),
     lowStockVariants(),
     tableCount("stock_notifications"),
     tableCount("subscribers"),
@@ -86,9 +91,9 @@ export default async function AdminDashboard() {
         <p className="mt-1 text-sm text-muted">Here&apos;s what needs you today.</p>
       </div>
 
-      {/* Revenue hero — month by default, click into week and day */}
+      {/* Revenue hero — month by default; step back through time at any scale */}
       <section className="admin-card overflow-hidden rounded-2xl">
-        <RevenueChart series={revenue} />
+        <RevenueChart initial={revenue} />
         <div className="grid grid-cols-3 divide-x divide-line border-t border-line bg-ink-2/40 text-center">
           {[
             { label: "Today", value: cents(metrics.revenueToday) },
