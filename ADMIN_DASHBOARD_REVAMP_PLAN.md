@@ -1,6 +1,6 @@
 # Admin Dashboard & Experience Revamp Plan
 
-> Status: **Phases 1, 2 and 3 implemented and deployed (2026-09-03). Phase 4 remains a proposal.**
+> Status: **All four phases implemented and deployed (2026-09-03).**
 > Deploying is a manual step: the Vercel project has no Git integration, so pushing does not publish. Run `vercel --prod` from the repo root (not `storefront/` — the project's root directory is already set to it).
 > Shipped alongside this plan (2026-09-02): revenue chart period navigation (prev/next by month, calendar week, day; prior-period delta; URL-linkable; arrow keys). Files: `storefront/lib/admin/order-queries.ts` (`revenueWindow`), `storefront/app/admin/(dashboard)/revenue-actions.ts`, `storefront/components/admin/RevenueChart.tsx`, `storefront/app/admin/(dashboard)/page.tsx`.
 > Precedent: `ADMIN_PRODUCTS_UX_PLAN.md` (implemented 2026-08-28). Same shape here: diagnosis, direction, phases with file targets.
@@ -143,7 +143,17 @@ Everything reuses what exists: `revenueWindow` for any period-scoped number, `Co
 - **Daily brief** as a cron (`app/api/cron/daily-brief/route.ts`) rendering the same attention + money data to email via the existing outbox; optional Telegram.
 - **Cron health** card on Settings: last run and counts for each cron route (write a `cron_runs` row per invocation).
 
-## Phase 4 — Reports area and polish (~2 days)
+## Phase 4 — Reports area and polish — IMPLEMENTED 2026-09-03
+
+> Shipped: `/admin/reports` with four tabs — product performance, cart-to-dispatch funnel,
+> email deliverability, customer cohorts — all period-navigable through a shared `PeriodNav`
+> that reads the same `windowMeta` as the revenue chart, so "August" means one thing everywhere.
+> Sidebar regrouped into Today / Catalogue / People / Growth / System; the command palette
+> mirrors those groups and gained report verbs.
+> New files: `storefront/lib/admin/reports.ts`, `storefront/app/admin/(dashboard)/reports/page.tsx`,
+> `storefront/components/admin/PeriodNav.tsx`.
+> Deferred: recovery and lifecycle period navigation, packing mode, mobile action queue,
+> `j/k` row navigation.
 
 - `/admin/reports` with: product performance for a period, cart → paid → shipped funnel with time-to-ship, email deliverability per template/sequence, customer cohorts. All period-navigable with the same stepper component (extract `PeriodNav` from `RevenueChart`).
 - Recovery and lifecycle get period navigation and a stage board.

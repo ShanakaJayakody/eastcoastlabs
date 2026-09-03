@@ -428,6 +428,67 @@ function titleFor(scale: RevenueScale, start: Civil, end: Civil): string {
 }
 
 /**
+ * Everything about a window except the money in it.
+ *
+ * Shared so the reports area steps through periods by exactly the same calendar
+ * rules as the revenue chart — a "September" that means two different spans on
+ * two screens is worse than having no reports at all.
+ */
+export interface WindowMeta {
+  scale: RevenueScale;
+  /** Canonical anchor: first day of the window, Sydney calendar. */
+  anchor: string;
+  title: string;
+  hint: string;
+  isCurrent: boolean;
+  prevAnchor: string;
+  nextAnchor: string | null;
+  previousLabel: string;
+  /** Half-open UTC instants covering the window itself. */
+  startIso: string;
+  endIso: string;
+}
+
+export function windowMeta(scale: RevenueScale, anchorInput?: string | null): WindowMeta {
+  const todayParts = sydneyParts(new Date());
+  const today: Civil = { y: todayParts.y, m: todayParts.m, d: todayParts.d };
+  const anchor = parseAnchor(anchorInput, today);
+  const { start, end } = windowBounds(scale, anchor);
+  const prevStart = stepBack(scale, start);
+  const isCurrent = proxy(today) >= proxy(start) && proxy(today) < proxy(end);
+
+  const hint =
+    scale === "month"
+      ? isCurrent ? "Month to date" : "Full month"
+      : scale === "week"
+        ? isCurrent ? "Week to date" : "Full week"
+        : isCurrent ? "Today by hour" : "By hour";
+  const previousLabel =
+    scale === "month"
+      ? MONTHS_LONG[prevStart.m - 1]
+      : scale === "week"
+        ? isCurrent ? "last week" : "the week before"
+        : isCurrent ? "yesterday" : "the day before";
+
+  return {
+    scale,
+    anchor: toIso(start),
+    title: titleFor(scale, start, end),
+    hint,
+    isCurrent,
+    prevAnchor: toIso(prevStart),
+    nextAnchor: isCurrent ? null : toIso(end),
+    previousLabel,
+    // Boundaries probe the real Sydney offset for the date, so these are exact
+    // rather than assuming +10:00 year-round.
+    // `toIso` always yields a well-formed date, so the boundary never comes back
+    // null here; the fallback exists only to satisfy the type.
+    startIso: sydneyDayBoundary(toIso(start)) ?? new Date(proxy(start)).toISOString(),
+    endIso: sydneyDayBoundary(toIso(end)) ?? new Date(proxy(end)).toISOString(),
+  };
+}
+
+/**
  * Bucketed paid revenue for one window at one scale, plus the previous
  * window's total. Two DB round trips — orders, then the COGS snapshot keyed on
  * the ids that came back — covering both windows at once. Bucketing is pure JS

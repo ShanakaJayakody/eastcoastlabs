@@ -430,9 +430,24 @@ export async function refundOrder(orderId: string, opts: { actor?: string } = {}
     await db.from("orders").update({ stock_restored: true }).eq("id", orderId);
   }
 
-  // Record the amount, not just the status. The line-level path already writes
-  // refunded_cents; without this the whole-order path leaves every reporting
-  // surface reading $0.00 refunded on a fully refunded order.
+  // Mark the LINES refunded, not just the order. Anything that reports per
+  // product reads order_items.refunded_qty — leaving those at zero made a
+  // fully-refunded order still count as a sale in the products report while
+  // the dashboard correctly showed it as refunded. Same event, two answers.
+  const { data: lines } = await db
+    .from("order_items")
+    .select("id, qty, refunded_qty, line_total_cents")
+    .eq("order_id", orderId);
+  for (const line of lines ?? []) {
+    const qty = (line.qty as number) ?? 0;
+    if (((line.refunded_qty as number) ?? 0) >= qty) continue;
+    await db
+      .from("order_items")
+      .update({ refunded_qty: qty, refunded_cents: line.line_total_cents })
+      .eq("id", line.id);
+  }
+
+  // Record the amount, not just the status.
   await db
     .from("orders")
     .update({

@@ -21,10 +21,11 @@ export default function AdminShell({
   const pathname = usePathname();
 
   const paletteItems: CommandItem[] = useMemo(() => {
+    // The palette mirrors the sidebar's grouping, so muscle memory transfers.
     const nav = NAV.map((n) => ({
       id: `nav:${n.href}`,
       label: n.label,
-      group: "Go to",
+      group: n.group,
       href: n.href,
       hint: n.phase ? "soon" : undefined,
     }));
@@ -92,6 +93,48 @@ export default function AdminShell({
     return [
       ...nav,
       ...actions,
+      {
+        id: "action:this-month",
+        label: "This month's revenue",
+        group: "Actions",
+        href: "/admin",
+        keywords: ["revenue", "money", "sales", "month", "chart", "profit"],
+      },
+      {
+        id: "action:product-performance",
+        label: "Product performance",
+        group: "Actions",
+        href: "/admin/reports",
+        keywords: ["report", "performance", "margin", "units", "best seller", "products"],
+      },
+      {
+        id: "action:funnel",
+        label: "Cart to dispatch funnel",
+        group: "Actions",
+        href: "/admin/reports?tab=funnel",
+        keywords: ["funnel", "conversion", "time to ship", "dispatch", "carts"],
+      },
+      {
+        id: "action:email-report",
+        label: "Email deliverability",
+        group: "Actions",
+        href: "/admin/reports?tab=email",
+        keywords: ["email", "bounce", "open", "click", "deliverability", "resend"],
+      },
+      {
+        id: "action:cohorts",
+        label: "Customer cohorts",
+        group: "Actions",
+        href: "/admin/reports?tab=cohorts",
+        keywords: ["cohort", "repeat", "retention", "ltv", "lifetime"],
+      },
+      {
+        id: "action:audit",
+        label: "Who changed what",
+        group: "Actions",
+        href: "/admin/audit",
+        keywords: ["audit", "log", "history", "who", "changed", "trail"],
+      },
       {
         id: "action:signout",
         label: "Sign out",

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, X } from "lucide-react";
-import { NAV } from "@/lib/admin/nav";
+import { NAV, NAV_GROUPS } from "@/lib/admin/nav";
 import { signOut } from "@/lib/admin/auth-actions";
 
 function isActive(pathname: string, href: string): boolean {
@@ -44,33 +44,44 @@ export default function Sidebar({
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2">
-        {NAV.map((item) => {
-          const active = isActive(pathname, item.href);
-          const Icon = item.icon;
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
+        {NAV_GROUPS.map((group) => {
+          const items = NAV.filter((item) => item.group === group);
+          if (items.length === 0) return null;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              data-active={active}
-              className={`admin-nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
-                active
-                  ? "bg-gradient-to-r from-surface-2 to-surface font-medium text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                  : "text-fg-2 hover:bg-surface hover:text-fg"
-              }`}
-            >
-              <Icon
-                size={17}
-                className={active ? "text-accent" : "text-muted group-hover:text-fg-2"}
-              />
-              <span className="flex-1">{item.label}</span>
-              {item.phase && (
-                <span className="rounded bg-ink px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-2">
-                  soon
-                </span>
-              )}
-            </Link>
+            <div key={group} className="space-y-1">
+              <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-2">
+                {group}
+              </div>
+              {items.map((item) => {
+                const active = isActive(pathname, item.href);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onNavigate}
+                    data-active={active}
+                    className={`admin-nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
+                      active
+                        ? "bg-gradient-to-r from-surface-2 to-surface font-medium text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                        : "text-fg-2 hover:bg-surface hover:text-fg"
+                    }`}
+                  >
+                    <Icon
+                      size={17}
+                      className={active ? "text-accent" : "text-muted group-hover:text-fg-2"}
+                    />
+                    <span className="flex-1">{item.label}</span>
+                    {item.phase && (
+                      <span className="rounded bg-ink px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-2">
+                        soon
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
