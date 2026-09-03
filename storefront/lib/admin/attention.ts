@@ -12,6 +12,7 @@
  *   2. Nothing here invents history. `dailyCounts` only returns series the
  *      orders and carts tables can actually support.
  */
+import { cache } from "react";
 import { adminDb } from "./db";
 import { sydneyDayKey, sydneyRecentDayKeys } from "./order-queries";
 import { listAllProducts } from "./products";
@@ -88,6 +89,33 @@ function ageLabel(hours: number): string {
 
 const TO_FULFIL: OrderStatus[] = ["paid", "processing"];
 
+/** Outstanding "tell me when it's back" signups, per product slug. Cached for
+ *  the request so the queue and the nudges share one read. */
+const waitlistDemand = cache(async (): Promise<Map<string, number>> => {
+  const { data } = await adminDb()
+    .from("stock_notifications")
+    .select("product_slug")
+    .eq("notified", false);
+  const demand = new Map<string, number>();
+  for (const row of data ?? []) {
+    const slug = row.product_slug as string;
+    demand.set(slug, (demand.get(slug) ?? 0) + 1);
+  }
+  return demand;
+});
+
+/**
+ * Vials that can actually be sold: the pack_size = 1 pool minus reservations.
+ * Per-tier counts are derived and read zero while vials remain, which has
+ * misled this exact screen before.
+ */
+function sellableVials(product: {
+  variants: { pack_size: number; available: number }[];
+  totalOnHand: number;
+}): number {
+  return product.variants.find((v) => v.pack_size === 1)?.available ?? product.totalOnHand;
+}
+
 /**
  * The attention queue. Every source read fires in one batch — this page's
  * previous incarnation serialised its queries and the whole dashboard waited on
@@ -101,7 +129,7 @@ export async function attentionQueue(limit = 8): Promise<AttentionQueue> {
     fulfilRes,
     paymentRes,
     reviewRes,
-    waitlistRes,
+    demandBySlug,
     products,
     fulfilTotal,
     paymentTotal,
@@ -126,7 +154,7 @@ export async function attentionQueue(limit = 8): Promise<AttentionQueue> {
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(25),
-    db.from("stock_notifications").select("product_slug").eq("notified", false),
+    waitlistDemand(),
     listAllProducts(),
     // Row limits above cap what we *show*; these count what actually exists, so
     // a 60-order backlog never reports itself as 25.
@@ -230,21 +258,10 @@ export async function attentionQueue(limit = 8): Promise<AttentionQueue> {
     });
   }
 
-  // Waitlist demand only becomes work when the shelf is actually empty. The
-  // pool is vials on the pack_size = 1 variant; per-tier counts are derived and
-  // read zero while vials remain, which has confused this exact screen before.
-  const demandBySlug = new Map<string, number>();
-  for (const row of waitlistRes.data ?? []) {
-    const slug = row.product_slug as string;
-    demandBySlug.set(slug, (demandBySlug.get(slug) ?? 0) + 1);
-  }
+  // Waitlist demand only becomes work when the shelf is actually empty.
   for (const product of products) {
     const waiting = demandBySlug.get(product.slug) ?? 0;
-    // Sellable vials, not gross vials: stock held in reservations is already
-    // spoken for, and the storefront shows the product sold out.
-    const sellable =
-      product.variants.find((v) => v.pack_size === 1)?.available ?? product.totalOnHand;
-    if (waiting === 0 || sellable > 0) continue;
+    if (waiting === 0 || sellableVials(product) > 0) continue;
     items.push({
       id: `restock:${product.slug}`,
       kind: "restock",
@@ -356,4 +373,167 @@ export async function dailyCounts(days = 14): Promise<DailyCounts> {
     pendingOrders: seriesFrom(pending),
     abandonedCarts: seriesFrom(carts),
   };
+}
+
+/* ---------------- anomaly nudges ------------------------------------------ */
+
+export type NudgeTone = "warn" | "info";
+
+export interface Nudge {
+  id: string;
+  tone: NudgeTone;
+  /** The observation, stated plainly. */
+  headline: string;
+  /** Why it is being raised — always the comparison that made it notable. */
+  detail: string;
+  href: string;
+}
+
+/** Below this many prior samples there is no "usual" to compare against. */
+const MIN_SAMPLES_FOR_BASELINE = 8;
+/**
+ * Gaps between orders are diurnal — the overnight lull is several times the
+ * median by construction, so a median-based threshold fires every morning.
+ * The 95th percentile already contains those overnight gaps, which makes
+ * "longer than all but the quietest 5% of stretches" the honest trigger.
+ */
+const QUIET_PERCENTILE = 0.95;
+const BOUNCE_ALERT_PCT = 5;
+const UNPAID_ALERT_DAYS = 3;
+/** How far back to look for a last order before declaring a dead store. */
+const QUIET_LOOKBACK_DAYS = 90;
+
+/**
+ * Things worth interrupting the operator about.
+ *
+ * Every nudge states its own baseline, because "no orders in 36 hours" means
+ * nothing without "the usual gap is 9". Anything the data cannot support a
+ * baseline for is simply not raised — a nudge that cries wolf gets ignored,
+ * and then the real one does too.
+ */
+export async function anomalyNudges(): Promise<Nudge[]> {
+  const db = adminDb();
+  const now = Date.now();
+  const since = new Date(now - 30 * 86_400_000).toISOString();
+  // Looking back further than the baseline window matters: if the store has
+  // been dead for 31 days, a 30-day window is empty and the alarm that should
+  // be loudest goes silent.
+  const lookback = new Date(now - QUIET_LOOKBACK_DAYS * 86_400_000).toISOString();
+
+  const [ordersRes, emailRes, unpaidRes, demandBySlug, products, sentRes] = await Promise.all([
+    db
+      .from("orders")
+      .select("created_at")
+      .in("status", ["paid", "processing", "shipped", "completed", "refunded"])
+      .gte("created_at", lookback)
+      .order("created_at", { ascending: true }),
+    db.from("email_events").select("event").gte("occurred_at", since),
+    db
+      .from("orders")
+      .select("id, order_number, total_cents, created_at")
+      .eq("status", "pending")
+      .lt("created_at", new Date(now - UNPAID_ALERT_DAYS * 86_400_000).toISOString()),
+    // Both request-cached: free when the attention queue already ran.
+    waitlistDemand(),
+    listAllProducts(),
+    // Sends, not delivery receipts, are the honest denominator for a bounce
+    // rate — `delivered` only exists if that webhook happens to be subscribed.
+    db
+      .from("email_outbox")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "sent")
+      .gte("created_at", since),
+  ]);
+
+  const nudges: Nudge[] = [];
+
+  // 1. An unusually long quiet spell. The baseline is this store's own median
+  //    gap between paid orders, so a slow shop is not permanently alarmed.
+  const stamps = (ordersRes.data ?? []).map((r) => new Date(r.created_at as string).getTime());
+  const hours = (ms: number) => Math.round(ms / 3_600_000);
+  const days = (ms: number) => Math.round(ms / 86_400_000);
+
+  if (stamps.length === 0) {
+    nudges.push({
+      id: "quiet",
+      tone: "warn",
+      headline: `No paid order in over ${QUIET_LOOKBACK_DAYS} days`,
+      detail:
+        "Nothing has been paid for in the entire window this dashboard looks at. If that is a surprise, check the storefront and checkout first.",
+      href: "/admin/orders?status=all",
+    });
+  } else if (stamps.length >= MIN_SAMPLES_FOR_BASELINE + 1) {
+    const gaps: number[] = [];
+    for (let i = 1; i < stamps.length; i++) gaps.push(stamps[i] - stamps[i - 1]);
+    gaps.sort((a, b) => a - b);
+    const threshold = gaps[Math.min(gaps.length - 1, Math.floor(gaps.length * QUIET_PERCENTILE))];
+    const sinceLast = now - stamps[stamps.length - 1];
+    if (threshold > 0 && sinceLast > threshold) {
+      nudges.push({
+        id: "quiet",
+        tone: "warn",
+        headline:
+          sinceLast >= 48 * 3_600_000
+            ? `No paid order in ${days(sinceLast)} days`
+            : `No paid order in ${hours(sinceLast)} hours`,
+        detail: `Only the quietest 5% of stretches run longer than ${hours(threshold)} hours. Worth checking the storefront and checkout still work.`,
+        href: "/admin/orders?status=all",
+      });
+    }
+  }
+
+  // 2. Deliverability. Bounces and complaints are the two that end with a
+  //    sending domain in trouble, so they are counted together.
+  const events = emailRes.data ?? [];
+  const bad = events.filter((e) => e.event === "bounced" || e.event === "complained").length;
+  // Denominator is what was actually sent. Counting delivery receipts instead
+  // reads 100% whenever the `delivered` webhook simply isn't subscribed.
+  const attempted = sentRes.count ?? 0;
+  if (attempted >= 20) {
+    const pct = (bad / attempted) * 100;
+    if (pct >= BOUNCE_ALERT_PCT) {
+      nudges.push({
+        id: "bounces",
+        tone: "warn",
+        headline: `${pct.toFixed(1)}% of email bounced or was marked spam`,
+        detail: `${bad} of ${attempted} sent in the last 30 days. Above about 5% and mailbox providers start throttling the sending domain.`,
+        href: "/admin/customers",
+      });
+    }
+  }
+
+  // 3. Money sitting in limbo. Past the reminder window these rarely convert
+  //    on their own, and each one is holding reserved stock.
+  const stale = unpaidRes.data ?? [];
+  if (stale.length > 0) {
+    const owed = stale.reduce((sum, r) => sum + ((r.total_cents as number) ?? 0), 0);
+    const oldest = Math.max(...stale.map((r) => now - new Date(r.created_at as string).getTime()));
+    nudges.push({
+      id: "unpaid",
+      tone: "warn",
+      headline: `${aud(owed)} unpaid for more than ${UNPAID_ALERT_DAYS} days`,
+      detail: `${stale.length} bank transfer${stale.length === 1 ? "" : "s"}, the oldest ${days(oldest)} days old. They are holding reserved stock until confirmed or cancelled.`,
+      href: "/admin/orders?status=pending",
+    });
+  }
+
+  // 4. Demand for things that cannot be bought. Computed here rather than by
+  //    re-running attentionQueue, which would repeat four order and review
+  //    queries the dashboard has already made in a sibling section.
+  const starved = products
+    .map((product) => ({ product, waiting: demandBySlug.get(product.slug) ?? 0 }))
+    .filter(({ product, waiting }) => waiting > 0 && sellableVials(product) <= 0)
+    .sort((a, b) => b.waiting - a.waiting);
+  if (starved.length > 0) {
+    const waiting = starved.reduce((sum, entry) => sum + entry.waiting, 0);
+    nudges.push({
+      id: "demand",
+      tone: "info",
+      headline: `${waiting} people waiting on ${starved.length} out-of-stock product${starved.length === 1 ? "" : "s"}`,
+      detail: `Led by ${starved[0].product.name}. Each of them asked to be told when it is back.`,
+      href: "/admin/pipeline",
+    });
+  }
+
+  return nudges;
 }

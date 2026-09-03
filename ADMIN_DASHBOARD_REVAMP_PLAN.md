@@ -1,7 +1,7 @@
 # Admin Dashboard & Experience Revamp Plan
 
-> Status: **Phases 1 and 2 implemented (2026-09-02). Phases 3 and 4 remain proposals.**
-> Not yet deployed — the Vercel project has no Git integration, so pushing does not publish.
+> Status: **Phases 1, 2 and 3 implemented and deployed (2026-09-03). Phase 4 remains a proposal.**
+> Deploying is a manual step: the Vercel project has no Git integration, so pushing does not publish. Run `vercel --prod` from the repo root (not `storefront/` — the project's root directory is already set to it).
 > Shipped alongside this plan (2026-09-02): revenue chart period navigation (prev/next by month, calendar week, day; prior-period delta; URL-linkable; arrow keys). Files: `storefront/lib/admin/order-queries.ts` (`revenueWindow`), `storefront/app/admin/(dashboard)/revenue-actions.ts`, `storefront/components/admin/RevenueChart.tsx`, `storefront/app/admin/(dashboard)/page.tsx`.
 > Precedent: `ADMIN_PRODUCTS_UX_PLAN.md` (implemented 2026-08-28). Same shape here: diagnosis, direction, phases with file targets.
 
@@ -120,7 +120,22 @@ Everything reuses what exists: `revenueWindow` for any period-scoped number, `Co
 - Customers: real pagination (`range()` + page param), export, bulk tag/unsubscribe, tag editor on the profile.
   Files: `app/admin/(dashboard)/orders/*`, `components/admin/OrdersTable.tsx`, `app/admin/(dashboard)/customers/*`, `lib/admin/people.ts`.
 
-## Phase 3 — Links, audit, and proactive signals (~2 days)
+## Phase 3 — Links, audit, and proactive signals — IMPLEMENTED 2026-09-03
+
+> Shipped: `/admin/audit` with actor / action / entity / date filters, clearable filter chips,
+> and facets derived from the log itself; an `AuditTrail` panel embedded on order and customer
+> detail pages behind its own Suspense boundary; anomaly nudges on the dashboard that each state
+> their own baseline (quiet spell against the store's own 95th-percentile order gap, bounce rate
+> against actual sends, unpaid transfers past three days, waitlist demand for out-of-stock lines);
+> and a daily brief emailed to every active admin at 21:00 UTC.
+> New files: `storefront/lib/admin/{audit-log,daily-brief}.ts`,
+> `storefront/app/admin/(dashboard)/audit/page.tsx`, `storefront/app/api/cron/daily-brief/route.ts`,
+> `storefront/components/admin/{AuditTrail,Nudges}.tsx`.
+> **Requires `CRON_SECRET` to be set in Vercel** — the brief route refuses to run without it,
+> because it returns revenue and the admin roster.
+> Deferred from this phase: cron health on Settings (needs a `cron_runs` table, i.e. a migration),
+> and discount → orders cross-linking (orders cannot yet be filtered by discount code).
+> Not browser-verified: admin needs a live session and Interceptor is not installed here.
 
 - **Audit log page** at `/admin/audit` with actor/entity/date filters; per-entity trail component embedded on order, product, and customer pages. Add to `NAV` under a *System* group.
 - **Cross-links**: COA batch → product + orders; discount → orders using it (count on the discounts table); review → order/customer; waitlist count → filtered customers list; manual order → customer autocomplete.

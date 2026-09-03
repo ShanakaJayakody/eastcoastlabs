@@ -14,13 +14,14 @@ import { requireAdmin } from "@/lib/admin/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { orderMetrics, parseRevenueScale, revenueWindow } from "@/lib/admin/order-queries";
 import { lowStockVariants } from "@/lib/admin/products";
-import { attentionQueue, dailyCounts } from "@/lib/admin/attention";
+import { anomalyNudges, attentionQueue, dailyCounts } from "@/lib/admin/attention";
 import { queuedEmailCount } from "@/lib/admin/email";
 import { listAbandonedCarts, abandonedCartCount } from "@/lib/admin/cart-recovery";
 import { formatAud } from "@/lib/format";
 import StatCard from "@/components/admin/StatCard";
 import RevenueChart from "@/components/admin/RevenueChart";
 import ActionQueue from "@/components/admin/ActionQueue";
+import Nudges from "@/components/admin/Nudges";
 import Badge from "@/components/admin/Badge";
 import { Bar } from "@/components/admin/Skeleton";
 
@@ -64,6 +65,12 @@ export default async function AdminDashboard({
         <AttentionSection />
       </Suspense>
 
+      {/* Its own boundary: nudges scan 30 days of orders and email events, and
+          should never hold up the work queue above them. */}
+      <Suspense fallback={null}>
+        <NudgeSection />
+      </Suspense>
+
       <Suspense fallback={<ChartSkeleton />}>
         <RevenueSection scale={sp.scale} at={sp.at} />
       </Suspense>
@@ -84,6 +91,10 @@ export default async function AdminDashboard({
 async function AttentionSection() {
   const queue = await attentionQueue();
   return <ActionQueue queue={queue} />;
+}
+
+async function NudgeSection() {
+  return <Nudges nudges={await anomalyNudges()} />;
 }
 
 /* --------------------------------- money --------------------------------- */

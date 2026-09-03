@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import AuditTrail from "@/components/admin/AuditTrail";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Printer } from "lucide-react";
@@ -172,6 +174,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               Stock {order.stock_settled ? "decremented" : "reserved, awaiting payment"}
             </p>
           </section>
+
+          {/* Own boundary: the trail must not add its latency to the page's
+              first byte — the rest of this view does not depend on it. */}
+          <Suspense fallback={null}>
+            <AuditTrail entityType="order" entityId={order.id} />
+          </Suspense>
         </div>
       </div>
     </div>

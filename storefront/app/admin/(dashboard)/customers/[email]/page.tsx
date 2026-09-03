@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import AuditTrail from "@/components/admin/AuditTrail";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
@@ -250,6 +252,11 @@ export default async function CustomerDetailPage({
           </table>
         </section>
       )}
+      {/* Own boundary: the trail must not add its latency to the page's
+          first byte — the rest of this view does not depend on it. */}
+      <Suspense fallback={null}>
+        <AuditTrail entityType="customer" entityId={email} />
+      </Suspense>
     </div>
   );
 }

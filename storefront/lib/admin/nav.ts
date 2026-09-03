@@ -7,6 +7,7 @@ import {
   FlaskConical,
   Star,
   Settings,
+  ScrollText,
   Sparkles,
   Mail,
   LifeBuoy,
@@ -33,5 +34,6 @@ export const NAV: NavItem[] = [
   { label: "COAs", href: "/admin/coas", icon: FlaskConical },
   { label: "Reviews", href: "/admin/reviews", icon: Star },
   { label: "Emails", href: "/admin/email-templates", icon: Mail },
+  { label: "Audit", href: "/admin/audit", icon: ScrollText },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
