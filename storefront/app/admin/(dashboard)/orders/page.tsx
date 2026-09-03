@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/admin/auth";
-import { listOrders, orderStatusCounts, type OrderFilter } from "@/lib/admin/order-queries";
+import {
+  listOrders,
+  orderStatusCounts,
+  parseOrderSort,
+  sydneyDayBoundary,
+  type OrderFilter,
+} from "@/lib/admin/order-queries";
 import OrdersTable from "@/components/admin/OrdersTable";
+import OrdersFilters from "@/components/admin/OrdersFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -21,11 +28,25 @@ const VALID = new Set(TABS.map((t) => t.key));
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    q?: string;
+    page?: string;
+    from?: string;
+    to?: string;
+    sort?: string;
+    dir?: string;
+  }>;
 }) {
   await requireAdmin();
   const sp = await searchParams;
   const search = sp.q ?? "";
+  // Only echo a date back to the UI if it is one the query will actually apply,
+  // so the chip can never advertise a filter that silently did nothing.
+  const from = sydneyDayBoundary(sp.from) ? (sp.from as string) : "";
+  const to = sydneyDayBoundary(sp.to, true) ? (sp.to as string) : "";
+  const sort = parseOrderSort(sp.sort);
+  const dir: "asc" | "desc" = sp.dir === "asc" ? "asc" : "desc";
   // Default view is the fulfilment queue — searching implies "look everywhere".
   const status: OrderFilter = VALID.has(sp.status as OrderFilter)
     ? (sp.status as OrderFilter)
@@ -36,7 +57,7 @@ export default async function OrdersPage({
   const limit = 25;
 
   const [{ rows, total }, counts] = await Promise.all([
-    listOrders({ status, search, limit, offset: (page - 1) * limit }),
+    listOrders({ status, search, limit, offset: (page - 1) * limit, from, to, sort, dir }),
     orderStatusCounts(),
   ]);
   const pages = Math.max(1, Math.ceil(total / limit));
@@ -45,10 +66,38 @@ export default async function OrdersPage({
     const p = new URLSearchParams({
       ...(status !== "to_fulfil" ? { status } : {}),
       ...(search ? { q: search } : {}),
+      ...(from ? { from } : {}),
+      ...(to ? { to } : {}),
+      ...(sort !== "created_at" || dir !== "desc" ? { sort, dir } : {}),
     });
     Object.entries(patch).forEach(([k, v]) => (v ? p.set(k, v) : p.delete(k)));
     return `/admin/orders?${p.toString()}`;
   };
+
+  // Tabs keep the date range and search — switching status is a narrowing of
+  // the same question, not a new one.
+  const tabHref = (key: OrderFilter) => {
+    const p = new URLSearchParams({
+      ...(key !== "to_fulfil" ? { status: key } : {}),
+      ...(search ? { q: search } : {}),
+      ...(from ? { from } : {}),
+      ...(to ? { to } : {}),
+    });
+    const qs = p.toString();
+    return `/admin/orders${qs ? `?${qs}` : ""}`;
+  };
+
+  const exportHref = (() => {
+    const p = new URLSearchParams({ status });
+    if (search) p.set("q", search);
+    if (from) p.set("from", from);
+    if (to) p.set("to", to);
+    p.set("sort", sort);
+    p.set("dir", dir);
+    return `/admin/orders/export?${p.toString()}`;
+  })();
+
+  const dateLabel = from || to ? ` · ${from || "start"} to ${to || "today"}` : "";
 
   const activeLabel = TABS.find((t) => t.key === status)?.label ?? "Orders";
 
@@ -57,6 +106,7 @@ export default async function OrdersPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
           {total} order{total === 1 ? "" : "s"} · {activeLabel.toLowerCase()}
+          {dateLabel}
         </p>
         <div className="flex items-center gap-2">
           <Link
@@ -65,17 +115,7 @@ export default async function OrdersPage({
           >
             New order
           </Link>
-          <form action="/admin/orders" className="flex gap-2">
-            <input
-              name="q"
-              defaultValue={search}
-              placeholder="Order #, email, name"
-              className="rounded-lg border border-line bg-ink-2 px-3 py-1.5 text-sm text-fg outline-none focus:border-accent"
-            />
-            <button className="rounded-lg border border-line-2 bg-surface px-3 py-1.5 text-sm text-fg-2 hover:text-fg">
-              Search
-            </button>
-          </form>
+          <OrdersFilters search={search} from={from} to={to} exportHref={exportHref} />
         </div>
       </div>
 
@@ -87,7 +127,7 @@ export default async function OrdersPage({
           return (
             <Link
               key={t.key}
-              href={t.key === "to_fulfil" ? "/admin/orders" : `/admin/orders?status=${t.key}`}
+              href={tabHref(t.key)}
               className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${
                 active
                   ? "border-accent/40 bg-accent/10 text-accent"
@@ -121,7 +161,17 @@ export default async function OrdersPage({
           </p>
         </div>
       ) : (
-        <OrdersTable rows={rows} />
+        <OrdersTable
+          rows={rows}
+          sort={sort}
+          dir={dir}
+          query={{
+            ...(status !== "to_fulfil" ? { status } : {}),
+            ...(search ? { q: search } : {}),
+            ...(from ? { from } : {}),
+            ...(to ? { to } : {}),
+          }}
+        />
       )}
 
       {pages > 1 && (

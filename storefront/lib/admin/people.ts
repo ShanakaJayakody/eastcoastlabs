@@ -1,4 +1,5 @@
 import "server-only";
+import { csvRow } from "@/lib/csv";
 
 /**
  * The People index.
@@ -176,3 +177,30 @@ export const hoursLabel = (h: number | null): string => {
   if (h < 48) return `${Math.round(h)}h`;
   return `${Math.round(h / DAY_H)}d`;
 };
+
+/** CSV of whatever view the operator is looking at. */
+export function peopleCsv(rows: PersonRow[]): string {
+  const head = [
+    "email",
+    "name",
+    "orders",
+    "ltv_aud",
+    "last_order_at",
+    "subscribed",
+    "unsubscribed",
+    "segments",
+  ];
+  const lines = rows.map((r) =>
+    csvRow([
+      r.email,
+      r.name ?? "",
+      r.ordersCount,
+      (r.ltvCents / 100).toFixed(2),
+      r.lastOrderAt ?? "",
+      r.subscribed,
+      r.unsubscribed,
+      r.segments.join(" "),
+    ]),
+  );
+  return [csvRow(head), ...lines].join("\n");
+}

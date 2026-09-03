@@ -7,6 +7,7 @@ import { Plus, Trash2 } from "lucide-react";
 import Badge from "./Badge";
 import { formatAud } from "@/lib/format";
 import { createDiscount, toggleDiscount, deleteDiscount } from "@/app/admin/(dashboard)/discounts/actions";
+import ConfirmModal from "./ConfirmModal";
 
 export interface DiscountRow {
   code: string;
@@ -28,6 +29,7 @@ export default function DiscountsManager({ discounts }: { discounts: DiscountRow
   const router = useRouter();
   const [pending, start] = useTransition();
   const [show, setShow] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [form, setForm] = useState({
     code: "",
     kind: "percent" as "percent" | "fixed",
@@ -185,9 +187,7 @@ export default function DiscountsManager({ discounts }: { discounts: DiscountRow
                         </button>
                         <button
                           disabled={pending}
-                          onClick={() => {
-                            if (confirm(`Delete ${d.code}?`)) run(() => deleteDiscount(d.code));
-                          }}
+                          onClick={() => setDeleting(d.code)}
                           className="text-muted hover:text-red-400"
                           aria-label={`Delete ${d.code}`}
                         >
@@ -207,6 +207,37 @@ export default function DiscountsManager({ discounts }: { discounts: DiscountRow
         Codes apply at checkout. <span className="font-mono text-fg-2">WELCOME10</span> is the code
         your exit-intent modal promises new visitors.
       </p>
+
+      <ConfirmModal
+        open={deleting !== null}
+        title="Delete this discount code?"
+        body={
+          deleting && (
+            <>
+              <p className="font-mono font-medium text-fg">{deleting}</p>
+              <p className="mt-1.5 text-muted">
+                {(() => {
+                  const row = discounts.find((d) => d.code === deleting);
+                  const used = row?.used_count ?? 0;
+                  return used > 0
+                    ? `Used ${used} time${used === 1 ? "" : "s"} already. Deleting removes the code entirely — anyone who still has it will get "invalid code" at checkout. Disabling it instead keeps the history intact.`
+                    : "Never used. Deleting removes it entirely; anyone holding the code will get \u201cinvalid code\u201d at checkout.";
+                })()}
+              </p>
+            </>
+          )
+        }
+        confirmLabel="Delete code"
+        tone="danger"
+        pending={pending}
+        onConfirm={() => {
+          const code = deleting;
+          if (!code) return;
+          setDeleting(null);
+          run(() => deleteDiscount(code));
+        }}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   );
 }

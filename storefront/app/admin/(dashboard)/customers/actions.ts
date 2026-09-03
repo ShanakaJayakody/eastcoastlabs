@@ -268,13 +268,14 @@ export async function suppressMarketing(email: string): Promise<ActionResult> {
   // and leave a marker row when they were never a subscriber, so the batch-wise
   // suppression check in the sweeps sees them either way.
   const { data: rows } = await db.from("subscribers").select("id").eq("email", to);
-  if ((rows ?? []).length) {
-    await db.from("subscribers").update({ unsubscribed_at: now }).eq("email", to);
-  } else {
-    await db
-      .from("subscribers")
-      .upsert({ email: to, source: "admin", unsubscribed_at: now }, { onConflict: "email,source" });
-  }
+  // The write result decides the outcome. Returning ok unconditionally meant a
+  // failed suppression reported success, and the bulk caller could never see it.
+  const { error } = (rows ?? []).length
+    ? await db.from("subscribers").update({ unsubscribed_at: now }).eq("email", to)
+    : await db
+        .from("subscribers")
+        .upsert({ email: to, source: "admin", unsubscribed_at: now }, { onConflict: "email,source" });
+  if (error) return { ok: false, message: error.message };
 
   await logAudit({
     actor: session.email,
@@ -442,4 +443,101 @@ async function buildPayload(
     default:
       return {};
   }
+}
+
+/* ---------------- bulk segment actions -------------------------------------- */
+
+/** Cap on one bulk call. Large enough for any real segment here, small enough
+ *  that a stray click cannot email or mutate the entire customer base. */
+const BULK_LIMIT = 500;
+
+/** Mirrors the per-customer cap enforced by setTags. */
+const TAG_LIMIT = 12;
+
+export interface BulkResult extends ActionResult {
+  changed?: number;
+  failed?: string[];
+}
+
+/**
+ * Suppress marketing for a whole selection.
+ *
+ * Each address goes through the same per-email path as the single-customer
+ * button, so the subscriber-row semantics and the audit trail stay identical.
+ * Failures are collected and reported, never swallowed.
+ */
+export async function bulkSuppressMarketing(emails: string[]): Promise<BulkResult> {
+  await requireAdmin();
+  const targets = [...new Set(emails.map(clean).filter(Boolean))].slice(0, BULK_LIMIT);
+  if (!targets.length) return { ok: false, message: "Nobody selected." };
+
+  const failed: string[] = [];
+  let changed = 0;
+  for (const email of targets) {
+    const res = await suppressMarketing(email);
+    if (res.ok) changed += 1;
+    else failed.push(email);
+  }
+  revalidatePath("/admin/customers");
+  if (!changed) return { ok: false, failed, message: "Nobody could be suppressed." };
+  return { ok: true, changed, failed, message: `Marketing suppressed for ${changed}.` };
+}
+
+/**
+ * Add one tag across a selection, preserving whatever tags each person already
+ * has — a bulk tag is an addition, not a replacement, and overwriting would
+ * silently destroy per-customer labels.
+ */
+export async function bulkAddTag(emails: string[], tag: string): Promise<BulkResult> {
+  const session = await requireAdmin();
+  const label = tag.trim().slice(0, 32);
+  if (!label) return { ok: false, message: "Tag is empty." };
+  const targets = [...new Set(emails.map(clean).filter(Boolean))].slice(0, BULK_LIMIT);
+  if (!targets.length) return { ok: false, message: "Nobody selected." };
+
+  const db = adminDb();
+  const { data: existing } = await db
+    .from("customer_profiles")
+    .select("email, tags")
+    .in("email", targets);
+  const tagsByEmail = new Map<string, string[]>(
+    (existing ?? []).map((r) => [r.email as string, (r.tags as string[]) ?? []]),
+  );
+
+  // Someone already holding the maximum number of tags cannot take another.
+  // Silently truncating would report success while changing nothing, so they
+  // are reported as failures instead.
+  const atCapacity: string[] = [];
+  const rows = targets.flatMap((email) => {
+    const current = tagsByEmail.get(email) ?? [];
+    if (current.includes(label)) return [];
+    if (current.length >= TAG_LIMIT) {
+      atCapacity.push(email);
+      return [];
+    }
+    return [{ email, tags: [...current, label], updated_at: new Date().toISOString() }];
+  });
+
+  if (rows.length) {
+    const { error } = await db.from("customer_profiles").upsert(rows, { onConflict: "email" });
+    if (error) return { ok: false, message: error.message };
+  }
+
+  await logAudit({
+    actor: session.email,
+    action: "customer.bulk_tag",
+    entityType: "customer",
+    entityId: `${rows.length} people`,
+    diff: { tag: label, emails: rows.map((r) => r.email).slice(0, 50) },
+  });
+  revalidatePath("/admin/customers");
+  const alreadyTagged = targets.length - rows.length - atCapacity.length;
+  return {
+    ok: true,
+    changed: rows.length,
+    failed: atCapacity,
+    message: rows.length
+      ? `Tagged ${rows.length} as "${label}"${alreadyTagged ? ` · ${alreadyTagged} already had it` : ""}.`
+      : `Nobody changed — everyone selected already had "${label}" or is at the ${TAG_LIMIT}-tag limit.`,
+  };
 }

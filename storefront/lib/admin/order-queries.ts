@@ -1,5 +1,6 @@
 /** Read-side queries for the orders module. Mutations live in orders.ts. */
 import { adminDb } from "./db";
+import { csvRow } from "@/lib/csv";
 import type { OrderStatus } from "./orders";
 
 export interface OrderListRow {
@@ -18,29 +19,88 @@ export type OrderFilter = OrderStatus | "all" | "to_fulfil";
 
 export const TO_FULFIL: OrderStatus[] = ["paid", "processing"];
 
+/** Columns the list can be sorted by. Anything else falls back to `created_at`. */
+export type OrderSort = "created_at" | "total_cents" | "order_number" | "status";
+
+const SORTABLE: OrderSort[] = ["created_at", "total_cents", "order_number", "status"];
+
+export function parseOrderSort(value: string | undefined | null): OrderSort {
+  return SORTABLE.includes(value as OrderSort) ? (value as OrderSort) : "created_at";
+}
+
+/**
+ * A `YYYY-MM-DD` Sydney date as a UTC instant.
+ *
+ * `end: true` returns the first instant of the *next* day, so a filter can be
+ * half-open and still include everything the operator typed as the last day.
+ * Anything malformed returns null, which callers read as "no bound" — the
+ * value comes from the URL and must never throw the page.
+ */
+export function sydneyDayBoundary(value: string | undefined | null, end = false): string | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [y, m, d] = value.split("-").map((n) => parseInt(n, 10));
+  const civil = { y, m, d };
+  if (toIso(fromProxy(proxy(civil))) !== value) return null;
+  const target = end ? addDays(civil, 1) : civil;
+  // Sydney is UTC+10, or UTC+11 on daylight time. Probe the real offset for
+  // that date rather than assuming, so a filter never slips by an hour.
+  const guess = new Date(Date.UTC(target.y, target.m - 1, target.d, 0, 0, 0));
+  for (const offsetHours of [10, 11]) {
+    const candidate = new Date(guess.getTime() - offsetHours * 3_600_000);
+    if (sydneyDayKey(candidate) === toIso(target)) {
+      const parts = sydneyParts(candidate);
+      if (parts.h === 0) return candidate.toISOString();
+    }
+  }
+  return new Date(guess.getTime() - 10 * 3_600_000).toISOString();
+}
+
 export interface OrderListFilters {
   status?: OrderFilter;
   search?: string;
   limit?: number;
   offset?: number;
+  /** Inclusive Sydney date, `YYYY-MM-DD`. */
+  from?: string | null;
+  /** Inclusive Sydney date, `YYYY-MM-DD`. */
+  to?: string | null;
+  sort?: OrderSort;
+  dir?: "asc" | "desc";
 }
 
 export async function listOrders(
   filters: OrderListFilters = {},
 ): Promise<{ rows: OrderListRow[]; total: number }> {
-  const { status = "all", search, limit = 25, offset = 0 } = filters;
+  const {
+    status = "all",
+    search,
+    limit = 25,
+    offset = 0,
+    from,
+    to,
+    sort = "created_at",
+    dir = "desc",
+  } = filters;
   let q = adminDb()
     .from("orders")
     .select("id, order_number, status, customer_email, customer_name, total_cents, created_at, order_items(count)", {
       count: "exact",
     })
-    .order("created_at", { ascending: false })
+    .order(sort, { ascending: dir === "asc" })
     .range(offset, offset + limit - 1);
 
   if (status === "to_fulfil") q = q.in("status", TO_FULFIL);
   else if (status !== "all") q = q.eq("status", status);
+
+  const fromIso = sydneyDayBoundary(from);
+  const toIsoBound = sydneyDayBoundary(to, true);
+  if (fromIso) q = q.gte("created_at", fromIso);
+  if (toIsoBound) q = q.lt("created_at", toIsoBound);
   if (search?.trim()) {
-    const s = search.trim();
+    // Commas separate conditions in a PostgREST .or() and parens group them, so
+    // an unescaped one produces a 400 and a 500 page. With live search this now
+    // fires per keystroke, not on an explicit submit.
+    const s = search.trim().replace(/[,()]/g, "");
     q = q.or(`order_number.ilike.%${s}%,customer_email.ilike.%${s}%,customer_name.ilike.%${s}%`);
   }
 
@@ -550,4 +610,36 @@ export async function revenueWindow(input: {
     prevAnchor: toIso(prevStart),
     nextAnchor: isCurrent ? null : toIso(end),
   };
+}
+
+/** PostgREST caps a single response (1000 rows by default), so a large export
+ *  has to be paged rather than asked for in one go — otherwise the CSV is
+ *  silently truncated and reconciles against nothing. */
+const EXPORT_PAGE = 500;
+const EXPORT_MAX = 20_000;
+
+/**
+ * CSV of the current orders view. Takes the same filters as the list so the
+ * download is what the operator is looking at, not a different question.
+ */
+export async function ordersCsv(filters: OrderListFilters = {}): Promise<string> {
+  const collected: OrderListRow[] = [];
+  for (let offset = 0; offset < EXPORT_MAX; offset += EXPORT_PAGE) {
+    const { rows, total } = await listOrders({ ...filters, limit: EXPORT_PAGE, offset });
+    collected.push(...rows);
+    if (rows.length < EXPORT_PAGE || collected.length >= total) break;
+  }
+  const head = ["order_number", "status", "customer_name", "customer_email", "items", "total_aud", "placed_at"];
+  const lines = collected.map((r) =>
+    csvRow([
+      r.order_number,
+      r.status,
+      r.customer_name ?? "",
+      r.customer_email,
+      r.item_count,
+      (r.total_cents / 100).toFixed(2),
+      r.created_at,
+    ]),
+  );
+  return [csvRow(head), ...lines].join("\n");
 }

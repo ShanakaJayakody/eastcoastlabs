@@ -1,6 +1,7 @@
 # Admin Dashboard & Experience Revamp Plan
 
-> Status: **Phase 1 implemented (2026-09-02). Phases 2–4 remain proposals.**
+> Status: **Phases 1 and 2 implemented (2026-09-02). Phases 3 and 4 remain proposals.**
+> Not yet deployed — the Vercel project has no Git integration, so pushing does not publish.
 > Shipped alongside this plan (2026-09-02): revenue chart period navigation (prev/next by month, calendar week, day; prior-period delta; URL-linkable; arrow keys). Files: `storefront/lib/admin/order-queries.ts` (`revenueWindow`), `storefront/app/admin/(dashboard)/revenue-actions.ts`, `storefront/components/admin/RevenueChart.tsx`, `storefront/app/admin/(dashboard)/page.tsx`.
 > Precedent: `ADMIN_PRODUCTS_UX_PLAN.md` (implemented 2026-08-28). Same shape here: diagnosis, direction, phases with file targets.
 
@@ -102,7 +103,17 @@ Everything reuses what exists: `revenueWindow` for any period-scoped number, `Co
 - **Sparkline + delta** on the four KPI tiles: add a tiny 14-point series prop to `StatCard`.
 - **Streaming**: wrap the analytics section in `Suspense` with the existing `Skeleton` so the queue paints first.
 
-## Phase 2 — One confirmation pattern + list-page basics (~1.5 days)
+## Phase 2 — One confirmation pattern + list-page basics — IMPLEMENTED 2026-09-02
+
+> Shipped: every native `confirm()` in the admin replaced with `ConfirmModal`, each naming
+> its consequence; bulk mark-paid / mark-shipped now confirm too, and report partial failures
+> separately instead of as a trailing clause. Orders gained a date range with presets, sortable
+> columns, debounced live search and CSV export, all URL-driven and all carried by the export.
+> Customers gained real pagination with "showing N of M", CSV export, and bulk tag /
+> marketing-suppression. ECL-1042's missing refund amount was corrected.
+> New files: `storefront/lib/csv.ts`, `storefront/components/admin/{OrdersFilters,CustomersTable}.tsx`,
+> `storefront/app/admin/(dashboard)/{orders,customers}/export/route.ts`.
+> Not browser-verified: admin needs a live session and Interceptor is not installed here.
 
 - Replace `confirm()` in `OrderItemsPanel.tsx`, `DiscountsManager.tsx`, `CoaManager.tsx` with `ConfirmModal`, with consequence copy.
 - Orders: `?from=&to=` date range (reuse the calendar helpers), column sort, bulk select → mark shipped / print slips, CSV export route mirroring `products/export/route.ts`, live search via `router.replace` (products already does this).

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, FileText } from "lucide-react";
 import Badge from "./Badge";
 import { saveCoaBatch, deleteCoaBatch } from "@/app/admin/(dashboard)/coas/actions";
+import ConfirmModal from "./ConfirmModal";
 
 export interface CoaRow {
   batch_id: string;
@@ -46,6 +47,8 @@ export default function CoaManager({
       } else toast.error(res.error ?? "Failed");
     });
   };
+
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const remove = (batchId: string) =>
     start(async () => {
@@ -162,9 +165,7 @@ export default function CoaManager({
                 <td className="px-4 py-3 text-right">
                   <button
                     disabled={pending}
-                    onClick={() => {
-                      if (confirm(`Delete batch ${b.batch_id}?`)) remove(b.batch_id);
-                    }}
+                    onClick={() => setDeleting(b.batch_id)}
                     className="text-muted hover:text-red-400"
                     aria-label={`Delete ${b.batch_id}`}
                   >
@@ -176,6 +177,36 @@ export default function CoaManager({
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        open={deleting !== null}
+        title="Delete this COA batch?"
+        body={
+          deleting && (
+            <>
+              <p className="font-mono font-medium text-fg">{deleting}</p>
+              <p className="mt-1.5 text-muted">
+                {(() => {
+                  const row = batches.find((b) => b.batch_id === deleting);
+                  return row
+                    ? `${row.compound} · ${row.purity_pct}% · ${row.lab}. The certificate stops appearing on the product page and on packing slips for this compound.`
+                    : "The certificate stops appearing on the product page and on packing slips.";
+                })()}
+              </p>
+            </>
+          )
+        }
+        confirmLabel="Delete batch"
+        tone="danger"
+        pending={pending}
+        onConfirm={() => {
+          const id = deleting;
+          if (!id) return;
+          setDeleting(null);
+          remove(id);
+        }}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Minus, Plus, X } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { OrderStatus } from "@/lib/admin/orders";
 import { editItemQty, removeItem, refundLines } from "@/app/admin/(dashboard)/orders/actions";
+import ConfirmModal from "./ConfirmModal";
 
 export interface ItemRow {
   id: string;
@@ -45,6 +46,8 @@ export default function OrderItemsPanel({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [refundQty, setRefundQty] = useState<Record<string, number>>({});
+  const [removing, setRemoving] = useState<ItemRow | null>(null);
+  const [confirmRefund, setConfirmRefund] = useState(false);
 
   const editable = status === "pending";
   const refundable = status !== "pending" && status !== "cancelled" && status !== "refunded";
@@ -55,6 +58,8 @@ export default function OrderItemsPanel({
       if (res.ok) router.refresh();
       else toast.error(res.error ?? "Failed");
     });
+
+  const refundLineCount = Object.values(refundQty).filter((q) => q > 0).length;
 
   const selectedRefundCents = items.reduce((sum, it) => {
     const q = refundQty[it.id] ?? 0;
@@ -111,10 +116,7 @@ export default function OrderItemsPanel({
                       </button>
                       <button
                         disabled={pending}
-                        onClick={() => {
-                          if (confirm(`Remove ${it.product_name} from this order?`))
-                            run(() => removeItem(orderId, it.id));
-                        }}
+                        onClick={() => setRemoving(it)}
                         className="ml-1 text-muted hover:text-red-400"
                         aria-label="Remove item"
                       >
@@ -162,26 +164,78 @@ export default function OrderItemsPanel({
           <span className="text-sm text-fg-2">Refund total: {cents(selectedRefundCents)}</span>
           <button
             disabled={pending}
-            onClick={() => {
-              const lines = Object.entries(refundQty)
-                .filter(([, q]) => q > 0)
-                .map(([itemId, qty]) => ({ itemId, qty }));
-              if (!confirm(`Refund ${cents(selectedRefundCents)} across ${lines.length} line(s)?`)) return;
-              start(async () => {
-                const res = await refundLines(orderId, lines);
-                if (res.ok) {
-                  toast.success(`Refunded ${cents(res.refundedCents ?? 0)}${res.fullyRefunded ? " — order fully refunded" : ""}`);
-                  setRefundQty({});
-                  router.refresh();
-                } else toast.error(res.error ?? "Refund failed");
-              });
-            }}
+            onClick={() => setConfirmRefund(true)}
             className={`${btn} bg-accent px-3 py-1.5 text-accent-ink hover:brightness-95`}
           >
             Refund selected
           </button>
         </div>
       )}
+
+      <ConfirmModal
+        open={removing !== null}
+        title="Remove this line?"
+        body={
+          removing && (
+            <>
+              <p className="font-medium text-fg">
+                {removing.product_name}
+                {removing.variant_label ? ` · ${removing.variant_label}` : ""}
+              </p>
+              <p className="mt-1.5 text-muted">
+                Removes {removing.qty} × {cents(removing.unit_price_cents)} from this order and
+                releases the stock it had reserved. The order total drops by{" "}
+                {cents(removing.line_total_cents)}.
+              </p>
+            </>
+          )
+        }
+        confirmLabel="Remove line"
+        tone="danger"
+        pending={pending}
+        onConfirm={() => {
+          const target = removing;
+          if (!target) return;
+          setRemoving(null);
+          run(() => removeItem(orderId, target.id));
+        }}
+        onCancel={() => setRemoving(null)}
+      />
+
+      <ConfirmModal
+        open={confirmRefund}
+        title="Refund these lines?"
+        body={
+          <>
+            <p className="font-medium text-fg">{cents(selectedRefundCents)} back to the customer</p>
+            <p className="mt-1.5 text-muted">
+              Across {refundLineCount} line{refundLineCount === 1 ? "" : "s"}. The refunded stock is
+              returned to inventory. Money is not moved automatically — refund it in your payment
+              provider or bank separately.
+            </p>
+          </>
+        }
+        confirmLabel="Record refund"
+        tone="danger"
+        pending={pending}
+        onConfirm={() => {
+          const lines = Object.entries(refundQty)
+            .filter(([, q]) => q > 0)
+            .map(([itemId, qty]) => ({ itemId, qty }));
+          start(async () => {
+            const res = await refundLines(orderId, lines);
+            if (res.ok) {
+              toast.success(
+                `Refunded ${cents(res.refundedCents ?? 0)}${res.fullyRefunded ? " — order fully refunded" : ""}`,
+              );
+              setRefundQty({});
+              setConfirmRefund(false);
+              router.refresh();
+            } else toast.error(res.error ?? "Refund failed");
+          });
+        }}
+        onCancel={() => setConfirmRefund(false)}
+      />
 
       <dl className="space-y-1.5 border-t border-line px-4 py-3 text-sm">
         <div className="flex justify-between">
