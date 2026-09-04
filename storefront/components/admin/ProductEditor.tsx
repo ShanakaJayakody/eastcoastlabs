@@ -647,31 +647,44 @@ export default function ProductEditor({
         </div>
       </div>
 
-      {/* ---- Contextual save bar ---- */}
+      {/*
+        ---- Save bar ----
+        Always on screen, even with nothing to save. It used to slide up only
+        once the form was dirty, which meant an operator opening a product saw
+        no save affordance at all and couldn't tell where saving happened —
+        or whether it was automatic. Showing it in a resting state answers that
+        before the first keystroke; it lights up once there's something to commit.
+      */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 backdrop-blur transition-transform duration-200 ${
-          dirty ? "translate-y-0" : "translate-y-full"
+        className={`fixed inset-x-0 bottom-0 z-40 border-t bg-ink/95 backdrop-blur transition-colors duration-200 ${
+          dirty ? "border-accent/40" : "border-line"
         }`}
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <p className="text-sm text-fg-2">
-            Unsaved changes
-            <span className="ml-2 text-xs text-muted">
-              Stock changes are not part of this — they save on their own.
+          <p className={`text-sm ${dirty ? "text-fg-2" : "text-muted"}`}>
+            {dirty ? "Unsaved changes" : "No changes"}
+            <span className="ml-2 text-xs text-muted-2">
+              Stock, cost and images are not part of this — they save on their own.
             </span>
           </p>
           <div className="flex gap-2">
             <button
-              disabled={pending}
+              disabled={pending || !dirty}
               onClick={() => setForm(initial)}
               className={`${btn} border border-line-2 text-fg-2 hover:text-fg`}
             >
               Discard
             </button>
             <button
-              disabled={pending}
+              disabled={pending || !dirty}
               onClick={saveAll}
-              className={`${btn} bg-accent px-5 text-accent-ink hover:brightness-95`}
+              className={`${btn} px-5 ${
+                dirty
+                  ? "bg-accent text-accent-ink hover:brightness-95"
+                  // Resting, not faded: btn's disabled:opacity-50 would make the
+                  // button the operator is meant to notice nearly invisible.
+                  : "border border-line-2 bg-surface-2 text-muted disabled:opacity-100"
+              }`}
             >
               {pending ? "Saving…" : "Save"}
             </button>
