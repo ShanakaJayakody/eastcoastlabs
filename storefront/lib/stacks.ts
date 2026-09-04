@@ -10,7 +10,7 @@
 
 import stacksData from "@/data/stacks.json";
 import { getPricing } from "./pricing";
-import { getProducts } from "./woo";
+import { getCatalog } from "./catalog";
 
 export interface StackComponent {
   slug: string;
@@ -47,7 +47,7 @@ interface RawStack {
 const RAW = (stacksData as unknown as { stacks: RawStack[] }).stacks;
 
 export async function getStacks(): Promise<ResolvedStack[]> {
-  const products = await getProducts(50);
+  const { products } = await getCatalog();
   const bySlug = new Map(products.map((p) => [p.slug, p]));
 
   const resolved: ResolvedStack[] = [];

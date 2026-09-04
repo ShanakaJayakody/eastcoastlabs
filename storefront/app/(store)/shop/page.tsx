@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getProducts } from "@/lib/woo";
+import { getCatalog } from "@/lib/catalog";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import AccessoryGrid from "@/components/AccessoryGrid";
 import ShopFilterGrid from "@/components/ShopFilterGrid";
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function ShopPage() {
-  const [products, comingSoon] = await Promise.all([getProducts(20), getComingSoonProducts()]);
+  const [{ products }, comingSoon] = await Promise.all([getCatalog(), getComingSoonProducts()]);
   const collections = getCollections();
   // Slim card data — avoids shipping heavy description HTML to the client filter.
   const rawCards: CardProduct[] = products.map((p) => ({
@@ -30,6 +30,7 @@ export default async function ShopPage() {
     is_in_stock: p.is_in_stock,
     images: p.images,
     prices: p.prices,
+    tiers: p.tiers,
   }));
   // Live stock + published ratings, batched (server-only).
   const cards = await decorateCards(rawCards);

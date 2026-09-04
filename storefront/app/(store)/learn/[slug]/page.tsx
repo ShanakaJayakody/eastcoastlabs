@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getGuide, getGuides } from "@/lib/guides";
-import { getProducts } from "@/lib/woo";
+import { getCatalog } from "@/lib/catalog";
 import ProductCard from "@/components/ProductCard";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 
@@ -40,8 +40,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const guide = await getGuide(slug);
   if (!guide) notFound();
 
-  const [allGuides, products] = await Promise.all([getGuides(), getProducts(50)]);
-  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const [allGuides, { bySlug }] = await Promise.all([getGuides(), getCatalog()]);
   const relatedProducts = guide.compounds
     .map((c) => bySlug.get(c))
     .filter((p): p is NonNullable<typeof p> => p != null)

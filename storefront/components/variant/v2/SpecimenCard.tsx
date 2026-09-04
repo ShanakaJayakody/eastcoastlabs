@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { WooProduct } from "@/lib/woo";
-import { minorToMajor, formatMinor } from "@/lib/format";
-import { fromPerVialLabel } from "@/lib/pricing";
+import { minorToMajor, formatMinor, formatAud } from "@/lib/format";
+import { fromPerVialLabel, type TierCard } from "@/lib/pricing";
 import SquareStars from "./SquareStars";
 
 export type SpecimenProduct = Pick<
@@ -10,6 +10,9 @@ export type SpecimenProduct = Pick<
   "id" | "name" | "slug" | "sku" | "is_in_stock" | "images" | "prices" | "short_description"
 > & {
   rating?: { rating: number; count: number } | null;
+  /** Pack tiers from the DB catalog. Present => the card prices from real
+   *  variants; absent => fall back to the static price table. */
+  tiers?: TierCard[] | null;
 };
 
 /**
@@ -20,7 +23,11 @@ export type SpecimenProduct = Pick<
 export default function SpecimenCard({ product }: { product: SpecimenProduct }) {
   const img = product.images?.[0];
   const single = minorToMajor(product.prices.price, product.prices.currency_minor_unit);
-  const perVialLabel = fromPerVialLabel(product.slug, product.name, single);
+  // Prefer the product's own tiers (DB truth); the price table is the fallback
+  // for anything the DB hasn't answered for.
+  const perVialLabel = product.tiers?.length
+    ? `from ${formatAud(Math.min(...product.tiers.map((t) => t.perVial)))}/vial`
+    : fromPerVialLabel(product.slug, product.name, single);
   const inStock = product.is_in_stock !== false;
   const rating = product.rating ?? null;
   const descriptor = product.short_description?.replace(/<[^>]+>/g, "").trim();

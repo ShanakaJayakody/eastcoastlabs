@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProducts, type WooProduct } from "@/lib/woo";
-import { withLiveData } from "@/lib/storefront-catalog";
-import { getPricing, type TierCard } from "@/lib/pricing";
+import { getCatalog, type CatalogProduct } from "@/lib/catalog";
 import { getCrossSellSlugs } from "@/lib/crosssells";
 import { getCoaForProduct } from "@/lib/coa";
 import { getProductCopy, getHomeCopy } from "@/lib/content";
@@ -25,11 +23,7 @@ export const revalidate = 300;
 
 const stripHtml = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-async function loadCatalog() {
-  const products = await getProducts(20);
-  const bySlug = new Map(products.map((p) => [p.slug, p]));
-  return { products, bySlug };
-}
+
 
 export async function generateMetadata({
   params,
@@ -37,7 +31,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const { bySlug } = await loadCatalog();
+  const { bySlug } = await getCatalog();
   const product = bySlug.get(slug);
   if (!product) return { title: "Product not found" };
   const desc = stripHtml(product.short_description || product.description).slice(0, 160);
@@ -52,31 +46,17 @@ export async function generateMetadata({
   };
 }
 
-/**
- * Build tier cards. Preference order:
- *  1. Real WooCommerce `variations` (variable products) — not present yet, and
- *     Store API variation refs don't carry prices inline, so this is reserved.
- *  2. price-table tiers (the current bridge — encodes the 1/3/6 economics).
- *  3. null -> simple product, "pack options coming" state.
- */
-function resolveTiers(product: WooProduct, singleMajor: number): TierCard[] | null {
-  const pricing = getPricing(product.slug, product.name, singleMajor);
-  return pricing?.tiers ?? null;
-}
-
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { products, bySlug } = await loadCatalog();
-  const base = bySlug.get(slug);
-  if (!base) notFound();
-
-  // Overlay live DB data (admin edits + REAL availability) on top of the JSON
-  // catalog. Server-only module — see lib/storefront-catalog.ts for why.
-  const product = await withLiveData(base);
+  const { products, bySlug } = await getCatalog();
+  const product = bySlug.get(slug);
+  if (!product) notFound();
 
   const minorUnit = product.prices.currency_minor_unit;
   const singleMajor = minorToMajor(product.prices.price, minorUnit);
-  const tiers = resolveTiers(product, singleMajor);
+  // Tiers come straight off the product's own variants, so what the page shows
+  // and what checkout charges cannot drift apart.
+  const tiers = product.tiers;
 
   const [copy, coa, homeCopy, guide] = await Promise.all([
     getProductCopy(product.name, product.slug),
@@ -97,7 +77,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
   const crossSells = getCrossSellSlugs(product.slug)
     .map((s) => bySlug.get(s))
-    .filter((p): p is WooProduct => p != null && p.slug !== product.slug)
+    .filter((p): p is CatalogProduct => p != null && p.slug !== product.slug)
     .slice(0, 3);
 
   const descriptor = copy?.descriptor || stripHtml(product.short_description);

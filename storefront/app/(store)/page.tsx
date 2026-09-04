@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getProducts } from "@/lib/woo";
+import { getCatalog } from "@/lib/catalog";
 import { getLatestCoa } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import ProductCard from "@/components/ProductCard";
@@ -23,8 +23,8 @@ export const revalidate = 300;
 const BESTSELLER_SLUGS = ["tesamorelin", "mots-c", "semax", "selank", "bpc-157", "tb-500", "glow", "ghk-cu"];
 
 export default async function HomePage() {
-  const [products, coa, copy, stacks] = await Promise.all([
-    getProducts(20),
+  const [catalog, coa, copy, stacks] = await Promise.all([
+    getCatalog(),
     getLatestCoa(6),
     getHomeCopy(),
     getStacks(),
@@ -33,7 +33,7 @@ export default async function HomePage() {
   const featuredStacks = stacks.slice(0, 2);
   const collections = getCollections();
 
-  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const { products, bySlug } = catalog;
   const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
   const grid = await decorateCards(bestsellers.length >= 4 ? bestsellers : products.slice(0, 8));
 

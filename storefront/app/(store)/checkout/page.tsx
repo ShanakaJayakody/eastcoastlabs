@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import CheckoutForm from "@/components/CheckoutForm";
-import { getProducts } from "@/lib/woo";
+import { getCatalog } from "@/lib/catalog";
 import { minorToMajor } from "@/lib/format";
 import { buildBumpCandidates, BAC_WATER_SLUG } from "@/lib/bumps";
 import { getAvailabilityMap } from "@/lib/storefront-catalog";
@@ -15,7 +15,7 @@ export default async function CheckoutPage() {
   // resolved server-side; the accessories in the bump pool come from bundled
   // JSON. Which of them actually renders is decided client-side against the
   // cart's contents.
-  const products = await getProducts(50);
+  const { products } = await getCatalog();
   const bac = products.find((p) => p.slug === BAC_WATER_SLUG);
   const candidates = buildBumpCandidates(
     bac

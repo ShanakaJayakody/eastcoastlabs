@@ -1,0 +1,194 @@
+[
+  {
+    "id": "e86ad7d8-16f3-46b4-b246-6a50780d9519",
+    "slug": "bacteriostatic-water",
+    "pack_size": 3,
+    "price_cents": 5097
+  },
+  {
+    "id": "5568f8d0-b83a-4aa2-a08d-e75fb0c7f203",
+    "slug": "bacteriostatic-water",
+    "pack_size": 6,
+    "price_cents": 8996
+  },
+  {
+    "id": "e76ca01e-f980-48fb-b833-8395028c6fe3",
+    "slug": "bpc-157",
+    "pack_size": 3,
+    "price_cents": 15200
+  },
+  {
+    "id": "4bc40779-4d72-47ca-b83b-2a96a0316ea4",
+    "slug": "bpc-157",
+    "pack_size": 6,
+    "price_cents": 26900
+  },
+  {
+    "id": "03f89c31-613c-447e-9781-1683410a3e33",
+    "slug": "ghk-cu",
+    "pack_size": 3,
+    "price_cents": 20300
+  },
+  {
+    "id": "fecd73df-3a90-427f-9e42-05103bec2213",
+    "slug": "ghk-cu",
+    "pack_size": 6,
+    "price_cents": 35900
+  },
+  {
+    "id": "5ecd61a0-e151-43c9-83c7-89efc6bf56de",
+    "slug": "glow",
+    "pack_size": 3,
+    "price_cents": 30500
+  },
+  {
+    "id": "82b3c195-dae3-44aa-b965-57daeda44dda",
+    "slug": "glow",
+    "pack_size": 6,
+    "price_cents": 53900
+  },
+  {
+    "id": "471ecf72-b937-46cd-942b-da1d907cc07c",
+    "slug": "igf",
+    "pack_size": 3,
+    "price_cents": 35600
+  },
+  {
+    "id": "45b72898-38c0-4988-93ec-92be38c44054",
+    "slug": "igf",
+    "pack_size": 6,
+    "price_cents": 62900
+  },
+  {
+    "id": "915cc38e-019b-41a1-a297-a8b80f30ad1b",
+    "slug": "klow",
+    "pack_size": 3,
+    "price_cents": 38200
+  },
+  {
+    "id": "93045dc3-c837-4b62-990d-e6b7c3b91e72",
+    "slug": "klow",
+    "pack_size": 6,
+    "price_cents": 67400
+  },
+  {
+    "id": "f07e5660-8f48-49b6-859b-c4f545b98410",
+    "slug": "mots-c",
+    "pack_size": 3,
+    "price_cents": 17800
+  },
+  {
+    "id": "6ba60210-7e85-4fcb-b8ca-abbec78e64e1",
+    "slug": "mots-c",
+    "pack_size": 6,
+    "price_cents": 31400
+  },
+  {
+    "id": "33b632c4-59c3-45c7-8433-c985f7a6202a",
+    "slug": "mt2",
+    "pack_size": 3,
+    "price_cents": 10100
+  },
+  {
+    "id": "75c6eb40-ff4e-486b-ba81-6ec1b9629d87",
+    "slug": "mt2",
+    "pack_size": 6,
+    "price_cents": 17900
+  },
+  {
+    "id": "7c8cea83-1fb8-4c6a-99f9-a2fce7fe14d5",
+    "slug": "nad-plus",
+    "pack_size": 3,
+    "price_cents": 24700
+  },
+  {
+    "id": "d53d4766-bc99-476d-b41f-fa36fea09855",
+    "slug": "nad-plus",
+    "pack_size": 6,
+    "price_cents": 43700
+  },
+  {
+    "id": "5547b925-5cc6-4ef8-9505-7fd1d40d5692",
+    "slug": "retatrutide",
+    "pack_size": 3,
+    "price_cents": 25400
+  },
+  {
+    "id": "48458c07-d731-4ceb-893a-0c63119fb501",
+    "slug": "retatrutide",
+    "pack_size": 6,
+    "price_cents": 44900
+  },
+  {
+    "id": "f562052a-58bb-479e-9b3f-56d9fa554f35",
+    "slug": "selank",
+    "pack_size": 3,
+    "price_cents": 16500
+  },
+  {
+    "id": "bac6ddfd-fa91-4ff7-a739-56f639eb78fa",
+    "slug": "selank",
+    "pack_size": 6,
+    "price_cents": 29200
+  },
+  {
+    "id": "e14223b7-8c07-425c-a071-49f65268004d",
+    "slug": "semaglutide",
+    "pack_size": 3,
+    "price_cents": 21600
+  },
+  {
+    "id": "592b9cae-8fd7-42d7-9d02-f51bb0378e9a",
+    "slug": "semaglutide",
+    "pack_size": 6,
+    "price_cents": 38200
+  },
+  {
+    "id": "3a64f3e4-6ab8-4199-afd6-c9d6a1f347a4",
+    "slug": "semax",
+    "pack_size": 3,
+    "price_cents": 15200
+  },
+  {
+    "id": "1a902661-39fc-4f94-b07d-bf89759f4d5e",
+    "slug": "semax",
+    "pack_size": 6,
+    "price_cents": 26900
+  },
+  {
+    "id": "b6461b1c-296d-49cc-b1e7-5c30033382d2",
+    "slug": "tb-500",
+    "pack_size": 3,
+    "price_cents": 22900
+  },
+  {
+    "id": "9e3dbc31-16b3-4548-a4d7-0bc7017e9251",
+    "slug": "tb-500",
+    "pack_size": 6,
+    "price_cents": 40400
+  },
+  {
+    "id": "9d5052c5-93e5-46b6-af87-9a479854d659",
+    "slug": "tesamorelin",
+    "pack_size": 3,
+    "price_cents": 26700
+  },
+  {
+    "id": "9937a55a-ef63-4512-852c-5f63e2c2deea",
+    "slug": "tesamorelin",
+    "pack_size": 6,
+    "price_cents": 47200
+  },
+  {
+    "id": "617c2741-8d06-43ed-8e9c-74adeaea3f49",
+    "slug": "tirzepatide",
+    "pack_size": 3,
+    "price_cents": 22900
+  },
+  {
+    "id": "2c0c4e6d-b2d4-44f0-af1c-e46f802b464f",
+    "slug": "tirzepatide",
+    "pack_size": 6,
+    "price_cents": 40400
+  }
+]

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getProducts } from "@/lib/woo";
+import { getCatalog } from "@/lib/catalog";
 import { getCollection, getCollections } from "@/lib/collections";
 import ProductCard from "@/components/ProductCard";
 import { decorateCards } from "@/lib/storefront-catalog";
@@ -33,7 +33,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
   const collection = getCollection(slug);
   if (!collection) notFound();
 
-  const products = await getProducts(50);
+  const { products } = await getCatalog();
   const bySlug = new Map(products.map((p) => [p.slug, p]));
   const items = await decorateCards(collection.products.map((s) => bySlug.get(s)).filter((p) => p != null));
   const others = getCollections().filter((c) => c.slug !== collection.slug);

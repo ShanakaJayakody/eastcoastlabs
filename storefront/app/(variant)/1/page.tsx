@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getProducts } from "@/lib/woo";
+import { getCatalog } from "@/lib/catalog";
 import { getAllCoa } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import { getStacks } from "@/lib/stacks";
@@ -46,8 +46,8 @@ function formatProofDate(iso: string): string {
 }
 
 export default async function VariantHomePage() {
-  const [products, coaAll, copy, stacks, settings, recentReviews] = await Promise.all([
-    getProducts(20),
+  const [catalog, coaAll, copy, stacks, settings, recentReviews] = await Promise.all([
+    getCatalog(),
     getAllCoa(),
     getHomeCopy(),
     getStacks(),
@@ -60,7 +60,7 @@ export default async function VariantHomePage() {
   const ledgerRecords = coaAll.slice(0, 6);
   const latestBatch = coaAll[0];
 
-  const bySlug = new Map(products.map((p) => [p.slug, p]));
+  const { products, bySlug } = catalog;
   const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
   const grid = await decorateCards(bestsellers.length >= 4 ? bestsellers : products.slice(0, 8));
 
