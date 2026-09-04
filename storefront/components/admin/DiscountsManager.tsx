@@ -186,7 +186,7 @@ export default function DiscountsManager({
                           <Link
                             href={`/admin/orders?status=all&discount=${encodeURIComponent(d.code)}`}
                             className="text-accent-2 hover:underline"
-                            title={`See the ${stats.orders} order${stats.orders === 1 ? "" : "s"} that used ${d.code}`}
+                            title={`See the ${stats.orders} paid order${stats.orders === 1 ? "" : "s"} that used ${d.code}`}
                           >
                             {stats.orders}
                           </Link>

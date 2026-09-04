@@ -42,10 +42,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const brief = await buildDailyBrief();
-  const { subject, html } = renderDailyBrief(brief);
-
+  // Built inside the recorder below for the real send. The dry path builds its
+  // own copy because it returns before any run is recorded.
   if (dry) {
+    const brief = await buildDailyBrief();
+    const { subject, html } = renderDailyBrief(brief);
     return NextResponse.json({
       dry: true,
       date: brief.date,
@@ -58,6 +59,12 @@ export async function GET(request: Request) {
   }
 
   const result = await recordCronRun("daily-brief", async () => {
+    // Inside the wrapper: assembling the brief is the multi-table aggregation
+    // most likely to break, and a failure there is exactly what the run log
+    // exists to capture.
+    const brief = await buildDailyBrief();
+    const { subject, html } = renderDailyBrief(brief);
+
     // Vercel cron is at-least-once, so a retry must not deliver a second copy.
     if (await briefAlreadySent(brief.date)) {
       return { sent: 0, reason: "already sent", date: brief.date };

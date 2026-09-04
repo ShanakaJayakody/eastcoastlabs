@@ -98,14 +98,14 @@ export default async function RecoveryPage({
         <StatCard
           label="Active carts"
           value={String(metrics.activeCarts)}
-          sub="Idle 1h or more"
+          sub="Idle 1h or more · right now"
           icon={ShoppingCart}
           tone="accent"
         />
         <StatCard
           label="In sequence"
           value={String(metrics.inSequence)}
-          sub="At least one touch sent"
+          sub="At least one touch sent · right now"
           icon={Send}
         />
         <StatCard

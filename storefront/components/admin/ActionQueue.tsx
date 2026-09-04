@@ -132,44 +132,59 @@ export default function ActionQueue({ queue }: { queue: AttentionQueue }) {
             const meta = KIND_META[item.kind];
             const Icon = meta.icon;
             return (
+              /* Stacks on a phone: identity on top, then age and the action on
+                 their own row with a full-width tap target. Wrapping a 44px
+                 button into a flex row at 375px is what made this unusable. */
               <div
                 key={item.id}
-                className="flex flex-wrap items-center gap-3 px-4 py-3 transition hover:bg-surface-2/40"
+                className="px-4 py-3 transition hover:bg-surface-2/40 sm:flex sm:items-center sm:gap-3"
               >
-                <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${meta.tint}`}
-                >
-                  <Icon size={15} />
+                <div className="flex min-w-0 items-center gap-3 sm:flex-1">
+                  <span
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${meta.tint}`}
+                  >
+                    <Icon size={15} />
+                  </span>
+                  <Link href={item.href} className="group min-w-0 flex-1">
+                    <div className="truncate text-sm text-fg-2 group-hover:text-fg">{item.title}</div>
+                    <div className="truncate text-xs text-muted">{item.detail}</div>
+                  </Link>
+                  <span className="shrink-0 sm:hidden">
+                    {item.urgent ? (
+                      <Badge tone="warn">{item.ageLabel}</Badge>
+                    ) : (
+                      <span className="text-xs tabular-nums text-muted-2">{item.ageLabel}</span>
+                    )}
+                  </span>
+                </div>
+
+                <span className="hidden shrink-0 sm:inline">
+                  {item.urgent ? (
+                    <Badge tone="warn">{item.ageLabel}</Badge>
+                  ) : (
+                    <span className="text-xs tabular-nums text-muted-2">{item.ageLabel}</span>
+                  )}
                 </span>
 
-                <Link href={item.href} className="min-w-0 flex-1 group">
-                  <div className="truncate text-sm text-fg-2 group-hover:text-fg">{item.title}</div>
-                  <div className="truncate text-xs text-muted">{item.detail}</div>
-                </Link>
-
-                {item.urgent ? (
-                  <Badge tone="warn">{item.ageLabel}</Badge>
-                ) : (
-                  <span className="text-xs tabular-nums text-muted-2">{item.ageLabel}</span>
-                )}
-
-                {item.action ? (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => setConfirming(item)}
-                    className="rounded-lg border border-line-2 px-2.5 py-1.5 text-xs font-medium text-fg-2 transition hover:border-accent/40 hover:bg-surface-2 hover:text-fg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-                  >
-                    {item.action.label}
-                  </button>
-                ) : (
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-1 rounded-lg border border-line-2 px-2.5 py-1.5 text-xs font-medium text-fg-2 transition hover:border-accent/40 hover:bg-surface-2 hover:text-fg"
-                  >
-                    Open <ArrowRight size={12} />
-                  </Link>
-                )}
+                <div className="mt-2.5 pl-11 sm:mt-0 sm:pl-0">
+                  {item.action ? (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => setConfirming(item)}
+                      className="w-full rounded-lg border border-line-2 px-2.5 py-2 text-xs font-medium text-fg-2 transition hover:border-accent/40 hover:bg-surface-2 hover:text-fg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] sm:w-auto sm:py-1.5"
+                    >
+                      {item.action.label}
+                    </button>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="flex w-full items-center justify-center gap-1 rounded-lg border border-line-2 px-2.5 py-2 text-xs font-medium text-fg-2 transition hover:border-accent/40 hover:bg-surface-2 hover:text-fg sm:w-auto sm:py-1.5"
+                    >
+                      Open <ArrowRight size={12} />
+                    </Link>
+                  )}
+                </div>
               </div>
             );
           })}

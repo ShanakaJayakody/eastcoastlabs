@@ -192,7 +192,9 @@ export async function attentionQueue(limit = 8): Promise<AttentionQueue> {
       ageLabel: ageLabel(hours),
       rank: hours,
       urgent: hours >= FULFIL_URGENT_HOURS,
-      href: `/admin/orders/${row.id}`,
+      // Straight into packing mode: for an order waiting to be packed, that is
+      // the screen the operator actually wants.
+      href: `/admin/orders/${row.id}/pack`,
       action: {
         verb: "ship",
         label: "Mark shipped",

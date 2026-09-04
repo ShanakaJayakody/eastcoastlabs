@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -49,6 +49,69 @@ export default function OrdersTable({
   const [pending, start] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<"ship" | "pay" | null>(null);
+  // -1 means "nothing focused yet"; the first j or k lands on the first row.
+  const [cursor, setCursor] = useState(-1);
+  const rowsRef = useRef<(HTMLTableRowElement | null)[]>([]);
+
+  /**
+   * Keyboard row navigation, vi-style.
+   *
+   * Bound to the document rather than a container because the table has no
+   * natural focus host and the operator's hands are on the keyboard, not in it.
+   * Anything typed into an input or with a modifier held is left alone — the
+   * search box and the browser's own shortcuts come first.
+   */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      // A dialog owns the keyboard while it is open — otherwise Enter would
+      // navigate away from the very confirmation being read.
+      if (confirming !== null) return;
+      const target = event.target as HTMLElement | null;
+      // Buttons and links are excluded too: Enter on a focused control is the
+      // browser activating it, and preventDefault here would swallow that and
+      // navigate to the highlighted row instead.
+      if (
+        target &&
+        (target.isContentEditable ||
+          ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(target.tagName) ||
+          target.closest("button, a"))
+      ) {
+        return;
+      }
+      if (rows.length === 0) return;
+
+      const move = (delta: number) => {
+        event.preventDefault();
+        setCursor((current) => {
+          const next = Math.min(rows.length - 1, Math.max(0, current < 0 ? 0 : current + delta));
+          rowsRef.current[next]?.scrollIntoView({ block: "nearest" });
+          return next;
+        });
+      };
+
+      if (event.key === "j") move(1);
+      else if (event.key === "k") move(-1);
+      else if (event.key === "x" && cursor >= 0) {
+        event.preventDefault();
+        toggle(rows[cursor].id);
+      } else if (event.key === "Enter" && cursor >= 0) {
+        event.preventDefault();
+        router.push(`/admin/orders/${rows[cursor].id}`);
+      } else if (event.key === "Escape") {
+        setCursor(-1);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // `toggle` is stable in behaviour; rows and cursor are the real inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, cursor, router, confirming]);
+
+  // A shorter page after filtering must not leave the cursor past the end.
+  useEffect(() => {
+    setCursor((c) => (c >= rows.length ? rows.length - 1 : c));
+  }, [rows.length]);
 
   /** Header link that changes the sort while keeping every other filter. */
   const sortHref = (nextSort: OrderSort, nextDir: "asc" | "desc"): string => {
@@ -168,13 +231,17 @@ export default function OrdersTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {rows.map((o) => (
+            {rows.map((o, i) => (
               <tr
                 key={o.id}
+                ref={(el) => {
+                  rowsRef.current[i] = el;
+                }}
                 onClick={() => router.push(`/admin/orders/${o.id}`)}
+                aria-current={i === cursor ? "true" : undefined}
                 className={`cursor-pointer transition hover:bg-surface-2 ${
-                  selected.has(o.id) ? "bg-accent/5" : ""
-                }`}
+                  i === cursor ? "bg-accent/10 ring-1 ring-inset ring-accent/40" : ""
+                } ${selected.has(o.id) ? "bg-accent/5" : ""}`}
               >
                 <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
                   <input
@@ -211,6 +278,13 @@ export default function OrdersTable({
           </tbody>
         </table>
       </div>
+
+      <p className="mt-2 hidden text-[11px] text-muted-2 sm:block">
+        <kbd className="rounded border border-line-2 px-1">j</kbd>{" "}
+        <kbd className="rounded border border-line-2 px-1">k</kbd> move ·{" "}
+        <kbd className="rounded border border-line-2 px-1">x</kbd> select ·{" "}
+        <kbd className="rounded border border-line-2 px-1">Enter</kbd> open
+      </p>
 
       {/* Bulk action bar */}
       <div

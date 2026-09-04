@@ -9,10 +9,16 @@ export default async function DiscountsPage() {
   const db = adminDb();
   const [{ data }, { data: used }] = await Promise.all([
     db.from("discounts").select("*").order("code"),
-    // Redemptions counted from the orders themselves rather than trusting
-    // `used_count`, which is a counter that can drift from what actually
-    // happened. This is also what makes each code linkable to its orders.
-    db.from("orders").select("discount_code, total_cents").not("discount_code", "is", null),
+    // Redemptions counted from the orders themselves, restricted to the same
+    // population checkout's own `used_count` counts: orders that were actually
+    // paid. Counting every order that merely *applied* a code would inflate the
+    // usage shown against a code's limit and put cancelled orders' totals in a
+    // column headed Revenue.
+    db
+      .from("orders")
+      .select("discount_code, total_cents")
+      .not("discount_code", "is", null)
+      .in("status", ["paid", "processing", "shipped", "completed", "refunded"]),
   ]);
 
   const redeemed = new Map<string, { orders: number; revenueCents: number }>();
