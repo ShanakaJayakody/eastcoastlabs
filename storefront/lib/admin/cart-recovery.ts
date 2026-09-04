@@ -202,16 +202,35 @@ export interface RecoveryMetrics {
   recoveryRatePct: number | null;
 }
 
-export async function recoveryMetrics(days = 30): Promise<RecoveryMetrics> {
+/**
+ * The window a recovery report covers.
+ *
+ * Either a rolling number of days (the original behaviour, kept as the default)
+ * or explicit Sydney-calendar bounds from `windowMeta`, so the recovery page can
+ * step through months and weeks like every other period-scoped screen.
+ */
+export type RecoveryRange = number | { startIso: string; endIso: string };
+
+function boundsOf(range: RecoveryRange): { since: string; until: string | null } {
+  if (typeof range === "number") {
+    return { since: new Date(Date.now() - range * 86_400_000).toISOString(), until: null };
+  }
+  return { since: range.startIso, until: range.endIso };
+}
+
+export async function recoveryMetrics(range: RecoveryRange = 30): Promise<RecoveryMetrics> {
   const db = adminDb();
-  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { since, until } = boundsOf(range);
   const idleCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
+  let windowCartsQuery = db
+    .from("cart_sessions")
+    .select("status, recovered_order_id")
+    .gte("created_at", since);
+  if (until) windowCartsQuery = windowCartsQuery.lt("created_at", until);
+
   const [{ data: windowCarts }, { count: activeCarts }, { data: staged }] = await Promise.all([
-    db
-      .from("cart_sessions")
-      .select("status, recovered_order_id")
-      .gte("created_at", since),
+    windowCartsQuery,
     db
       .from("cart_sessions")
       .select("*", { count: "exact", head: true })
@@ -263,17 +282,19 @@ export interface RecoveryFunnel {
  * Opens are inflated by Apple Mail Privacy Protection, which fetches tracking
  * pixels unprompted — the UI labels the number as directional for that reason.
  */
-export async function recoveryFunnel(days = 30): Promise<RecoveryFunnel> {
+export async function recoveryFunnel(range: RecoveryRange = 30): Promise<RecoveryFunnel> {
   const db = adminDb();
-  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { since, until } = boundsOf(range);
   const templates = ["abandoned_cart", "abandoned_cart_2", "abandoned_cart_3"];
 
-  const { data: sentRows } = await db
+  let sentQuery = db
     .from("email_outbox")
     .select("id")
     .in("template", templates)
     .eq("status", "sent")
     .gte("created_at", since);
+  if (until) sentQuery = sentQuery.lt("created_at", until);
+  const { data: sentRows } = await sentQuery;
   const ids = (sentRows ?? []).map((r) => (r as { id: string }).id);
 
   const counts = { delivered: 0, opened: 0, clicked: 0 };
@@ -293,11 +314,13 @@ export async function recoveryFunnel(days = 30): Promise<RecoveryFunnel> {
     counts.clicked = seen.clicked.size;
   }
 
-  const { count: recovered } = await db
+  let recoveredQuery = db
     .from("cart_sessions")
     .select("*", { count: "exact", head: true })
     .eq("status", "recovered")
     .gte("created_at", since);
+  if (until) recoveredQuery = recoveredQuery.lt("created_at", until);
+  const { count: recovered } = await recoveredQuery;
 
   return { sent: ids.length, ...counts, recovered: recovered ?? 0 };
 }

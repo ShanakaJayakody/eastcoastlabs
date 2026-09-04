@@ -36,6 +36,7 @@ export default async function OrdersPage({
     to?: string;
     sort?: string;
     dir?: string;
+    discount?: string;
   }>;
 }) {
   await requireAdmin();
@@ -45,6 +46,7 @@ export default async function OrdersPage({
   // so the chip can never advertise a filter that silently did nothing.
   const from = sydneyDayBoundary(sp.from) ? (sp.from as string) : "";
   const to = sydneyDayBoundary(sp.to, true) ? (sp.to as string) : "";
+  const discount = sp.discount?.trim() ?? "";
   const sort = parseOrderSort(sp.sort);
   const dir: "asc" | "desc" = sp.dir === "asc" ? "asc" : "desc";
   // Default view is the fulfilment queue — searching implies "look everywhere".
@@ -57,7 +59,7 @@ export default async function OrdersPage({
   const limit = 25;
 
   const [{ rows, total }, counts] = await Promise.all([
-    listOrders({ status, search, limit, offset: (page - 1) * limit, from, to, sort, dir }),
+    listOrders({ status, search, limit, offset: (page - 1) * limit, from, to, sort, dir, discount }),
     orderStatusCounts(),
   ]);
   const pages = Math.max(1, Math.ceil(total / limit));
@@ -68,6 +70,7 @@ export default async function OrdersPage({
       ...(search ? { q: search } : {}),
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
+      ...(discount ? { discount } : {}),
       ...(sort !== "created_at" || dir !== "desc" ? { sort, dir } : {}),
     });
     Object.entries(patch).forEach(([k, v]) => (v ? p.set(k, v) : p.delete(k)));
@@ -82,6 +85,7 @@ export default async function OrdersPage({
       ...(search ? { q: search } : {}),
       ...(from ? { from } : {}),
       ...(to ? { to } : {}),
+      ...(discount ? { discount } : {}),
     });
     const qs = p.toString();
     return `/admin/orders${qs ? `?${qs}` : ""}`;
@@ -92,6 +96,7 @@ export default async function OrdersPage({
     if (search) p.set("q", search);
     if (from) p.set("from", from);
     if (to) p.set("to", to);
+    if (discount) p.set("discount", discount);
     p.set("sort", sort);
     p.set("dir", dir);
     return `/admin/orders/export?${p.toString()}`;
@@ -104,10 +109,29 @@ export default async function OrdersPage({
   return (
     <div className="space-y-5 pb-20">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">
-          {total} order{total === 1 ? "" : "s"} · {activeLabel.toLowerCase()}
-          {dateLabel}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-muted">
+            {total} order{total === 1 ? "" : "s"} · {activeLabel.toLowerCase()}
+            {dateLabel}
+          </p>
+          {discount && (
+            <Link
+              href={(() => {
+                const p = new URLSearchParams();
+                if (status !== "to_fulfil") p.set("status", status);
+                if (search) p.set("q", search);
+                if (from) p.set("from", from);
+                if (to) p.set("to", to);
+                const qs = p.toString();
+                return `/admin/orders${qs ? `?${qs}` : ""}`;
+              })()}
+              title="Remove this filter"
+              className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-mono text-accent hover:border-accent"
+            >
+              {discount} ×
+            </Link>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <Link
             href="/admin/orders/new"
@@ -170,6 +194,7 @@ export default async function OrdersPage({
             ...(search ? { q: search } : {}),
             ...(from ? { from } : {}),
             ...(to ? { to } : {}),
+            ...(discount ? { discount } : {}),
           }}
         />
       )}

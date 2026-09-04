@@ -7,6 +7,7 @@ import {
   sweepWinback,
   sweepSecondPurchaseNudge,
 } from "@/lib/admin/lifecycle";
+import { recordCronRun } from "@/lib/admin/cron-runs";
 
 export const dynamic = "force-dynamic";
 
@@ -24,21 +25,23 @@ export async function GET(request: Request) {
     }
   }
 
-  const [welcome, postPurchase, reviewThanks, replenishment, winback, nudge] = [
-    await sweepWelcomeSeries(),
-    await sweepPostPurchase(),
-    await sweepReviewThankYou(),
-    await sweepReplenishment(),
-    await sweepWinback(),
-    await sweepSecondPurchaseNudge(),
-  ];
-
-  return NextResponse.json({
-    welcome: welcome.queued,
-    postPurchase: postPurchase.queued,
-    reviewThankYou: reviewThanks.queued,
-    replenishment: replenishment.queued,
-    winback: winback.queued,
-    secondPurchaseNudge: nudge.queued,
+  const result = await recordCronRun("lifecycle", async () => {
+    const [welcome, postPurchase, reviewThanks, replenishment, winback, nudge] = [
+      await sweepWelcomeSeries(),
+      await sweepPostPurchase(),
+      await sweepReviewThankYou(),
+      await sweepReplenishment(),
+      await sweepWinback(),
+      await sweepSecondPurchaseNudge(),
+    ];
+    return {
+      welcome: welcome.queued,
+      postPurchase: postPurchase.queued,
+      reviewThankYou: reviewThanks.queued,
+      replenishment: replenishment.queued,
+      winback: winback.queued,
+      secondPurchaseNudge: nudge.queued,
+    };
   });
+  return NextResponse.json(result);
 }

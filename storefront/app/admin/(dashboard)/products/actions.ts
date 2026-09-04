@@ -10,6 +10,7 @@ import {
   setProductImages,
   getProductBySlug,
   createProduct,
+  addTiers,
   duplicateProduct,
   tierPriceCents,
   variantMovements,
@@ -91,6 +92,53 @@ export async function createProductAction(input: {
     );
     revalidateProduct(slug);
     return { ok: true, slug, message: "Product created" };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/**
+ * Launch a coming-soon product: create its 1/3/6 tiers, open the stock pool and
+ * (by default) put it on the storefront. Until this runs the product has no
+ * vial pool, so no quantity can be entered against it.
+ */
+export async function addTiersAction(
+  slug: string,
+  input: {
+    singlePriceAud: number;
+    pack3PriceAud?: number;
+    pack6PriceAud?: number;
+    initialStock?: number;
+    activate?: boolean;
+  },
+): Promise<ActionResult> {
+  const session = await requireAdmin();
+  if (!Number.isFinite(input.singlePriceAud) || input.singlePriceAud <= 0) {
+    return { ok: false, error: "Enter a 1-vial price." };
+  }
+  if (input.initialStock != null && (!Number.isFinite(input.initialStock) || input.initialStock < 0)) {
+    return { ok: false, error: "Opening stock must be zero or more." };
+  }
+  try {
+    await addTiers(
+      slug,
+      {
+        singlePriceCents: Math.round(input.singlePriceAud * 100),
+        pack3PriceCents:
+          input.pack3PriceAud && input.pack3PriceAud > 0
+            ? Math.round(input.pack3PriceAud * 100)
+            : undefined,
+        pack6PriceCents:
+          input.pack6PriceAud && input.pack6PriceAud > 0
+            ? Math.round(input.pack6PriceAud * 100)
+            : undefined,
+        initialStock: input.initialStock,
+        activate: input.activate ?? true,
+      },
+      session.email,
+    );
+    revalidateProduct(slug);
+    return { ok: true, message: "Tiers created — stock can now be managed" };
   } catch (err) {
     return fail(err);
   }

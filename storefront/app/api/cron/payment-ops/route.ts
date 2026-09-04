@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { remindUnpaidOrders, expireUnpaidOrders } from "@/lib/admin/payment-ops";
+import { recordCronRun } from "@/lib/admin/cron-runs";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +24,10 @@ export async function GET(request: Request) {
     }
   }
 
-  const reminders = await remindUnpaidOrders();
-  const expiries = await expireUnpaidOrders();
-
-  return NextResponse.json({ ...reminders, ...expiries });
+  const result = await recordCronRun("payment-ops", async () => {
+    const reminders = await remindUnpaidOrders();
+    const expiries = await expireUnpaidOrders();
+    return { ...reminders, ...expiries };
+  });
+  return NextResponse.json(result);
 }

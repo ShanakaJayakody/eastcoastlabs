@@ -66,6 +66,8 @@ export interface OrderListFilters {
   to?: string | null;
   sort?: OrderSort;
   dir?: "asc" | "desc";
+  /** Discount code, matched case-insensitively. */
+  discount?: string | null;
 }
 
 export async function listOrders(
@@ -80,6 +82,7 @@ export async function listOrders(
     to,
     sort = "created_at",
     dir = "desc",
+    discount,
   } = filters;
   let q = adminDb()
     .from("orders")
@@ -96,6 +99,9 @@ export async function listOrders(
   const toIsoBound = sydneyDayBoundary(to, true);
   if (fromIso) q = q.gte("created_at", fromIso);
   if (toIsoBound) q = q.lt("created_at", toIsoBound);
+  // Codes are stored as typed, so match case-insensitively rather than making
+  // the operator guess how a code was capitalised at checkout.
+  if (discount?.trim()) q = q.ilike("discount_code", discount.trim().replace(/[%_*\\]/g, "\\$&"));
   if (search?.trim()) {
     // Commas separate conditions in a PostgREST .or() and parens group them, so
     // an unescaped one produces a 400 and a 500 page. With live search this now
@@ -690,7 +696,15 @@ export async function ordersCsv(filters: OrderListFilters = {}): Promise<string>
     collected.push(...rows);
     if (rows.length < EXPORT_PAGE || collected.length >= total) break;
   }
-  const head = ["order_number", "status", "customer_name", "customer_email", "items", "total_aud", "placed_at"];
+  const head = [
+    "order_number",
+    "status",
+    "customer_name",
+    "customer_email",
+    "items",
+    "total_aud",
+    "placed_at",
+  ];
   const lines = collected.map((r) =>
     csvRow([
       r.order_number,

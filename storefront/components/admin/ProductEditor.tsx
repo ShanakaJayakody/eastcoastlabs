@@ -19,6 +19,7 @@ import {
   saveProductAll,
   duplicateProductAction,
   saveUnitCost,
+  addTiersAction,
 } from "@/app/admin/(dashboard)/products/actions";
 import RichTextEditor from "./RichTextEditor";
 import ProductImages from "./ProductImages";
@@ -144,6 +145,10 @@ export default function ProductEditor({
   const pool = product.variants.find((v) => v.pack_size === 1) ?? null;
   const vialsOnHand = pool?.on_hand ?? 0;
   const [stockOpen, setStockOpen] = useState(false);
+
+  // Coming-soon products ship with no tiers at all — this is the launch form.
+  const [launchPrice, setLaunchPrice] = useState("");
+  const [launchStock, setLaunchStock] = useState("");
 
   const stockTarget: StockTarget | null = pool
     ? {
@@ -507,9 +512,55 @@ export default function ProductEditor({
                 </div>
               </div>
             ) : (
-              <p className="px-5 py-4 text-sm text-muted">
-                This product has no 1-vial tier, so there is no stock pool to manage.
-              </p>
+              <div className="space-y-3 px-5 py-4">
+                <p className="text-sm text-muted">
+                  This product has no pack tiers yet, so there is no stock pool to hold vials
+                  against. Set the 1-vial price to create the 1 / 3 / 6 tiers and open its stock.
+                </p>
+                <div className="flex flex-wrap items-end gap-3">
+                  <label className="text-xs text-muted">
+                    <span className="mb-1 block">1-vial price (AUD)</span>
+                    <input
+                      inputMode="decimal"
+                      value={launchPrice}
+                      onChange={(e) => setLaunchPrice(e.target.value.replace(/[^\d.]/g, ""))}
+                      className={`${field} max-w-[130px]`}
+                    />
+                  </label>
+                  <label className="text-xs text-muted">
+                    <span className="mb-1 block">Opening stock (vials)</span>
+                    <input
+                      inputMode="numeric"
+                      value={launchStock}
+                      onChange={(e) => setLaunchStock(e.target.value.replace(/\D/g, ""))}
+                      className={`${field} max-w-[130px]`}
+                    />
+                  </label>
+                  <button
+                    disabled={pending || !Number(launchPrice)}
+                    onClick={() =>
+                      start(async () => {
+                        const res = await addTiersAction(product.slug, {
+                          singlePriceAud: Number(launchPrice),
+                          initialStock: Number(launchStock) || 0,
+                          activate: true,
+                        });
+                        if (res.ok) {
+                          toast.success(res.message ?? "Tiers created");
+                          router.refresh();
+                        } else toast.error(res.error ?? "Failed");
+                      })
+                    }
+                    className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
+                  >
+                    Create tiers &amp; go live
+                  </button>
+                </div>
+                <p className="text-xs text-muted-2">
+                  3-pack and 6-pack prices are filled in at the standard 15% / 25% pack discount —
+                  adjust them in Tier pricing afterwards.
+                </p>
+              </div>
             )}
           </section>
 

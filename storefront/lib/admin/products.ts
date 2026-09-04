@@ -379,6 +379,97 @@ export async function createProduct(
 }
 
 /**
+ * Give an existing product its 1/3/6 tiers. Coming-soon products are created
+ * with NO variants and NO inventory (see the coming_soon migration), which
+ * means there is no vial pool to hold stock against — so stock can't be
+ * entered until the tiers exist. This is the launch step: tiers, inventory
+ * rows, opening stock, and (optionally) a flip to active, in one write.
+ *
+ * Refuses to run on a product that already has variants, so it can never
+ * duplicate a tier structure.
+ */
+export async function addTiers(
+  slug: string,
+  opts: {
+    singlePriceCents: number;
+    pack3PriceCents?: number;
+    pack6PriceCents?: number;
+    initialStock?: number;
+    activate?: boolean;
+  },
+  actor: string,
+): Promise<void> {
+  const db = adminDb();
+  const { data: product, error } = await db
+    .from("products")
+    .select("id, sku, slug, product_variants ( id )")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(`addTiers: ${error.message}`);
+  if (!product) throw new Error("Product not found.");
+  if ((product.product_variants as { id: string }[] | null)?.length) {
+    throw new Error("This product already has pack tiers.");
+  }
+
+  const single = Math.max(0, Math.round(opts.singlePriceCents));
+  const baseSku = (product.sku as string | null) ?? `ECL-${slug.toUpperCase().replace(/-/g, "").slice(0, 10)}`;
+  const tiers: NewVariantInput[] = [
+    { pack_size: 1, label: "1 vial", price_cents: single },
+    { pack_size: 3, label: "3-pack", price_cents: opts.pack3PriceCents ?? tierPriceCents(single, 3) },
+    { pack_size: 6, label: "6-pack", price_cents: opts.pack6PriceCents ?? tierPriceCents(single, 6) },
+  ];
+
+  for (const [i, tier] of tiers.entries()) {
+    const variantSku = await uniqueValue("product_variants", "sku", `${baseSku}-${tier.pack_size}`);
+    const { data: created, error: vErr } = await db
+      .from("product_variants")
+      .insert({
+        product_id: product.id,
+        sku: variantSku,
+        pack_size: tier.pack_size,
+        label: tier.label,
+        price_cents: Math.max(0, Math.round(tier.price_cents)),
+        position: i,
+      })
+      .select("id")
+      .single();
+    if (vErr) throw new Error(`addTiers(variant ${tier.pack_size}): ${vErr.message}`);
+
+    const variantId = created.id as string;
+    await db.from("inventory").insert({ variant_id: variantId }).select().maybeSingle();
+    // Opening stock is vials, so it lands on the pool tier only.
+    if (opts.initialStock && opts.initialStock > 0 && tier.pack_size === 1) {
+      await recordMovement({
+        variantId,
+        qty: Math.round(opts.initialStock),
+        reason: "received",
+        actor,
+        note: "opening stock",
+      });
+    }
+  }
+
+  if (opts.activate) {
+    await db
+      .from("products")
+      .update({ status: "active", coming_soon_rank: null, updated_at: new Date().toISOString() })
+      .eq("id", product.id);
+  }
+
+  await logAudit({
+    actor,
+    action: "product.tiers.add",
+    entityType: "product",
+    entityId: slug,
+    diff: {
+      single_price_cents: single,
+      initial_stock: opts.initialStock ?? 0,
+      activated: Boolean(opts.activate),
+    },
+  });
+}
+
+/**
  * Clone a product — copy, pricing, images and tier structure, as a draft with a
  * fresh slug/SKU. Stock is deliberately NOT copied (it's a different physical
  * item), so the new product starts at zero.

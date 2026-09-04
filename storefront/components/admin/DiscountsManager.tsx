@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
@@ -25,7 +26,19 @@ const field =
   "w-full rounded-lg border border-line bg-ink-2 px-3 py-2 text-sm text-fg outline-none focus:border-accent";
 const btn = "rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-50";
 
-export default function DiscountsManager({ discounts }: { discounts: DiscountRow[] }) {
+export interface Redemption {
+  orders: number;
+  revenueCents: number;
+}
+
+export default function DiscountsManager({
+  discounts,
+  redeemed = {},
+}: {
+  discounts: DiscountRow[];
+  /** Real redemptions per code, keyed uppercase. */
+  redeemed?: Record<string, Redemption>;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [show, setShow] = useState(false);
@@ -147,6 +160,7 @@ export default function DiscountsManager({ discounts }: { discounts: DiscountRow
                 <th className="px-4 py-2.5 font-medium">Discount</th>
                 <th className="hidden px-4 py-2.5 font-medium sm:table-cell">Min spend</th>
                 <th className="px-4 py-2.5 font-medium">Used</th>
+                <th className="hidden px-4 py-2.5 font-medium md:table-cell">Revenue</th>
                 <th className="hidden px-4 py-2.5 font-medium md:table-cell">Expires</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
                 <th className="px-4 py-2.5" />
@@ -165,8 +179,26 @@ export default function DiscountsManager({ discounts }: { discounts: DiscountRow
                       {d.min_spend_cents ? formatAud(d.min_spend_cents / 100) : "—"}
                     </td>
                     <td className="px-4 py-3 text-fg-2">
-                      {d.used_count}
+                      {(() => {
+                        const stats = redeemed[d.code.toUpperCase()];
+                        if (!stats) return <span className="text-muted-2">0</span>;
+                        return (
+                          <Link
+                            href={`/admin/orders?status=all&discount=${encodeURIComponent(d.code)}`}
+                            className="text-accent-2 hover:underline"
+                            title={`See the ${stats.orders} order${stats.orders === 1 ? "" : "s"} that used ${d.code}`}
+                          >
+                            {stats.orders}
+                          </Link>
+                        );
+                      })()}
                       {d.usage_limit != null && <span className="text-muted"> / {d.usage_limit}</span>}
+                    </td>
+                    <td className="hidden px-4 py-3 tabular-nums text-muted md:table-cell">
+                      {(() => {
+                        const stats = redeemed[d.code.toUpperCase()];
+                        return stats ? formatAud(stats.revenueCents / 100) : "—";
+                      })()}
                     </td>
                     <td className="hidden px-4 py-3 text-muted md:table-cell">
                       {d.expires_at ? new Date(d.expires_at).toLocaleDateString("en-AU") : "—"}

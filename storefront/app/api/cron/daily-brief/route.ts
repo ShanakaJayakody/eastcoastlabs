@@ -7,6 +7,7 @@ import {
   briefAlreadySent,
   markBriefSent,
 } from "@/lib/admin/daily-brief";
+import { recordCronRun } from "@/lib/admin/cron-runs";
 
 export const dynamic = "force-dynamic";
 
@@ -56,27 +57,28 @@ export async function GET(request: Request) {
     });
   }
 
-  // Vercel cron is at-least-once, so a retry must not deliver a second copy.
-  if (await briefAlreadySent(brief.date)) {
-    return NextResponse.json({ sent: 0, reason: "already sent", date: brief.date });
-  }
+  const result = await recordCronRun("daily-brief", async () => {
+    // Vercel cron is at-least-once, so a retry must not deliver a second copy.
+    if (await briefAlreadySent(brief.date)) {
+      return { sent: 0, reason: "already sent", date: brief.date };
+    }
 
-  const recipients = await briefRecipients();
-  if (recipients.length === 0) {
-    return NextResponse.json({ sent: 0, reason: "no active admins" });
-  }
+    const recipients = await briefRecipients();
+    if (recipients.length === 0) return { sent: 0, reason: "no active admins" };
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return NextResponse.json({ sent: 0, reason: "RESEND_API_KEY not configured" });
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return { sent: 0, reason: "RESEND_API_KEY not configured" };
 
-  const resend = new Resend(apiKey);
-  const failed: string[] = [];
-  for (const to of recipients) {
-    const { error } = await resend.emails.send({ from: FROM, to, subject, html });
-    if (error) failed.push(`${to}: ${error.message}`);
-  }
+    const resend = new Resend(apiKey);
+    const failed: string[] = [];
+    for (const to of recipients) {
+      const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+      if (error) failed.push(`${to}: ${error.message}`);
+    }
 
-  const sent = recipients.length - failed.length;
-  if (sent > 0) await markBriefSent(brief.date, sent);
-  return NextResponse.json({ sent, failed, date: brief.date });
+    const sent = recipients.length - failed.length;
+    if (sent > 0) await markBriefSent(brief.date, sent);
+    return { sent, failed, date: brief.date };
+  });
+  return NextResponse.json(result);
 }

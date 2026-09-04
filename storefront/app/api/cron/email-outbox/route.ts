@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { drainOutbox } from "@/lib/email/sender";
+import { recordCronRun } from "@/lib/admin/cron-runs";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
-  const result = await drainOutbox(100);
+  const result = await recordCronRun("email-outbox", async () => {
+    const { sent, failed } = await drainOutbox(100);
+    return { sent, failed };
+  });
   return NextResponse.json(result);
 }

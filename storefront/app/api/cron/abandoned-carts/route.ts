@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { queueAbandonedCartEmails } from "@/lib/admin/cart-recovery";
+import { recordCronRun } from "@/lib/admin/cron-runs";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
-  const queued = await queueAbandonedCartEmails();
-  return NextResponse.json({ queued });
+  const result = await recordCronRun("abandoned-carts", async () => ({
+    queued: await queueAbandonedCartEmails(),
+  }));
+  return NextResponse.json(result);
 }

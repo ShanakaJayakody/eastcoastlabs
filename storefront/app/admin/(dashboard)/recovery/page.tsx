@@ -3,6 +3,8 @@ import { DollarSign, Percent, ShoppingCart, Send } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatAud } from "@/lib/format";
 import { listCartsFor, recoveryMetrics, recoveryFunnel } from "@/lib/admin/cart-recovery";
+import { parseRevenueScale, windowMeta, type RevenueScale } from "@/lib/admin/order-queries";
+import PeriodNav from "@/components/admin/PeriodNav";
 import { CART_STAGES, cartRelatedId, deriveStages } from "@/lib/admin/sequences";
 import { adminDb } from "@/lib/admin/db";
 import { pausedEmailsFor } from "@/lib/admin/overrides";
@@ -25,18 +27,32 @@ const TABS: { id: Tab; label: string }[] = [
 export default async function RecoveryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; scale?: string; at?: string }>;
 }) {
   await requireAdmin();
-  const { tab: rawTab } = await searchParams;
-  const tab = (TABS.some((t) => t.id === rawTab) ? rawTab : "active") as Tab;
+  const sp = await searchParams;
+  const tab = (TABS.some((t) => t.id === sp.tab) ? sp.tab : "active") as Tab;
+
+  // No period in the URL keeps the original rolling 30-day view, so the page
+  // means the same thing it always did until someone actively steps back.
+  const periodActive = Boolean(sp.scale || sp.at);
+  const meta = windowMeta(parseRevenueScale(sp.scale), sp.at);
+  const range = periodActive ? { startIso: meta.startIso, endIso: meta.endIso } : 30;
 
   const [metrics, funnel, carts, paused] = await Promise.all([
-    recoveryMetrics(30),
-    recoveryFunnel(30),
+    recoveryMetrics(range),
+    recoveryFunnel(range),
     listCartsFor(tab, 50),
     pausedEmailsFor("cart_recovery"),
   ]);
+
+  const linkFor = (scale: RevenueScale, anchor: string | null) => {
+    const params = new URLSearchParams();
+    if (tab !== "active") params.set("tab", tab);
+    params.set("scale", scale);
+    if (anchor) params.set("at", anchor);
+    return `/admin/recovery?${params.toString()}`;
+  };
 
   // One outbox read for the whole page: the steppers need to know which touches
   // actually went out, and per-row queries would mean N round trips.
@@ -66,6 +82,18 @@ export default async function RecoveryPage({
         </p>
       </div>
 
+      {/* Period stepper. Absent from the URL, the page keeps its original
+          rolling 30-day meaning; stepping switches to calendar windows. */}
+      <section className="admin-card rounded-xl p-4">
+        <PeriodNav meta={meta} hrefFor={linkFor} />
+        {!periodActive && (
+          <p className="mt-2 text-xs text-muted-2">
+            Showing a rolling 30 days. Step or switch scale above to read calendar periods
+            instead.
+          </p>
+        )}
+      </section>
+
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Active carts"
@@ -83,13 +111,13 @@ export default async function RecoveryPage({
         <StatCard
           label="Recovery rate"
           value={metrics.recoveryRatePct === null ? "—" : `${metrics.recoveryRatePct}%`}
-          sub="Carts captured in last 30d"
+          sub={`Carts captured · ${periodActive ? meta.title : "last 30 days"}`}
           icon={Percent}
         />
         <StatCard
           label="Revenue recovered"
           value={cents(metrics.revenueRecoveredCents)}
-          sub={`${metrics.recovered30d} cart(s) converted · 30d`}
+          sub={`${metrics.recovered30d} cart(s) converted · ${periodActive ? meta.title : "last 30 days"}`}
           icon={DollarSign}
           tone="accent"
         />
@@ -98,7 +126,9 @@ export default async function RecoveryPage({
       {/* Funnel — only meaningful once delivery webhooks are reporting. */}
       <section className="admin-card rounded-xl p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-sm font-semibold text-fg">Recovery funnel · 30 days</h3>
+          <h3 className="text-sm font-semibold text-fg">
+            Recovery funnel · {periodActive ? meta.title : "30 days"}
+          </h3>
           <span className="text-[11px] text-muted-2">
             Opens are directional — Apple Mail pre-fetches tracking pixels
           </span>
