@@ -76,7 +76,7 @@ That's it. Every batch, independently verifiable, before and after you order.
 ### Email 3 — +4 days (bestsellers + per-vial pricing)
 
 **Subject:** Most-ordered peptides — with per-vial savings
-**Preview:** Buy in 3 or 6-vial packs and save up to 25% per vial.
+**Preview:** Buy in 3 or 6-vial packs and save up to 20% per vial.
 
 **Body:**
 
@@ -409,7 +409,7 @@ Hi {{ first_name||"there" }},
 We haven't seen you in a while. Here's what's new:
 
 • New batch results published — all compounds tested and verified by JanoShik
-• Bulk pack pricing on every peptide — save up to 25% per vial in 6-packs
+• Bulk pack pricing on every peptide — save up to 20% per vial in 6-packs
 • Free shipping over $150 · 1-business-day dispatch from Australia
 
 [See latest batch results →](https://eastcoastlabs.com.au/lab-results/)

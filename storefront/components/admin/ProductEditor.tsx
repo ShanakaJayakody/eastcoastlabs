@@ -557,7 +557,7 @@ export default function ProductEditor({
                   </button>
                 </div>
                 <p className="text-xs text-muted-2">
-                  3-pack and 6-pack prices are filled in at the standard 15% / 25% pack discount —
+                  3-pack and 6-pack prices are filled in at the standard 10% / 20% pack discount —
                   adjust them in Tier pricing afterwards.
                 </p>
               </div>

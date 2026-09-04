@@ -9,7 +9,7 @@ import { createProductAction, saveUnitCost } from "@/app/admin/(dashboard)/produ
 const field =
   "w-full rounded-lg border border-line bg-ink-2 px-3 py-2 text-sm text-fg outline-none transition focus:border-accent";
 
-/** Mirrors TIER_DISCOUNTS server-side (3-pack 15% off, 6-pack 25% off). */
+/** Mirrors TIER_DISCOUNTS server-side (3-pack 10% off, 6-pack 20% off). */
 const suggest = (single: number, pack: number, off: number) =>
   single > 0 ? Math.round((single * pack * (1 - off)) / 1) : 0;
 
@@ -39,8 +39,8 @@ export default function NewProductForm() {
   const [p6Override, setP6Override] = useState<string | null>(null);
 
   const singleNum = Number(single) || 0;
-  const auto3 = useMemo(() => suggest(singleNum, 3, 0.15), [singleNum]);
-  const auto6 = useMemo(() => suggest(singleNum, 6, 0.25), [singleNum]);
+  const auto3 = useMemo(() => suggest(singleNum, 3, 0.1), [singleNum]);
+  const auto6 = useMemo(() => suggest(singleNum, 6, 0.2), [singleNum]);
   const p3 = p3Override ?? (auto3 ? String(auto3) : "");
   const p6 = p6Override ?? (auto6 ? String(auto6) : "");
 
@@ -145,7 +145,7 @@ export default function NewProductForm() {
         <section className="rounded-xl border border-line bg-surface p-5">
           <h3 className="text-sm font-semibold text-fg">Tier pricing</h3>
           <p className="mb-4 mt-1 text-xs text-muted">
-            Enter the 1-vial price — the 3-pack (15% off) and 6-pack (25% off) fill in
+            Enter the 1-vial price — the 3-pack (10% off) and 6-pack (20% off) fill in
             automatically. Override either if this product prices differently.
           </p>
           <div className="grid gap-3 sm:grid-cols-3">

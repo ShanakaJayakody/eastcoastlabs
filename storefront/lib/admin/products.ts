@@ -241,8 +241,8 @@ export async function setProductImages(
 // Create / duplicate
 // ---------------------------------------------------------------------------
 
-/** ECL's standard pack economics: 3-pack 15% off, 6-pack 25% off the unit price. */
-export const TIER_DISCOUNTS: Record<number, number> = { 1: 0, 3: 0.15, 6: 0.25 };
+/** ECL's standard pack economics: 3-pack 10% off, 6-pack 20% off the unit price. */
+export const TIER_DISCOUNTS: Record<number, number> = { 1: 0, 3: 0.1, 6: 0.2 };
 
 export const slugify = (s: string) =>
   s

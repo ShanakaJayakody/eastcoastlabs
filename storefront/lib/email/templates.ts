@@ -344,11 +344,11 @@ export async function renderTemplate(
       return {
         subject: "Most-ordered peptides — with per-vial savings",
         html: shell(
-          "Buy in 3 or 6-vial packs and save up to 25% per vial.",
+          "Buy in 3 or 6-vial packs and save up to 20% per vial.",
           `<h1 style="font-size:20px;margin:0 0 8px;">Pack pricing, explained</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Every peptide is available in 1-vial, 3-pack, and 6-pack options — the more you buy, the less you
-             pay per vial. 3-packs save 15% per vial; 6-packs save 25% and include free bacteriostatic water
+             pay per vial. 3-packs save 10% per vial; 6-packs save 20% and include free bacteriostatic water
              and free Express Post.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
@@ -485,7 +485,7 @@ export async function renderTemplate(
           `<h1 style="font-size:20px;margin:0 0 8px;">Since your last order</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">We haven't seen you in a while. Here's what's new:</p>
            <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
-             <li>Bulk pack pricing on every peptide — save up to 25% per vial in 6-packs</li>
+             <li>Bulk pack pricing on every peptide — save up to 20% per vial in 6-packs</li>
              <li>Free shipping over $150 · 1-business-day dispatch from Australia</li>
            </ul>
            ${payButton(`${SITE}/shop`, "Shop now")}`,
