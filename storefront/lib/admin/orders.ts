@@ -14,7 +14,13 @@
  */
 import { adminDb } from "./db";
 import { logAudit } from "./audit";
-import { recordMovement, reserveStock, releaseStock, availabilityFor } from "./inventory";
+import {
+  recordMovement,
+  reserveStock,
+  releaseStock,
+  resolvePoolsFor,
+  poolAvailability,
+} from "./inventory";
 import { snapshotOrderCosts } from "./costs";
 import { validateDiscount, incrementDiscountUsage } from "./discounts";
 import { getSettings } from "@/lib/settings";
@@ -403,6 +409,51 @@ export async function setStatus(
   });
 }
 
+/** Days after dispatch that an unrefunded shipped order is considered delivered. */
+export const AUTO_COMPLETE_DAYS = 10;
+
+/**
+ * Close out orders that shipped long enough ago to be considered delivered.
+ *
+ * `shipped` means "in the customer's hands or on the way"; `completed` means
+ * "nothing further is expected". Nobody was ever going to click through weeks of
+ * shipped orders to say so, which left the queue permanently misleading about
+ * what still needed attention.
+ *
+ * Ten days is a claim about delivery, not about satisfaction — refunds stay
+ * possible from `completed`, so nothing is taken away from the customer by
+ * closing the order. Anything already refunded or cancelled is untouched
+ * because it is no longer `shipped`.
+ *
+ * Goes through setStatus so each order still gets its event and audit line: an
+ * order that silently changed state would be worse than one left open.
+ */
+export async function completeDeliveredOrders(): Promise<{ completed: number; failed: number }> {
+  const cutoff = new Date(Date.now() - AUTO_COMPLETE_DAYS * 86_400_000).toISOString();
+  const { data, error } = await adminDb()
+    .from("orders")
+    .select("id, order_number")
+    .eq("status", "shipped")
+    .not("shipped_at", "is", null)
+    .lt("shipped_at", cutoff)
+    .limit(200);
+  if (error) throw new Error(`completeDeliveredOrders: ${error.message}`);
+
+  let completed = 0;
+  let failed = 0;
+  for (const order of (data ?? []) as { id: string; order_number: string }[]) {
+    try {
+      await setStatus(order.id, "completed", { actor: "system:auto-complete" });
+      completed++;
+    } catch (err) {
+      // One stuck order must not strand the rest of the batch.
+      console.error(`completeDeliveredOrders: ${order.order_number} failed:`, err);
+      failed++;
+    }
+  }
+  return { completed, failed };
+}
+
 /** Cancel an order. Releases the reservation (if not yet settled) or restores stock. */
 export async function cancelOrder(orderId: string, opts: { actor?: string } = {}): Promise<void> {
   const db = adminDb();
@@ -442,31 +493,85 @@ export interface ReinstateLineCheck {
  * commits — a button that only fails on click teaches nothing about why.
  */
 export async function reinstateStockCheck(orderId: string): Promise<ReinstateLineCheck[]> {
-  const db = adminDb();
-  const { data: items } = await db
-    .from("order_items")
-    .select("variant_id, qty, product_name, variant_label")
-    .eq("order_id", orderId);
+  const map = await reinstatabilityFor([orderId]);
+  return map.get(orderId)?.lines ?? [];
+}
 
-  const checks: ReinstateLineCheck[] = [];
-  for (const it of (items ?? []) as {
+export interface OrderReinstatability {
+  recoverable: boolean;
+  lines: ReinstateLineCheck[];
+  /** Lines that cannot be filled — the reason it is not recoverable. */
+  short: ReinstateLineCheck[];
+}
+
+/**
+ * Can each of these cancelled orders be brought back, and what blocks the ones
+ * that cannot?
+ *
+ * Demand is accumulated PER POOL across an order's lines, not measured line by
+ * line. A 3-pack and a single vial of the same product draw on one vial pool, so
+ * judging them independently reports enough stock for both when there is only
+ * enough for one — the preview would say go and the reinstate would then refuse,
+ * which is precisely the whipsaw this check exists to prevent.
+ *
+ * Four queries regardless of how many orders are passed in, so the orders list
+ * can afford to call it for a whole page.
+ */
+export async function reinstatabilityFor(
+  orderIds: string[],
+): Promise<Map<string, OrderReinstatability>> {
+  const result = new Map<string, OrderReinstatability>();
+  if (!orderIds.length) return result;
+
+  const { data: itemRows } = await adminDb()
+    .from("order_items")
+    .select("order_id, variant_id, qty, product_name, variant_label")
+    .in("order_id", orderIds);
+  const items = ((itemRows ?? []) as {
+    order_id: string;
     variant_id: string | null;
     qty: number;
     product_name: string | null;
     variant_label: string | null;
-  }[]) {
-    if (!it.variant_id) continue;
-    const { available, sufficient } = await availabilityFor(it.variant_id, it.qty);
-    checks.push({
-      variantId: it.variant_id,
-      productName: it.product_name,
-      variantLabel: it.variant_label,
-      qty: it.qty,
-      available,
-      sufficient,
-    });
+  }[]).filter((i) => i.variant_id);
+
+  const pools = await resolvePoolsFor(items.map((i) => i.variant_id as string));
+  const availability = await poolAvailability(
+    [...pools.values()].map((p) => p.poolVariantId),
+  );
+
+  for (const orderId of orderIds) {
+    // Each order is judged against the shelf as it stands now, so a running
+    // tally per pool resets between orders — two cancelled orders wanting the
+    // same last vial are each individually recoverable, and whichever is
+    // reinstated first takes it.
+    const remaining = new Map<string, number>();
+    const lines: ReinstateLineCheck[] = [];
+
+    for (const item of items.filter((i) => i.order_id === orderId)) {
+      const pool = pools.get(item.variant_id as string);
+      const poolId = pool?.poolVariantId ?? (item.variant_id as string);
+      const needed = item.qty * (pool?.packSize ?? 1);
+
+      const free = remaining.get(poolId) ?? availability.get(poolId) ?? 0;
+      const sufficient = free >= needed;
+      remaining.set(poolId, free - needed);
+
+      lines.push({
+        variantId: item.variant_id as string,
+        productName: item.product_name,
+        variantLabel: item.variant_label,
+        qty: item.qty,
+        available: Math.max(0, free),
+        sufficient,
+      });
+    }
+
+    const short = lines.filter((l) => !l.sufficient);
+    result.set(orderId, { recoverable: lines.length > 0 && short.length === 0, lines, short });
   }
-  return checks;
+
+  return result;
 }
 
 /**

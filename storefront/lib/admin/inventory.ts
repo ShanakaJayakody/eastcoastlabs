@@ -118,6 +118,65 @@ export async function reserveStock(variantId: string, qty: number): Promise<bool
 }
 
 /**
+ * Pool + pack size for many variants at once, in two queries rather than 2N.
+ *
+ * Batch form exists because any "can this whole order be filled?" question has
+ * to consider every line together — several lines of one product share a single
+ * vial pool, so checking them one at a time overstates what is available.
+ */
+export async function resolvePoolsFor(
+  variantIds: string[],
+): Promise<Map<string, { poolVariantId: string; packSize: number }>> {
+  const out = new Map<string, { poolVariantId: string; packSize: number }>();
+  const unique = [...new Set(variantIds)];
+  if (!unique.length) return out;
+
+  const db = adminDb();
+  const { data: variants } = await db
+    .from("product_variants")
+    .select("id, pack_size, product_id")
+    .in("id", unique);
+  const rows = (variants ?? []) as { id: string; pack_size: number; product_id: string }[];
+
+  const productIds = [...new Set(rows.filter((r) => (r.pack_size ?? 1) > 1).map((r) => r.product_id))];
+  const poolByProduct = new Map<string, string>();
+  if (productIds.length) {
+    const { data: pools } = await db
+      .from("product_variants")
+      .select("id, product_id")
+      .in("product_id", productIds)
+      .eq("pack_size", 1);
+    for (const p of (pools ?? []) as { id: string; product_id: string }[]) {
+      poolByProduct.set(p.product_id, p.id);
+    }
+  }
+
+  for (const r of rows) {
+    const packSize = Math.max(1, Number(r.pack_size) || 1);
+    const poolVariantId =
+      packSize === 1 ? r.id : poolByProduct.get(r.product_id) ?? r.id;
+    out.set(r.id, { poolVariantId, packSize });
+  }
+  return out;
+}
+
+/** Free vials per pool variant, in one query. */
+export async function poolAvailability(poolIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const unique = [...new Set(poolIds)];
+  if (!unique.length) return out;
+  const { data } = await adminDb()
+    .from("inventory")
+    .select("variant_id, on_hand, reserved")
+    .in("variant_id", unique);
+  for (const r of (data ?? []) as { variant_id: string; on_hand: number; reserved: number }[]) {
+    out.set(r.variant_id, r.on_hand - r.reserved);
+  }
+  for (const id of unique) if (!out.has(id)) out.set(id, 0);
+  return out;
+}
+
+/**
  * Free vials available for a would-be reservation, and whether it would fit.
  *
  * Lives here rather than in the caller because the pack-to-vial translation is

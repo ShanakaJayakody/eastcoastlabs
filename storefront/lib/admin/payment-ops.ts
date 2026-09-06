@@ -126,6 +126,70 @@ export async function remindUnpaidOrders(): Promise<{ reminded: number }> {
   return { reminded };
 }
 
+/** How close to expiry the final warning goes out. */
+export const EXPIRY_WARNING_HOURS = 4;
+
+/**
+ * The last word before the reservation is released.
+ *
+ * Anchored on payment_expires_at rather than on order age, unlike the +4h/+24h
+ * reminders: the hold length is a setting and an operator can extend it, so
+ * "four hours before it dies" is the only phrasing that stays true. An order
+ * whose expiry moves gets its warning at the new time, and the outbox dedupe key
+ * carries that timestamp so a genuinely extended hold earns a fresh warning
+ * while a re-run of the same sweep does not.
+ *
+ * Deliberately silent for orders with no expiry set — those are never
+ * auto-cancelled, so there is no deadline to warn about.
+ */
+export async function warnExpiringOrders(): Promise<{ warned: number }> {
+  const db = adminDb();
+  const settings = await getSettings();
+  const now = Date.now();
+  const horizon = new Date(now + EXPIRY_WARNING_HOURS * 3600_000).toISOString();
+
+  const { data, error } = await db
+    .from("orders")
+    .select(PENDING_COLS)
+    .eq("status", "pending")
+    .not("payment_expires_at", "is", null)
+    .gt("payment_expires_at", new Date(now).toISOString())
+    .lte("payment_expires_at", horizon)
+    .limit(200);
+  if (error) throw new Error(`warnExpiringOrders: ${error.message}`);
+
+  const paused = await pausedEmailsFor("payment_reminders");
+
+  let warned = 0;
+  for (const order of (data ?? []) as PendingOrderRow[]) {
+    if (paused.has(order.customer_email)) continue;
+    const expiresAt = order.payment_expires_at as string;
+    const hoursLeft = Math.max(
+      1,
+      Math.round((new Date(expiresAt).getTime() - now) / 3600_000),
+    );
+
+    await queueEmail({
+      to: order.customer_email,
+      template: "payment_expiring",
+      payload: {
+        order_number: order.order_number,
+        order_id: order.id,
+        payment_method: order.payment_method ?? "bank_transfer",
+        reference: order.payment_reference ?? referenceForOrderNumber(order.order_number),
+        amount_cents: order.total_cents,
+        hours_left: hoursLeft,
+        expiry_hours: settings.paymentExpiryHours,
+      },
+      relatedType: "order",
+      relatedId: `${order.id}:expiring:${Date.parse(expiresAt)}`,
+    });
+    warned++;
+  }
+
+  return { warned };
+}
+
 /**
  * Cancel unpaid orders past their hold window, releasing reserved stock.
  *

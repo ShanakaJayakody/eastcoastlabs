@@ -175,6 +175,40 @@ export async function renderTemplate(
       };
     }
 
+    case "payment_expiring": {
+      const orderNumber = String(payload.order_number ?? "");
+      const { instructions, payUrl } = await paymentBlock(payload);
+      const amount = cents(Number(payload.amount_cents ?? 0));
+      const hoursLeft = Math.max(1, Number(payload.hours_left ?? 0));
+      return {
+        // The last thing we send before the reservation goes. It has to read as
+        // a deadline, not a third polite reminder — the two earlier nudges
+        // already used up the polite register.
+        subject: `Last chance: ${orderNumber} is released in ${hoursLeft} ${hoursLeft === 1 ? "hour" : "hours"}`,
+        html: shell(
+          `${orderNumber} is released in about ${hoursLeft} ${hoursLeft === 1 ? "hour" : "hours"}.`,
+          `<h1 style="font-size:20px;margin:0 0 8px;">Your order is about to be released</h1>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             <strong style="font-family:monospace;">${orderNumber}</strong> is still unpaid. We're holding
+             your items for about <strong>${hoursLeft} more ${hoursLeft === 1 ? "hour" : "hours"}</strong>.
+             After that the order is cancelled and the stock goes back on sale — we can't promise it
+             will still be there afterwards.
+           </p>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             Already paid? Nothing to do — transfers can take a few hours to show up, and a first
+             PayID payment to a new payee can be held by your bank for up to 24 hours. If it lands
+             late, reply to this email and we'll reinstate the order.
+           </p>
+           ${
+             instructions
+               ? instructionsTable(instructions)
+               : `<p style="color:#c3ccd9;font-size:14px;">Reply to this email for payment details.</p>`
+           }
+           ${payButton(payUrl, `Pay ${amount} now`)}`,
+        ),
+      };
+    }
+
     case "payment_expired": {
       const orderNumber = String(payload.order_number ?? "");
       return {

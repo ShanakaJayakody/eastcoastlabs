@@ -40,6 +40,7 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
       { id: "order_refunded", name: "Order refunded", trigger: "Refund issued in admin" },
       { id: "payment_instructions", name: "Payment instructions", trigger: "Order placed (unpaid)" },
       { id: "payment_reminder", name: "Payment reminder", trigger: "Unpaid at +4h, then +24h" },
+      { id: "payment_expiring", name: "Final payment warning", trigger: "~4h before the hold expires" },
       { id: "payment_expired", name: "Payment expired", trigger: "Hold window elapsed" },
     ],
   },
@@ -108,6 +109,7 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
         amount_cents: 24900,
       };
     case "payment_reminder":
+    case "payment_expiring":
       return {
         ...base,
         order_number: "ECL-1042",

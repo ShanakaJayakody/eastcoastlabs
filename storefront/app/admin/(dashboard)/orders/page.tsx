@@ -7,6 +7,7 @@ import {
   sydneyDayBoundary,
   type OrderFilter,
 } from "@/lib/admin/order-queries";
+import { reinstatabilityFor } from "@/lib/admin/orders";
 import OrdersTable from "@/components/admin/OrdersTable";
 import OrdersFilters from "@/components/admin/OrdersFilters";
 
@@ -63,6 +64,19 @@ export default async function OrdersPage({
     orderStatusCounts(),
   ]);
   const pages = Math.max(1, Math.ceil(total / limit));
+
+  // Only the cancelled view pays for this: a reinstate is the one action those
+  // rows offer, and whether it can succeed is the first thing an operator wants
+  // to know without opening each order.
+  const cancelledIds = rows.filter((r) => r.status === "cancelled").map((r) => r.id);
+  const reinstatable = cancelledIds.length
+    ? Object.fromEntries(
+        [...(await reinstatabilityFor(cancelledIds))].map(([id, v]) => [
+          id,
+          { recoverable: v.recoverable, short: v.short.length },
+        ]),
+      )
+    : undefined;
 
   const href = (patch: Record<string, string>) => {
     const p = new URLSearchParams({
@@ -187,6 +201,7 @@ export default async function OrdersPage({
       ) : (
         <OrdersTable
           rows={rows}
+          reinstatable={reinstatable}
           sort={sort}
           dir={dir}
           query={{

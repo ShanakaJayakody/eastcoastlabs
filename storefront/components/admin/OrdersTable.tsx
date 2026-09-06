@@ -31,13 +31,22 @@ const COLUMNS: { key: OrderSort | null; label: string; className?: string; align
   { key: "total_cents", label: "Total", align: "right" },
 ];
 
+export interface Reinstatability {
+  recoverable: boolean;
+  /** How many lines cannot be filled, for the tooltip. */
+  short: number;
+}
+
 export default function OrdersTable({
   rows,
   sort = "created_at",
   dir = "desc",
   query,
+  reinstatable,
 }: {
   rows: OrderListRow[];
+  /** Per-order recoverability, supplied only on the cancelled view. */
+  reinstatable?: Record<string, Reinstatability>;
   sort?: OrderSort;
   dir?: "asc" | "desc";
   /**
@@ -140,7 +149,11 @@ export default function OrdersTable({
   const selectedRows = rows.filter((r) => selected.has(r.id));
   const shippableSelected = selectedRows.filter((r) => SHIPPABLE.has(r.status));
   const payableSelected = selectedRows.filter((r) => PAYABLE.has(r.status));
-  const reinstatableSelected = selectedRows.filter((r) => REINSTATABLE.has(r.status));
+  // Selecting a stock-gone order and being offered "reinstate" would be a lie;
+  // the button counts only what can actually succeed.
+  const reinstatableSelected = selectedRows.filter(
+    (r) => REINSTATABLE.has(r.status) && reinstatable?.[r.id]?.recoverable !== false,
+  );
 
   function markPaid() {
     const ids = payableSelected.map((r) => r.id);
@@ -290,7 +303,25 @@ export default function OrdersTable({
                 </td>
                 <td className="hidden px-4 py-3 text-fg-2 sm:table-cell">{o.item_count}</td>
                 <td className="px-4 py-3">
-                  <StatusBadge status={o.status} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <StatusBadge status={o.status} />
+                    {reinstatable?.[o.id] &&
+                      (reinstatable[o.id].recoverable ? (
+                        <span
+                          className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent"
+                          title="Stock is free — this order can be reinstated"
+                        >
+                          recoverable
+                        </span>
+                      ) : (
+                        <span
+                          className="rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[10px] font-medium text-warn"
+                          title={`${reinstatable[o.id].short} line(s) have sold out since — restock to reinstate`}
+                        >
+                          stock gone
+                        </span>
+                      ))}
+                  </div>
                 </td>
                 <td className="hidden px-4 py-3 text-muted md:table-cell">
                   {new Date(o.created_at).toLocaleDateString("en-AU")}

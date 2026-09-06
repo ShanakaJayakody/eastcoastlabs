@@ -21,6 +21,7 @@ export type EmailTemplate =
   | "abandoned_cart_3"
   | "payment_instructions"
   | "payment_reminder"
+  | "payment_expiring"
   | "payment_expired"
   | "welcome_1"
   | "welcome_3"

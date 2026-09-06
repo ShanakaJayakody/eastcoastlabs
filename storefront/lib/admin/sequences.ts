@@ -162,6 +162,7 @@ export const TRANSACTIONAL_TEMPLATES: EmailTemplate[] = [
   "order_refunded",
   "payment_instructions",
   "payment_reminder",
+  "payment_expiring",
   "payment_expired",
 ];
 
