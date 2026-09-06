@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Printer } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { getOrder } from "@/lib/admin/order-queries";
+import { reinstateStockCheck } from "@/lib/admin/orders";
 import { profitForOrders } from "@/lib/admin/costs";
 import { formatAud } from "@/lib/format";
 import StatusBadge from "@/components/admin/StatusBadge";
@@ -22,6 +23,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   if (!order) notFound();
 
   const profit = await profitForOrders([id]);
+  // Only a cancelled order can be reinstated, so only it pays for the check.
+  const stockCheck =
+    order.status === "cancelled" ? await reinstateStockCheck(id) : undefined;
   const addr = order.shipping_address ?? {};
 
   return (
@@ -125,7 +129,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         {/* Sidebar */}
         <div className="space-y-4">
-          <OrderActions orderId={order.id} status={order.status} />
+          <OrderActions orderId={order.id} status={order.status} stockCheck={stockCheck} />
 
           <section className="rounded-xl border border-line bg-surface p-4 text-sm">
             <h3 className="mb-2 text-sm font-semibold text-fg">Customer</h3>

@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { confirmPayment, advanceStatus, refund, cancel, addNote } from "@/app/admin/(dashboard)/orders/actions";
-import type { OrderStatus } from "@/lib/admin/orders";
+import { confirmPayment, advanceStatus, refund, cancel, addNote, reinstate } from "@/app/admin/(dashboard)/orders/actions";
+import type { OrderStatus, ReinstateLineCheck } from "@/lib/admin/orders";
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
   paid: { to: "processing", label: "Start packing" },
@@ -15,9 +15,12 @@ const NEXT_LABEL: Partial<Record<OrderStatus, { to: OrderStatus; label: string }
 export default function OrderActions({
   orderId,
   status,
+  stockCheck,
 }: {
   orderId: string;
   status: OrderStatus;
+  /** Line-by-line availability, supplied only for cancelled orders. */
+  stockCheck?: ReinstateLineCheck[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -36,6 +39,9 @@ export default function OrderActions({
       }
     });
 
+  const short = (stockCheck ?? []).filter((l) => !l.sufficient);
+  const canReinstate = status === "cancelled" && short.length === 0;
+
   const next = NEXT_LABEL[status];
   const closed = status === "completed" || status === "cancelled" || status === "refunded";
   const btn =
@@ -46,6 +52,62 @@ export default function OrderActions({
   return (
     <div className="space-y-4 rounded-xl border border-line bg-surface p-4">
       <h3 className="text-sm font-semibold text-fg">Actions</h3>
+
+      {status === "cancelled" && (
+        <div className="space-y-2 rounded-lg border border-line-2 bg-ink-2/50 p-3">
+          <p className="text-xs text-muted">
+            Cancelled orders release their stock. Reinstating takes it back — which is only
+            possible if it is still on the shelf.
+          </p>
+
+          {short.length > 0 ? (
+            <div className="rounded-lg border border-warn/30 bg-warn/10 p-2.5 text-xs">
+              <p className="font-medium text-warn">Not enough stock to reinstate</p>
+              <ul className="mt-1 space-y-0.5 text-fg-2">
+                {short.map((l) => (
+                  <li key={l.variantId}>
+                    {[l.productName, l.variantLabel].filter(Boolean).join(" · ")} — needs {l.qty},{" "}
+                    {l.available} free
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-muted-2">Restock, then reinstate.</p>
+            </div>
+          ) : (
+            <input
+              placeholder="Payment reference (optional)"
+              value={paymentRef}
+              onChange={(e) => setPaymentRef(e.target.value)}
+              className={field}
+            />
+          )}
+
+          <button
+            disabled={pending || !canReinstate}
+            onClick={() =>
+              run(
+                () => reinstate(orderId, { toPaid: true, paymentRef }),
+                "Reinstated and marked paid — stock decremented, customer emailed",
+              )
+            }
+            className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
+          >
+            Reinstate &amp; mark paid
+          </button>
+          <button
+            disabled={pending || !canReinstate}
+            onClick={() =>
+              run(
+                () => reinstate(orderId, { toPaid: false }),
+                "Reinstated as awaiting payment — stock re-reserved",
+              )
+            }
+            className={`${btn} w-full border border-line-2 bg-surface-2 text-fg-2 hover:text-fg`}
+          >
+            Reinstate as awaiting payment
+          </button>
+        </div>
+      )}
 
       {status === "pending" && (
         <div className="space-y-2">

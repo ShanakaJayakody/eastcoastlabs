@@ -14,7 +14,7 @@
  */
 import { adminDb } from "./db";
 import { logAudit } from "./audit";
-import { recordMovement, reserveStock, releaseStock } from "./inventory";
+import { recordMovement, reserveStock, releaseStock, availabilityFor } from "./inventory";
 import { snapshotOrderCosts } from "./costs";
 import { validateDiscount, incrementDiscountUsage } from "./discounts";
 import { getSettings } from "@/lib/settings";
@@ -312,7 +312,14 @@ export async function setOrderPaymentPlan(
 
 export async function markPaid(
   orderId: string,
-  opts: { actor?: string; paymentRef?: string; paymentMethod?: string } = {},
+  opts: {
+    actor?: string;
+    paymentRef?: string;
+    paymentMethod?: string;
+    /** False when this order already counted its discount on a previous payment
+     *  (a reinstated order that had been paid before). Default true. */
+    countDiscount?: boolean;
+  } = {},
 ): Promise<void> {
   const db = adminDb();
   const order = await loadOrder(orderId);
@@ -348,7 +355,8 @@ export async function markPaid(
     })
     .eq("id", orderId);
 
-  if (order.discount_code) await incrementDiscountUsage(order.discount_code);
+  if (order.discount_code && opts.countDiscount !== false)
+    await incrementDiscountUsage(order.discount_code);
 
   await addEvent(orderId, "payment", { message: "Payment confirmed.", actor: opts.actor });
   await addEvent(orderId, "status", { from: order.status, to: "paid", actor: opts.actor });
@@ -414,6 +422,143 @@ export async function cancelOrder(orderId: string, opts: { actor?: string } = {}
   await db.from("orders").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", orderId);
   await addEvent(orderId, "status", { from: order.status, to: "cancelled", actor: opts.actor });
   await logAudit({ actor: opts.actor ?? "system", action: "order.cancel", entityType: "order", entityId: orderId });
+}
+
+/* ---------------- reinstatement -------------------------------------------- */
+
+export interface ReinstateLineCheck {
+  variantId: string;
+  productName: string | null;
+  variantLabel: string | null;
+  qty: number;
+  available: number;
+  sufficient: boolean;
+}
+
+/**
+ * Can this cancelled order be brought back, and what is short if not?
+ *
+ * Read-only. Exists so the admin can show the answer BEFORE the operator
+ * commits — a button that only fails on click teaches nothing about why.
+ */
+export async function reinstateStockCheck(orderId: string): Promise<ReinstateLineCheck[]> {
+  const db = adminDb();
+  const { data: items } = await db
+    .from("order_items")
+    .select("variant_id, qty, product_name, variant_label")
+    .eq("order_id", orderId);
+
+  const checks: ReinstateLineCheck[] = [];
+  for (const it of (items ?? []) as {
+    variant_id: string | null;
+    qty: number;
+    product_name: string | null;
+    variant_label: string | null;
+  }[]) {
+    if (!it.variant_id) continue;
+    const { available, sufficient } = await availabilityFor(it.variant_id, it.qty);
+    checks.push({
+      variantId: it.variant_id,
+      productName: it.product_name,
+      variantLabel: it.variant_label,
+      qty: it.qty,
+      available,
+      sufficient,
+    });
+  }
+  return checks;
+}
+
+/**
+ * Bring a cancelled order back to life — the late payer's path.
+ *
+ * Cancelling RELEASED this order's claim on stock, so reinstating is not a
+ * status flip: the claim has to be taken again, and in the days since, someone
+ * else may have bought the last vial. Every line is re-reserved through the
+ * same atomic reserve_stock() the storefront uses, and if any line comes up
+ * short the reservations already taken in this call are handed back before
+ * throwing. Half-reinstating an order would silently strand stock.
+ *
+ * The order returns to `pending` rather than jumping straight to paid, so the
+ * money still travels the one audited path — markPaid — that records the sale
+ * movement, freezes COGS and emails the customer. `toPaid` runs that second
+ * step for the operator; it does not replace it.
+ */
+export async function reinstateOrder(
+  orderId: string,
+  opts: { actor?: string; toPaid?: boolean; paymentRef?: string } = {},
+): Promise<{ reinstatedTo: OrderStatus }> {
+  const db = adminDb();
+  const order = await loadOrder(orderId);
+  if (order.status !== "cancelled")
+    throw new Error(`Only cancelled orders can be reinstated (this one is '${order.status}').`);
+
+  const { data: itemRows } = await db
+    .from("order_items")
+    .select("variant_id, qty, product_name, variant_label")
+    .eq("order_id", orderId);
+  const items = ((itemRows ?? []) as {
+    variant_id: string | null;
+    qty: number;
+    product_name: string | null;
+    variant_label: string | null;
+  }[]).filter((i) => i.variant_id);
+
+  const taken: { variantId: string; qty: number }[] = [];
+  for (const it of items) {
+    const ok = await reserveStock(it.variant_id as string, it.qty);
+    if (!ok) {
+      for (const undo of taken) await releaseStock(undo.variantId, undo.qty);
+      const label = [it.product_name, it.variant_label].filter(Boolean).join(" · ") || "an item";
+      throw new Error(
+        `Not enough stock to reinstate: ${label} needs ${it.qty} but there isn't that much available. Restock first, then reinstate.`,
+      );
+    }
+    taken.push({ variantId: it.variant_id as string, qty: it.qty });
+  }
+
+  // Back to the pending shape in full: a reinstated order that kept
+  // stock_settled would make markPaid's idempotency guard skip the sale.
+  const settings = await getSettings();
+  await db
+    .from("orders")
+    .update({
+      status: "pending",
+      stock_reserved: true,
+      stock_settled: false,
+      stock_restored: false,
+      paid_at: null,
+      payment_expires_at: new Date(
+        Date.now() + settings.paymentExpiryHours * 3600_000,
+      ).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+
+  await addEvent(orderId, "status", {
+    from: "cancelled",
+    to: "pending",
+    message: "Reinstated by an admin; stock re-reserved.",
+    actor: opts.actor,
+  });
+  await logAudit({
+    actor: opts.actor ?? "system",
+    action: "order.reinstate",
+    entityType: "order",
+    entityId: orderId,
+    diff: { to: opts.toPaid ? "paid" : "pending", lines: items.length },
+  });
+
+  if (!opts.toPaid) return { reinstatedTo: "pending" };
+
+  await markPaid(orderId, {
+    actor: opts.actor,
+    paymentRef: opts.paymentRef,
+    // A previously-paid order already counted its discount; counting again on
+    // reinstatement would eat a second use of a limited code.
+    countDiscount: !order.stock_settled,
+  });
+  return { reinstatedTo: "paid" };
 }
 
 /** Refund an order. Restores stock via return movements (idempotent). */

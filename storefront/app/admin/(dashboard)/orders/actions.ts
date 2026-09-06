@@ -11,6 +11,7 @@ import {
   updatePendingOrderItemQty,
   removeOrderItem,
   cancelOrder,
+  reinstateOrder,
   type OrderStatus,
   type LineRefund,
 } from "@/lib/admin/orders";
@@ -57,6 +58,82 @@ export async function confirmPayment(orderId: string, paymentRef?: string): Prom
   } catch (err) {
     return fail(err);
   }
+}
+
+/**
+ * Bring a cancelled order back — the late payer's path.
+ *
+ * `toPaid` is the common case: the money landed days after the hold expired, so
+ * the operator wants one click, not "reinstate, find the order again, confirm
+ * payment". The confirmation email only goes out on the paid path, because a
+ * reinstated-but-unpaid order has nothing to confirm yet.
+ */
+export async function reinstate(
+  orderId: string,
+  opts: { toPaid?: boolean; paymentRef?: string } = {},
+): Promise<ActionResult> {
+  const session = await requireAdmin();
+  try {
+    const { reinstatedTo } = await reinstateOrder(orderId, {
+      actor: session.email,
+      toPaid: opts.toPaid,
+      paymentRef: opts.paymentRef?.trim() || undefined,
+    });
+    if (reinstatedTo === "paid") {
+      const info = await orderEmail(orderId);
+      if (info)
+        await queueEmail({
+          to: info.email,
+          template: "order_confirmation",
+          payload: { order_number: info.number },
+          relatedType: "order",
+          relatedId: orderId,
+        });
+    }
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
+/**
+ * Reinstate several cancelled orders at once, straight to paid.
+ *
+ * Per-order isolation matters more here than anywhere else in the bulk bar: a
+ * batch of late payers will routinely contain one order whose stock is gone,
+ * and that must not stop the others from going through.
+ */
+export async function bulkReinstate(
+  orderIds: string[],
+): Promise<ActionResult & { done: number; failed: { id: string; error: string }[] }> {
+  const session = await requireAdmin();
+  let done = 0;
+  const failed: { id: string; error: string }[] = [];
+
+  for (const id of orderIds) {
+    try {
+      await reinstateOrder(id, { actor: session.email, toPaid: true });
+      const info = await orderEmail(id);
+      if (info)
+        await queueEmail({
+          to: info.email,
+          template: "order_confirmation",
+          payload: { order_number: info.number },
+          relatedType: "order",
+          relatedId: id,
+        });
+      done++;
+    } catch (err) {
+      failed.push({ id, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  return { ok: failed.length === 0, done, failed };
 }
 
 /** Forward transition. Shipping captures tracking and queues the customer email. */

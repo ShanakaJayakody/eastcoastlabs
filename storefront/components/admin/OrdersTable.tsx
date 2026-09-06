@@ -4,10 +4,10 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowUpDown, BadgeCheck, Printer, Truck } from "lucide-react";
+import { ArrowUpDown, BadgeCheck, Printer, RotateCcw, Truck } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { OrderListRow } from "@/lib/admin/order-queries";
-import { bulkAdvanceStatus, bulkConfirmPayment } from "@/app/admin/(dashboard)/orders/actions";
+import { bulkAdvanceStatus, bulkConfirmPayment, bulkReinstate } from "@/app/admin/(dashboard)/orders/actions";
 import type { OrderSort } from "@/lib/admin/order-queries";
 import StatusBadge from "./StatusBadge";
 import ConfirmModal from "./ConfirmModal";
@@ -18,6 +18,8 @@ const cents = (c: number) => formatAud(c / 100);
 const SHIPPABLE = new Set(["paid", "processing"]);
 /** Orders still awaiting payment — drives whether the bulk bar offers "Mark paid". */
 const PAYABLE = new Set(["pending"]);
+/** Cancelled orders can come back if their stock is still free. */
+const REINSTATABLE = new Set(["cancelled"]);
 
 /** Column header → sort key. Headers without one are not sortable. */
 const COLUMNS: { key: OrderSort | null; label: string; className?: string; align?: "right" }[] = [
@@ -48,7 +50,7 @@ export default function OrdersTable({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [confirming, setConfirming] = useState<"ship" | "pay" | null>(null);
+  const [confirming, setConfirming] = useState<"ship" | "pay" | "reinstate" | null>(null);
   // -1 means "nothing focused yet"; the first j or k lands on the first row.
   const [cursor, setCursor] = useState(-1);
   const rowsRef = useRef<(HTMLTableRowElement | null)[]>([]);
@@ -138,6 +140,7 @@ export default function OrdersTable({
   const selectedRows = rows.filter((r) => selected.has(r.id));
   const shippableSelected = selectedRows.filter((r) => SHIPPABLE.has(r.status));
   const payableSelected = selectedRows.filter((r) => PAYABLE.has(r.status));
+  const reinstatableSelected = selectedRows.filter((r) => REINSTATABLE.has(r.status));
 
   function markPaid() {
     const ids = payableSelected.map((r) => r.id);
@@ -176,6 +179,26 @@ export default function OrdersTable({
       } else {
         toast.error(res.error ?? "Bulk update failed");
       }
+    });
+  }
+
+  function reinstateSelected() {
+    const ids = reinstatableSelected.map((r) => r.id);
+    setConfirming(null);
+    start(async () => {
+      const res = await bulkReinstate(ids);
+      if (res.done > 0) {
+        toast.success(`${res.done} order${res.done === 1 ? "" : "s"} reinstated and marked paid`);
+      }
+      // Stock running out mid-batch is the expected failure here, not an
+      // exception — name the count so the operator knows to open those.
+      if (res.failed.length) {
+        toast.error(
+          `${res.failed.length} could not be reinstated — open them to see what is short`,
+        );
+      }
+      setSelected(new Set());
+      router.refresh();
     });
   }
 
@@ -295,10 +318,15 @@ export default function OrdersTable({
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className="text-sm text-fg-2">
             {selected.size} selected
-            {payableSelected.length + shippableSelected.length < selected.size && (
+            {payableSelected.length + shippableSelected.length + reinstatableSelected.length <
+              selected.size && (
               <span className="ml-2 text-xs text-muted">
-                ({selected.size - payableSelected.length - shippableSelected.length} with no bulk
-                action)
+                (
+                {selected.size -
+                  payableSelected.length -
+                  shippableSelected.length -
+                  reinstatableSelected.length}{" "}
+                with no bulk action)
               </span>
             )}
           </p>
@@ -315,6 +343,15 @@ export default function OrdersTable({
             >
               <Printer size={15} /> Print slips
             </button>
+            {reinstatableSelected.length > 0 && (
+              <button
+                disabled={pending}
+                onClick={() => setConfirming("reinstate")}
+                className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-50"
+              >
+                <RotateCcw size={15} /> Reinstate {reinstatableSelected.length} &amp; mark paid
+              </button>
+            )}
             {payableSelected.length > 0 && (
               <button
                 disabled={pending}
@@ -341,7 +378,13 @@ export default function OrdersTable({
 
       <ConfirmModal
         open={confirming !== null}
-        title={confirming === "pay" ? "Mark these orders paid?" : "Mark these orders shipped?"}
+        title={
+          confirming === "pay"
+            ? "Mark these orders paid?"
+            : confirming === "reinstate"
+              ? "Reinstate these cancelled orders?"
+              : "Mark these orders shipped?"
+        }
         body={
           confirming === "pay" ? (
             <>
@@ -352,6 +395,18 @@ export default function OrdersTable({
               <p className="mt-1.5 text-muted">
                 Each one decrements stock and emails a receipt to the customer. Only do this for
                 transfers you have actually seen land.
+              </p>
+            </>
+          ) : confirming === "reinstate" ? (
+            <>
+              <p className="font-medium text-fg">
+                {reinstatableSelected.length} cancelled order
+                {reinstatableSelected.length === 1 ? "" : "s"} ·{" "}
+                {cents(reinstatableSelected.reduce((s, r) => s + r.total_cents, 0))}
+              </p>
+              <p className="mt-1.5 text-muted">
+                Each one re-takes its stock, is marked paid, and emails a receipt. Any order whose
+                items have since sold out is skipped and reported back — the rest still go through.
               </p>
             </>
           ) : (
@@ -366,9 +421,21 @@ export default function OrdersTable({
             </>
           )
         }
-        confirmLabel={confirming === "pay" ? "Mark paid" : "Mark shipped"}
+        confirmLabel={
+          confirming === "pay"
+            ? "Mark paid"
+            : confirming === "reinstate"
+              ? "Reinstate & mark paid"
+              : "Mark shipped"
+        }
         pending={pending}
-        onConfirm={() => (confirming === "pay" ? markPaid() : markShipped())}
+        onConfirm={() =>
+          confirming === "pay"
+            ? markPaid()
+            : confirming === "reinstate"
+              ? reinstateSelected()
+              : markShipped()
+        }
         onCancel={() => setConfirming(null)}
       />
     </>

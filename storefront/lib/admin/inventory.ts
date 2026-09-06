@@ -117,6 +117,28 @@ export async function reserveStock(variantId: string, qty: number): Promise<bool
   return Boolean(data);
 }
 
+/**
+ * Free vials available for a would-be reservation, and whether it would fit.
+ *
+ * Lives here rather than in the caller because the pack-to-vial translation is
+ * this module's business: asking a 6-pack row for its own availability reads
+ * plausible and is wrong, since packs draw on the shared single-vial pool.
+ */
+export async function availabilityFor(
+  variantId: string,
+  qty: number,
+): Promise<{ available: number; needed: number; sufficient: boolean }> {
+  const { poolVariantId, vials } = await toVials(variantId, qty);
+  const { data } = await adminDb()
+    .from("inventory")
+    .select("on_hand, reserved")
+    .eq("variant_id", poolVariantId)
+    .maybeSingle();
+  const row = data as { on_hand: number; reserved: number } | null;
+  const available = row ? row.on_hand - row.reserved : 0;
+  return { available, needed: vials, sufficient: available >= vials };
+}
+
 /** Release a prior reservation (cancel, or on conversion to a sale). */
 export async function releaseStock(variantId: string, qty: number): Promise<void> {
   const { poolVariantId, vials } = await toVials(variantId, qty);
