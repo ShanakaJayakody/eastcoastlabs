@@ -18,6 +18,7 @@ import type { ComingSoonProduct } from "@/lib/coming-soon";
  * confusion the badge exists to prevent.
  */
 export default function ComingSoonShelf({ products }: { products: ComingSoonProduct[] }) {
+  const [expanded, setExpanded] = useState(false);
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [joined, setJoined] = useState<Set<string>>(new Set());
 
@@ -33,14 +34,13 @@ export default function ComingSoonShelf({ products }: { products: ComingSoonProd
           <h2 className="mt-2 text-2xl font-bold text-fg">Coming soon</h2>
           <p className="mt-2 max-w-2xl text-sm text-muted">
             Compounds we&apos;re bringing in next. Tell us which ones you want and we&apos;ll
-            prioritise them — you&apos;ll get one email the day it lands, with the batch COA
-            published as always.
+            prioritise them. Request a notification for the compounds you are interested in.
           </p>
         </div>
       </div>
 
       <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((p) => {
+        {(expanded ? products : products.slice(0,6)).map((p) => {
           const isOpen = openSlug === p.slug;
           const hasJoined = joined.has(p.slug);
           return (
@@ -93,6 +93,7 @@ export default function ComingSoonShelf({ products }: { products: ComingSoonProd
         })}
       </ul>
 
+      {products.length > 6 && <button type="button" aria-expanded={expanded} onClick={() => setExpanded(v => !v)} className="mt-5 text-sm text-accent underline">{expanded ? "Show fewer upcoming compounds" : `Show all ${products.length} upcoming compounds`}</button>}
       <p className="mt-5 text-xs text-muted-2">
         Research use only — not for human or animal consumption. Listings here are not yet
         available to purchase.

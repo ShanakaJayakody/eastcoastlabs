@@ -15,7 +15,7 @@ import { getOrderPaymentStatus } from "@/app/(store)/pay/actions";
  * Backs off as time passes: a payment made in the first minute is worth
  * catching quickly; an hour later, once every 30s is plenty.
  */
-export default function PaymentStatusPoller({ orderId }: { orderId: string }) {
+export default function PaymentStatusPoller({ orderId, token }: { orderId: string; token: string }) {
   const router = useRouter();
   const [checking, setChecking] = useState(false);
 
@@ -33,7 +33,7 @@ export default function PaymentStatusPoller({ orderId }: { orderId: string }) {
         return;
       }
       try {
-        const status = await getOrderPaymentStatus(orderId);
+        const status = await getOrderPaymentStatus(orderId, token);
         if (!cancelled && status && status !== "pending") {
           // Server component re-renders with the confirmed state.
           router.refresh();
@@ -55,7 +55,7 @@ export default function PaymentStatusPoller({ orderId }: { orderId: string }) {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [orderId, router]);
+  }, [orderId, token, router]);
 
   return (
     <div className="mt-4 flex items-center gap-2 rounded-lg border border-line bg-ink-2 px-3 py-2 text-xs text-muted">

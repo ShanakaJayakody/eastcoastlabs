@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin/auth";
-import { listPeople, filterPeople, peopleCsv, type Segment } from "@/lib/admin/people";
+import { listPeoplePage, peopleCsv, SEGMENT_LABELS, type PersonRow, type Segment } from "@/lib/admin/people";
 
 export const dynamic = "force-dynamic";
 
@@ -7,12 +7,14 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   await requireAdmin();
   const params = new URL(request.url).searchParams;
-  const people = await listPeople();
-  const rows = filterPeople(
-    people,
-    (params.get("segment") ?? "all") as Segment,
-    params.get("q") ?? undefined,
-  );
+  const selected=params.get("segment") ?? "all";
+  const segment=(selected in SEGMENT_LABELS ? selected : "all") as Segment;
+  const rows:PersonRow[]=[];
+  for(let page=1;;page++){
+    const result=await listPeoplePage(segment,params.get("q")??undefined,page,500);
+    rows.push(...result.rows);
+    if(rows.length>=result.total || result.rows.length===0)break;
+  }
   const date = new Date().toISOString().slice(0, 10);
   return new Response(peopleCsv(rows), {
     headers: {

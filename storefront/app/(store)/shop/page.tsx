@@ -10,9 +10,10 @@ import ComingSoonShelf from "@/components/ComingSoonShelf";
 import type { CardProduct } from "@/components/ProductCard";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/shop" },
   title: "Shop research peptides",
   description:
-    "Browse research-use-only peptides. Every batch independently tested by JanoShik with the COA published before it ships.",
+    "Browse research-use-only peptides. Check available batch certificates before ordering.",
 };
 
 // Live catalog is fetched server-side (works despite CORS) with a 5-min revalidate.
@@ -42,7 +43,7 @@ export default async function ShopPage() {
         <h1 className="mt-2 text-3xl font-bold text-fg">Research peptides</h1>
         <p className="mt-3 text-sm text-muted">
           Every compound is available in 1-vial, 3-pack, and 6-pack options. The more you buy, the
-          less you pay per vial. Every batch is independently tested by JanoShik.
+          less you pay per vial. Check certificate availability for each compound.
         </p>
         <ResearchDisclaimer variant="badge" className="mt-4" />
       </div>

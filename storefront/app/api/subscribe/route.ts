@@ -1,59 +1,40 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { createHash, randomBytes } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase";
-import { queueEmail } from "@/lib/admin/email";
-import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
-/**
- * Email-capture endpoint — the single seam for the email platform.
- *
- * Persists to Supabase: a `back_in_stock:<slug>` source goes to
- * stock_notifications; everything else (newsletter, exit-intent) goes to
- * subscribers, which also queues welcome email 1 immediately (stages 2/3 are
- * sent by the lifecycle cron sweep). Subscribing again clears any prior
- * unsubscribe — an explicit opt-in renews consent. If Supabase is unconfigured
- * it degrades to a server log, so the form never errors.
- */
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as { email?: string; source?: string };
-    const email = (body.email ?? "").trim().toLowerCase();
-    const source = body.source ?? "unknown";
-
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      return NextResponse.json({ ok: false, error: "invalid_email" }, { status: 400 });
+    const body = await req.json();
+    if (typeof body?.email !== "string" || typeof body?.source !== "string") return NextResponse.json({ ok:false,error:"invalid_request" },{status:400});
+    const email=body.email.trim().toLowerCase(), source=body.source;
+    if (email.length>254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || source.length>140) return NextResponse.json({ok:false,error:"invalid_email"},{status:400});
+    const sb=supabaseAdmin();
+    if (!sb) return NextResponse.json({ok:false,error:"temporarily_unavailable"},{status:503});
+    if (source.startsWith("back_in_stock:")) {
+      const slug=source.slice(14);
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return NextResponse.json({ok:false,error:"invalid_product"},{status:400});
+      const {data:product,error:readError}=await sb.from("products").select("id").eq("slug",slug).in("status",["active","coming_soon"]).maybeSingle();
+      if(readError)throw new Error(readError.message);
+      if(!product)return NextResponse.json({ok:false,error:"invalid_product"},{status:400});
+      const {error}=await sb.from("stock_notifications").upsert({email,product_slug:slug,notified:false},{onConflict:"email,product_slug"});
+      if(error)throw new Error(error.message);
+      return NextResponse.json({ok:true,message:"Your notification request is saved."});
     }
-
-    const sb = supabaseAdmin();
-    if (sb) {
-      if (source.startsWith("back_in_stock:")) {
-        const productSlug = source.slice("back_in_stock:".length);
-        await sb
-          .from("stock_notifications")
-          .upsert({ email, product_slug: productSlug }, { onConflict: "email,product_slug" });
-      } else {
-        await sb
-          .from("subscribers")
-          .upsert({ email, source, unsubscribed_at: null }, { onConflict: "email,source" });
-        // Renew consent across every prior source row, then start the welcome series.
-        await sb.from("subscribers").update({ unsubscribed_at: null }).eq("email", email);
-        const unsub = unsubscribeUrl(email);
-        if (unsub) {
-          await queueEmail({
-            to: email,
-            template: "welcome_1",
-            payload: { unsubscribe_url: unsub },
-            relatedType: "subscriber",
-            relatedId: `${email}:welcome:1`,
-          }).catch((err) => console.error("[subscribe] welcome_1 queue failed:", err));
-        }
-      }
-    } else {
-      console.log(`[subscribe] (no supabase) ${email} · source=${source}`);
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    console.error("[subscribe] error:", err instanceof Error ? err.message : err);
-    return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
+    if(!["footer","exit_intent","newsletter"].includes(source))return NextResponse.json({ok:false,error:"invalid_source"},{status:400});
+    const token=randomBytes(32).toString("base64url");
+    const {data:rowId,error}=await sb.rpc("request_subscription",{
+      p_email:email,p_source:source,p_hash:createHash("sha256").update(token).digest("hex"),
+      p_url:`https://www.eastcoastlabs.com.au/subscribe/confirm?token=${token}`,
+    });
+    if(error)throw new Error(error.message);
+    if(rowId)after(async()=>{
+      const {sendImmediately}=await import("@/lib/email/sender");
+      await sendImmediately(rowId).catch(()=>console.error("Subscription confirmation awaits outbox retry"));
+    });
+    return NextResponse.json({ok:true,message:"Check your email to confirm your subscription."});
+  } catch {
+    // Never log the submitted email or request body.
+    console.error("Subscription request failed");
+    return NextResponse.json({ok:false,error:"server_error"},{status:500});
   }
 }

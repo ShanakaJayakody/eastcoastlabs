@@ -1,17 +1,12 @@
-/**
- * Transactional email seam. Every notification is written to email_outbox FIRST
- * (the auditable, retryable unit — visible in tests and the admin without sending
- * real mail), then an immediate send is attempted. If RESEND_API_KEY isn't set or
- * the send fails, the row stays queued/failed for the /api/cron/email-outbox
- * drain to retry — sending is best-effort and never blocks the caller.
- *
- * Insert uses upsert+ignoreDuplicates against the (to_email, template, related_id)
- * unique index, so the exact same notification can never be queued twice even if
- * a caller races or retries (closes the duplicate-queue class of bug).
- */
+import "server-only";
+import { after } from "next/server";
 import { adminDb } from "./db";
 
+// The outbox is durable before any delivery is scheduled. Duplicate enqueue is
+// harmless; the sender still needs a database lease before it can contact Resend.
 export type EmailTemplate =
+  | "admin_daily_brief"
+  | "subscription_confirmation"
   | "order_confirmation"
   | "order_shipped"
   | "order_refunded"
@@ -40,7 +35,7 @@ export async function queueEmail(opts: {
   payload?: Record<string, unknown>;
   relatedType?: string;
   relatedId?: string;
-}): Promise<void> {
+}): Promise<boolean> {
   const db = adminDb();
   const { data, error } = await db
     .from("email_outbox")
@@ -58,12 +53,17 @@ export async function queueEmail(opts: {
     .maybeSingle();
   if (error) throw new Error(`queueEmail: ${error.message}`);
 
-  // ignoreDuplicates means `data` is null when the row already existed — nothing
-  // new to send. Otherwise, attempt immediate delivery (best-effort, non-blocking).
   if (data?.id) {
-    const { sendImmediately } = await import("@/lib/email/sender");
-    await sendImmediately(data.id).catch(() => {});
+    try {
+      after(async () => {
+        const { sendImmediately } = await import("@/lib/email/sender");
+        await sendImmediately(data.id).catch(() => console.error("Email delivery deferred to retry worker"));
+      });
+    } catch {
+      // A non-request caller (e.g. a maintenance script) relies on the cron.
+    }
   }
+  return Boolean(data?.id);
 }
 
 /** Count of pending notifications — surfaced on the dashboard. */
@@ -71,6 +71,6 @@ export async function queuedEmailCount(): Promise<number> {
   const { count } = await adminDb()
     .from("email_outbox")
     .select("*", { count: "exact", head: true })
-    .eq("status", "queued");
+    .in("status", ["queued", "failed", "sending", "dead"]);
   return count ?? 0;
 }

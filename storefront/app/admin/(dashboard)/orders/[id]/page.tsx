@@ -129,7 +129,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         {/* Sidebar */}
         <div className="space-y-4">
-          <OrderActions orderId={order.id} status={order.status} stockCheck={stockCheck} />
+          <OrderActions hasRefunds={order.refunded_cents>0 || order.items.some(item=>item.refunded_qty>0)} orderNumber={order.order_number} remainingRefundCents={Math.max(0,order.total_cents-order.refunded_cents)} trackingNumber={order.tracking_number} orderId={order.id} status={order.status} stockCheck={stockCheck} />
 
           <section className="rounded-xl border border-line bg-surface p-4 text-sm">
             <h3 className="mb-2 text-sm font-semibold text-fg">Customer</h3>

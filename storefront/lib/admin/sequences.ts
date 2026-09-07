@@ -157,6 +157,8 @@ export const PAUSABLE: SequenceId[] = [
 
 /** Templates that must deliver regardless of marketing suppression. */
 export const TRANSACTIONAL_TEMPLATES: EmailTemplate[] = [
+  "admin_daily_brief",
+  "subscription_confirmation",
   "order_confirmation",
   "order_shipped",
   "order_refunded",
@@ -177,6 +179,7 @@ export const cartRelatedId = (email: string, stage: number, capturedAtIso: strin
 export const paymentReminderRelatedId = (orderId: string, stage: number): string =>
   `${orderId}:reminder:${stage}`;
 
+/** Lifetime identity shared with confirm_subscription SQL; consent renewal never replays it. */
 export const welcomeRelatedId = (email: string, stage: number): string =>
   `${email}:welcome:${stage}`;
 
@@ -202,7 +205,7 @@ export const secondPurchaseRelatedId = (email: string, lastOrderAtIso: string): 
 
 /* ---------------- stage-state derivation (shared by every surface) --------- */
 
-export type StageState = "sent" | "next" | "pending" | "skipped" | "missed";
+export type StageState = "sent" | "queued" | "sending" | "failed" | "dead" | "next" | "pending" | "skipped" | "missed";
 
 export interface DerivedStage {
   label: string;
@@ -231,7 +234,7 @@ export interface OutboxLookupRow {
 /**
  * Resolve every stage of one sequence against the outbox.
  *
- * A stage is `sent` when an outbox row exists for its related id, `skipped` when
+ * A stage is `sent` only after provider acceptance is recorded, `skipped` when
  * that row was cancelled, `missed` when its window closed with nothing sent,
  * `next` for the earliest still-eligible unsent stage, and `pending` for the
  * ones behind it. Nothing here reads a status column on the source row — the
@@ -266,7 +269,11 @@ export function deriveStages(
       return {
         label: spec.label,
         template: spec.template,
-        state: hit.status === "cancelled" ? "skipped" : "sent",
+        state: hit.status === "cancelled" ? "skipped"
+          : hit.status === "sent" ? "sent"
+          : hit.status === "sending" ? "sending"
+          : hit.status === "failed" ? "failed"
+          : hit.status === "dead" ? "dead" : "queued",
         at: hit.sent_at ?? hit.created_at,
         etaMs: null,
         outboxId: hit.id,

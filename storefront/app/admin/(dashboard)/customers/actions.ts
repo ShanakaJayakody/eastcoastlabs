@@ -160,7 +160,7 @@ export async function sendStageNow(
     }
   }
 
-  const payload = await buildPayload(sequence, to, state, person);
+  const payload = await buildPayload(sequence, state, person);
   if (!payload) return { ok: false, message: "Could not assemble this email's content." };
   const unsub = unsubscribeUrl(to);
 
@@ -366,14 +366,13 @@ type State = Awaited<ReturnType<typeof deriveSequenceState>>[number];
 /** Rebuild the payload a sweep would have sent for this stage. */
 async function buildPayload(
   sequence: SequenceId,
-  email: string,
   state: State,
   person: Person,
 ): Promise<Record<string, unknown> | null> {
   switch (sequence) {
     case "cart_recovery": {
-      if (!person.cart) return null;
-      return { cart: person.cart.cart, subtotal_cents: person.cart.subtotal_cents };
+      if (!person.cart?.current_episode_id) return null;
+      return { cart: person.cart.cart, subtotal_cents: person.cart.subtotal_cents, recovery_episode_id: person.cart.current_episode_id };
     }
     case "payment_reminders": {
       const order = person.orders.find((o) => o.id === state.orderId);
@@ -413,9 +412,7 @@ async function buildPayload(
       return {
         order_number: order.order_number,
         products,
-        review_url: `https://eastcoastlabs.com.au/leave-a-review?order=${encodeURIComponent(
-          order.order_number,
-        )}&email=${encodeURIComponent(email)}`,
+        order_id: order.id,
       };
     }
     case "review_thank_you": {

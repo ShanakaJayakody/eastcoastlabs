@@ -114,6 +114,7 @@ export function vialsOnHand(variants: { pack_size: number; on_hand: number }[]):
 }
 
 const SELECT_PRODUCT = `
+  edit_version,
   id, slug, name, sku, status, images, short_description, description, seo_title, seo_description, unit_cost_cents,
   product_variants (
     id, sku, pack_size, label, price_cents, compare_at_cents, active, position,
@@ -122,6 +123,7 @@ const SELECT_PRODUCT = `
 `;
 
 interface RawProduct {
+  edit_version: number;
   id: string;
   slug: string;
   name: string;
@@ -178,6 +180,7 @@ export async function listProducts(opts: { search?: string; lowStockOnly?: boole
 }
 
 export interface ProductDetail extends ProductListRow {
+  edit_version: number;
   short_description: string | null;
   description: string | null;
   seo_title: string | null;
@@ -209,6 +212,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     totalOnHand: pool.onHand, // vials
     lowStock: variants.some((v) => v.available <= v.low_stock_threshold),
     minPriceCents: variants.length ? Math.min(...variants.map((v) => v.price_cents)) : 0,
+    edit_version: p.edit_version,
     short_description: p.short_description,
     description: p.description,
     seo_title: p.seo_title,
@@ -589,37 +593,29 @@ export async function adjustStockWithNotify(opts: {
   reason: MovementReason;
   actor: string;
   note?: string;
-}): Promise<{ notified: number }> {
+}): Promise<{ notified: number; warning?: string }> {
   const db = adminDb();
-  const { data: before } = await db
-    .from("inventory")
-    .select("on_hand, reserved")
-    .eq("variant_id", opts.variantId)
-    .maybeSingle();
+  const { data: before, error: beforeError } = await db.from("inventory")
+    .select("on_hand, reserved").eq("variant_id", opts.variantId).maybeSingle();
+  if (beforeError) throw new Error(`Cannot read stock before adjustment: ${beforeError.message}`);
   const availableBefore = (before?.on_hand ?? 0) - (before?.reserved ?? 0);
 
   await recordMovement(opts);
-  await logAudit({
-    actor: opts.actor,
-    action: "stock.adjust",
-    entityType: "product_variant",
-    entityId: opts.variantId,
-    diff: { qty: opts.qty, reason: opts.reason, note: opts.note ?? null },
-  });
-
-  const { data: after } = await db
-    .from("inventory")
-    .select("on_hand, reserved")
-    .eq("variant_id", opts.variantId)
-    .maybeSingle();
-  const availableAfter = (after?.on_hand ?? 0) - (after?.reserved ?? 0);
-
-  // Restock event: nothing available → something available.
-  if (availableBefore <= 0 && availableAfter > 0) {
-    const notified = await queueBackInStock(opts.variantId);
-    return { notified };
-  }
-  return { notified: 0 };
+  // The ledger write has committed. Follow-up failure must never invite the
+  // operator to repeat this quantity adjustment.
+  const warnings: string[] = [];
+  try {
+    await logAudit({actor:opts.actor,action:"stock.adjust",entityType:"product_variant",entityId:opts.variantId,
+      diff:{qty:opts.qty,reason:opts.reason,note:opts.note??null}});
+  } catch { warnings.push("Audit recording could not be confirmed."); }
+  let notified=0;
+  try {
+    const {data:after,error:afterError}=await db.from("inventory").select("on_hand, reserved").eq("variant_id",opts.variantId).maybeSingle();
+    if(afterError || !after)throw new Error("Availability read failed");
+    const availableAfter=after.on_hand-after.reserved;
+    if(availableBefore<=0 && availableAfter>0)notified=await queueBackInStock(opts.variantId);
+  } catch { warnings.push("Availability notifications could not be checked or queued."); }
+  return {notified,...(warnings.length?{warning:`Stock saved. ${warnings.join(" ")} Do not repeat the adjustment; review the stock ledger and email queue.`}:{})};
 }
 
 export interface MovementRow {

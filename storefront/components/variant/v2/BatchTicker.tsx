@@ -11,7 +11,7 @@ export default function BatchTicker({ records }: { records: CoaRecord[] }) {
   const Item = ({ r }: { r: CoaRecord }) => (
     <span className="whitespace-nowrap px-6 font-data text-[13px] text-fg-2">
       BATCH {r.batch_id} — {r.compound.toUpperCase()} — {r.purity_pct.toFixed(2)}% — {r.test_date}
-      <span className="ml-6 text-line-2">///</span>
+      <span className="ml-6 text-line-2">{"///"}</span>
     </span>
   );
 

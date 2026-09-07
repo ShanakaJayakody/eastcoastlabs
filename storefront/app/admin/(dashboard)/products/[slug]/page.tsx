@@ -34,7 +34,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     i >= 0 && i < all.length ? { slug: all[i].slug, name: all[i].name } : null;
 
   return (
-    <ProductEditor
+    <ProductEditor key={product.id}
       product={product}
       movements={movements}
       waitlist={waitlist}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rejectUnauthorizedCron } from "@/lib/cron-auth";
 import {
   sweepWelcomeSeries,
   sweepPostPurchase,
@@ -20,13 +21,8 @@ export const dynamic = "force-dynamic";
  * like the other cron routes.
  */
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const rejected = rejectUnauthorizedCron(request);
+  if (rejected) return rejected;
 
   const result = await recordCronRun("lifecycle", async () => {
     const [welcome, postPurchase, reviewThanks, replenishment, winback, nudge] = [

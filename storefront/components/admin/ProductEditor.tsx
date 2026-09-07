@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -21,7 +21,8 @@ import {
   saveUnitCost,
   addTiersAction,
 } from "@/app/admin/(dashboard)/products/actions";
-import RichTextEditor from "./RichTextEditor";
+import ConfirmModal from "./ConfirmModal";
+import DescriptionEditor from "./DescriptionEditor";
 import ProductImages from "./ProductImages";
 import SeoPreview from "./SeoPreview";
 import Badge, { type BadgeTone } from "./Badge";
@@ -98,9 +99,34 @@ export default function ProductEditor({
   );
 
   const [form, setForm] = useState(initial);
-  useEffect(() => setForm(initial), [initial]);
+  const [baseline,setBaseline] = useState(initial);
+  const [version,setVersion] = useState(product.edit_version);
+  const productId = useRef(product.id);
+  const [leaveTo,setLeaveTo] = useState<string|null>(null);
+  useEffect(() => {
+    if(productId.current !== product.id || JSON.stringify(form) === JSON.stringify(baseline)) {
+      productId.current=product.id;setForm(initial);setBaseline(initial);setVersion(product.edit_version);
+    }
+    // A same-product refresh may update media or stock; dirty fields keep their
+    // original revision so a concurrent editor produces a conflict at save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial,product.id,product.edit_version]);
 
-  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(initial), [form, initial]);
+  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(baseline), [form, baseline]);
+
+  // Session-local recovery also covers browser Back and command navigation,
+  // which do not dispatch a link click. Keep the original revision with it.
+  useEffect(()=>{
+    try {
+      const saved=JSON.parse(sessionStorage.getItem(`admin-product-draft:${product.id}`) ?? "null");
+      if(saved && saved.form && saved.baseline && Number.isInteger(saved.version) && ["name","shortDesc","desc","seoTitle","seoDesc","status"].every(k=>typeof saved.form[k]==="string") && saved.form.prices && saved.form.thresholds){
+        setForm(saved.form);setBaseline(saved.baseline);setVersion(saved.version);
+      }
+    }catch{}
+  },[product.id]);
+  useEffect(()=>{
+    try{if(dirty)sessionStorage.setItem(`admin-product-draft:${product.id}`,JSON.stringify({form,baseline,version}));else sessionStorage.removeItem(`admin-product-draft:${product.id}`);}catch{}
+  },[form,baseline,version,dirty,product.id]);
 
   // Guard against losing edits on navigate/close.
   useEffect(() => {
@@ -109,8 +135,16 @@ export default function ProductEditor({
       e.preventDefault();
       e.returnValue = "";
     };
+    const click = (event:MouseEvent) => {
+      const anchor = (event.target as Element).closest?.("a[href]") as HTMLAnchorElement|null;
+      if(!anchor || anchor.target==="_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.button!==0) return;
+      const destination=new URL(anchor.href,window.location.href);
+      if(destination.pathname===window.location.pathname && destination.search===window.location.search) return;
+      event.preventDefault();event.stopPropagation();setLeaveTo(anchor.href);
+    };
     window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    document.addEventListener("click",click,true);
+    return () => {window.removeEventListener("beforeunload", handler);document.removeEventListener("click",click,true);};
   }, [dirty]);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
@@ -133,8 +167,11 @@ export default function ProductEditor({
           priceAud: Number(form.prices[v.id]),
           threshold: Number(form.thresholds[v.id] || 0),
         })),
+        version,
       );
       if (res.ok) {
+        setBaseline(form);
+        if(res.version != null) setVersion(res.version);
         toast.success(res.message ?? "Saved");
         router.refresh();
       } else toast.error(res.error ?? "Save failed");
@@ -183,6 +220,8 @@ export default function ProductEditor({
 
   return (
     <>
+      <ConfirmModal open={leaveTo!==null} title="Discard unsaved product changes?" body="Your details and pricing draft has not been saved." confirmLabel="Discard and leave" tone="danger" onCancel={()=>setLeaveTo(null)} onConfirm={()=>{const to=leaveTo!;setLeaveTo(null);setBaseline(form);router.push(to);}} />
+      {dirty && product.edit_version !== version && <p role="alert" className="mb-4 rounded-lg border border-warn p-3 text-warn">This product changed in another editor. Your draft is preserved. Copy your edits before using Discard to load the current values.</p>}
       {/* ---- Sticky header: identity, status, movement between products ---- */}
       <div className="sticky top-14 z-20 -mx-4 mb-6 border-b border-line bg-ink/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="flex flex-wrap items-center gap-3">
@@ -238,8 +277,9 @@ export default function ProductEditor({
             <ExternalLink size={14} /> View
           </a>
           <button
-            disabled={pending}
+            disabled={pending || dirty}
             onClick={duplicate}
+            title={dirty ? "Save or discard your draft before duplicating" : undefined}
             className="flex items-center gap-1.5 rounded-lg border border-line-2 bg-surface px-3 py-1.5 text-sm text-fg-2 transition hover:text-fg disabled:opacity-50"
           >
             <Copy size={14} /> Duplicate
@@ -320,16 +360,15 @@ export default function ProductEditor({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-muted">Short description</label>
-                <RichTextEditor
+                <DescriptionEditor
+                  label="Short description"
                   value={form.shortDesc}
                   onChange={(v) => set("shortDesc", v)}
                   minHeight={80}
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-muted">Full description</label>
-                <RichTextEditor value={form.desc} onChange={(v) => set("desc", v)} minHeight={200} />
+                <DescriptionEditor label="Full description" value={form.desc} onChange={(v) => set("desc", v)} minHeight={200} />
               </div>
             </div>
           </section>
@@ -670,7 +709,7 @@ export default function ProductEditor({
           <div className="flex gap-2">
             <button
               disabled={pending || !dirty}
-              onClick={() => setForm(initial)}
+              onClick={() => {setForm(initial);setBaseline(initial);setVersion(product.edit_version);}}
               className={`${btn} border border-line-2 text-fg-2 hover:text-fg`}
             >
               Discard

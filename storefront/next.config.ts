@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import type { NextConfig } from "next";
 
 const WOO_API_BASE = process.env.WOO_API_BASE ?? "https://eastcoastlabs.com.au";
@@ -7,6 +8,8 @@ const nextConfig: NextConfig = {
   // Allows an isolated build output (e.g. NEXT_DIST_DIR=.next-verify) so a
   // verification build never clobbers a running dev server's .next chunks.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  outputFileTracingRoot: resolve(__dirname),
+  outputFileTracingIncludes: { "/*": ["./content/**/*", "./data/**/*"] },
   // Surface the Woo base URLs to the browser bundle so the client-side cart and
   // the checkout hand-off can read them. These are non-secret public endpoints.
   env: {
@@ -19,6 +22,16 @@ const nextConfig: NextConfig = {
   // authenticated-but-not-allow-listed user (see lib/admin/auth.ts).
   experimental: {
     authInterrupts: true,
+  },
+  async headers() {
+    return ["/pay/:path*", "/checkout/:path*", "/leave-a-review", "/subscribe/:path*", "/api/unsubscribe"].map((source) => ({
+      source,
+      headers: [
+        { key: "Cache-Control", value: "private, no-store, max-age=0" },
+        { key: "Referrer-Policy", value: "no-referrer" },
+        { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+      ],
+    }));
   },
   images: {
     remotePatterns: [

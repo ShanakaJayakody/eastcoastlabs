@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/cart", "/api/", "/admin"],
     },
-    sitemap: "https://eastcoastlabs.com.au/sitemap.xml",
+    sitemap: "https://www.eastcoastlabs.com.au/sitemap.xml",
   };
 }

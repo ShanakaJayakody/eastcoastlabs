@@ -27,7 +27,7 @@ export default function Testimony({
               <blockquote key={i} className={i > 0 ? "border-t border-line pt-6" : ""}>
                 <SquareStars rating={r.rating} />
                 <p className="font-serif-display mt-2.5 text-lg italic leading-snug text-fg">
-                  "{r.body}"
+                  &ldquo;{r.body}&rdquo;
                 </p>
                 <footer className="mt-2 font-data text-[11px] uppercase tracking-wide text-muted-2">
                   — {r.verified ? "Verified buyer" : r.author} · {r.productSlug} ·{" "}

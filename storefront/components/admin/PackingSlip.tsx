@@ -17,6 +17,7 @@ export default function PackingSlip({
   coas: Record<string, string>;
   pageBreak?: boolean;
 }) {
+  const shippable = order.status === "cancelled" || order.status === "refunded" ? [] : order.items.map(it => ({...it, packQty: Math.max(0,it.qty-(it.refunded_qty ?? 0))})).filter(it=>it.packQty>0);
   const addr = order.shipping_address ?? {};
   return (
     <section className={pageBreak ? "break-after-page" : ""}>
@@ -60,13 +61,13 @@ export default function PackingSlip({
         <thead>
           <tr className="border-b border-black text-left">
             <th className="py-2">Item</th>
-            <th className="py-2">Batch / COA</th>
-            <th className="py-2 text-center">Qty</th>
-            <th className="py-2 text-right">Amount</th>
+            <th className="py-2">Latest published COA</th>
+            <th className="py-2 text-center">Qty to pack</th>
+            <th className="py-2 text-right">Original line amount</th>
           </tr>
         </thead>
         <tbody>
-          {order.items.map((it) => (
+          {shippable.map((it) => (
             <tr key={it.id} className="border-b border-neutral-300">
               <td className="py-2">
                 <span className="font-medium">{it.product_name}</span>
@@ -76,7 +77,7 @@ export default function PackingSlip({
                 </span>
               </td>
               <td className="py-2 font-mono text-xs">{coas[it.product_name ?? ""] ?? "—"}</td>
-              <td className="py-2 text-center">{it.qty}</td>
+              <td className="py-2 text-center">{it.packQty}</td>
               <td className="py-2 text-right">{cents(it.line_total_cents)}</td>
             </tr>
           ))}
@@ -106,19 +107,20 @@ export default function PackingSlip({
           </tr>
           <tr className="border-t-2 border-black font-bold">
             <td colSpan={3} className="py-2 text-right">
-              Total
+              Original order total
             </td>
             <td className="py-2 text-right">{cents(order.total_cents)}</td>
           </tr>
         </tfoot>
       </table>
 
+      <p className="mt-3 text-xs text-neutral-600">Packing quantities exclude refunded units. Amounts above show the original order accounting.</p>
       <footer className="mt-10 border-t border-neutral-300 pt-4 text-xs text-neutral-600">
         <p className="font-bold uppercase">
           Research use only — not for human or animal consumption.
         </p>
         <p className="mt-1">
-          Every batch is independently tested. Certificates of analysis are published at
+          COA references are general product documents, not proof of the batch allocated to this parcel. Available certificates are published at
           eastcoastlabs.com.au/lab-results
         </p>
       </footer>

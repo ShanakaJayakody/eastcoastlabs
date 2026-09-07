@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { WooProduct } from "@/lib/woo";
 import { minorToMajor, formatMinor, formatAud } from "@/lib/format";
-import { fromPerVialLabel, type TierCard } from "@/lib/pricing";
+import { type TierCard } from "@/lib/pricing";
 import SquareStars from "./SquareStars";
 
 export type SpecimenProduct = Pick<
@@ -27,7 +27,7 @@ export default function SpecimenCard({ product }: { product: SpecimenProduct }) 
   // for anything the DB hasn't answered for.
   const perVialLabel = product.tiers?.length
     ? `from ${formatAud(Math.min(...product.tiers.map((t) => t.perVial)))}/vial`
-    : fromPerVialLabel(product.slug, product.name, single);
+    : `${formatAud(single)}/vial`;
   const inStock = product.is_in_stock !== false;
   const rating = product.rating ?? null;
   const descriptor = product.short_description?.replace(/<[^>]+>/g, "").trim();
@@ -54,7 +54,7 @@ export default function SpecimenCard({ product }: { product: SpecimenProduct }) 
             inStock ? "text-accent" : "text-muted-2"
           }`}
         >
-          {inStock ? "In stock" : "Backorder"}
+          {inStock ? "In stock" : "Out of stock"}
         </span>
       </div>
 

@@ -1,5 +1,4 @@
 import Stars from "./Stars";
-import ReviewSummary from "./ReviewSummary";
 import { getProductReviews, verifiedLabel, isSample } from "@/lib/reviews";
 
 function formatDate(iso: string): string {

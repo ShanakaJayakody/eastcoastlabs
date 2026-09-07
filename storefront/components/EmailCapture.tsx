@@ -18,8 +18,9 @@ export default function EmailCapture({
   cta?: string;
   placeholder?: string;
   successMsg?: string;
-  onDone?: () => void;
+  onDone?: (message: string) => void;
 }) {
+  const [message, setMessage] = useState(successMsg);
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
@@ -34,9 +35,11 @@ export default function EmailCapture({
         body: JSON.stringify({ email, source }),
       });
       const json = await res.json();
-      if (json.ok) {
+      if (res.ok && json.ok) {
+        const confirmedMessage = typeof json.message === "string" ? json.message : source.startsWith("back_in_stock:") ? "Notification requested. We’ll email you when it is available." : "Check your email to confirm your subscription.";
+        setMessage(confirmedMessage);
         setState("done");
-        onDone?.();
+        onDone?.(confirmedMessage);
       } else {
         setState("error");
       }
@@ -46,11 +49,11 @@ export default function EmailCapture({
   }
 
   if (state === "done") {
-    return <p className="text-sm font-medium text-success">{successMsg}</p>;
+    return <p role="status" className="text-sm font-medium text-success">{message}</p>;
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
+    <form onSubmit={submit} className="flex flex-wrap gap-2">
       <input
         type="email"
         required
@@ -68,7 +71,7 @@ export default function EmailCapture({
         {state === "loading" ? "…" : cta}
       </button>
       {state === "error" && (
-        <p className="text-xs text-warn sm:sr-only">Something went wrong — try again.</p>
+        <p role="alert" className="w-full text-xs text-warn">Something went wrong — try again.</p>
       )}
     </form>
   );

@@ -49,6 +49,7 @@ export interface CartSessionRow {
   reminder_stage: number | null;
   reminder_sent_at: string | null;
   recovered_order_id: string | null;
+  current_episode_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -294,7 +295,7 @@ export async function deriveSequenceState(person: LoadedPerson): Promise<Sequenc
     );
   }
 
-  // ---- Welcome series ------------------------------------------------------
+  // ---- Lifetime welcome series; renewed consent preserves its original age ---
   const firstSub = person.subscriberRows
     .filter((s) => !(s.source ?? "").startsWith("back_in_stock:") && s.source !== "unsubscribe")
     .sort((a, b) => a.created_at.localeCompare(b.created_at))[0];

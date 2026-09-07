@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { confirmPayment, advanceStatus, refund, cancel, addNote, reinstate } from "@/app/admin/(dashboard)/orders/actions";
+import { confirmPayment, correctTracking, advanceStatus, refund, cancel, addNote, reinstate } from "@/app/admin/(dashboard)/orders/actions";
+import ConfirmModal from "./ConfirmModal";
+import {formatAud} from "@/lib/format";
 import type { OrderStatus, ReinstateLineCheck } from "@/lib/admin/orders";
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
@@ -16,8 +18,13 @@ export default function OrderActions({
   orderId,
   status,
   stockCheck,
+  orderNumber, remainingRefundCents, trackingNumber, hasRefunds=false,
 }: {
   orderId: string;
+  orderNumber?:string;
+  hasRefunds?:boolean;
+  remainingRefundCents?:number;
+  trackingNumber?:string|null;
   status: OrderStatus;
   /** Line-by-line availability, supplied only for cancelled orders. */
   stockCheck?: ReinstateLineCheck[];
@@ -25,13 +32,20 @@ export default function OrderActions({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [paymentRef, setPaymentRef] = useState("");
-  const [tracking, setTracking] = useState("");
+  const [tracking, setTracking] = useState(trackingNumber ?? "");
   const [note, setNote] = useState("");
+
+  const reinstatementAttempt=useRef<{signature:string;key:string}|null>(null);
+  const reinstateKey=(toPaid:boolean)=>{const signature=JSON.stringify({toPaid,paymentRef});if(reinstatementAttempt.current?.signature!==signature)reinstatementAttempt.current={signature,key:crypto.randomUUID()};return reinstatementAttempt.current.key;};
+  const [confirming,setConfirming]=useState<"refund"|"cancel"|null>(null);
+  const [restock,setRestock]=useState(false);
+  const [notifyTracking,setNotifyTracking]=useState(false);
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>, success: string) =>
     start(async () => {
       const res = await fn();
       if (res.ok) {
+        setConfirming(null);
         toast.success(success);
         router.refresh();
       } else {
@@ -40,10 +54,10 @@ export default function OrderActions({
     });
 
   const short = (stockCheck ?? []).filter((l) => !l.sufficient);
-  const canReinstate = status === "cancelled" && short.length === 0;
+  const canReinstate = status === "cancelled" && short.length === 0 && !hasRefunds;
 
   const next = NEXT_LABEL[status];
-  const closed = status === "completed" || status === "cancelled" || status === "refunded";
+  const closed = status === "cancelled" || status === "refunded";
   const btn =
     "rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50";
   const field =
@@ -52,6 +66,12 @@ export default function OrderActions({
   return (
     <div className="space-y-4 rounded-xl border border-line bg-surface p-4">
       <h3 className="text-sm font-semibold text-fg">Actions</h3>
+      <ConfirmModal open={confirming!==null} title={`${confirming==='refund'?'Record refund':'Cancel order'} · ${orderNumber ?? orderId}`} confirmLabel={confirming==='refund'?'Record refund':'Cancel order'} tone="danger" pending={pending} onCancel={()=>setConfirming(null)} onConfirm={()=>run(()=>confirming==='refund'?refund(orderId,restock):cancel(orderId,restock),confirming==='refund'?'Refund recorded — arrange the bank transfer separately':'Order cancellation recorded')} body={<>
+        {confirming==='refund' && remainingRefundCents!=null && <p>Remaining refund: {formatAud(remainingRefundCents/100)}</p>}
+        <p>This updates the order record. Money is not transferred; return any money owed through your bank separately. {confirming==='refund'?'A refund record email is queued for the customer.':'Cancellation does not send a refund confirmation.'}</p>
+        {status!=='pending' && <label className="mt-3 flex gap-2"><input type="checkbox" checked={restock} onChange={e=>setRestock(e.target.checked)}/>Restore remaining units to sellable stock only if physically returned or still on hand.</label>}
+      </>} />
+      {(status==='shipped'||status==='completed') && <div className="space-y-2"><label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><button disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking),'Tracking updated')}>Save tracking correction</button></div>}
 
       {status === "cancelled" && (
         <div className="space-y-2 rounded-lg border border-line-2 bg-ink-2/50 p-3">
@@ -60,6 +80,7 @@ export default function OrderActions({
             possible if it is still on the shelf.
           </p>
 
+          {hasRefunds && <p role="alert" className="text-xs text-warn">This order has recorded refunds and cannot be reinstated. Create a new order if needed.</p>}
           {short.length > 0 ? (
             <div className="rounded-lg border border-warn/30 bg-warn/10 p-2.5 text-xs">
               <p className="font-medium text-warn">Not enough stock to reinstate</p>
@@ -86,7 +107,7 @@ export default function OrderActions({
             disabled={pending || !canReinstate}
             onClick={() =>
               run(
-                () => reinstate(orderId, { toPaid: true, paymentRef }),
+                () => reinstate(orderId, { toPaid: true, paymentRef, idempotencyKey:reinstateKey(true) }),
                 "Reinstated and marked paid — stock decremented, customer emailed",
               )
             }
@@ -98,7 +119,7 @@ export default function OrderActions({
             disabled={pending || !canReinstate}
             onClick={() =>
               run(
-                () => reinstate(orderId, { toPaid: false }),
+                () => reinstate(orderId, { toPaid: false, idempotencyKey:reinstateKey(false) }),
                 "Reinstated as awaiting payment — stock re-reserved",
               )
             }
@@ -160,17 +181,17 @@ export default function OrderActions({
 
       {!closed && (
         <div className="flex gap-2 border-t border-line pt-3">
-          <button
+          {status!=="pending" && <button
             disabled={pending}
-            onClick={() => run(() => refund(orderId), "Refunded — stock restored")}
+            onClick={() => {setRestock(false);setConfirming("refund");}}
             className={`${btn} flex-1 border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20`}
           >
-            Refund
-          </button>
+            Record refund
+          </button>}
           {(status === "pending" || status === "paid") && (
             <button
               disabled={pending}
-              onClick={() => run(() => cancel(orderId), "Order cancelled")}
+              onClick={() => {setRestock(false);setConfirming("cancel");}}
               className={`${btn} flex-1 border border-line-2 text-muted hover:text-fg`}
             >
               Cancel

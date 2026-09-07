@@ -9,19 +9,18 @@ import "server-only";
  * which is exactly how NAD+ ended up active, stocked and 404ing.
  *
  * Now the DB decides which products exist, what they cost and what's in stock.
- * The JSON files survive as a FALLBACK only: if Supabase is unreachable at
- * render time the site still builds and serves rather than showing an empty
- * shop.
+ * Missing or unavailable database data yields no offers; archived products
+ * must never be resurrected from historical JSON.
  *
  * Why not put this in lib/woo.ts: that module is in the CLIENT bundle
  * (cart-context imports wooCart from it), so a service-role DB read there would
  * ship the key to the browser. Same reason lib/storefront-catalog.ts is
  * server-only.
  */
+import { cache } from "react";
 import { supabaseAdmin } from "./supabase";
 import type { WooProduct } from "./woo";
-import { getProducts } from "./woo";
-import { getPricing, type TierCard } from "./pricing";
+import { type TierCard } from "./pricing";
 import { formatAudWhole } from "./format";
 import localCatalog from "@/data/catalog.json";
 
@@ -30,6 +29,8 @@ export interface CatalogProduct extends WooProduct {
   tiers: TierCard[] | null;
   /** Vials sellable right now, summed across the pool. */
   available: number;
+  seo_title?: string | null;
+  seo_description?: string | null;
 }
 
 interface VariantRow {
@@ -51,6 +52,8 @@ interface ProductRow {
   description: string | null;
   images: { src: string; alt?: string }[] | null;
   status: string;
+  seo_title?: string | null;
+  seo_description?: string | null;
   product_variants: VariantRow[] | null;
 }
 
@@ -93,11 +96,11 @@ const ACCESSORY_CATEGORY = "accessory";
  * Savings are computed against N x the real single price, so they can never
  * drift from what checkout charges — the old price-table.json could, and did.
  */
-function tiersFromVariants(variants: VariantRow[]): TierCard[] | null {
-  const sellable = variants.filter((v) => v.active !== false);
+function tiersFromVariants(variants: VariantRow[], available: number): TierCard[] | null {
+  const sellable = variants.filter((v) => v.active !== false && v.pack_size <= available);
   const single = sellable.find((v) => v.pack_size === 1);
   const packs = sellable.filter((v) => v.pack_size > 1).sort((a, b) => a.pack_size - b.pack_size);
-  if (!single || packs.length === 0) return null;
+  if (!single) return null;
 
   const singleMajor = single.price_cents / 100;
   const idOf = (packSize: number): TierCard["id"] =>
@@ -137,7 +140,7 @@ function tiersFromVariants(variants: VariantRow[]): TierCard[] | null {
 }
 
 function mapRow(row: ProductRow): CatalogProduct | null {
-  const variants = row.product_variants ?? [];
+  const variants = (row.product_variants ?? []).filter((v) => v.active !== false);
   const single = variants.find((v) => v.pack_size === 1) ?? variants[0];
   // No variant means no price and nothing to sell — a coming-soon product that
   // hasn't been launched yet. Those render from getComingSoonProducts(), not here.
@@ -176,28 +179,23 @@ function mapRow(row: ProductRow): CatalogProduct | null {
     },
     images: (row.images ?? []).map((img) => ({ src: img.src, alt: img.alt })),
     variations: [],
-    tiers: tiersFromVariants(variants),
+    tiers: tiersFromVariants(variants, available),
+    seo_title: row.seo_title,
+    seo_description: row.seo_description,
     available,
   };
-}
-
-/** JSON-catalog catalogue, used only when the DB can't answer. */
-async function fallbackCatalog(limit: number): Promise<CatalogProduct[]> {
-  const products = await getProducts(limit);
-  return products.map((p) => ({
-    ...p,
-    tiers: getPricing(p.slug, p.name)?.tiers ?? null,
-    available: 0,
-  }));
 }
 
 /**
  * The storefront catalog. Active products only, ordered the way the JSON
  * catalog ordered them with anything newer appended.
  *
- * Never throws: a DB outage degrades to the JSON catalog rather than a 500.
+ * An empty or unavailable database never enables legacy offers.
  */
-export async function getCatalog(limit = 100): Promise<{
+const CARD_COLUMNS = `id, slug, name, sku, short_description, images, status, categories,
+ product_variants ( pack_size, label, price_cents, compare_at_cents, active, inventory ( on_hand, reserved ) )`;
+const DETAIL_COLUMNS = `description, seo_title, seo_description, ${CARD_COLUMNS}`;
+export const getCatalog = cache(async function getCatalog(limit?: number): Promise<{
   products: CatalogProduct[];
   bySlug: Map<string, CatalogProduct>;
 }> {
@@ -205,20 +203,23 @@ export async function getCatalog(limit = 100): Promise<{
   let products: CatalogProduct[] = [];
 
   if (db) {
-    const { data, error } = await db
-      .from("products")
-      .select(
-        `id, slug, name, sku, short_description, description, images, status, categories,
-         product_variants ( pack_size, label, price_cents, compare_at_cents, active,
-           inventory ( on_hand, reserved ) )`,
-      )
-      .eq("status", "active")
-      .limit(limit);
-
+    const rows: ProductRow[] = [];
+    let error: { message:string } | null = null;
+    const maximum = limit === undefined ? Infinity : Math.max(1, Math.floor(limit));
+    for (let start=0; start<maximum; start+=500) {
+      const end=Math.min(start+499, maximum-1);
+      const result = await db.from("products").select(CARD_COLUMNS)
+        .eq("status","active").order("id").range(start,end);
+      if (result.error) { error=result.error; break; }
+      const page=(result.data??[]) as unknown as ProductRow[];
+      rows.push(...page);
+      if (page.length<end-start+1) break;
+    }
+    const data=rows;
     if (error) {
-      console.warn(`[catalog] DB read failed, falling back to JSON: ${error.message}`);
+      console.warn(`[catalog] DB read failed, catalog unavailable: ${error.message}`);
     } else {
-      products = (data as unknown as ProductRow[])
+      products = ((data ?? []) as unknown as ProductRow[])
         // Accessories (syringes, swabs, starter kit) are DB products too, but
         // they belong to the shop's accessories strip and the cart cross-sells,
         // not the peptide grid — see lib/accessories.ts.
@@ -233,15 +234,26 @@ export async function getCatalog(limit = 100): Promise<{
     }
   }
 
-  // An empty result is treated as "the DB couldn't answer" rather than "the
-  // shop is empty" — an empty storefront is never the right thing to serve.
-  if (products.length === 0) products = await fallbackCatalog(limit);
-
   return { products, bySlug: new Map(products.map((p) => [p.slug, p])) };
-}
+});
 
 /** One product by slug, tiers included. */
-export async function getCatalogProduct(slug: string): Promise<CatalogProduct | null> {
-  const { bySlug } = await getCatalog();
-  return bySlug.get(slug) ?? null;
+export const getCatalogProduct = cache(async function getCatalogProduct(slug: string): Promise<CatalogProduct | null> {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length>120) return null;
+  const db=supabaseAdmin();
+  if (!db) return null;
+  const {data,error}=await db.from("products").select(DETAIL_COLUMNS).eq("slug",slug).eq("status","active").maybeSingle();
+  if (error) throw new Error("Product details are temporarily unavailable");
+  if (!data || (data.categories??[]).includes(ACCESSORY_CATEGORY)) return null;
+  return mapRow(data as unknown as ProductRow);
+});
+
+/** A bounded set of related products, without reading the whole catalogue. */
+export async function getCatalogProducts(slugs:string[]):Promise<Map<string,CatalogProduct>> {
+ const clean=[...new Set(slugs)].filter(s=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(s)).slice(0,20);
+ const db=supabaseAdmin();if(!db||!clean.length)return new Map();
+ const {data,error}=await db.from("products").select(CARD_COLUMNS).in("slug",clean).eq("status","active");
+ if(error)return new Map();
+ const products=((data??[]) as unknown as ProductRow[]).map(mapRow).filter((p):p is CatalogProduct=>p!==null);
+ return new Map(products.map(p=>[p.slug,p]));
 }

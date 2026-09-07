@@ -8,6 +8,7 @@ import Reveal from "@/components/Reveal";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/learn" },
   title: "Research Hub — Peptide Guides, Reconstitution & Purity Testing",
   description:
     "Research-focused guides on peptide reconstitution, storage, purity testing and reading a Certificate of Analysis, plus per-compound overviews. Research use only.",

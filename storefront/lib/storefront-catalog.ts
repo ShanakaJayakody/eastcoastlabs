@@ -12,6 +12,7 @@ import "server-only";
  * never live there — the service-role key would ship to the browser. This module
  * is marked server-only and is consumed exclusively by server components.
  */
+import { getStacks } from "./stacks";
 import { supabaseAdmin } from "./supabase";
 import { getAggregates } from "./reviews";
 import { getAccessories, RECON_KIT_SLUG } from "./accessories";
@@ -20,20 +21,22 @@ import { BAC_WATER_SLUG } from "./bumps";
 /** Availability for many slugs at once (shop grid / home). */
 export async function getAvailabilityMap(slugs: string[]): Promise<Record<string, number>> {
   const db = supabaseAdmin();
-  if (!db || !slugs.length) return {};
+  const empty = Object.fromEntries(slugs.map(slug => [slug, 0]));
+  if (!db || !slugs.length) return empty;
 
   const { data, error } = await db
     .from("products")
-    .select(`slug, product_variants ( inventory ( on_hand, reserved ) )`)
+    .select(`slug, status, product_variants ( active, pack_size, inventory ( on_hand, reserved ) )`)
     .in("slug", slugs);
-  if (error || !data) return {};
+  if (error || !data) return empty;
 
-  const out: Record<string, number> = {};
+  const out: Record<string, number> = empty;
   for (const row of data as unknown as {
     slug: string;
-    product_variants: { inventory: { on_hand: number; reserved: number } | null }[];
+    status: string;
+    product_variants: { active: boolean; pack_size: number; inventory: { on_hand: number; reserved: number } | null }[];
   }[]) {
-    out[row.slug] = (row.product_variants ?? []).reduce(
+    out[row.slug] = row.status !== "active" ? 0 : (row.product_variants ?? []).filter(v => v.active && v.pack_size === 1).reduce(
       (sum, v) => sum + Math.max(0, (v.inventory?.on_hand ?? 0) - (v.inventory?.reserved ?? 0)),
       0,
     );
@@ -73,4 +76,21 @@ export async function decorateCards<T extends { slug: string; is_in_stock?: bool
     is_in_stock: item.slug in availability ? availability[item.slug] > 0 : item.is_in_stock !== false,
     rating: ratings[item.slug] ?? null,
   }));
+}
+
+/** Current cents for restoring saved cart estimates and accessory displays. */
+export async function getCartPrices(): Promise<Record<string, number>> {
+  const db = supabaseAdmin();
+  if (!db) return {};
+  const [{data,error}, stacks] = await Promise.all([
+    db.from("products").select("slug, product_variants (pack_size, price_cents, active)").eq("status", "active"),
+    getStacks(),
+  ]);
+  if (error || !data) return {};
+  const prices: Record<string,number> = {};
+  for (const row of data) for (const variant of row.product_variants ?? []) {
+    if (variant.active && Number.isSafeInteger(variant.price_cents) && variant.price_cents >= 0) prices[`${row.slug}:${variant.pack_size}`] = variant.price_cents;
+  }
+  for (const stack of stacks) prices[`${stack.slug}:stack`] = stack.bundlePriceCents;
+  return prices;
 }

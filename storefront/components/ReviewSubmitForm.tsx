@@ -7,19 +7,15 @@ const field =
   "w-full rounded-lg border border-line bg-ink-2 px-3 py-2.5 text-fg outline-none transition focus:border-accent";
 
 interface Props {
-  initialOrder?: string;
-  initialEmail?: string;
+  token: string;
   /** Pre-selected star from a review-request email's deep link (0 = none). */
   initialRating?: number;
 }
 
 export default function ReviewSubmitForm({
-  initialOrder = "",
-  initialEmail = "",
+  token,
   initialRating = 0,
 }: Props) {
-  const [orderNumber, setOrderNumber] = useState(initialOrder);
-  const [email, setEmail] = useState(initialEmail);
   const [products, setProducts] = useState<OrderProduct[] | null>(null);
   const [productSlug, setProductSlug] = useState("");
   const [author, setAuthor] = useState("");
@@ -33,7 +29,7 @@ export default function ReviewSubmitForm({
   const verify = () =>
     startTransition(async () => {
       setError(null);
-      const res = await lookupOrder(orderNumber, email);
+      const res = await lookupOrder(token);
       if (!res.ok || !res.products) {
         setError(res.error ?? "Something went wrong.");
         return;
@@ -43,12 +39,12 @@ export default function ReviewSubmitForm({
     });
 
   // Arriving from a review-request email already carries proof of purchase in
-  // the link, so re-asking the customer to press "Find my order" is a step that
+  // the link, so re-asking the customer to press "Verify review link" is a step that
   // only loses people. Verify once on mount when both fields came prefilled.
   const autoVerified = useRef(false);
   useEffect(() => {
     if (autoVerified.current) return;
-    if (!initialOrder || !initialEmail) return;
+    if (!token) return;
     autoVerified.current = true;
     verify();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,7 +53,7 @@ export default function ReviewSubmitForm({
   const submit = () =>
     startTransition(async () => {
       setError(null);
-      const res = await submitReview({ orderNumber, email, productSlug, author, rating, title, body });
+      const res = await submitReview({ token, productSlug, author, rating, title, body });
       if (!res.ok) {
         setError(res.error ?? "Something went wrong.");
         return;
@@ -80,34 +76,6 @@ export default function ReviewSubmitForm({
   return (
     <div className="rounded-2xl border border-line bg-surface p-6 sm:p-8">
       <div className="space-y-4">
-        <div>
-          <label htmlFor="review-order" className="mb-1 block text-sm font-medium text-fg">
-            Order number
-          </label>
-          <input
-            id="review-order"
-            className={field}
-            placeholder="ECL-1024"
-            value={orderNumber}
-            onChange={(e) => setOrderNumber(e.target.value)}
-            disabled={products !== null}
-          />
-        </div>
-        <div>
-          <label htmlFor="review-email" className="mb-1 block text-sm font-medium text-fg">
-            Email you ordered with
-          </label>
-          <input
-            id="review-email"
-            type="email"
-            className={field}
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={products !== null}
-          />
-        </div>
-
         {products === null ? (
           <button
             type="button"
@@ -115,7 +83,7 @@ export default function ReviewSubmitForm({
             disabled={pending}
             className="w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-60"
           >
-            {pending ? "Checking…" : "Find my order"}
+            {pending ? "Checking…" : "Verify review link"}
           </button>
         ) : (
           <>
@@ -149,6 +117,7 @@ export default function ReviewSubmitForm({
                     key={n}
                     type="button"
                     aria-label={`${n} star${n === 1 ? "" : "s"}`}
+                    aria-pressed={rating === n}
                     onClick={() => setRating(n)}
                     className={`grid h-10 w-10 place-items-center rounded-lg border text-lg transition ${
                       rating >= n ? "border-accent bg-accent/10 text-accent" : "border-line text-muted"
@@ -207,7 +176,7 @@ export default function ReviewSubmitForm({
           </>
         )}
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import CartContents from "@/components/CartContents";
 
 export const metadata: Metadata = {
   title: "Cart",
+  robots: { index: false, follow: true },
   description: "Review your research peptide order and check out securely on eastcoastlabs.com.au.",
 };
 

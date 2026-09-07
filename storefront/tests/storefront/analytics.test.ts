@@ -1,0 +1,10 @@
+// @vitest-environment jsdom
+import {beforeEach,expect,it,vi} from 'vitest';
+vi.mock('@/lib/env',()=>({GA4_ID:'G-TEST'}));
+vi.mock('@/lib/variant',()=>({getVariant:()=>null}));
+import {trackViewItem,trackAddToCart,trackPurchase} from '@/lib/analytics';
+beforeEach(()=>{history.replaceState({},'', '/product/bpc-157');window.gtag=undefined;sessionStorage.clear();});
+it('buffers a view before readiness and flushes it once when provider is available',()=>{trackViewItem({item_id:'bpc',item_name:'BPC'});const sender=vi.fn();window.gtag=sender;trackAddToCart({item_id:'bpc',item_name:'BPC'});expect(sender.mock.calls.map(c=>c[1])).toEqual(['view_item','add_to_cart']);});
+it.each(['/pay/id?token=secret','/checkout/thank-you?order=secret','/leave-a-review?token=secret','/admin','/subscribe-confirm?token=secret','/unsubscribe?token=secret'])('never emits from private route %s',path=>{history.replaceState({},'',path);window.gtag=vi.fn();trackPurchase('order',[],50);expect(window.gtag).not.toHaveBeenCalled();});
+it('overrides automatic location and referrer with sanitized public paths',()=>{history.replaceState({},'', '/shop?email=private@example.test&token=secret');const sender=vi.fn();window.gtag=sender;trackViewItem({item_id:'bpc',item_name:'BPC'});const args=sender.mock.calls[0][2];expect(args).toMatchObject({page_location:'http://localhost:3000/shop',page_referrer:''});expect(JSON.stringify(args)).not.toContain('secret');});
+it('drops pending public analytics when navigation enters a private page',()=>{trackViewItem({item_id:'queued',item_name:'Queued'});history.replaceState({},'', '/pay/id?token=private-token');const sender=vi.fn();window.gtag=sender;trackAddToCart({item_id:'private',item_name:'Private'});expect(sender).not.toHaveBeenCalled();history.replaceState({},'', '/shop');trackAddToCart({item_id:'new',item_name:'New'});expect(sender.mock.calls.map(c=>c[1])).toEqual(['add_to_cart']);expect(JSON.stringify(sender.mock.calls)).not.toContain('private-token');});

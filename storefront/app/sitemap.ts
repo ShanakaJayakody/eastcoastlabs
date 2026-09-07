@@ -3,12 +3,12 @@ import { getCatalog } from "@/lib/catalog";
 import { getCollections } from "@/lib/collections";
 import { getGuides } from "@/lib/guides";
 
-const BASE = "https://eastcoastlabs.com.au";
+const BASE = "https://www.eastcoastlabs.com.au";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ products }, guides] = await Promise.all([getCatalog(), getGuides()]);
 
-  const staticRoutes = ["", "/shop", "/stacks", "/lab-results", "/learn", "/about", "/cart"].map(
+  const staticRoutes = ["", "/shop", "/stacks", "/lab-results", "/learn", "/about"].map(
     (path) => ({
       url: `${BASE}${path}`,
       changeFrequency: "weekly" as const,

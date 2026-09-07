@@ -47,6 +47,7 @@ export async function saveCoaBatch(formData: FormData): Promise<ActionResult> {
     }
 
     const row: Record<string, unknown> = {
+      document_verified_at: null,
       batch_id: batchId,
       compound,
       purity_pct: purity,

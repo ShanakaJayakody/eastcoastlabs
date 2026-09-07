@@ -11,7 +11,7 @@ export default function ProductGallery({ images, name }: { images: WooImage[]; n
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-square overflow-hidden rounded-xl border border-line bg-ink-2">
+      <div className="relative h-56 overflow-hidden sm:h-72 lg:aspect-square lg:h-auto rounded-xl border border-line bg-ink-2">
         {current ? (
           <Image
             src={current.src}
@@ -27,7 +27,7 @@ export default function ProductGallery({ images, name }: { images: WooImage[]; n
       </div>
 
       {hasImages && images.length > 1 && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {images.map((img, i) => (
             <button
               key={i}

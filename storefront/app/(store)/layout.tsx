@@ -6,7 +6,7 @@ import CartDrawer from "@/components/CartDrawer";
 import ExitIntentModal from "@/components/ExitIntentModal";
 import Analytics from "@/components/Analytics";
 import { getSettings } from "@/lib/settings";
-import { getUpsellStock } from "@/lib/storefront-catalog";
+import { getUpsellStock, getCartPrices } from "@/lib/storefront-catalog";
 
 // The storefront shell: everything a shopper sees. Admin routes deliberately do
 // NOT inherit this — no cart, no exit-intent, no GA4.
@@ -15,15 +15,15 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   // The cart is a client component and can't read settings itself. The same
   // applies to upsell availability: the free-gift auto-add and cart cross-sells
   // must not offer bac water / accessories the ledger says are gone.
-  const [settings, stock] = await Promise.all([getSettings(), getUpsellStock()]);
+  const [settings, stock, prices] = await Promise.all([getSettings(), getUpsellStock(), getCartPrices()]);
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "East Coast Labs",
-    url: "https://eastcoastlabs.com.au",
+    url: "https://www.eastcoastlabs.com.au",
     description:
-      "Australian-owned supplier of research-use-only peptides. Every batch independently tested by JanoShik with the COA published before it ships.",
-    email: "eclpeptides@gmail.com",
+      "Australian-owned supplier of research-use-only peptides. Browse products and available batch documentation.",
+    email: settings.supportEmail,
     areaServed: "AU",
   };
 
@@ -34,6 +34,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         gift: settings.giftThreshold,
       }}
       stock={stock}
+      prices={prices}
     >
       <script
         type="application/ld+json"
@@ -42,8 +43,8 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <div className="flex min-h-screen flex-col">
         <AnnouncementBar />
         <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">{children}</main>
+        <Footer supportEmail={settings.supportEmail} />
         <CartDrawer />
         <ExitIntentModal />
       </div>

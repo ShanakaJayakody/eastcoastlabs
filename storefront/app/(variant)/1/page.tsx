@@ -30,9 +30,9 @@ export const revalidate = 300;
 
 /** `/1` is the A/B variant arm. Near-duplicate of `/` — never indexed. */
 export const metadata: Metadata = {
-  title: "Research peptides, independently tested — East Coast Labs",
+  title: "Research peptides — East Coast Labs",
   description:
-    "Australian-owned supplier of research-use-only peptides. Every batch independently tested by JanoShik with the certificate of analysis published before it ships.",
+    "Browse current pack prices and available batch documents for research-use-only peptides.",
   robots: { index: false, follow: true },
   alternates: { canonical: "/" },
 };
@@ -58,7 +58,7 @@ export default async function VariantHomePage() {
   const collections = getCollections();
   const featuredStacks = stacks.slice(0, 2);
   const ledgerRecords = coaAll.slice(0, 6);
-  const latestBatch = coaAll[0];
+
 
   const { products, bySlug } = catalog;
   const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
@@ -66,6 +66,8 @@ export default async function VariantHomePage() {
 
   const heroProduct = bySlug.get("bpc-157") ?? products[0];
   const heroImage = heroProduct?.images?.[0]?.src;
+  const normalize = (v:string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const latestBatch = coaAll.find(r => normalize(r.compound) === normalize(heroProduct?.name ?? "") || normalize(r.compound) === normalize(heroProduct?.slug ?? ""));
 
   return (
     <div>
@@ -81,15 +83,14 @@ export default async function VariantHomePage() {
               Research-grade peptides — Australia
             </p>
             <h1 className="font-serif-display mt-4 max-w-xl text-[2.6rem] leading-[1.03] tracking-tight text-fg sm:text-[3.4rem] lg:text-[3.8rem]">
-              Every batch tested.
+              Research peptides.
               <br />
-              Every result published.
+              Explore compounds.
               <br />
-              Before it ships.
+              Check the evidence.
             </h1>
             <p className="mt-6 max-w-md text-[1.0625rem] leading-relaxed text-muted">
-              {copy.heroSub ||
-                "Every vial is analysed by JanoShik, an independent laboratory, and the certificate goes public before the product is listed."}
+              Browse current pack prices and available batch documentation for your research.
             </p>
 
             {siteRating && (
@@ -186,8 +187,7 @@ export default async function VariantHomePage() {
             <MethodRule steps={copy.steps} />
           </div>
           <p className="font-serif-display mt-10 max-w-2xl text-lg italic leading-snug text-fg-2">
-            "If any independent lab finds your batch below our stated purity, we refund it — and pay
-            for the test."
+            Review the available batch documents and contact support if the relevant certificate is missing.
           </p>
         </section>
       )}

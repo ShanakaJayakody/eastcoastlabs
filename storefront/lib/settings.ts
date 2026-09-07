@@ -4,9 +4,12 @@ import "server-only";
  * Store settings. Server-only (service-role read) with hardcoded defaults, so
  * every surface still renders if the table is empty or Supabase is unreachable.
  */
+import { cache } from "react";
 import { supabaseAdmin } from "./supabase";
 
 export interface StoreSettings {
+  /** Optimistic revision from the atomic database snapshot. */
+  version?: number;
   announcementItems: string[];
   freeShippingThreshold: number;
   giftThreshold: number;
@@ -34,10 +37,10 @@ export interface StoreSettings {
 
 export const DEFAULT_SETTINGS: StoreSettings = {
   announcementItems: [
-    "🛡️ 98%+ purity guaranteed — or refund/replace",
+    "Research use only — check available batch documentation",
     "🚚 Free shipping over $150",
-    "⚡ 1-business-day dispatch from AU",
-    "🤐 Discreet packaging & billing",
+    "Order preparation after payment confirmation",
+    "Bank transfer details provided after checkout",
   ],
   freeShippingThreshold: 150,
   giftThreshold: 250,
@@ -77,14 +80,15 @@ const KEYS = {
   expressFreeThreshold: "express_free_threshold",
 } as const;
 
-export async function getSettings(): Promise<StoreSettings> {
+export const getSettings = cache(async function getSettings(): Promise<StoreSettings> {
   const db = supabaseAdmin();
   if (!db) return DEFAULT_SETTINGS;
 
-  const { data, error } = await db.from("settings").select("key, value");
+  const { data, error } = await db.rpc("admin_settings_snapshot");
   if (error || !data) return DEFAULT_SETTINGS;
 
-  const map = new Map(data.map((r) => [r.key as string, r.value]));
+  const snapshot = data as { version: number; values: Record<string, unknown> };
+  const map = new Map(Object.entries(snapshot.values));
   const num = (k: string, fallback: number) => {
     const v = map.get(k);
     return typeof v === "number" && Number.isFinite(v) ? v : fallback;
@@ -109,6 +113,7 @@ export async function getSettings(): Promise<StoreSettings> {
   };
 
   return {
+    version: snapshot.version,
     announcementItems: arr(KEYS.announcementItems, DEFAULT_SETTINGS.announcementItems),
     freeShippingThreshold: num(KEYS.freeShippingThreshold, DEFAULT_SETTINGS.freeShippingThreshold),
     giftThreshold: num(KEYS.giftThreshold, DEFAULT_SETTINGS.giftThreshold),
@@ -127,16 +132,15 @@ export async function getSettings(): Promise<StoreSettings> {
     expressShippingCents: num(KEYS.expressShippingCents, DEFAULT_SETTINGS.expressShippingCents),
     expressFreeThreshold: num(KEYS.expressFreeThreshold, DEFAULT_SETTINGS.expressFreeThreshold),
   };
-}
-
-/** Write one setting. Callers must already have passed requireAdmin(). */
-export async function putSetting(key: string, value: unknown, actor: string): Promise<void> {
-  const db = supabaseAdmin();
-  if (!db) throw new Error("Supabase not configured.");
-  const { error } = await db
-    .from("settings")
-    .upsert({ key, value, updated_at: new Date().toISOString(), updated_by: actor }, { onConflict: "key" });
-  if (error) throw new Error(`putSetting(${key}): ${error.message}`);
-}
+});
 
 export const SETTING_KEYS = KEYS;
+
+/** Commit all settings and the audit record in one transaction. */
+export async function putSettings(values: Record<string, unknown>, version: number | undefined, actor: string): Promise<number> {
+ const db = supabaseAdmin();
+ if (!db) throw new Error("Supabase not configured.");
+ const {data,error} = await db.rpc("admin_save_settings", {p_values:values,p_version:version ?? null,p_actor:actor});
+ if (error) throw new Error(error.message);
+ return Number(data);
+}

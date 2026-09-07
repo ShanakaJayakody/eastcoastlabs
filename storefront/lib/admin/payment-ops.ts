@@ -21,7 +21,7 @@ import "server-only";
  */
 
 import { adminDb } from "./db";
-import { cancelOrder } from "./orders";
+import { expireOrder } from "./orders";
 import { queueEmail } from "./email";
 import { REMINDER_STAGES, paymentReminderRelatedId } from "./sequences";
 import { pausedEmailsFor } from "./overrides";
@@ -96,6 +96,7 @@ export async function remindUnpaidOrders(): Promise<{ reminded: number }> {
       payload: {
         order_number: order.order_number,
         order_id: order.id,
+        payment_expires_at: order.payment_expires_at,
         payment_method: order.payment_method ?? "bank_transfer",
         reference,
         amount_cents: order.total_cents,
@@ -108,7 +109,7 @@ export async function remindUnpaidOrders(): Promise<{ reminded: number }> {
       relatedId: paymentReminderRelatedId(order.id, stage + 1),
     });
 
-    await db
+    const { error: updateError } = await db
       .from("orders")
       .update({
         payment_reminders_sent: stage + 1,
@@ -119,6 +120,7 @@ export async function remindUnpaidOrders(): Promise<{ reminded: number }> {
       // Guard against two sweeps racing: only the one that still sees the old
       // count wins, so the counter can never skip or double-count.
       .eq("payment_reminders_sent", stage);
+    if (updateError) throw new Error(`Cannot advance payment reminder: ${updateError.message}`);
 
     reminded++;
   }
@@ -175,6 +177,7 @@ export async function warnExpiringOrders(): Promise<{ warned: number }> {
       payload: {
         order_number: order.order_number,
         order_id: order.id,
+        payment_expires_at: order.payment_expires_at,
         payment_method: order.payment_method ?? "bank_transfer",
         reference: order.payment_reference ?? referenceForOrderNumber(order.order_number),
         amount_cents: order.total_cents,
@@ -213,15 +216,9 @@ export async function expireUnpaidOrders(): Promise<{ expired: number; failed: n
   let failed = 0;
   for (const order of (data ?? []) as PendingOrderRow[]) {
     try {
-      await cancelOrder(order.id, { actor: "system:payment-expiry" });
-      await queueEmail({
-        to: order.customer_email,
-        template: "payment_expired",
-        payload: { order_number: order.order_number, order_id: order.id },
-        relatedType: "order",
-        relatedId: `${order.id}:expired`,
-      }).catch(() => {});
-      expired++;
+      // Candidate reads are advisory. This predicate is rechecked while the
+      // order is locked; a concurrent payment must never become a cancellation.
+      if (await expireOrder(order.id)) expired++;
     } catch (err) {
       // One un-cancellable order must not stop the sweep — the rest of the
       // batch still needs its stock back.

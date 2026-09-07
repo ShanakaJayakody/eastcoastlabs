@@ -12,7 +12,6 @@
  */
 import "server-only";
 import { adminDb } from "./db";
-import { logAudit } from "./audit";
 import {
   revenueWindow,
   sydneyDayBoundary,
@@ -151,36 +150,7 @@ export function renderDailyBrief(brief: DailyBrief): { subject: string; html: st
 
 /** Active admins are the recipients — no separate list to drift out of date. */
 export async function briefRecipients(): Promise<string[]> {
-  const { data } = await adminDb().from("admin_users").select("email").eq("active", true);
+  const { data, error } = await adminDb().from("admin_users").select("email").eq("active", true);
+  if (error) throw new Error(`Cannot read daily brief recipients: ${error.message}`);
   return (data ?? []).map((r) => r.email as string);
-}
-
-/* ---------------- send-once bookkeeping ------------------------------------ */
-
-const SENT_ACTION = "brief.sent";
-
-/**
- * Has today's brief already gone out?
- *
- * The audit log doubles as the idempotency record — it is append-only, already
- * exists, and "the brief was sent" is exactly the kind of thing it is for. That
- * avoids a table whose only job would be holding one row a day.
- */
-export async function briefAlreadySent(date: string): Promise<boolean> {
-  const { count } = await adminDb()
-    .from("admin_audit_log")
-    .select("*", { count: "exact", head: true })
-    .eq("action", SENT_ACTION)
-    .eq("entity_id", date);
-  return (count ?? 0) > 0;
-}
-
-export async function markBriefSent(date: string, recipients: number): Promise<void> {
-  await logAudit({
-    actor: "system",
-    action: SENT_ACTION,
-    entityType: "brief",
-    entityId: date,
-    diff: { recipients },
-  });
 }

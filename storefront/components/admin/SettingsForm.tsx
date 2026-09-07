@@ -19,6 +19,7 @@ export default function SettingsForm({
   adminEmails: string[];
 }) {
   const router = useRouter();
+  const [version,setVersion] = useState(settings.version);
   const [pending, start] = useTransition();
   const [items, setItems] = useState<string[]>(settings.announcementItems);
   const [freeShip, setFreeShip] = useState(String(settings.freeShippingThreshold));
@@ -45,6 +46,7 @@ export default function SettingsForm({
   const save = () =>
     start(async () => {
       const res = await saveSettings({
+        version,
         announcementItems: items,
         freeShippingThreshold: Number(freeShip),
         giftThreshold: Number(gift),
@@ -64,6 +66,7 @@ export default function SettingsForm({
         expressFreeThreshold: Number(expressFree),
       });
       if (res.ok) {
+        setVersion(res.version);
         toast.success(res.message ?? "Saved");
         router.refresh();
       } else toast.error(res.error ?? "Failed");

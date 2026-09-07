@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Minus, Plus, X } from "lucide-react";
@@ -47,6 +47,8 @@ export default function OrderItemsPanel({
   const [pending, start] = useTransition();
   const [refundQty, setRefundQty] = useState<Record<string, number>>({});
   const [removing, setRemoving] = useState<ItemRow | null>(null);
+  const refundAttempt=useRef<{signature:string;key:string}|null>(null);
+  const [restock,setRestock]=useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
 
   const editable = status === "pending";
@@ -61,10 +63,6 @@ export default function OrderItemsPanel({
 
   const refundLineCount = Object.values(refundQty).filter((q) => q > 0).length;
 
-  const selectedRefundCents = items.reduce((sum, it) => {
-    const q = refundQty[it.id] ?? 0;
-    return sum + q * it.unit_price_cents;
-  }, 0);
   const anySelected = Object.values(refundQty).some((q) => q > 0);
 
   return (
@@ -161,7 +159,7 @@ export default function OrderItemsPanel({
 
       {refundable && anySelected && (
         <div className="flex items-center justify-between border-t border-line bg-ink-2 px-4 py-3">
-          <span className="text-sm text-fg-2">Refund total: {cents(selectedRefundCents)}</span>
+          <span className="text-sm text-fg-2">Refund total: the selected quantities</span>
           <button
             disabled={pending}
             onClick={() => setConfirmRefund(true)}
@@ -184,8 +182,7 @@ export default function OrderItemsPanel({
               </p>
               <p className="mt-1.5 text-muted">
                 Removes {removing.qty} × {cents(removing.unit_price_cents)} from this order and
-                releases the stock it had reserved. The order total drops by{" "}
-                {cents(removing.line_total_cents)}.
+                releases the stock it had reserved. The server recalculates discounts, shipping and the remaining order total.
               </p>
             </>
           )
@@ -207,12 +204,12 @@ export default function OrderItemsPanel({
         title="Refund these lines?"
         body={
           <>
-            <p className="font-medium text-fg">{cents(selectedRefundCents)} back to the customer</p>
+            <p className="font-medium text-fg">The recorded amount uses the order’s discount allocation and remaining refundable balance.</p>
             <p className="mt-1.5 text-muted">
-              Across {refundLineCount} line{refundLineCount === 1 ? "" : "s"}. The refunded stock is
-              returned to inventory. Money is not moved automatically — refund it in your payment
+              Across {refundLineCount} line{refundLineCount === 1 ? "" : "s"}. Money is not moved automatically — refund it in your payment
               provider or bank separately.
             </p>
+            <label className="mt-3 flex gap-2"><input type="checkbox" checked={restock} onChange={e=>setRestock(e.target.checked)}/>Physically returned units can be restored to sellable stock.</label>
           </>
         }
         confirmLabel="Record refund"
@@ -223,11 +220,14 @@ export default function OrderItemsPanel({
             .filter(([, q]) => q > 0)
             .map(([itemId, qty]) => ({ itemId, qty }));
           start(async () => {
-            const res = await refundLines(orderId, lines);
+            const signature=JSON.stringify({lines,restock});
+            if(refundAttempt.current?.signature!==signature)refundAttempt.current={signature,key:crypto.randomUUID()};
+            const res = await refundLines(orderId, lines, restock,refundAttempt.current.key);
             if (res.ok) {
               toast.success(
-                `Refunded ${cents(res.refundedCents ?? 0)}${res.fullyRefunded ? " — order fully refunded" : ""}`,
+                `Recorded refund ${cents(res.refundedCents ?? 0)}${res.fullyRefunded ? " — order fully refunded" : ""}`,
               );
+              refundAttempt.current=null;
               setRefundQty({});
               setConfirmRefund(false);
               router.refresh();

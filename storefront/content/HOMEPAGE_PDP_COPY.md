@@ -9,9 +9,9 @@
 
 ### Hero Section
 
-**H1:** Australia's Most Transparent Peptide Source.
+**H1:** Research peptides. Explore the catalogue.
 
-**Subheadline:** Independent lab reports for every batch. Published online, no paywall. 99%+ purity. Same-day dispatch from local stock — no customs, no delays, no guesswork.
+**Subheadline:** Browse compounds, compare current pack prices and check available batch documentation.
 
 **CTAs:**
 - Primary: [Shop bestsellers](/shop/)
@@ -27,15 +27,15 @@ Copy for surrounding context:
 
 **Section heading:** Latest batch results — updated with every restock
 
-**Supporting text:** We test every batch through JanoShik, an independent laboratory. Purity results are published on our site before products are listed. No exceptions.
+**Supporting text:** Available certificates appear on the Lab Results page after the document has been verified.
 
 ---
 
 ### Bestsellers Section
 
-**Section heading:** Bestselling research peptides
+**Section heading:** Featured research peptides
 
-**Section intro:** Our most-ordered compounds, with per-vial savings when you buy in 3 or 6-vial packs.
+**Section intro:** Compare current single-vial and available pack prices.
 
 | Product | Per-vial price (6-pack) | From |
 |---------|------------------------|------|
@@ -50,46 +50,41 @@ Copy for surrounding context:
 
 ### How Testing Works (tightened 4-step strip)
 
-**Step 1 — Synthesise**  
-Compounds are synthesised and each batch assigned a unique batch ID.
+**Step 1 — Find the compound**
+Open the product page and check its available pack options.
 
-**Step 2 — Test independently**  
-Every batch is sent to JanoShik, an independent laboratory, for purity analysis.
+**Step 2 — Find the document**
+Check the available certificates on the Lab Results page.
 
-**Step 3 — Publish results**  
-COA results are published on our Lab Results page before the product is listed for sale. If purity is below standard, the batch doesn't ship.
+**Step 3 — Match the batch**
+Match the compound name and batch identifier to your product.
 
-**Step 4 — Verify yourself**  
-Every order includes a COA. You can verify your batch independently using the JanoShik verification link, or send it to any lab of your choice. If they find it below our purity guarantee, we cover the test.
+**Step 4 — Review the source**
+Read the original lab document. Contact support before ordering if a document is unavailable.
 
 ---
 
 ### Restock Program Promo
 
-**Heading:** Never run out of lab supplies
+**Heading:** Restock alerts
 
-**Body:** Set up automatic restocks and save 10% on every order. Delivery frequency is based on your pack size — 1 vial every 4 weeks, 3-pack every 12 weeks, 6-pack every 24 weeks. Pause, skip, or cancel anytime. No lock-in.
-
-**CTA:** [Learn about the Restock Program →](/bulk-packs/)
+**Body:** Join the mailing list for product availability and new compound updates. Purchases are one-time orders.
 
 ---
 
 ### FAQ Section
 
-**Q: Are these products tested?**  
-Every batch is independently tested by JanoShik. Results are published on our Lab Results page before products are listed. Every order ships with a COA.
+**Q: Where can I find batch documentation?**
+Check available verified documents on the Lab Results page. If a certificate is unavailable, contact support before ordering.
 
-**Q: How fast is dispatch?**  
-Orders placed before 3:30pm AEST are dispatched the same business day. All orders ship from Australia.
+**Q: When does dispatch begin?**
+Orders are prepared after payment confirmation. Shipping options and estimated delivery times appear at checkout.
 
-**Q: What's on my card statement?**  
-You'll see "EAST COAST LABS" on your card statement. No product names appear. Billing is discreet.
+**Q: How do I pay?**
+Select an available bank transfer method at checkout. The payment page provides the exact amount and order reference after you place the order.
 
-**Q: Do you offer bulk pricing?**  
-Yes. Every peptide is available in 1-vial, 3-pack, and 6-pack options. The more you buy, the less you pay per vial. See our Bulk Packs page for details.
-
-**Q: What if my batch fails an independent test?**  
-If any independent lab test shows your batch below our purity guarantee, we refund or replace it — and we cover the cost of the test. One email: eclpeptides@gmail.com.
+**Q: Do you offer pack pricing?**
+Available packs and current per-vial prices appear on each product page. Pack availability depends on stock.
 
 ---
 

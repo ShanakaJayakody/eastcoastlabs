@@ -395,7 +395,7 @@ export async function emailPerformance(meta: WindowMeta): Promise<EmailPerforman
       entry.sent += 1;
       sentIds.push(row.id as string);
       templateOf.set(row.id as string, template);
-    } else if (row.status === "failed") {
+    } else if (row.status === "failed" || row.status === "dead") {
       entry.failed += 1;
     }
   }

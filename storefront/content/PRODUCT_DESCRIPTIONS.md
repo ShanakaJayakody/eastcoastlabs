@@ -37,7 +37,7 @@
 | Molecular formula | [PLACEHOLDER — confirm with supplier] |
 | Molecular weight | [PLACEHOLDER] |
 | Sequence | [PLACEHOLDER] |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -66,7 +66,7 @@
 | Molecular formula | [PLACEHOLDER] |
 | Molecular weight | ~9,200 Da (approximate) |
 | Sequence | MFPAMLSLGSTNRLLLGNDPALLQV—R3 modification |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -95,7 +95,7 @@
 | Molecular formula | [PLACEHOLDER] |
 | Molecular weight | [PLACEHOLDER] |
 | Sequence | [PLACEHOLDER] |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -124,7 +124,7 @@
 | Molecular formula | C₂₂₁H₃₆₆N₇₂O₇₁S (approximate) |
 | Molecular weight | ~5,136 Da |
 | Sequence | Trans-3-hexenoyl-Tyr-Ala-Asp-Ala-Ile-Phe-Thr-Asn-Ser-Tyr-Arg-Lys-Val-Leu-Gly-Gln-Leu-Ser-Ala-Arg-Lys-Leu-Leu-Gln-Asp-Ile-Met-Ser-Arg-NH₂ |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -153,7 +153,7 @@
 | Molecular formula | C₂₂₁H₃₄₉N₅₅O₆₈ (approximate) |
 | Molecular weight | ~4,840 Da |
 | Sequence | [Confirm exact sequence with supplier] |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -182,7 +182,7 @@
 | Molecular formula | C₂₂₅H₃₄₈N₅₆O₆₈ (approximate) |
 | Molecular weight | ~4,844 Da |
 | Sequence | [39 amino acid peptide with C20 fatty diacid modification] |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -211,7 +211,7 @@
 | Molecular formula | C₁₃₂H₂₂₈N₃₈O₄₃ (approximate) |
 | Molecular weight | ~3,158 Da |
 | Sequence | Ac-LKKTETQ-NH₂ (active fragment) |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -240,7 +240,7 @@
 | Molecular formula | C₁₈₇H₂₉₁N₄₅O₅₉ (approximate) |
 | Molecular weight | ~4,114 Da |
 | Sequence | [31 amino acid GLP-1 analogue with C17 fatty acid and Aib8 substitution] |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -269,7 +269,7 @@
 | Molecular formula | C₁₄H₂₄N₆O₄Cu |
 | Molecular weight | 403.93 Da |
 | Sequence | Gly-His-Lys · Cu²⁺ |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | Blue lyophilised powder (copper complex) |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -298,7 +298,7 @@
 | Molecular formula | C₁₀H₁₈N₂O (structural backbone — full formula pending) |
 | Molecular weight | ~1,646 Da |
 | Sequence | MRWQEMGYIFYPRKLR |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -327,7 +327,7 @@
 | Molecular formula | C₃₃H₅₇N₁₁O₉ (approximate) |
 | Molecular weight | ~751.9 Da |
 | Sequence | Thr-Lys-Pro-Arg-Pro-Gly-Pro |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -356,7 +356,7 @@
 | Molecular formula | C₃₇H₅₁N₉O₁₀ (approximate) |
 | Molecular weight | ~813.85 Da |
 | Sequence | Met-Glu-His-Phe-Pro-Gly-Pro |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -385,7 +385,7 @@
 | Molecular formula | C₆₂H₉₈N₁₆O₂₂ (approximate) |
 | Molecular weight | ~1,419.55 Da |
 | Sequence | Gly-Glu-Pro-Pro-Pro-Gly-Lys-Pro-Ala-Asp-Asp-Ala-Gly-Leu-Val |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 
@@ -414,7 +414,7 @@
 | Molecular formula | C₅₀H₆₉N₁₃O₉ |
 | Molecular weight | 1,024.16 Da |
 | Sequence | Ac-Nle-c[Asp-His-D-Phe-Arg-Trp-Lys]-NH₂ |
-| Purity | ≥98% (batch-specific COA included) |
+| Purity | Check the available batch Certificate of Analysis |
 | Appearance | White lyophilised powder |
 | Reconstitution | Bacteriostatic Water (sold separately) |
 

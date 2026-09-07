@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { History, Loader2, X } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { MovementRow, VariantRow } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
-import { adjustStock, fetchMovements } from "@/app/admin/(dashboard)/products/actions";
+import { adjustStock, reverseReceipt, fetchMovements } from "@/app/admin/(dashboard)/products/actions";
+
+import {useDialogFocus} from "./useDialogFocus";
 
 const REASONS: { value: MovementReason; label: string }[] = [
   { value: "received", label: "Stock received" },
@@ -66,14 +68,8 @@ export default function StockDrawer({
     setMovements(initialMovements ?? null);
   }, [target?.poolId, initialMovements]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !pending) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, pending, onClose]);
+  const dialogRef=useRef<HTMLDivElement>(null);
+  useDialogFocus(open,dialogRef,onClose,pending);
 
   if (!target) return null;
 
@@ -91,7 +87,7 @@ export default function StockDrawer({
     const delta = Number(qty);
     const r = reason as MovementReason;
     start(async () => {
-      const res = await adjustStock(t.slug, t.poolId, delta, r, note || undefined, Number(cost) || null);
+      const res = await adjustStock(t.slug, t.poolId, delta, r, note || undefined, cost.trim() ? Number(cost) : null);
       if (!res.ok) {
         toast.error(res.error ?? "Failed");
         return;
@@ -100,12 +96,13 @@ export default function StockDrawer({
       setNote("");
       setCost("");
       setMovements(null);
-      toast.success(res.message ?? "Stock updated", {
+      (res.warning ? toast.warning : toast.success)(res.message ?? "Stock updated", {
+        description: res.warning,
         action: {
-          label: "Undo",
+          label: res.receiptId ? "Reverse receipt" : "Reverse quantity",
           onClick: () =>
             start(async () => {
-              const back = await adjustStock(
+              const back = res.receiptId ? await reverseReceipt(t.slug,res.receiptId) : await adjustStock(
                 t.slug,
                 t.poolId,
                 -delta,
@@ -113,7 +110,7 @@ export default function StockDrawer({
                 "undo of previous adjustment",
               );
               if (back.ok) {
-                toast.success("Reverted");
+                (back.warning ? toast.warning : toast.success)(back.message ?? "Quantity reversed; previously queued notifications are unchanged.",{description:back.warning});
                 router.refresh();
               } else toast.error(back.error ?? "Undo failed");
             }),
@@ -126,7 +123,7 @@ export default function StockDrawer({
   const projected = qty ? target.vialsOnHand + (Number(qty) || 0) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={`Stock — ${target.name}`}>
       <div
         className="absolute inset-0 bg-ink/70 backdrop-blur-sm"
         onClick={() => !pending && onClose()}
@@ -141,6 +138,7 @@ export default function StockDrawer({
           </div>
           <button
             onClick={onClose}
+            disabled={pending}
             aria-label="Close stock panel"
             className="rounded-md p-1 text-muted transition hover:text-fg"
           >

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { verifyOrderAccessToken } from "@/lib/order-access";
 import { supabaseAdmin } from "@/lib/supabase";
 import { formatAud } from "@/lib/format";
 import { instructionsForOrder, isPaymentMethod, referenceForOrderNumber } from "@/lib/payments";
@@ -14,19 +15,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-/**
- * The persistent payment page.
- *
- * With customer-initiated payment there is a gap — minutes to days — between
- * placing an order and the money arriving. Every email in that window links
- * here, so there is always one URL that answers "what do I owe, how do I pay
- * it, and has it landed yet?" The page polls its own status, so a customer who
- * leaves it open sees it flip to confirmed without refreshing.
- *
- * Addressed by order UUID rather than order number: the number is sequential
- * and guessable, and this page shows an email address and an amount.
- */
-
+// Possession of a UUID is insufficient: verify the scoped, expiring token before any database lookup.
 const cents = (c: number) => formatAud(c / 100);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,31 +27,39 @@ interface OrderItemRow {
   line_total_cents: number;
 }
 
-export default async function PayPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PayPage({ params, searchParams }: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ token?: string }>;
+}) {
   const { id } = await params;
-  if (!UUID_RE.test(id)) notFound();
+  const { token } = await searchParams;
+  if (!UUID_RE.test(id) || verifyOrderAccessToken(token, "payment") !== id.toLowerCase()) notFound();
 
   const db = supabaseAdmin();
   if (!db) notFound();
 
-  const { data: order } = await db
+  const { data: order, error: orderError } = await db
     .from("orders")
     .select(
-      "id, order_number, status, customer_email, total_cents, payment_method, payment_reference, payment_expires_at, paid_at",
+      "id, order_number, status, total_cents, payment_method, payment_reference, payment_expires_at, paid_at",
     )
     .eq("id", id)
     .maybeSingle();
 
+  if (orderError) throw new Error("Order details are temporarily unavailable");
   if (!order) notFound();
 
-  const { data: itemRows } = await db
+  const { data: itemRows, error: itemsError } = await db
     .from("order_items")
     .select("product_name, variant_label, qty, line_total_cents")
     .eq("order_id", order.id);
+  if (itemsError) throw new Error("Order items are temporarily unavailable");
   const items = (itemRows as OrderItemRow[]) ?? [];
 
-  const isPending = order.status === "pending";
-  const isCancelled = order.status === "cancelled";
+  const isExpired = Boolean(order.payment_expires_at && new Date(order.payment_expires_at).getTime() <= Date.now());
+  const isPending = order.status === "pending" && !isExpired;
+  const isCancelled = order.status === "cancelled" || (order.status === "pending" && isExpired);
+  const statusTitle = order.status === "refunded" ? "Order refunded" : order.status === "shipped" ? "Order dispatched" : order.status === "completed" ? "Order completed" : "Payment confirmed";
 
   const method = isPaymentMethod(order.payment_method) ? order.payment_method : "bank_transfer";
   const reference = order.payment_reference ?? referenceForOrderNumber(order.order_number);
@@ -94,7 +91,7 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
               </p>
             </div>
           </div>
-          <PaymentStatusPoller orderId={order.id} />
+          <PaymentStatusPoller orderId={order.id} token={token!} />
         </>
       ) : isCancelled ? (
         <div className="flex items-center gap-3">
@@ -102,10 +99,9 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
             ×
           </span>
           <div>
-            <h1 className="text-xl font-bold text-fg">This order was released</h1>
+            <h1 className="text-xl font-bold text-fg">This order is no longer awaiting payment</h1>
             <p className="text-sm text-muted">
-              Order <span className="font-mono text-fg-2">{order.order_number}</span> · nothing was
-              charged
+              Order <span className="font-mono text-fg-2">{order.order_number}</span> · please contact us if you have already sent a transfer
             </p>
           </div>
         </div>
@@ -115,10 +111,9 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
             ✓
           </span>
           <div>
-            <h1 className="text-xl font-bold text-fg">Payment confirmed</h1>
+            <h1 className="text-xl font-bold text-fg">{statusTitle}</h1>
             <p className="text-sm text-muted">
-              Order <span className="font-mono text-fg-2">{order.order_number}</span> · we&apos;re
-              packing it now
+              Order <span className="font-mono text-fg-2">{order.order_number}</span>{order.status === "paid" && " · preparing for dispatch"}
             </p>
           </div>
         </div>

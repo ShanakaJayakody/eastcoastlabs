@@ -25,6 +25,7 @@ export async function generateMetadata({
   return {
     title: `${collection.name} — Research Peptides`,
     description: collection.description,
+    alternates: { canonical: `/collections/${collection.slug}` },
   };
 }
 

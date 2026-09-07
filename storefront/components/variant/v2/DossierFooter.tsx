@@ -24,7 +24,7 @@ const COLUMNS = [
 ];
 
 /** Document colophon — closes the dossier the way a printed report would. */
-export default function DossierFooter() {
+export default function DossierFooter({supportEmail}:{supportEmail:string}) {
   return (
     <footer className="border-t border-line bg-ink">
       <div className="mx-auto max-w-[1200px] px-6 py-14">
@@ -35,8 +35,8 @@ export default function DossierFooter() {
               <ul className="mt-3 space-y-2">
                 {col.links.map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href} className="text-sm text-fg-2 transition hover:text-accent">
-                      {l.label}
+                    <Link href={l.href.startsWith("mailto:") ? `mailto:${supportEmail}` : l.href} className="text-sm text-fg-2 transition hover:text-accent">
+                      {l.href.startsWith("mailto:") ? supportEmail : l.label}
                     </Link>
                   </li>
                 ))}
@@ -51,7 +51,7 @@ export default function DossierFooter() {
             professionals. Nothing on this site is medical advice.
           </p>
           <p className="mt-4 font-data text-[11px] text-muted-2">
-            © {new Date().getFullYear()} East Coast Labs · ABN [PENDING]
+            © {new Date().getFullYear()} East Coast Labs
           </p>
         </div>
       </div>

@@ -70,6 +70,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
   const router = useRouter();
   const [pending, start] = useTransition();
 
+  const [bulkFailures,setBulkFailures]=useState<{id:string;error:string}[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "name", dir: 1 });
@@ -112,14 +113,14 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if(next.has(id))next.delete(id);else next.add(id);
       return next;
     });
 
   const toggleExpand = (id: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if(next.has(id))next.delete(id);else next.add(id);
       return next;
     });
 
@@ -129,7 +130,11 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
   const poolIds = selectedProducts
     .map((p) => poolVariant(p)?.id)
     .filter((id): id is string => Boolean(id));
-  const variantIds = selectedProducts.flatMap((p) => p.variants.map((v) => v.id));
+  const variantIds = selectedProducts.flatMap((p) => {
+    const failed=p.variants.filter(v=>bulkFailures.some(f=>f.id===v.id));
+    return (failed.length?failed:p.variants).map(v=>v.id);
+  });
+  const retainFailures=(failed:{id:string;error:string}[])=>{setBulkFailures(failed);setSelected(new Set(rows.filter(p=>p.variants.some(v=>failed.some(f=>f.id===v.id))).map(p=>p.id)));};
 
   const clearSelection = () => setSelected(new Set());
 
@@ -138,25 +143,10 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
     const ids = [...poolIds];
     start(async () => {
       const res = await bulkAdjustStock(ids, delta, reason);
-      if (!res.ok) {
-        toast.error(res.error ?? "Failed");
-        return;
-      }
-      clearSelection();
-      setQty("");
-      toast.success(res.message ?? "Done", {
-        action: {
-          label: "Undo",
-          onClick: () =>
-            start(async () => {
-              const back = await bulkAdjustStock(ids, -delta, "recount");
-              if (back.ok) {
-                toast.success("Reverted");
-                router.refresh();
-              } else toast.error(back.error ?? "Undo failed");
-            }),
-        },
-      });
+      if(!res.succeeded){toast.error(res.error??"Failed");return;}
+      retainFailures(res.failed??[]);
+      if(!res.failed?.length)setQty("");
+      (res.warning?toast.warning:toast.success)(res.message??"Batch processed",{description:res.warning});
       router.refresh();
     });
   }
@@ -165,12 +155,8 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
     start(async () => {
       const res = await bulkPriceChange(variantIds, Number(pct));
       setConfirmReprice(false);
-      if (res.ok) {
-        toast.success(res.message ?? "Done");
-        clearSelection();
-        setPct("");
-        router.refresh();
-      } else toast.error(res.error ?? "Failed");
+      if(res.succeeded){retainFailures(res.failed??[]);toast.success(res.message??"Batch processed");if(!res.failed?.length)setPct("");router.refresh();}
+      else toast.error(res.error??"Failed");
     });
   }
 
@@ -215,6 +201,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
 
   return (
     <>
+      {bulkFailures.length>0 && <section aria-label="Product batch failures" className="mb-4 rounded-xl border border-warn p-4 text-sm"><h3 className="font-semibold">Failed variants remain selected</h3><ul>{bulkFailures.map(f=><li key={f.id}>{rows.flatMap(p=>p.variants).find(v=>v.id===f.id)?.sku??f.id}: {f.error}</li>)}</ul><p>Retry applies only failed variants on these products. Dismiss results before starting a new operation.</p><button onClick={()=>{setBulkFailures([]);clearSelection();}} className="underline">Dismiss results</button></section>}
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-ink-2 text-left text-xs uppercase tracking-wide text-muted">

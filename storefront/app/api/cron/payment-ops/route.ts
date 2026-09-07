@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rejectUnauthorizedCron } from "@/lib/cron-auth";
 import { remindUnpaidOrders, warnExpiringOrders, expireUnpaidOrders } from "@/lib/admin/payment-ops";
 import { recordCronRun } from "@/lib/admin/cron-runs";
 
@@ -17,13 +18,8 @@ export const dynamic = "force-dynamic";
  * drop this to hourly so the 4h reminder actually lands near 4h.
  */
 export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  const rejected = rejectUnauthorizedCron(request);
+  if (rejected) return rejected;
 
   const result = await recordCronRun("payment-ops", async () => {
     const reminders = await remindUnpaidOrders();

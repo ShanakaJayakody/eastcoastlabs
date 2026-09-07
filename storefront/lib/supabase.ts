@@ -6,9 +6,9 @@
  * - `supabaseAdmin()` uses the service-role key — SERVER ONLY. Never import
  *   this into a client component; it bypasses RLS.
  *
- * All accessors return null when the relevant env vars are absent, so the app
- * degrades to its local fallbacks (COA CSV, reviews JSON, log-only subscribe)
- * until the Supabase project is wired up.
+ * Accessors return null when required variables are absent. Public pages may
+ * render unavailable states; checkout and writes require configured services.
+ * Missing certificates and catalogue entries never use historical fixtures.
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";

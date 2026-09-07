@@ -11,15 +11,15 @@ import { trackAddToCart } from "@/lib/analytics";
  * highest-attach basket lift available.
  */
 export default function CartUpsell() {
-  const { lines, addLine, stockFor } = useCart();
+  const { lines, addLine, stockFor, priceFor } = useCart();
 
   const inCart = new Set(lines.map((l) => l.key));
   const suggestions = getAccessories()
     .filter((a) => !inCart.has(`acc:${a.slug}`))
     // Out-of-stock accessories are never suggested; slugs the ledger doesn't
     // track yet (stockFor → null) stay offered.
-    .filter((a) => (stockFor(a.slug) ?? 1) > 0)
-    .slice(0, 3);
+    .filter((a) => (stockFor(a.slug) ?? 0) > 0)
+    .slice(0, 3).map(a => ({...a, price:priceFor(a.slug) ?? a.price}));
 
   if (suggestions.length === 0) return null;
 

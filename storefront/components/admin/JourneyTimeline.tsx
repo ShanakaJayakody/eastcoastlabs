@@ -8,7 +8,7 @@ export interface JourneyItem {
   kind: "email" | "order" | "subscription" | "admin";
   title: string;
   detail?: string | null;
-  status?: "queued" | "sent" | "failed" | "cancelled" | null;
+  status?: "queued" | "sending" | "sent" | "failed" | "dead" | "cancelled" | null;
   group?: string | null;
   action?: ReactNode;
   /** Delivery outcomes reported by the email provider, oldest first. */
@@ -33,6 +33,8 @@ const NODE_TINT: Record<JourneyItem["kind"], string> = {
 
 const STATUS_TONE: Record<NonNullable<JourneyItem["status"]>, BadgeTone> = {
   queued: "neutral",
+  sending: "neutral",
+  dead: "danger",
   sent: "success",
   failed: "danger",
   cancelled: "warn",
