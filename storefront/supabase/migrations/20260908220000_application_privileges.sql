@@ -29,7 +29,15 @@ end $$;
 -- Restore only the intentional public read interface; existing RLS still applies.
 grant select(id,product_slug,author,location,rating,title,body,verified,status,is_sample,created_at) on public.reviews to anon,authenticated;
 grant select on public.coa_batches to anon,authenticated;
-alter policy "coa public read" on public.coa_batches using(document_verified_at is not null and coa_url ~ '^https?://');
+-- Public document URLs need a DNS authority, optional valid port, and no
+-- whitespace/backslashes; a scheme prefix alone also accepts missing hosts.
+alter policy "coa public read" on public.coa_batches using(document_verified_at is not null and coa_url ~ (
+ '^https?://' ||
+ '([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)*' ||
+ '[A-Za-z]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?' ||
+ '(:([0-9]{1,4}|[0-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?' ||
+ '([/?#][^[:space:]\\]*)?$'
+));
 -- Historical broad defaults also leaked UPDATE/DELETE onto append-only evidence.
 revoke update,delete on public.refund_quotes,public.refund_commits,public.refund_settlements from service_role;
 
