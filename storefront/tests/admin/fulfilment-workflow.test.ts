@@ -9,10 +9,12 @@ async function order(qty=1){const o=await rpc<{orderId:string}>('commerce_create
 const lot=(code='LOT-A',units=6,receipt:string|null=null,coa:string|null=null)=>rpc<string>('admin_register_stock_lot($1::uuid,$2,$3,$4::uuid,$5::uuid,$6,$7)',[pool,code,units,receipt,coa,'Physical count and supplier label checked','operator']);
 const assign=(o:{id:string;item:string},lots:unknown)=>rpc('admin_allocate_order_lots($1::uuid,$2::uuid,$3::uuid,$4::jsonb,$5,$6)',[o.id,o.item,pool,JSON.stringify(lots),'Physical picking verified','operator']);
 beforeAll(async()=>{
- db=new PGlite();await db.exec('create role service_role;create role anon;create role authenticated;');
+ db=new PGlite();await db.exec('create role service_role bypassrls;create role anon;create role authenticated;');
  await db.exec(readFileSync(resolve('supabase/migrations/20260724110000_commerce.sql'),'utf8'));
  await db.exec(`alter table order_items add refunded_qty int not null default 0,add refunded_cents int not null default 0,add unit_cost_cents int;alter table orders add refunded_cents int not null default 0,add payment_reference text,add payment_expires_at timestamptz;alter table products add unit_cost_cents int;alter table stock_movements add reverses_receipt_id uuid;alter table order_events drop constraint order_events_type_check;create table admin_audit_log(id uuid primary key default gen_random_uuid(),actor_email text,action text,entity_type text,entity_id text,diff jsonb,created_at timestamptz default now());create table coa_batches(id uuid primary key default gen_random_uuid(),batch_id text,compound text,coa_url text,document_verified_at timestamptz);`);
  await db.exec(readFileSync(resolve('supabase/migrations/20260908100000_commerce_integrity.sql'),'utf8'));
+ // Simulate permissive production defaults, including PUBLIC and BYPASSRLS service role.
+ await db.exec('alter default privileges in schema public grant all on tables to public,anon,authenticated,service_role;');
  const path=resolve('supabase/migrations/20260908190000_fulfilment_workflows.sql');if(existsSync(path))await db.exec(readFileSync(path,'utf8'));
 });
 afterAll(async()=>{await db.close()});
@@ -107,4 +109,41 @@ it('does not silently replace a lot certificate when the published certificate i
  const o=await order();const c=(await db.query<{id:string}>("insert into coa_batches(batch_id,compound,coa_url,document_verified_at) values('CERT-A','Sample','https://example.test/a.pdf',now()) returning id")).rows[0].id;
  const l=await lot('A',3,null,c);await assign(o,[{lotId:l,units:3}]);await db.query("update coa_batches set coa_url='https://example.test/replacement.pdf' where id=$1",[c]);
  const detail=await rpc<{lines:Array<{allocations:Array<{coa:unknown}>}>}>('admin_order_fulfilment($1::uuid)',[o.id]);expect(detail.lines[0].allocations[0].coa).toBeNull();
+});
+
+it('removes hostile default table privileges while retaining only service reads and guarded RPC writes',async()=>{
+ const o=await order(),l=await lot();await assign(o,[{lotId:l,units:3}]);
+ const n=await rpc<string>('(select order_number from orders where id=$1)',[o.id]);
+ const previews=await rpc<Array<{token:string}>>('admin_preview_carrier($1::jsonb)',[JSON.stringify([{orderNumber:n,trackingNumber:'ACL-TRACK'}])]);
+ for(const table of ['stock_lots','order_lot_allocations','carrier_previews']){
+  for(const role of ['anon','authenticated','service_role']){
+   for(const privilege of ['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER','MAINTAIN']){
+    expect(await rpc('has_table_privilege($1,$2,$3)',[role,table,privilege]),`${role} ${table} ${privilege}`).toBe(role==='service_role'&&privilege==='SELECT');
+   }
+  }
+  expect(await rpc("(select count(*)::int from pg_class c cross join lateral aclexplode(c.relacl) a where c.oid=$1::regclass and a.grantee=0)",[table])).toBe(0);
+ }
+ for(const role of ['anon','authenticated','service_role']){
+  await db.exec(`set role ${role}`);
+  try{
+   for(const sql of ["update stock_lots set units=1000000",'delete from order_lot_allocations','truncate carrier_previews',"insert into carrier_previews(order_id,order_number,tracking_number,state) select order_id,order_number,tracking_number,state from carrier_previews"]){
+    await expect(db.exec(sql)).rejects.toThrow(/permission denied/);
+   }
+   if(role==='service_role'){
+    expect((await db.query('select id from stock_lots')).rows).toHaveLength(1);
+    await expect(assign(o,[{lotId:l,units:2}])).resolves.toMatchObject({allocatedUnits:2});
+   }else await expect(assign(o,[])).rejects.toThrow(/permission denied/);
+  }finally{await db.exec('reset role')}
+ }
+ expect((await db.query('select token from carrier_previews')).rows[0]).toEqual({token:previews[0].token});
+});
+it('rejects conflicting tracking at commit even for a matching historical preview state',async()=>{
+ const o=await order();await rpc('commerce_order_operation($1::uuid,$2,$3::jsonb)',[o.id,'shipped',JSON.stringify({trackingNumber:'MANUAL'})]);
+ // Reproduce an already-issued inconsistent token from the old preview race.
+ const token=await rpc<string>("(select gen_random_uuid())");
+ await db.query("insert into carrier_previews(token,order_id,order_number,tracking_number,state) select $1,id,order_number,'CSV',admin_carrier_state(id) from orders where id=$2",[token,o.id]);
+ const result=await rpc<Array<{ok:boolean;error:string}>>('admin_commit_carrier($1::jsonb,false,$2)',[JSON.stringify([token]),'operator']);
+ expect(result[0]).toMatchObject({ok:false});expect(result[0].error).toMatch(/tracking conflicts/i);
+ expect((await db.query('select tracking_number from orders where id=$1',[o.id])).rows[0]).toEqual({tracking_number:'MANUAL'});
+ expect((await db.query('select committed_at from carrier_previews where token=$1',[token])).rows[0]).toEqual({committed_at:null});
 });

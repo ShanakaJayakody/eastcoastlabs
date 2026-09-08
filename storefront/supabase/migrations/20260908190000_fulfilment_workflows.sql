@@ -26,6 +26,9 @@ create table public.carrier_previews (
 alter table public.stock_lots enable row level security;
 alter table public.order_lot_allocations enable row level security;
 alter table public.carrier_previews enable row level security;
+-- Default ACLs may grant mutation, TRUNCATE or trigger privileges at creation.
+-- RLS does not restrict the BYPASSRLS service role; explicitly remove them.
+revoke all on public.stock_lots,public.order_lot_allocations,public.carrier_previews from public,anon,authenticated,service_role;
 grant select on public.stock_lots,public.order_lot_allocations,public.carrier_previews to service_role;
 
 create function public.admin_register_stock_lot(p_pool uuid,p_code text,p_units integer,p_receipt uuid,p_coa uuid,p_evidence text,p_actor text)
@@ -135,9 +138,12 @@ create function public.admin_preview_carrier(p_rows jsonb) returns jsonb languag
 declare entry jsonb; o orders; issue text; tok uuid; result jsonb:='[]'::jsonb; n text; tracking text;
 begin
  if p_rows is null or jsonb_typeof(p_rows)<>'array' or jsonb_array_length(p_rows) not between 1 and 500 then raise exception 'Upload between 1 and 500 rows';end if;
+ -- Match commit/order-operation lock ordering. The displayed row, validation and
+ -- token snapshot must describe one locked state, even during manual tracking.
+ perform id from orders where order_number in(select btrim(value->>'orderNumber') from jsonb_array_elements(p_rows)) order by id for update;
  for entry in select value from jsonb_array_elements(p_rows) loop
   issue:=null;tok:=null;n:=btrim(entry->>'orderNumber');tracking:=btrim(entry->>'trackingNumber');
-  select * into o from orders where order_number=n;
+  select * into o from orders where order_number=n for update;
   if coalesce(length(n),0) not between 1 and 100 or coalesce(length(tracking),0) not between 1 and 200 or n ~ '[[:cntrl:]]' or tracking ~ '[[:cntrl:]]' then issue:='Invalid order or tracking number';
   elsif (select count(*) from jsonb_array_elements(p_rows) where btrim(value->>'orderNumber')=n)>1 or (select count(*) from jsonb_array_elements(p_rows) where btrim(value->>'trackingNumber')=tracking)>1 then issue:='Duplicate order or tracking number';
   elsif o.id is null then issue:='Order not found';
@@ -174,6 +180,7 @@ begin
     select * into o from orders where id=reviewed.order_id;
     if reviewed.created_at<now()-interval '1 hour' or reviewed.state is distinct from admin_carrier_state(o.id) then raise exception 'CARRIER_PREVIEW_STALE: preview this row again';end if;
     if o.status not in ('paid','processing','shipped') then raise exception 'Order is not shippable';end if;
+    if nullif(btrim(o.tracking_number),'') is not null and o.tracking_number<>reviewed.tracking_number then raise exception 'Existing tracking conflicts; review on the order';end if;
     if exists(select 1 from orders where id<>o.id and tracking_number=reviewed.tracking_number) then raise exception 'Tracking belongs to another order';end if;
     if o.status<>'shipped' then
      perform commerce_order_operation(o.id,'shipped',jsonb_build_object('trackingNumber',reviewed.tracking_number,'notify',p_notify,'actor',p_actor,'idempotencyKey','carrier:'||reviewed.token));

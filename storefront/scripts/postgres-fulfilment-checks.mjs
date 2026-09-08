@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
+import {setTimeout as delay} from 'node:timers/promises';
 
 export async function fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation}){
  await check('physical lot registration serializes its stock evidence cap',async()=>{
@@ -36,5 +37,48 @@ export async function fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderIn
   assert.equal(await scalar(db,`select count(*)::int result from commerce_events where order_id=$1 and kind='shipped'`,[order.orderId]),1);
   assert.equal(await scalar(db,`select count(*)::int result from email_outbox where payload->>'order_id'=$1 and template='order_shipped'`,[order.orderId]),0);
   assert.deepEqual((await db.query('select status,tracking_number from orders where id=$1',[order.orderId])).rows[0],{status:'shipped',tracking_number:'SYNTHETIC-TRACK-123'});
+ });
+ await check('carrier preview holds its displayed state against a concurrent manual tracking change',async()=>{
+  const pool=await fixture(1),order=await create(db,orderInput(pool));
+  await operation(db,order.orderId,'paid');await operation(db,order.orderId,'shipped');
+  const original=await scalar(db,"select pg_get_functiondef('admin_preview_carrier(jsonb)'::regprocedure) result");
+  const read=/select \* into o from orders where order_number=n(?: for update)?;/;
+  assert(read.test(original),'Test barrier must follow the preview order read');
+  // Instrument only this disposable database, retaining the actual production
+  // function body. The gate pauses immediately after the displayed row is read.
+  const gate=900190001;
+  await db.query(original.replace(read,statement=>`${statement} perform pg_advisory_xact_lock(${gate}::bigint);`));
+  const controlPid=await scalar(db,'select pg_backend_pid() result');
+  const previewPid=await scalar(a,'select pg_backend_pid() result');
+  const manualPid=await scalar(b,'select pg_backend_pid() result');
+  let preview,manual;
+  const waitForBlock=async(pid,blocker)=>{
+   for(let attempt=0;attempt<100;attempt++){
+    if(await scalar(db,'select $2::int=any(pg_blocking_pids($1::int)) result',[pid,blocker]))return;
+    await delay(20);
+   }
+   assert.fail(`Backend ${pid} did not wait for expected blocker ${blocker}`);
+  };
+  try{
+   await db.query('begin');await db.query('select pg_advisory_xact_lock($1::bigint)',[gate]);
+   preview=scalar(a,'select admin_preview_carrier($1) result',[JSON.stringify([{orderNumber:order.orderNumber,trackingNumber:'SYN-CSV-RACE'}])]);
+   preview.catch(()=>{});
+   await waitForBlock(previewPid,controlPid);
+   manual=operation(b,order.orderId,'tracking',{trackingNumber:'SYN-MANUAL-RACE',notify:false});
+   manual.catch(()=>{});
+   // This verifies a real row-lock conflict, not a sleep-based scheduling guess.
+   await waitForBlock(manualPid,previewPid);
+   await db.query('commit');
+   const rows=await preview;await manual;
+   assert.equal(rows[0].currentTracking,null);assert(rows[0].token);
+   assert.equal(await scalar(db,"select state->>'tracking' result from carrier_previews where token=$1",[rows[0].token]),null);
+   const result=await scalar(db,'select admin_commit_carrier($1,false,$2) result',[JSON.stringify([rows[0].token]),'audit@example.test']);
+   assert.equal(result[0].ok,false);assert.match(result[0].error,/CARRIER_PREVIEW_STALE/);
+   assert.equal(await scalar(db,'select tracking_number result from orders where id=$1',[order.orderId]),'SYN-MANUAL-RACE');
+  }finally{
+   await db.query('rollback');
+   await Promise.allSettled([preview,manual].filter(Boolean));
+   await db.query(original);
+  }
  });
 }
