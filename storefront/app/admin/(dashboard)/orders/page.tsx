@@ -146,7 +146,8 @@ export default async function OrdersPage({
             </Link>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/orders/fulfilment" className="rounded-lg border border-line px-3 py-1.5 text-sm">Stock lots and carrier CSV</Link>
           <Link
             href="/admin/orders/new"
             className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink hover:brightness-95"

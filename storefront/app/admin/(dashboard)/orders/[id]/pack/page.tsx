@@ -1,3 +1,5 @@
+import LotPacking from "@/components/admin/LotPacking";
+import { getOrderFulfilment, getLotCatalog } from "@/lib/admin/fulfilment";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -56,7 +58,10 @@ export default async function PackPage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  const [fulfilment, catalog] = await Promise.all([getOrderFulfilment(id), getLotCatalog()]);
   return (
+    <div className="space-y-6">
+    <LotPacking fulfilment={fulfilment} catalog={catalog} />
     <PackingMode
       order={{
         id: order.id,
@@ -81,5 +86,6 @@ export default async function PackPage({ params }: { params: Promise<{ id: strin
       positionUnknown={position.truncated && position.index < 0}
       total={position.total}
     />
+    </div>
   );
 }

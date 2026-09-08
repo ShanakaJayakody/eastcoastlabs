@@ -1,3 +1,5 @@
+import LotPacking from "@/components/admin/LotPacking";
+import { getOrderFulfilment, getLotCatalog } from "@/lib/admin/fulfilment";
 import RefundSettlements from "@/components/admin/RefundSettlements";
 import { getRefundSettlements } from "@/lib/admin/refunds";
 import { Suspense } from "react";
@@ -24,7 +26,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const order = await getOrder(id);
   if (!order) notFound();
 
-  const [profit, settlements] = await Promise.all([profitForOrders([id]), getRefundSettlements(id)]);
+  const [profit, settlements, fulfilment, lotCatalog] = await Promise.all([profitForOrders([id]), getRefundSettlements(id), getOrderFulfilment(id), getLotCatalog()]);
   // Only a cancelled order can be reinstated, so only it pays for the check.
   const stockCheck =
     order.status === "cancelled" ? await reinstateStockCheck(id) : undefined;
@@ -71,6 +73,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               Refunds recorded to date: {cents(order.refunded_cents)}
             </p>
           )}
+
+          <LotPacking fulfilment={fulfilment} catalog={lotCatalog} />
 
           <RefundSettlements orderId={id} refundedCents={order.refunded_cents} settlements={settlements} />
 
