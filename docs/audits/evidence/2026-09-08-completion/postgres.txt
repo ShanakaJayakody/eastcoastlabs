@@ -1,0 +1,29 @@
+
+> eastcoastlabs-storefront@1.0.0 test:postgres
+> node scripts/verify-postgres.mjs
+
+Applied 33 migrations to disposable PostgreSQL
+PASS concurrent checkout retry commits one order and one stock reservation
+PASS two customers competing for the final unit cannot oversell
+PASS concurrent refund replay returns money and stock only once
+PASS payment wins safely over stale expiry
+PASS concurrent outbox workers receive mutually exclusive leases
+PASS public roles cannot execute privileged commerce or read private data
+PASS settlement race cannot exceed recorded refund balance
+PASS concurrent normalized-email checkouts cannot both consume the last pending slot
+PASS pack variants contend for the same physical stock pool
+PASS two operators cannot commit the same stale refund preview twice
+PASS simultaneous product edits preserve exactly one reviewed revision
+PASS simultaneous settings edits reject the stale revision
+PASS receipt reversal cannot rewind stock consumed by a racing sale
+PASS webhook arrival racing completion reconciles exact provider and recipient
+PASS mailbox suppression racing cart confirmation leaves no usable old consent
+PASS manual reminder dedupe cannot deadlock suppression against the sweep
+PASS operator cancellation cannot override a concurrently claimed delivery lease
+PASS physical lot registration serializes its stock evidence cap
+PASS two orders cannot allocate the same last physical lot units
+PASS carrier token replay changes tracking once without opted-out email
+PASS carrier preview holds its displayed state against a concurrent manual tracking change
+Verified 37 table contents after restore
+PASS custom-format backup restores every public/storage table and private grants
+22 native PostgreSQL checks passed; synthetic databases only

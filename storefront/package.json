@@ -14,7 +14,8 @@
     "preview:audit": "vite --config tests/preview/vite.config.mts --host 127.0.0.1",
     "test:postgres": "node scripts/verify-postgres.mjs",
     "test:browser": "env -u NO_COLOR -u FORCE_COLOR playwright test",
-    "check:budgets": "node scripts/route-budgets.mjs"
+    "check:budgets": "node scripts/route-budgets.mjs",
+    "test:headers": "node scripts/verify-headers.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

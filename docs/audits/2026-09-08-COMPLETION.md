@@ -24,11 +24,19 @@ Restoration requires an explicit button, rechecks prices and stock, and replaces
 
 Manual reminders share the scheduled reminder's episode/stage identity and require the same confirmed permission. Admin stops and unsubscribe requests revoke the underlying recovery credentials; changing newsletter status later cannot revive those old links. Private recovery pages exclude analytics and email-capture UI, and carry no-store/no-referrer/noindex protection.
 
+### Delivery operations, refund reporting and product publishing
+
+Automation controls let authorised operators cancel eligible queued messages, request a bounded retry, or reconcile a known provider outcome with an audit reason. Active delivery leases cannot be overridden. Retries retain the frozen recipient, sender, subject, body and provider identity. When a provider ID was lost, reconciliation requires provider proof tied to that exact outbox message; legacy messages without sufficient proof remain unresolved. These controls never initiate a blind replacement send.
+
+Each committed refund creates one immutable analytics intent containing the actual incremental goods and shipping amounts, with the original transaction/client identity and no customer contact fields. A database reconciliation query compares recorded refunds, commerce events, queued analytics and provider-accepted amounts. Provider acceptance does not establish reporting ingestion. An ambiguous refund send stops for reconciliation; purchases retain their existing bounded retry contract.
+
+Product creation and launch now apply their related product, variant and inventory changes in database transactions. Application privilege cleanup removes broad inherited grants on application-owned objects, preserves necessary service access and verified public certificate/review reads, and checks defaults for future objects. It does not alter Supabase-managed object ownership or other owners' defaults.
+
 ## Verification infrastructure
 
 The release checks now run against disposable PostgreSQL 17 instances using independent sessions, deterministic contention and synthetic fixtures. They include checkout, stock, payment/expiry, refund, settlement, product/settings revisions, receipt reversal, provider completion, lot allocation and carrier replay. A custom-format backup is restored into a second disposable database and its table data and grants compared. This establishes repeatable test-database restoration; it is not a backup of production customer data.
 
-Browser acceptance exercises the actual checkout and cart components with fake server actions at 320, 390 and 1,280 pixels. It checks overflow, labels, serious/critical accessibility findings, quote failure/retry, keyboard focus and uncertain-order recovery. CI runs these tests alongside the database, unit, type, lint, dependency, build and JavaScript-budget checks.
+Browser acceptance exercises the actual checkout and cart components with fake server actions at 320, 390 and 1,280 pixels. It checks overflow, labels, serious/critical accessibility findings, quote failure/retry, keyboard focus and uncertain-order recovery. CI runs these tests alongside the database, unit, type, lint, dependency, build and JavaScript-budget checks. A separate check starts the actual production build on loopback and verifies the expected HTTP status and private response headers on nine sensitive paths without application/provider credentials.
 
 Route budgets measure the compressed, deduplicated JavaScript for each route and its ancestor layouts. This is a distinct metric from Next.js's printed first-load estimate. [The budget configuration](../../storefront/config/performance-budgets.json) defines the checked routes and thresholds. Field Core Web Vitals, query latency and operator-efficiency targets remain targets until measured with representative traffic and workflows.
 
@@ -64,6 +72,26 @@ Manual settlement records and carrier CSV reconciliation were selected because t
 
 The existing visual identity was retained while completing behaviour and measurement. No replacement theme or conversion hypothesis was approved. A different visual direction would require a separate design decision and measured experiment.
 
+Ambiguous GA refund delivery stops for reconciliation because purchase transaction deduplication is not a documented exactly-once guarantee for distinct partial refunds. This may leave an analytics gap until reporting is checked; the database remains the accounting source of truth.
+
 ## Final validation
 
-Final integrated evidence and review status will be recorded here after checkout recovery and operations controls complete their review gates. Interim task test counts are not a claim that the finished branch has passed its final suite.
+The [completion evidence](evidence/2026-09-08-completion/README.md) records the locked install and integrated run on Node 22.23.1 / npm 10.9.8, with application/provider credentials empty:
+
+| Check | Result |
+|---|---|
+| Regression suite | 380 tests across 78 files passed |
+| Typecheck and lint | Passed |
+| npm dependency audit | Zero reported vulnerabilities |
+| Next 15.5.25 production build | Passed |
+| Native PostgreSQL | 33 migrations, 22 checks; all 37 fixture tables restored |
+| Actual production schema-only replay | All 14 forward migrations passed; private review identity denied |
+| Browser/component acceptance | 18 scenarios passed at 320, 390 and 1,280px |
+| Actual private route responses | Nine status/header checks passed |
+| Compressed route JavaScript | All six budgets passed |
+
+Measured compressed JavaScript: home 130.9 kB, shop 133.3 kB, product 132.5 kB, checkout 134.5 kB, admin product 159.1 kB and admin order 150.1 kB. These are build measurements, not field performance or conversion outcomes.
+
+The install reported that the pinned ESLint 9.39.5 version is unsupported. The build emitted two webpack cache serialization advisories (108/259 KiB strings). Both checks exited successfully; no claim of warning-free output is made. A compatible lint-toolchain upgrade is separate maintenance work; the dependency audit reported no vulnerabilities.
+
+Feature-level reviews are clear, including scoped re-review of the certificate URL rule. The full 380-test suite, native database/restore checks and actual-schema replay passed again after that SQL-only fix at `12091e3`. The unchanged application build/browser/header/budget results are from `f3c1e70`. The broad whole-branch review is the final pending repository gate. No production deployment has been performed.

@@ -8,6 +8,8 @@ Configure a monitor to call the canonical host every 5 minutes with a 15-second 
 
 `npm run check:budgets` follows the built app manifest and includes each page plus every parent layout. It counts each JavaScript chunk once and sums its gzip size, in decimal kB. This is intentionally an explicit reproducible metric and differs from Next's printed route estimate. Initial baseline at 8686367: home130.4, shop132.9, product132.1, checkout133.4, product editor159.2, order detail147.0 kB. Public limits allow roughly 5% headroom, with explicit space for checkout recovery; admin order detail allows the new financial/packing workflow. Budget failures require code inspection and a documented review of any limit increase.
 
+`npm run test:headers` starts an owned loopback server from the production build, explicitly blanks application/provider credentials, checks private response headers and expected statuses on nine synthetic private-route requests, and shuts the server down. It follows no redirects and logs no response bodies. Run with `NEXT_DIST_DIR` matching your build output when using a separate verification directory.
+
 CI runs the entire SQL chain in PostgreSQL17, separate-session checkout/stock/refund/settlement races, a pg_dump/pg_restore round trip with all public/storage table digests and public-role denial, and browser fixtures at 320/390/1280px. All databases and provider actions are synthetic. This proves the procedure locally; it does not prove that a production backup has been taken or that externally configured monitors deliver alerts.
 
 Sources: [PostgreSQL backup/restore](https://www.postgresql.org/docs/current/backup-dump.html), [Playwright acceptance and CI setup](https://playwright.dev/docs/intro).

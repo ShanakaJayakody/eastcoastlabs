@@ -11,6 +11,7 @@ import pg from 'pg';
 import {workflowChecks} from './postgres-workflow-checks.mjs';
 import {fulfilmentChecks} from './postgres-fulfilment-checks.mjs';
 import {recoveryChecks} from './postgres-recovery-checks.mjs';
+import {operationsChecks} from './postgres-operations-checks.mjs';
 
 let ownedContainer;
 let admin;
@@ -184,6 +185,7 @@ try {
   });
   await workflowChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation});
   await recoveryChecks({db,a,b,scalar,check});
+  await operationsChecks({db,a,b,scalar,check});
   await fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation});
   const snapshot = async client => {
     const tables = (await client.query(`select schemaname,tablename from pg_tables where schemaname in ('public','storage') order by 1,2`)).rows;

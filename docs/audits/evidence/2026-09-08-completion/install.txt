@@ -1,0 +1,8 @@
+npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+added 532 packages, and audited 533 packages in 8s
+
+185 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities

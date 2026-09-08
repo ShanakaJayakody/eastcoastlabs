@@ -1,0 +1,27 @@
+
+> eastcoastlabs-storefront@1.0.0 test:browser
+> env -u NO_COLOR -u FORCE_COLOR playwright test --workers=2
+
+
+Running 18 tests using 2 workers
+
+  ✓   1 [mobile-320] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (874ms)
+  ✓   2 [mobile-320] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (1.3s)
+  ✓   3 [mobile-320] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (637ms)
+  ✓   4 [mobile-320] › tests/browser/storefront.spec.ts:42:5 › uncertain submission retains recovery identity but no customer fields after reload (3.5s)
+  ✓   5 [mobile-320] › tests/browser/storefront.spec.ts:58:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (3.5s)
+  ✓   7 [mobile-390] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (947ms)
+  ✓   8 [mobile-390] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (495ms)
+  ✓   6 [mobile-320] › tests/browser/storefront.spec.ts:75:5 › server field errors are described by controls and focus the first failing input (2.4s)
+  ✓   9 [mobile-390] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (607ms)
+  ✓  11 [mobile-390] › tests/browser/storefront.spec.ts:42:5 › uncertain submission retains recovery identity but no customer fields after reload (747ms)
+  ✓  10 [mobile-390] › tests/browser/storefront.spec.ts:58:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (2.7s)
+  ✓  12 [mobile-390] › tests/browser/storefront.spec.ts:75:5 › server field errors are described by controls and focus the first failing input (2.5s)
+  ✓  13 [desktop] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (929ms)
+  ✓  14 [desktop] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (558ms)
+  ✓  15 [desktop] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (678ms)
+  ✓  16 [desktop] › tests/browser/storefront.spec.ts:42:5 › uncertain submission retains recovery identity but no customer fields after reload (977ms)
+  ✓  17 [desktop] › tests/browser/storefront.spec.ts:58:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (870ms)
+  ✓  18 [desktop] › tests/browser/storefront.spec.ts:75:5 › server field errors are described by controls and focus the first failing input (525ms)
+
+  18 passed (15.2s)

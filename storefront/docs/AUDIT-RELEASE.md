@@ -55,7 +55,11 @@ Do not infer a historical physical return from a refund alone. Migration 100000 
 | Costed receipt → reverse, versus receipt → sale → reverse | Safe snapshot reversal restores valuation; later-use case refuses rewind |
 | More than 1,000 People and review records | Search/export/counts and rating aggregates include complete dataset |
 | Suppress/pause after queue; expired subscription link; old link after unsubscribe | No ineligible marketing send; durable failure never presents success |
-| Provider accepts, completion write fails; webhook arrives before completion | Stable retry identity; exact provider+recipient reconciliation |
+| Provider accepts, completion write fails; webhook arrives before completion | Stable retry identity; matching recorded provider ID or exact frozen-message identity proof; active leases cannot be overridden |
+| Operator cancels/retries while a worker claims the row | Worker lease wins safely; no duplicate send or overwritten outcome |
+| Two partial refunds; request replay; ambiguous analytics response | One local intent per committed delta; exact goods/shipping reconciliation; ambiguous refunds stop for review |
+| Product creation/launch fails after an intermediate write | Entire transaction rolls back; no partial product/variant/inventory state |
+| Anonymous access after migrations; newly created application objects | Private review identity and unverified certificates denied; dangerous inherited/default privileges absent |
 | Recovery cohort, organic order, partial refund | Distinct capture/exposure/order/paid metrics; only explicit episode gets attributed net revenue |
 | Worker stops / all analytics intents age out | Hourly jobs overdue at 3h; dead outcomes remain visible; no false healthy success |
 
@@ -67,7 +71,7 @@ Admin browser workflows remain to be validated with an operator in staging. The 
 - Confirm legal business identity/ABN, contact details, policy wording, dispatch commitments and scientific evidence. This patch removes unsupported claims; it cannot supply missing facts or approve policies.
 - Recheck actual public images after release. The earlier image-service 402 did not reproduce on 8 September: the home page and three distinct optimized images returned 200. There is no current evidence requiring an image-optimisation bypass or account change.
 - Configure WAF/IP/session abuse controls using verified trusted-proxy rules. Application email limits reduce same-mailbox reservation abuse; rotating addresses remain an external defence requirement. See CHECKOUT-ABUSE.md.
-- Enable GA4/Measurement Protocol only with the intended property and privacy choices. Validate requests in Google's debug tooling, then reconcile accepted paid events to DB payment records. No API secret means no delivery. Revenue refunds/attribution timing are explicit limitations in PAID-ANALYTICS.md.
+- Enable GA4/Measurement Protocol only with the intended property and privacy choices. Validate requests in Google's debug tooling, then reconcile purchases and incremental refunds against database amounts. No API secret means no delivery. A 2xx response only confirms transport acceptance; ambiguous refunds remain terminal for reconciliation to avoid an unproven duplicate resend. See [PAID-ANALYTICS.md](PAID-ANALYTICS.md).
 - Enable external alarms for failed/overdue sweeps, outbox age/dead rows and route failures. `instrumentation.ts` emits a redacted route-template/digest diagnostic; it does not configure a monitoring vendor or pager.
 
 ## Performance acceptance
@@ -80,6 +84,6 @@ Use the same staged operator scenarios to establish a baseline before evaluating
 
 Stop workers and customer writes if financial or access invariants fail. Keep the database backup and matching app artefact available. Do not blindly roll the app back to old non-transactional services after new commerce writes, or expose raw-ID receipt access. Prefer a reviewed forward repair with writes disabled; restore a backup only with reconciliation of any intervening real activity. Applied migration files are immutable; write another migration for a repair.
 
-For ambiguous sends, inspect provider outcome before any manual retry. Stable Resend identity is bounded by the retry window; dead email cannot safely be assigned a fresh identity without reconciliation. Paid analytics 2xx means transport accepted, not reporting ingestion; expired purchases must not be timestamped as today. Keep unresolved terminal rows visible rather than deleting evidence to turn health green.
+Use [EMAIL-OPERATIONS.md](EMAIL-OPERATIONS.md) for guarded cancellation, retry and provider reconciliation, and [APPLICATION-PRIVILEGES.md](APPLICATION-PRIVILEGES.md) for the intended access boundary. For ambiguous sends, inspect provider outcome before any manual retry. Stable Resend identity is bounded by the retry window; dead email cannot safely be assigned a fresh identity without reconciliation. Paid analytics 2xx means transport accepted, not reporting ingestion; expired purchases must not be timestamped as today. Keep unresolved terminal rows visible rather than deleting evidence to turn health green.
 
 Parcel lot allocation, carrier CSV reconciliation, reviewed refunds and manual-transfer settlement records are now included in this release. Separate programmes remain a recurring-delivery platform, a new visual theme and measured acquisition experiments. Recurring checkout stays disabled until an actual provider and cadence are supplied.
