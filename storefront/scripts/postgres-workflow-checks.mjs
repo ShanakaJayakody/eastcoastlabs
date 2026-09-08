@@ -3,6 +3,21 @@ import {randomUUID} from 'node:crypto';
 
 /** Additional release races: all helpers target the controller's synthetic DB. */
 export async function workflowChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation}){
+ await check('concurrent normalized-email checkouts cannot both consume the last pending slot',async()=>{
+  const variant=await fixture(20), email=`mailbox-${randomUUID()}@example.test`;
+  for(let i=0;i<4;i++) await create(db,orderInput(variant,{email}));
+  const first=orderInput(variant,{email:`  ${email.toUpperCase()}  `}), second=orderInput(variant,{email});
+  const results=await race('select pg_advisory_xact_lock(hashtextextended($1,0))',[`checkout-email:${email}`],()=>create(a,first),()=>create(b,second));
+  assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+  assert.match(results.find(r=>r.status==='rejected').reason.message,/CHECKOUT_RATE_LIMIT/);
+  assert.equal(await scalar(db,'select count(*)::int result from orders where customer_email=$1 and status=\'pending\'',[email]),5);
+  assert.equal(await scalar(db,'select reserved result from inventory where variant_id=$1',[variant]),5);
+  const successfulInput=results[0].status==='fulfilled'?first:second;
+  const original=results.find(r=>r.status==='fulfilled').value;
+  const replay=await create(db,successfulInput);
+  assert.equal(replay.orderId,original.orderId,'Committed attempt must recover despite the mailbox limit');
+  assert.equal(await scalar(db,'select reserved result from inventory where variant_id=$1',[variant]),5);
+ });
  await check('pack variants contend for the same physical stock pool',async()=>{
   const single=await fixture(5), pack=randomUUID();
   await db.query(`insert into product_variants(id,product_id,sku,pack_size,label,price_cents) select $1,product_id,$2,3,'3-pack',2700 from product_variants where id=$3`,[pack,`AUDIT-${pack}`,single]);
@@ -58,5 +73,19 @@ export async function workflowChecks({db,a,b,scalar,check,race,fixture,orderInpu
   assert.equal(await scalar(db,'select outbox_id result from email_events where provider_event_id=$1',[event]),id);
   const wrong=await scalar(db,`insert into email_events(to_email,event,provider_event_id,detail) values('different@example.test','delivered',$1,$2) returning outbox_id result`,[randomUUID(),JSON.stringify({message_id:provider})]);
   assert.equal(wrong,null);
+ });
+ await check('mailbox suppression racing cart confirmation leaves no usable old consent',async()=>{
+  const email=`consent-${randomUUID()}@example.test`, id=randomUUID(), hash=randomUUID().replaceAll('-','').repeat(2);
+  const cart=JSON.stringify([{key:'synthetic:single',slug:'synthetic',variantLabel:'1 vial',quantity:1}]);
+  await db.query('select recovery_request($1,$2,$3,$4::jsonb,1000)',[id,email,hash,cart]);
+  const results=await race('select pg_advisory_xact_lock(hashtextextended($1,0))',[`subscription:${email}`],
+   ()=>a.query('select recovery_confirm($1)',[hash]),()=>b.query("select suppress_marketing($1,'unsubscribe')",[email]));
+  assert(results.every(r=>r.status==='fulfilled'));
+  assert.equal(await scalar(db,'select revoked_at is not null result from recovery_requests where id=$1',[id]),true);
+  assert.equal(await scalar(db,'select recovery_confirm($1) result',[hash]),null);
+  assert.equal(await scalar(db,'select recovery_attribution($1,$2,$3::jsonb) result',[hash,email,cart]),null);
+  assert.equal(await scalar(db,"select count(*)::int result from recovery_episodes where email=$1 and state='active'",[email]),0);
+  assert(Number(await scalar(db,'select count(*) result from email_outbox where to_email=$1',[email]))>0);
+  assert.equal(await scalar(db,'select bool_and(email_delivery_ineligible(e) is not null) result from email_outbox e where to_email=$1',[email]),true);
  });
 }
