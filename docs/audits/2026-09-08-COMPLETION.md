@@ -74,24 +74,26 @@ The existing visual identity was retained while completing behaviour and measure
 
 Ambiguous GA refund delivery stops for reconciliation because purchase transaction deduplication is not a documented exactly-once guarantee for distinct partial refunds. This may leave an analytics gap until reporting is checked; the database remains the accounting source of truth.
 
+The final fix wave was extended narrowly when review found that an automatic payment change could create a second identity for an unresolved order. Preserving the original attempt takes precedence over closing a review-round limit. This required extra regression/review time and may require an affected customer to perform another recovery check.
+
 ## Final validation
 
 The [completion evidence](evidence/2026-09-08-completion/README.md) records the locked install and integrated run on Node 22.23.1 / npm 10.9.8, with application/provider credentials empty:
 
 | Check | Result |
 |---|---|
-| Regression suite | 380 tests across 78 files passed |
+| Regression suite | 389 tests across 79 files passed |
 | Typecheck and lint | Passed |
 | npm dependency audit | Zero reported vulnerabilities |
 | Next 15.5.25 production build | Passed |
 | Native PostgreSQL | 33 migrations, 22 checks; all 37 fixture tables restored |
 | Actual production schema-only replay | All 14 forward migrations passed; private review identity denied |
-| Browser/component acceptance | 18 scenarios passed at 320, 390 and 1,280px |
+| Browser/component acceptance | 22 scenarios passed; two mobile-menu cases intentionally skipped at desktop width |
 | Actual private route responses | Nine status/header checks passed |
 | Compressed route JavaScript | All six budgets passed |
 
-Measured compressed JavaScript: home 130.9 kB, shop 133.3 kB, product 132.5 kB, checkout 134.5 kB, admin product 159.1 kB and admin order 150.1 kB. These are build measurements, not field performance or conversion outcomes.
+Measured compressed JavaScript: home 130.9 kB, shop 133.3 kB, product 132.5 kB, checkout 134.8 kB, admin product 159.1 kB and admin order 150.1 kB. These are build measurements, not field performance or conversion outcomes.
 
-The install reported that the pinned ESLint 9.39.5 version is unsupported. The build emitted two webpack cache serialization advisories (108/259 KiB strings). Both checks exited successfully; no claim of warning-free output is made. A compatible lint-toolchain upgrade is separate maintenance work; the dependency audit reported no vulnerabilities.
+The install reported that the pinned ESLint 9.39.5 version is unsupported. The initial cold build emitted two webpack cache serialization advisories (108/259 KiB strings); the final build emitted neither. These successful runs and the original advisories are retained in the evidence. A compatible lint-toolchain upgrade is separate maintenance work; the dependency audit reported no vulnerabilities.
 
-Feature-level reviews are clear, including scoped re-review of the certificate URL rule. The full 380-test suite, native database/restore checks and actual-schema replay passed again after that SQL-only fix at `12091e3`. The unchanged application build/browser/header/budget results are from `f3c1e70`. The broad whole-branch review is the final pending repository gate. No production deployment has been performed.
+All feature and whole-branch review findings are closed; see the [independent review record](2026-09-08-REVIEW.md). Final application verification is at `f472117`, including the automatic shipping/payment uncertainty guards and both mobile header variants. Database SQL and native-check inputs are unchanged since the passing `12091e3` run. The branch is ready for the documented staging/release procedure, subject to its external gates. No production deployment has been performed.

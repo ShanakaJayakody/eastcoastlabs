@@ -3,25 +3,32 @@
 > env -u NO_COLOR -u FORCE_COLOR playwright test --workers=2
 
 
-Running 18 tests using 2 workers
+Running 24 tests using 2 workers
 
-  ✓   1 [mobile-320] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (874ms)
-  ✓   2 [mobile-320] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (1.3s)
-  ✓   3 [mobile-320] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (637ms)
-  ✓   4 [mobile-320] › tests/browser/storefront.spec.ts:42:5 › uncertain submission retains recovery identity but no customer fields after reload (3.5s)
-  ✓   5 [mobile-320] › tests/browser/storefront.spec.ts:58:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (3.5s)
-  ✓   7 [mobile-390] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (947ms)
-  ✓   8 [mobile-390] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (495ms)
-  ✓   6 [mobile-320] › tests/browser/storefront.spec.ts:75:5 › server field errors are described by controls and focus the first failing input (2.4s)
-  ✓   9 [mobile-390] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (607ms)
-  ✓  11 [mobile-390] › tests/browser/storefront.spec.ts:42:5 › uncertain submission retains recovery identity but no customer fields after reload (747ms)
-  ✓  10 [mobile-390] › tests/browser/storefront.spec.ts:58:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (2.7s)
-  ✓  12 [mobile-390] › tests/browser/storefront.spec.ts:75:5 › server field errors are described by controls and focus the first failing input (2.5s)
-  ✓  13 [desktop] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (929ms)
-  ✓  14 [desktop] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (558ms)
-  ✓  15 [desktop] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (678ms)
-  ✓  16 [desktop] › tests/browser/storefront.spec.ts:42:5 › uncertain submission retains recovery identity but no customer fields after reload (977ms)
-  ✓  17 [desktop] › tests/browser/storefront.spec.ts:58:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (870ms)
-  ✓  18 [desktop] › tests/browser/storefront.spec.ts:75:5 › server field errors are described by controls and focus the first failing input (525ms)
+  ✓   2 [mobile-320] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (795ms)
+  ✓   1 [mobile-320] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (1.2s)
+  ✓   3 [mobile-320] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (610ms)
+  ✓   4 [mobile-320] › tests/browser/storefront.spec.ts:43:6 › store mobile navigation covers the viewport and keeps themed controls reachable (888ms)
+  ✓   5 [mobile-320] › tests/browser/storefront.spec.ts:43:6 › dossier mobile navigation covers the viewport and keeps themed controls reachable (856ms)
+  ✓   6 [mobile-320] › tests/browser/storefront.spec.ts:70:5 › uncertain submission retains recovery identity but no customer fields after reload (3.6s)
+  ✓   7 [mobile-320] › tests/browser/storefront.spec.ts:86:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (3.5s)
+  ✓   8 [mobile-320] › tests/browser/storefront.spec.ts:103:5 › server field errors are described by controls and focus the first failing input (539ms)
+  ✓   9 [mobile-390] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (878ms)
+  ✓  10 [mobile-390] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (559ms)
+  ✓  11 [mobile-390] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (604ms)
+  ✓  12 [mobile-390] › tests/browser/storefront.spec.ts:43:6 › store mobile navigation covers the viewport and keeps themed controls reachable (880ms)
+  ✓  13 [mobile-390] › tests/browser/storefront.spec.ts:43:6 › dossier mobile navigation covers the viewport and keeps themed controls reachable (842ms)
+  ✓  14 [mobile-390] › tests/browser/storefront.spec.ts:70:5 › uncertain submission retains recovery identity but no customer fields after reload (721ms)
+  ✓  16 [mobile-390] › tests/browser/storefront.spec.ts:103:5 › server field errors are described by controls and focus the first failing input (522ms)
+  ✓  17 [desktop] › tests/browser/storefront.spec.ts:14:5 › checkout fits viewport with labelled controls and no serious accessibility violations (927ms)
+  ✓  18 [desktop] › tests/browser/storefront.spec.ts:20:5 › failed quote blocks submission and explicit retry recovers (526ms)
+  ✓  19 [desktop] › tests/browser/storefront.spec.ts:29:5 › cart traps keyboard focus and restores its opener on Escape (626ms)
+  ✓  15 [mobile-390] › tests/browser/storefront.spec.ts:86:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (3.4s)
+  -  20 [desktop] › tests/browser/storefront.spec.ts:43:6 › store mobile navigation covers the viewport and keeps themed controls reachable
+  -  21 [desktop] › tests/browser/storefront.spec.ts:43:6 › dossier mobile navigation covers the viewport and keeps themed controls reachable
+  ✓  22 [desktop] › tests/browser/storefront.spec.ts:70:5 › uncertain submission retains recovery identity but no customer fields after reload (987ms)
+  ✓  23 [desktop] › tests/browser/storefront.spec.ts:86:5 › cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data (891ms)
+  ✓  24 [desktop] › tests/browser/storefront.spec.ts:103:5 › server field errors are described by controls and focus the first failing input (765ms)
 
-  18 passed (15.2s)
+  2 skipped
+  22 passed (15.4s)

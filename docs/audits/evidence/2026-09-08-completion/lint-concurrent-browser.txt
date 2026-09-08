@@ -1,0 +1,20 @@
+
+> eastcoastlabs-storefront@1.0.0 lint
+> eslint .
+
+
+Oops! Something went wrong! :(
+
+ESLint: 9.39.5
+
+Error: ENOENT: no such file or directory, scandir '/Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/test-results'
+    at async Object.readdir (node:internal/fs/promises:955:18)
+    at async NodeHfsImpl.list (file:///Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/node_modules/@humanfs/node/src/node-hfs.js:304:19)
+    at async NodeHfs.<anonymous> (file:///Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/node_modules/@humanfs/core/src/hfs.js:560:21)
+    at async NodeHfs.<anonymous> (file:///Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/node_modules/@humanfs/core/src/hfs.js:604:6)
+    at async NodeHfs.walk (file:///Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/node_modules/@humanfs/core/src/hfs.js:614:3)
+    at async globSearch (/Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/node_modules/eslint/lib/eslint/eslint-helpers.js:364:20)
+    at async Promise.allSettled (index 0)
+    at async globMultiSearch (/Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/node_modules/eslint/lib/eslint/eslint-helpers.js:455:18)
+    at async Promise.all (index 0)
+    at async findFiles (/Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront/node_modules/eslint/lib/eslint/eslint-helpers.js:635:25)

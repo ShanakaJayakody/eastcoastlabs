@@ -49,5 +49,5 @@
 **Interfaces:** PG tests use an explicit disposable loopback URL and synthetic fixtures; CI supplies PostgreSQL service. Browser tests use existing component fixture harness/fake actions. Route budgets parse actual Next build artifacts and fail on configured growth; health probes never send email/orders.
 - [x] Establish local disposable PG, migrate complete history, race checkout/refund/outbox with separate sessions and restore a backup to a second disposable database.
 - [x] Add reusable CI browser/a11y acceptance, route budgets and checkable monitoring/release commands. Read available deployment/account metadata without printing secrets or modifying production.
-- [ ] Run locked install, all tests, typecheck, lint, audit, build, native PG, budgets and browser verification. Independently review the entire branch and address material findings.
-- [ ] Update reports with actual evidence, commit reviewed work, and identify only true external blockers and the exact release action pending.
+- [x] Run locked install, all tests, typecheck, lint, audit, build, native PG, budgets and browser verification. Independently review the entire branch and address material findings.
+- [x] Update reports with actual evidence, commit reviewed work, and identify only true external blockers and the exact release action pending.

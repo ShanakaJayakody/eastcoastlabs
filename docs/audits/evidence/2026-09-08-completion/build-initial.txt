@@ -7,7 +7,9 @@
      ✓ authInterrupts
 
    Creating an optimized production build ...
- ✓ Compiled successfully in 6.1s
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (108kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (259kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 12.6s
    Linting and checking validity of types ...
    Collecting page data ...
    Generating static pages (0/37) ...
@@ -62,7 +64,7 @@ Route (app)                                              Size  First Load JS  Re
 ├ ƒ /api/webhooks/resend                                211 B         103 kB
 ├ ○ /cart                                               573 B         119 kB
 ├ ƒ /cart-recovery                                    1.17 kB         108 kB
-├ ○ /checkout                                         6.76 kB         117 kB
+├ ○ /checkout                                         6.51 kB         116 kB
 ├ ƒ /checkout/thank-you                                 181 B         106 kB
 ├ ● /collections/[slug]                                 506 B         112 kB          5m      1y
 ├   ├ /collections/recovery-repair                                                    5m      1y
