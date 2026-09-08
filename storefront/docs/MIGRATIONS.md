@@ -16,6 +16,8 @@ Supply `SUPABASE_DB_URL` securely outside source control. Use the **direct conne
 
 TLS verifies the server certificate and hostname by default. If your trusted database uses a private CA, set `SUPABASE_DB_CA_FILE` to the CA PEM file. Do not disable verification or set `NODE_TLS_REJECT_UNAUTHORIZED=0`. URL TLS and host/port query overrides are rejected so they cannot silently replace the verified connection configuration. URL `sslmode=require`, `verify-ca` or `verify-full` are normalized to certificate verification.
 
+For the hosted production project, [the published Supabase CA](../supabase/certs/README.md) is included at `supabase/certs/supabase-prod-ca-2021.crt`. Set `SUPABASE_DB_CA_FILE` to its absolute path after verifying that the connection is the intended Supabase environment. A read-only dry run succeeded with that CA and hostname verification on 8 September 2026; the certificate is public trust material, not a credential.
+
 For a disposable database bound to loopback only, explicitly set `SUPABASE_DB_SSL=disable`; this is accepted only for `localhost`, `127.0.0.1` or `::1`. Remote hosts always require verified TLS. Never paste a credential-bearing URL into a report or commit it.
 
 ## Existing installation: establish history once
@@ -58,10 +60,12 @@ Historical migration files include embedded initial data and data transformation
 - A failing new migration is rolled back with its ledger insert. Inspect the failure on a disposable restore. Files that never committed can be corrected; already applied files stay immutable. Rerun dry-run and apply once reviewed.
 - Unknown existing schema history requires investigation and an explicit baseline. Do not delete tables, erase the ledger or rerun historical seeds to bypass the guard.
 - The runner's session lock is released when the connection closes. A crashed connection releases it at PostgreSQL; investigate an active competing session instead of bypassing the lock.
-- Local tests prove rollback and checksum/history behavior. Before release, test the real migration sequence, permissions, advisory-lock contention and restoration procedure with separate PostgreSQL sessions on disposable staging. No hosted database was used to create this change.
+- Local tests prove rollback and checksum/history behavior. `npm run test:postgres` exercises the full migration chain, privileges, independent-session contention and backup restoration with synthetic data. A read-only production dry run and schema-only local replay have also been performed. Before release, verify a real production backup restore and the operator-approved baseline; neither synthetic fixtures nor a schema-only copy proves historical data equivalence.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `npm ci`, isolated tests (including migration filename validation), typecheck, lint and a production build on Node.js 22. It references the committed `storefront/package-lock.json`, has a read-only checkout token, and supplies no production application credentials. It does not deploy or run the migration CLI against a network database. GitHub Actions execution and branch protection must be confirmed after the workflow is merged.
+`.github/workflows/ci.yml` runs `npm ci`, isolated unit tests and migration validation, separate-session PostgreSQL 17 checks and restore verification, browser/accessibility acceptance, dependency audit, typecheck, lint, production build and route JavaScript budgets on Node.js 22. It references the committed `storefront/package-lock.json`, has a read-only checkout token, and supplies only disposable database credentials. It does not deploy or run migrations against a hosted database. GitHub Actions execution and branch protection must be confirmed after the workflow is merged.
+
+Run `npm run test:postgres` locally with Docker available. It creates labelled disposable PostgreSQL, migrates synthetic fixtures, tests contention, restores a backup into a second disposable database, and removes the databases and owned container on exit. It does not read project env files. CI supplies its loopback PostgreSQL service explicitly; do not point this test at an operational database.
 
 The action pins were resolved from the documented v7 tags of [actions/checkout](https://github.com/actions/checkout) and [actions/setup-node](https://github.com/actions/setup-node). Update them through a reviewed dependency change.

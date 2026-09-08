@@ -1,5 +1,7 @@
 # East Coast Labs audit implementation — 8 September 2026
 
+> Historical record of the initial implementation at `8686367`. The [completion report](2026-09-08-COMPLETION.md) supersedes the remaining-work lists and production-verification limitations below. Test counts and build comparisons in this document describe that earlier snapshot.
+
 The actionable storefront, commerce, admin and automation repairs are implemented on `codex/audit-implementation`, isolated from the original checkout. This is a reviewable application/database change, not a production deployment. Remaining external requirements and optional extensions are listed explicitly below. The audit's estimated programme outcomes, including conversion and operator-efficiency gains, are not claimed as measured results.
 
 Base source: `72e1bb7`. Worktree: `/Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation`.
