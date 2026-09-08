@@ -43,7 +43,8 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   const [appliedCode, setAppliedCode] = useState("");
   const [quote, setQuote] = useState<CartQuote | null>(null);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [paymentSelection, setPaymentSelection] = useState<{method:PaymentMethod|null;automatic:boolean}>({method:null,automatic:false});
+  const paymentMethod=paymentSelection.method;
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [fieldErrors,setFieldErrors] = useState<CheckoutFieldErrors>({});
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,13 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   }, [error,fieldErrors,pending]);
   const invalid = (name:CheckoutField) => ({name,id:`checkout-${name}`,"aria-invalid":!!fieldErrors[name],"aria-describedby":fieldErrors[name] ? `checkout-${name}-error`:undefined});
   const fieldError = (name:CheckoutField) => fieldErrors[name] ? <span id={`checkout-${name}-error`} className="mt-1 block text-xs text-warn">{fieldErrors[name]}</span> : null;
+  function reconcilePayment(q:CartQuote){
+    setPaymentSelection(current=>{
+      const method=current.method && q.paymentOptions.some(o=>o.method===current.method)
+        ? current.method : q.paymentOptions[0]?.method ?? null;
+      return method===current.method ? current : {method,automatic:current.automatic || current.method!==null};
+    });
+  }
 
   useEffect(() => {
     if (!ready || lines.length === 0) return;
@@ -82,8 +90,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
         // Changing the request key keeps submission blocked until it is repriced.
         if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
         setShippingMethod(q.shippingMethod);
-        setPaymentMethod(current => current && q.paymentOptions.some(o => o.method === current)
-          ? current : q.paymentOptions[0]?.method ?? null);
+        reconcilePayment(q);
       }).catch(() => {
         if (!cancelled) setQuoteError("We couldn’t confirm your order total. Please retry.");
       });
@@ -110,12 +117,12 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     });
     // An automatic service fallback must not authorise a second order while
     // the original request may still commit. Explicit customer edits stay distinct.
-    if(automaticShippingChange.current && attempt.current?.unconfirmed && attempt.current.key!==attemptKey){
+    if((automaticShippingChange.current || paymentSelection.automatic) && attempt.current?.unconfirmed && attempt.current.key!==attemptKey){
       const previous=JSON.parse(attempt.current.key);
-      previous.shippingAddress.shipping_method=shippingMethod;
-      if(!quote!.paymentOptions.some(o=>o.method===previous.paymentMethod))previous.paymentMethod=paymentMethod;
+      if(automaticShippingChange.current)previous.shippingAddress.shipping_method=shippingMethod;
+      if(paymentSelection.automatic)previous.paymentMethod=paymentMethod;
       if(JSON.stringify(previous)===attemptKey){
-        setError("Shipping changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.");
+        setError("Checkout options changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.");
         return;
       }
     }
@@ -143,8 +150,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             setQuote(q);setQuotedKey(requestKey);
             if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
             setShippingMethod(q.shippingMethod);
-            setPaymentMethod(current => current && q.paymentOptions.some(o => o.method === current)
-              ? current : q.paymentOptions[0]?.method ?? null);
+            reconcilePayment(q);
           }
           setFieldErrors(res.fieldErrors ?? {});setError(res.error);
           return;
@@ -394,7 +400,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
                       type="radio"
                       name="payment"
                       checked={isSel}
-                      onChange={() => setPaymentMethod(opt.method)}
+                      onChange={() => setPaymentSelection({method:opt.method,automatic:false})}
                       className="sr-only"
                     />
                     <span

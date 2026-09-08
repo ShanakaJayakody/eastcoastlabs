@@ -181,12 +181,12 @@ it(`requires recovery before an automatic shipping fallback from ${path} can dup
  await waitFor(()=>expect(screen.queryByRole('radio',{name:/Express shipping/})).toBeNull());
  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
  submitForm();
- await screen.findByText('Shipping changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.');
+ await screen.findByText('Checkout options changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.');
  expect(m.place).toHaveBeenCalledTimes(submittedCount);expect(sessionStorage.getItem('ecl_checkout_attempt')).toBe(original);
  fireEvent.click(screen.getByRole('button',{name:'Check previous order attempt'}));
  await screen.findByText('Original request may still be pending.');
  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());submitForm();
- await screen.findByText('Shipping changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.');
+ await screen.findByText('Checkout options changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.');
  expect(m.place).toHaveBeenCalledTimes(submittedCount);expect(sessionStorage.getItem('ecl_checkout_attempt')).toBe(original);
  // An explicit customer edit is still a different authorised request.
  fireEvent.change(screen.getByLabelText('Full name'),{target:{value:'Changed Researcher'}});submitForm();
@@ -207,3 +207,53 @@ it('blocks submission until the reconciled shipping request has a fresh quote',a
  await act(async()=>resolveStandard(standardOnlyQuote));
  expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled();
 });
+
+const payidOption={method:'payid',label:'PayID',badges:[],blurb:'PayID transfer'};
+for(const path of ['refresh','submission'] as const){
+ it(`retains the uncertain PayID attempt when ${path} automatically falls back to bank transfer with unchanged Standard shipping`,async()=>{
+  const bothPayments={...standardOnlyQuote,paymentOptions:[payidOption,...quote.paymentOptions]};
+  m.quote.mockResolvedValue(bothPayments);m.place.mockRejectedValue(new Error('PayID response lost'));
+  m.recover.mockResolvedValue({ok:false,notFound:true,error:'Original PayID request may still be pending.'});
+  render(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  expect(screen.getByRole('radio',{name:/PayID/})).toBeChecked();
+  submitForm();await screen.findByRole('alert');
+  const original=sessionStorage.getItem('ecl_checkout_attempt');
+  expect(m.place.mock.calls[0][0]).toMatchObject({paymentMethod:'payid',shippingMethod:'standard'});
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  m.quote.mockResolvedValue(standardOnlyQuote);
+  const submittedCount=path==='refresh'?1:2;
+  if(path==='refresh')fireEvent.click(screen.getByRole('button',{name:'Refresh order total'}));
+  else {
+   m.place.mockResolvedValueOnce({ok:false,error:'PayID is no longer available.',quote:standardOnlyQuote});
+   submitForm();await screen.findByText('PayID is no longer available.');
+   expect(m.place.mock.calls[1][0].idempotencyKey).toBe(m.place.mock.calls[0][0].idempotencyKey);
+  }
+  await waitFor(()=>expect(screen.getByRole('radio',{name:/Bank transfer/})).toBeChecked());
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  // Complete any unexpected submission so the call-count assertion catches an
+  // actual duplicate request rather than relying only on the wording of an alert.
+  m.place.mockResolvedValue({ok:false,error:'Unexpected second order request.'});
+  await act(async()=>submitForm());
+  expect(m.place).toHaveBeenCalledTimes(submittedCount);
+  expect(sessionStorage.getItem('ecl_checkout_attempt')).toBe(original);
+  expect(screen.getByRole('alert')).toHaveTextContent('Check your previous order attempt before placing another order.');
+  fireEvent.click(screen.getByRole('button',{name:'Check previous order attempt'}));
+  await screen.findByText('Original PayID request may still be pending.');
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  await act(async()=>submitForm());
+  expect(m.place).toHaveBeenCalledTimes(submittedCount);
+  expect(sessionStorage.getItem('ecl_checkout_attempt')).toBe(original);
+  const saved=JSON.parse(original!);expect(m.recover).toHaveBeenCalledWith(saved.id,saved.hash);
+  // Re-enabling PayID does not retroactively make the earlier bank fallback
+  // explicit. A real radio change by the customer does authorise a new request.
+  m.quote.mockResolvedValue(bothPayments);fireEvent.click(screen.getByRole('button',{name:'Refresh order total'}));
+  await screen.findByRole('radio',{name:/PayID/});
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  await act(async()=>submitForm());expect(m.place).toHaveBeenCalledTimes(submittedCount);
+  fireEvent.click(screen.getByRole('radio',{name:/PayID/}));
+  fireEvent.click(screen.getByRole('radio',{name:/Bank transfer/}));
+  submitForm();await waitFor(()=>expect(m.place).toHaveBeenCalledTimes(submittedCount+1));
+  expect(m.place.mock.lastCall![0]).toMatchObject({paymentMethod:'bank_transfer',shippingMethod:'standard'});
+  expect(m.place.mock.lastCall![0].idempotencyKey).not.toBe(m.place.mock.calls[0][0].idempotencyKey);
+ });
+}
