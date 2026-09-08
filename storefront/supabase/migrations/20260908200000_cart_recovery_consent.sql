@@ -70,6 +70,10 @@ begin
  p_email:=lower(trim(p_email));
  perform pg_advisory_xact_lock(hashtextextended('subscription:'||p_email,0));
  perform pg_advisory_xact_lock(hashtextextended('recovery:'||p_email,0));
+ -- Match the sweep's cart -> outbox order. Cancelling an existing manual
+ -- stage first can hold its dedupe row while waiting for the sweep's cart,
+ -- as the sweep's ON CONFLICT insert waits for that same outbox row.
+ perform 1 from cart_sessions where email=p_email for update;
  perform suppress_marketing_before_recovery(p_email,p_source);
  update recovery_requests set revoked_at=clock_timestamp() where email=p_email and revoked_at is null;
  update cart_sessions set status='abandoned' where email=p_email and status='active';
