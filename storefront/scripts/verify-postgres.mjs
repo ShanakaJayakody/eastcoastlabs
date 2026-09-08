@@ -8,6 +8,8 @@ import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import pg from 'pg';
+import {workflowChecks} from './postgres-workflow-checks.mjs';
+import {fulfilmentChecks} from './postgres-fulfilment-checks.mjs';
 
 let ownedContainer;
 let admin;
@@ -148,6 +150,8 @@ try {
     assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
     assert.equal(results.filter(r => r.status === 'rejected').length, 1);
   });
+  await workflowChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation});
+  await fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation});
   const snapshot = async client => {
     const tables = (await client.query(`select schemaname,tablename from pg_tables where schemaname in ('public','storage') order by 1,2`)).rows;
     const result = {};
