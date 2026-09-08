@@ -25,16 +25,16 @@ async function sendOne(row: OutboxRow): Promise<DeliveryResult> {
     const rendered = row.rendered_subject && row.rendered_html
       ? { subject: row.rendered_subject, html: row.rendered_html }
       : await renderTemplate(row.template, payload);
-    const { data: message, error: prepareError } = await adminDb().rpc("prepare_email_delivery", {
-      p_id: row.id, p_lease: row.lease_token, p_subject: rendered.subject, p_html: rendered.html,
+    const { data: message, error: prepareError } = await adminDb().rpc("prepare_email_delivery_v2", {
+      p_id: row.id, p_lease: row.lease_token, p_subject: rendered.subject, p_html: rendered.html, p_from: FROM,
     });
-    if (prepareError || !message?.subject || !message?.html) return { ok: false, error: `Cannot freeze email body: ${prepareError?.message ?? "missing message"}` };
-    const { subject, html } = message as { subject: string; html: string };
+    if (prepareError || !message?.subject || !message?.html || !message?.from || !message?.tag) return { ok: false, error: `Cannot freeze email body: ${prepareError?.message ?? "missing message"}` };
+    const { subject, html, from, tag } = message as { subject: string; html: string; from:string; tag:string };
     const { data: allowed, error: eligibilityError } = await adminDb().rpc("authorize_email_delivery", { p_id: row.id, p_lease: row.lease_token });
     if (eligibilityError) return { ok: false, error: `Eligibility check failed: ${eligibilityError.message}` };
     if (!allowed) return { ok: false, cancelled: true };
     const { data, error } = await new Resend(key).emails.send(
-      { from: FROM, to: row.to_email, subject, html },
+      { from, to: row.to_email, subject, html, tags:[{name:'ecl_outbox_id',value:tag}] },
       { idempotencyKey: `ecl-outbox/${row.id}` },
     );
     if (error) return { ok: false, error: error.message };

@@ -48,3 +48,19 @@ it('reports outstanding dead rows even when no analytics intent remains claimabl
  m.rpc.mockImplementation(async(name:string)=>({data:name==='claim_paid_analytics'?[]:name==='paid_analytics_dead_count'?4:true,error:null}));
  expect(await drainPaidAnalytics(1)).toMatchObject({accepted:0,failed:0,dead:4});expect(m.fetch).not.toHaveBeenCalled();
 });
+
+it('sends an immutable incremental refund with goods separate from shipping, strips PII and keeps its event time',async()=>{
+ row.payload={client_id:'123456.789012',timestamp_micros:Date.now()*1000,events:[{name:'refund',params:{transaction_id:'ECL-1001',currency:'AUD',value:18,shipping:5}}]} as ReturnType<typeof payload>;
+ Object.assign(row.payload.events[0].params,{email:'private@example.test'});
+ await drainPaidAnalytics(1);
+ expect(m.fetch).toHaveBeenCalledTimes(1);
+ const first=JSON.parse(m.fetch.mock.calls[0][1].body);
+ expect(first.events).toEqual([{name:'refund',params:{transaction_id:'ECL-1001',currency:'AUD',value:18,shipping:5}}]);
+ expect(first.timestamp_micros).toBe(row.payload.timestamp_micros);
+});
+
+it('retires an ambiguous refund transport instead of automatically repeating a financial delta',async()=>{
+ row.payload.events[0].name='refund';m.fetch.mockRejectedValueOnce(new Error('Uncertain transport'));
+ expect(await drainPaidAnalytics(1)).toMatchObject({dead:1,failed:0});
+ expect(m.rpc.mock.calls.find(c=>c[0]==='finish_paid_analytics')?.[1]).toMatchObject({p_accepted:false,p_permanent:true,p_error:'Refund transport outcome unknown; reconcile analytics before any correction'});
+});

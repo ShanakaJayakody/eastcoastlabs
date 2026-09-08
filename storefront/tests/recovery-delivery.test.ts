@@ -10,7 +10,7 @@ beforeEach(()=>{
  vi.clearAllMocks();m.allowed=true;m.template='cart_recovery_confirmation';
  vi.stubEnv('RESEND_API_KEY','synthetic-provider');vi.stubEnv('ORDER_ACCESS_SECRET','synthetic-recovery-signing-key-over-32-characters');vi.stubEnv('UNSUBSCRIBE_SECRET','synthetic-unsubscribe');
  m.send.mockResolvedValue({data:{id:'fake-delivery'},error:null});
- m.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>({error:null,data:name==='claim_email_outbox'?[{id:'synthetic-outbox',lease_token:'synthetic-lease',template:m.template,to_email:'synthetic@test.local',payload:{recovery_request_id:requestId,recovery_episode_id:'00000000-0000-0000-0000-000000000002'}}]:name==='prepare_email_delivery'?{subject:args.p_subject,html:args.p_html}:name==='authorize_email_delivery'?m.allowed:null}));
+ m.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>({error:null,data:name==='claim_email_outbox'?[{id:'synthetic-outbox',lease_token:'synthetic-lease',template:m.template,to_email:'synthetic@test.local',payload:{recovery_request_id:requestId,recovery_episode_id:'00000000-0000-0000-0000-000000000002'}}]:name==='prepare_email_delivery_v2'?{subject:args.p_subject,html:args.p_html,from:args.p_from,tag:args.p_id}:name==='authorize_email_delivery'?m.allowed:null}));
 });
 it('delivers the real confirmation and reminder templates through a fake provider with the same private restore link',async()=>{
  for(const template of ['cart_recovery_confirmation','abandoned_cart','abandoned_cart_2','abandoned_cart_3']){
