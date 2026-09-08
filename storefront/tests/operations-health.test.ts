@@ -11,9 +11,16 @@ beforeEach(()=>{
  for(const key of ['select','eq','in','lte','lt'] as const)builder[key].mockReturnValue(builder);
  builder.then=(resolve:(value:unknown)=>void)=>resolve({count:0,error:null});from.mockReturnValue(builder);
 });
-it('rejects unauthenticated probes before database access',async()=>{
+it.each([
+ {name:'unauthorized',prepare:()=>{},status:401},
+ {name:'unconfigured',prepare:()=>{delete process.env.CRON_SECRET;},status:503},
+])('keeps $name authentication failures private before database access',async({prepare,status})=>{
+ prepare();
  const result=await GET(new Request('https://example.test/api/operations/health'));
- expect(result.status).toBe(401);expect(health).not.toHaveBeenCalled();expect(from).not.toHaveBeenCalled();
+ expect(result.status).toBe(status);
+ expect(result.headers.get('cache-control')).toBe('private, no-store');
+ expect(result.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+ expect(health).not.toHaveBeenCalled();expect(from).not.toHaveBeenCalled();
 });
 it('returns only aggregate health and never cron payloads or recipient details',async()=>{
  const result=await GET(new Request('https://example.test/api/operations/health',{headers:{authorization:'Bearer synthetic-monitor-secret'}}));

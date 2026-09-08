@@ -129,9 +129,26 @@ try {
   });
   await check('concurrent outbox workers receive mutually exclusive leases', async () => {
     const id = await scalar(db, `insert into email_outbox(to_email,template,payload) values('synthetic@example.test','order_confirmation','{}') returning id result`);
-    const results = await Promise.all([a.query('select * from claim_email_outbox(1,$1)', [id]), b.query('select * from claim_email_outbox(1,$1)', [id])]);
-    assert.equal(results.reduce((sum, r) => sum + r.rows.length, 0), 1);
-    const lease = results.flatMap(r => r.rows)[0];
+    let first;
+    await a.query('begin');
+    try {
+      first = await a.query('select * from claim_email_outbox(1,$1)', [id]);
+      assert.equal(first.rows.length, 1);
+      assert.equal(await scalar(a, 'select txid_current_if_assigned() is not null result'), true, 'First claim must remain inside its open transaction');
+      const second = await b.query('select * from claim_email_outbox(1,$1)', [id]);
+      assert.equal(second.rows.length, 0, 'Second session must skip the row locked by the first claim');
+      await a.query('commit');
+    } catch (error) {
+      await a.query('rollback').catch(() => {});
+      throw error;
+    }
+    const lease = first.rows[0];
+    const persisted = (await db.query('select status,lease_token,lease_expires_at,attempt_count,first_attempt_at from email_outbox where id=$1', [id])).rows[0];
+    assert.equal(persisted.status, 'sending');
+    assert.equal(persisted.lease_token, lease.lease_token);
+    assert(persisted.lease_expires_at instanceof Date);
+    assert.equal(persisted.attempt_count, 1);
+    assert(persisted.first_attempt_at instanceof Date);
     await db.query(`select finish_email_outbox($1,$2,'sent',null,'synthetic-provider-id')`, [id, lease.lease_token]);
     await assert.rejects(db.query(`select finish_email_outbox($1,$2,'failed','stale',null)`, [id, lease.lease_token]), /lease/i);
   });
@@ -145,10 +162,24 @@ try {
     }
   });
   await check('settlement race cannot exceed recorded refund balance', async () => {
-    const settle = client => scalar(client, 'select commerce_refund_settle($1,$2,$3,current_date,$4,$5) result', [refundOrder.orderId, refundOrder.totalCents, `TEST-${randomUUID()}`, randomUUID(), 'audit@example.test']);
-    const results = await race('select id from orders where id=$1 for update', [refundOrder.orderId], () => settle(a), () => settle(b));
+    const attempts = [a,b].map(client => ({client,reference:`TEST-${randomUUID()}`,key:randomUUID()}));
+    const settle = ({client,reference,key}) => scalar(client, 'select commerce_refund_settle($1,$2,$3,current_date,$4,$5) result', [refundOrder.orderId, refundOrder.totalCents, reference, key, 'audit@example.test']);
+    const results = await race('select id from orders where id=$1 for update', [refundOrder.orderId], () => settle(attempts[0]), () => settle(attempts[1]));
     assert.equal(results.filter(r => r.status === 'fulfilled').length, 1);
     assert.equal(results.filter(r => r.status === 'rejected').length, 1);
+    const winnerIndex = results.findIndex(result => result.status === 'fulfilled');
+    const winner = results[winnerIndex].value;
+    const settlements = (await db.query('select id,order_id,amount_cents,transfer_reference,operation_key from refund_settlements where order_id=$1', [refundOrder.orderId])).rows;
+    assert.equal(settlements.length, 1);
+    assert.equal(settlements[0].id, winner.id);
+    assert.equal(settlements[0].order_id, refundOrder.orderId);
+    assert.equal(settlements[0].amount_cents, refundOrder.totalCents);
+    assert.equal(settlements[0].transfer_reference, attempts[winnerIndex].reference);
+    assert.equal(settlements[0].operation_key, attempts[winnerIndex].key);
+    const balance = (await db.query(`select o.refunded_cents,coalesce(sum(s.amount_cents),0)::int settled_cents,
+      (o.refunded_cents-coalesce(sum(s.amount_cents),0))::int remaining_cents
+      from orders o left join refund_settlements s on s.order_id=o.id where o.id=$1 group by o.id`, [refundOrder.orderId])).rows[0];
+    assert.deepEqual(balance, {refunded_cents:refundOrder.totalCents,settled_cents:refundOrder.totalCents,remaining_cents:0});
   });
   await workflowChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation});
   await fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderInput,create,operation});

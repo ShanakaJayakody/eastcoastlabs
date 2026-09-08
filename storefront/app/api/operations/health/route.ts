@@ -6,7 +6,8 @@ export const dynamic='force-dynamic';
 const headers={'Cache-Control':'private, no-store','X-Robots-Tag':'noindex, nofollow'};
 /** Read-only external-monitor target. It never runs a sweep or exposes PII. */
 export async function GET(request:Request){
- const rejection=rejectUnauthorizedCron(request);if(rejection)return rejection;
+ const rejection=rejectUnauthorizedCron(request);
+ if(rejection){for(const [name,value] of Object.entries(headers))rejection.headers.set(name,value);return rejection;}
  try{
   const db=adminDb();
   const [jobs,dead,overdue]=await Promise.all([

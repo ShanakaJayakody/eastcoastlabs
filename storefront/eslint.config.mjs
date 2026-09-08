@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 const compat = new FlatCompat({ baseDirectory: fileURLToPath(new URL(".", import.meta.url)) });
 const config = [
-  { ignores: [".next/**", ".next-*/**", "node_modules/**", "out/**", "scripts/**", "supabase/**", "next-env.d.ts"] },
+  { ignores: [".next/**", ".next-*/**", "node_modules/**", "out/**", "scripts/_stub-server-only.js", "supabase/**", "next-env.d.ts"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {
