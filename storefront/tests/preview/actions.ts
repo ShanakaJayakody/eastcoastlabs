@@ -23,6 +23,7 @@ export async function quoteCart(lines:ClientCartLine[],discountCode?:string,ship
  return {lines:quotedLines,version:JSON.stringify([quotedLines,shippingMethod,discountCode]),subtotalCents,discountCents:0,shippingCents,shippingMethod,shippingOptions,totalCents:subtotalCents+shippingCents,giftApplied:false,discountError:discountCode?'Synthetic code not valid. Clear it to continue.':undefined,warnings:[],paymentOptions:[{method:'bank_transfer',label:'Bank Transfer',blurb:'Synthetic preview only. No transfer or order is created.',badges:['Fixture']} ]};
 }
 export async function placeOrder(_input:PlaceOrderInput){
+ if(_input.email==='field-error@example.test')return {ok:false as const,error:'Synthetic field validation.',fieldErrors:{email:'Synthetic email needs correction.',postcode:'Synthetic postcode needs correction.'}};
  submission++;
  return {ok:false as const,error:`Synthetic submit ${submission}: no order was created. Your entered details remain available.`};
 }

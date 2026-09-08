@@ -6,7 +6,7 @@ import CartDrawer from "@/components/CartDrawer";
 import ExitIntentModal from "@/components/ExitIntentModal";
 import Analytics from "@/components/Analytics";
 import { getSettings } from "@/lib/settings";
-import { getUpsellStock, getCartPrices } from "@/lib/storefront-catalog";
+import { getUpsellStock, getCartPrices, getCartVariants } from "@/lib/storefront-catalog";
 
 // The storefront shell: everything a shopper sees. Admin routes deliberately do
 // NOT inherit this — no cart, no exit-intent, no GA4.
@@ -15,7 +15,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   // The cart is a client component and can't read settings itself. The same
   // applies to upsell availability: the free-gift auto-add and cart cross-sells
   // must not offer bac water / accessories the ledger says are gone.
-  const [settings, stock, prices] = await Promise.all([getSettings(), getUpsellStock(), getCartPrices()]);
+  const [settings, stock, prices, variants] = await Promise.all([getSettings(), getUpsellStock(), getCartPrices(), getCartVariants()]);
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -34,7 +34,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         gift: settings.giftThreshold,
       }}
       stock={stock}
-      prices={prices}
+      prices={prices} variants={variants}
     >
       <script
         type="application/ld+json"

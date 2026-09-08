@@ -152,7 +152,7 @@ export async function sendStageNow(
   const marketing = !isTransactional(template);
 
   if (marketing) {
-    if (person.summary.unsubscribedAt) {
+    if (sequence !== "cart_recovery" && person.summary.unsubscribedAt) {
       return { ok: false, message: "This person has unsubscribed — marketing sends are blocked." };
     }
     if (!unsubscribeUrl(to)) {
@@ -160,7 +160,14 @@ export async function sendStageNow(
     }
   }
 
-  const payload = await buildPayload(sequence, state, person);
+  let recovery: {payload:Record<string,unknown>;related_id:string}|null = null;
+  if (sequence === "cart_recovery") {
+    const {data,error}=await adminDb().rpc("recovery_manual_payload",{p_email:to,p_episode:person.cart?.current_episode_id??null,p_stage:stage});
+    if(error)return {ok:false,message:"Could not check cart recovery consent. Please retry."};
+    recovery=data as {payload:Record<string,unknown>;related_id:string}|null;
+    if(!recovery)return {ok:false,message:"No current confirmed cart recovery consent is available for this cart, or the sequence is paused or stopped."};
+  }
+  const payload = recovery?.payload ?? await buildPayload(sequence, state, person);
   if (!payload) return { ok: false, message: "Could not assemble this email's content." };
   const unsub = unsubscribeUrl(to);
 
@@ -169,7 +176,7 @@ export async function sendStageNow(
     template,
     payload: marketing && unsub ? { ...payload, unsubscribe_url: unsub } : payload,
     relatedType: "admin_send",
-    relatedId: derived.relatedId,
+    relatedId: recovery?.related_id ?? derived.relatedId,
   });
 
   await logAudit({
@@ -187,11 +194,7 @@ export async function sendStageNow(
 export async function stopCartRecovery(email: string): Promise<ActionResult> {
   const session = await requireAdmin();
   const to = clean(email);
-  const { error } = await adminDb()
-    .from("cart_sessions")
-    .update({ status: "abandoned", updated_at: new Date().toISOString() })
-    .eq("email", to)
-    .eq("status", "active");
+  const { error } = await adminDb().rpc("recovery_stop",{p_email:to});
   if (error) return { ok: false, message: error.message };
 
   await logAudit({
@@ -261,20 +264,7 @@ export async function retryFailedEmail(id: string, email: string): Promise<Actio
 export async function suppressMarketing(email: string): Promise<ActionResult> {
   const session = await requireAdmin();
   const to = clean(email);
-  const db = adminDb();
-  const now = new Date().toISOString();
-
-  // Suppression is per-email, not per-subscription row: mark every existing row
-  // and leave a marker row when they were never a subscriber, so the batch-wise
-  // suppression check in the sweeps sees them either way.
-  const { data: rows } = await db.from("subscribers").select("id").eq("email", to);
-  // The write result decides the outcome. Returning ok unconditionally meant a
-  // failed suppression reported success, and the bulk caller could never see it.
-  const { error } = (rows ?? []).length
-    ? await db.from("subscribers").update({ unsubscribed_at: now }).eq("email", to)
-    : await db
-        .from("subscribers")
-        .upsert({ email: to, source: "admin", unsubscribed_at: now }, { onConflict: "email,source" });
+  const {error}=await adminDb().rpc("suppress_marketing",{p_email:to,p_source:"admin"});
   if (error) return { ok: false, message: error.message };
 
   await logAudit({
@@ -371,8 +361,8 @@ async function buildPayload(
 ): Promise<Record<string, unknown> | null> {
   switch (sequence) {
     case "cart_recovery": {
-      if (!person.cart?.current_episode_id) return null;
-      return { cart: person.cart.cart, subtotal_cents: person.cart.subtotal_cents, recovery_episode_id: person.cart.current_episode_id };
+      // This purpose-specific payload is assembled by recovery_manual_payload.
+      return null;
     }
     case "payment_reminders": {
       const order = person.orders.find((o) => o.id === state.orderId);

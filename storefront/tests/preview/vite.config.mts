@@ -7,6 +7,7 @@ export default defineConfig({
  publicDir: `${root}public`,
  define: {"process.env": "{}"},
  resolve: {alias:[
+  {find:'@/app/cart-recovery/actions',replacement:local('./recovery-actions.ts')},
   {find:'@/app/(store)/checkout/actions',replacement:local('./actions.ts')},
   {find:'@/lib/env',replacement:local('./env.ts')},
   {find:'next/navigation',replacement:local('./navigation.ts')},

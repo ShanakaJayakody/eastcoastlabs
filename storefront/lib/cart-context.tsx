@@ -9,6 +9,7 @@ export interface CartLine {
   key: string; // stable per product+variant
   productId: number;
   variationId?: number;
+  variantId?: string;
   name: string;
   slug: string;
   variantLabel: string; // e.g. "3-pack" or "1 vial"
@@ -31,11 +32,13 @@ interface CartContextValue {
   stockFor: (slug: string) => number | null;
   priceFor: (slug: string, packSize?: number) => number | null;
   ready: boolean;
-  addLine: (line: Omit<CartLine, "quantity">, quantity?: number) => void;
+  /** Purchase controls pass their numeric pack size; labels are presentation only. */
+  addLine: (line: Omit<CartLine, "quantity">, quantity?: number, packSize?:number) => void;
   updateQty: (key: string, quantity: number) => void;
   removeLine: (key: string) => void;
   clear: () => void;
-  completeOrder: (purchased: {key: string; quantity: number}[]) => void;
+  replaceLines: (restored:CartLine[]) => void;
+  completeOrder: (purchased: {key: string; quantity: number;variantId?:string;slug?:string}[]) => void;
   goToCheckout: () => void;
 }
 
@@ -64,6 +67,7 @@ function decodeLines(raw: string | null): CartLine[] {
         !/^[a-z0-9-]+$/.test(item.slug) || !Number.isSafeInteger(item.productId) ||
         !Number.isFinite(item.unitPrice) || item.unitPrice < 0 || !Number.isFinite(item.quantity) || item.quantity <= 0) continue;
       unique.set(item.key, {key:item.key,productId:item.productId,name:item.name,slug:item.slug,
+        ...(item.variantId !== undefined ? {variantId:typeof item.variantId === "string" ? item.variantId : "invalid"} : {}),
         variantLabel:item.variantLabel.replace(/\s*·\s*Subscribe.*$/i, ""),unitPrice:Math.round(item.unitPrice*100)/100,
         quantity:Math.min(MAX_CART_QUANTITY, Math.floor(item.quantity)),
         ...(typeof item.image === 'string' && /^(https:\/\/|\/)/.test(item.image) ? {image:item.image} : {}),
@@ -82,6 +86,7 @@ export function CartProvider({
   thresholds,
   stock,
   prices,
+  variants,
 }: {
   children: ReactNode;
   thresholds?: CartThresholds;
@@ -89,6 +94,7 @@ export function CartProvider({
    *  in the layout. A page-load snapshot — checkout re-verifies authoritatively. */
   stock?: Record<string, number>;
   prices?: Record<string, number>;
+  variants?: Record<string,string>;
 }) {
   const freeShippingThreshold = thresholds?.freeShipping ?? FREE_SHIPPING_THRESHOLD;
   const giftThreshold = thresholds?.gift ?? GIFT_THRESHOLD;
@@ -119,8 +125,12 @@ export function CartProvider({
     }
   }, [lines, ready]);
 
-  const addLine = useCallback((line: Omit<CartLine, "quantity">, quantity = 1) => {
+  const addLine = useCallback((line: Omit<CartLine, "quantity">, quantity = 1, packSize = 1) => {
     if (!Number.isFinite(quantity) || Math.floor(quantity) <= 0) return;
+    if (line.variantId === undefined && !line.key.startsWith("stack:") && !line.key.startsWith("gift:")) {
+      const variantId = variants?.[`${line.slug}:${packSize}`];
+      if (variantId) line = {...line,variantId};
+    }
     setLines((prev) => {
       const existing = prev.find((l) => l.key === line.key);
       if (existing) {
@@ -129,7 +139,7 @@ export function CartProvider({
       return [...prev, { ...line, quantity: Math.min(MAX_CART_QUANTITY, Math.floor(quantity)) }];
     });
 
-  }, []);
+  }, [variants]);
 
   const updateQty = useCallback((key: string, quantity: number) => {
     if (!Number.isFinite(quantity)) return;
@@ -144,10 +154,15 @@ export function CartProvider({
     setLines((prev) => prev.filter((l) => l.key !== key));
   }, []);
 
+  const replaceLines = useCallback((restored:CartLine[])=>setLines(decodeLines(JSON.stringify(restored))),[]);
   const clear = useCallback(() => setLines([]), []);
-  const completeOrder = useCallback((purchased: {key:string;quantity:number}[]) => {
-    const quantities = new Map(purchased.map(line => [line.key, line.quantity]));
-    setLines(current => current.map(line => ({...line, quantity:Math.max(0,line.quantity - (quantities.get(line.key) ?? 0))})).filter(line => line.quantity > 0));
+  const completeOrder = useCallback((purchased: {key:string;quantity:number;variantId?:string;slug?:string}[]) => {
+    const bought = new Map(purchased.map(line => [line.key, line]));
+    setLines(current => current.map(line => {
+      const original=bought.get(line.key);
+      if(!original || (original.slug!==undefined && original.slug!==line.slug) || (original.variantId!==undefined && line.variantId!==undefined && original.variantId!==line.variantId))return line;
+      return {...line,quantity:Math.max(0,line.quantity-original.quantity)};
+    }).filter(line=>line.quantity>0));
   }, []);
 
   const stockFor = useCallback(
@@ -198,6 +213,7 @@ export function CartProvider({
     updateQty,
     removeLine,
     clear,
+    replaceLines,
     completeOrder,
     goToCheckout,
   };

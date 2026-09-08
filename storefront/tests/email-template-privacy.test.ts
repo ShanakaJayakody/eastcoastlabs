@@ -15,3 +15,12 @@ it('payment reminder copy uses the fixed deadline instead of queue-time hours re
  expect(email.html).not.toContain('20 more hours');expect(email.subject).not.toContain('in 20 hours');
  expect(email.html).toContain('10 Sept');
 });
+it('every recovery email uses the same opaque private restore link and no arbitrary destination',async()=>{
+ for(const template of ['cart_recovery_confirmation','abandoned_cart','abandoned_cart_2','abandoned_cart_3'] as const) {
+  const email=await renderTemplate(template,{recovery_request_id:order_id,recovery_episode_id:order_id,restore_url:'https://evil.test',cart:[{name:'<script>bad</script>',quantity:1}]});
+  expect(email.html).toMatch(/https:\/\/www.eastcoastlabs.com.au\/cart-recovery\?token=[A-Za-z0-9_-]{43}/);
+  expect(email.html).not.toContain('https://evil.test');expect(email.html).not.toContain('<script>');
+  expect(email.html).not.toContain(`${order_id}`);
+ }
+ await expect(renderTemplate('abandoned_cart',{})).rejects.toThrow();
+});

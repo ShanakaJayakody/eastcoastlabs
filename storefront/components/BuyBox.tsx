@@ -84,6 +84,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         unitPrice: lineTotal,
       },
       qty,
+      activeTier?.vials ?? 1,
     );
     trackAddToCart(
       {

@@ -94,3 +94,11 @@ export async function getCartPrices(): Promise<Record<string, number>> {
   for (const stack of stacks) prices[`${stack.slug}:stack`] = stack.bundlePriceCents;
   return prices;
 }
+
+/** Live identities for all modern purchase surfaces; stored legacy carts stay unchanged. */
+export async function getCartVariants():Promise<Record<string,string>> {
+ const db=supabaseAdmin();if(!db)return {};
+ const {data,error}=await db.from("products").select("slug, product_variants (id,pack_size,active)").eq("status","active");
+ if(error||!data)return {};
+ return Object.fromEntries(data.flatMap(row=>(row.product_variants??[]).filter(v=>v.active).map(v=>[`${row.slug}:${v.pack_size}`,v.id])));
+}

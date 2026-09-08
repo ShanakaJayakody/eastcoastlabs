@@ -55,3 +55,28 @@ test('uncertain submission retains recovery identity but no customer fields afte
  await page.getByRole('button',{name:'Check previous order attempt',exact:true}).click();
  await expect(page.getByText('Synthetic preview: no previous order exists.')).toBeVisible();
 });
+test('cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data',async({page})=>{
+ await page.getByLabel('Email address',{exact:true}).fill('synthetic@example.test');
+ await page.getByLabel('Full name',{exact:true}).focus();
+ const choice=page.getByRole('checkbox',{name:'Email me a cart link and reminders for this cart.'});
+ await expect(choice).not.toBeChecked();await expect(page.getByRole('button',{name:'Email my cart link',exact:true})).toBeDisabled();
+ await choice.check();await page.getByRole('button',{name:'Email my cart link',exact:true}).click();
+ await expect(page.getByText('Synthetic confirmation queued. No email was sent.')).toBeVisible();
+ await page.getByRole('button',{name:'Preview recovery confirmation',exact:true}).click();
+ const before=await page.evaluate(()=>localStorage.getItem('ecl_cart_v1'));
+ expect(before).not.toContain('Synthetic restored cart');
+ await page.getByRole('button',{name:'Confirm and restore my cart',exact:true}).click();
+ await expect(page.getByRole('link',{name:'Review checkout',exact:true})).toBeVisible();
+ const stored=await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}));
+ expect(stored).toContain('Synthetic restored cart');expect(stored).not.toContain('synthetic@example.test');expect(stored).not.toContain('a'.repeat(43));
+ const result=await new AxeBuilder({page}).include('#main-content').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+ expect(result.violations.filter(v=>['serious','critical'].includes(v.impact??''))).toEqual([]);
+});
+test('server field errors are described by controls and focus the first failing input',async({page})=>{
+ for(const [label,value] of [['Email address','field-error@example.test'],['Full name','Synthetic Buyer'],['Street address','1 Test Street'],['Suburb','Testville'],['Postcode','3000']])await page.getByLabel(label,{exact:true}).fill(value);
+ await page.getByRole('button',{name:'Place order',exact:true}).click();
+ await expect(page.getByLabel('Email address',{exact:true})).toBeFocused();
+ await expect(page.getByLabel('Email address',{exact:true})).toHaveAttribute('aria-invalid','true');
+ await expect(page.getByLabel('Postcode',{exact:true})).toHaveAccessibleDescription('Synthetic postcode needs correction.');
+ await expect(page.getByRole('button',{name:'Check previous order attempt',exact:true})).toBeEnabled();
+});

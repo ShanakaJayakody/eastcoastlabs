@@ -1,15 +1,10 @@
 /**
- * Abandoned-cart capture + recovery — three touches (+1h / +24h / +72h).
- *
- * Known structural limit (SystemsThinking review): recovery matching is
- * email-only. If a shopper browses under one email and checks out under a
- * DIFFERENT email, there is no signal connecting the two identities — that cart
- * cannot be suppressed. Mitigation: each capture gets at most one send per
- * stage (reminder_stage is claimed atomically before queuing) and the
- * SAME-email completed-order case is fully suppressed via markCartRecovered().
- *
- * Stage timing anchors on updated_at (last cart activity), not on the previous
- * send — a fresh capture resets the stage counter and restarts the sequence.
+ * Immutable cart episodes and operator reporting. Public cart-link requests now
+ * require mailbox-confirmed, cart-specific permission before creating an episode.
+ * The SQL sweep queues at most three touches (+1h / +24h / +72h); delivery
+ * rechecks permission, current episode, suppression, pauses and later orders.
+ * Same-email checkout suppresses reminders, while attribution requires a proved
+ * restore of the exact cart through the private checkout cookie.
  */
 import { readAll } from "./read-all";
 import { adminDb } from "./db";
@@ -20,8 +15,8 @@ export interface CapturedLine {
   quantity: number;
 }
 
-/** Upsert the shopper's current cart against their email. Overwrites any prior
- *  snapshot and resets the reminder gate — a fresh capture deserves a fresh window. */
+/** Internal compatibility helper. New public requests use recovery_request and
+ * recovery_confirm; an episode alone never grants permission to send reminders. */
 export async function captureCart(
   email: string,
   cart: CapturedLine[],

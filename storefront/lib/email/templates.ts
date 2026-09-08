@@ -1,4 +1,5 @@
 /** Plain, on-brand HTML email templates. No client tracking, no external assets. */
+import {recoveryLink} from "@/lib/recovery-token";
 import { paymentPath, createOrderAccessToken } from "@/lib/order-access";
 import type { EmailTemplate } from "@/lib/admin/email";
 import { formatAud } from "@/lib/format";
@@ -135,6 +136,11 @@ export async function renderTemplate(
     case "admin_daily_brief": {
       if (typeof payload.subject !== "string" || typeof payload.html !== "string") throw new Error("Invalid daily brief");
       return { subject:payload.subject,html:payload.html };
+    }
+    case "cart_recovery_confirmation": {
+      const url = recoveryLink(String(payload.recovery_request_id ?? ""));
+      return {subject:"Confirm your saved cart link",html:shell("Confirm your cart link and reminders.",
+        `<h1 style="font-size:20px;">Your cart link</h1><p>Use this link within 24 hours and press Confirm and restore to request up to three reminders at 1 hour, 24 hours and 72 hours after confirmation if still eligible. This does not subscribe you to the newsletter. Your restore link expires seven days after your request. Ignore this email if you did not request it.</p>${payButton(url,"Confirm and restore cart")}`)};
     }
     case "subscription_confirmation": {
       const url = String(payload.confirmation_url ?? "");
@@ -313,7 +319,7 @@ export async function renderTemplate(
     case "abandoned_cart": {
       const items = Array.isArray(payload.cart) ? (payload.cart as { name?: string; quantity?: number }[]) : [];
       const lines = items
-        .map((l) => `<li style="margin:4px 0;">${l.name ?? "Item"} × ${l.quantity ?? 1}</li>`)
+        .map((l) => `<li style="margin:4px 0;">${esc(l.name ?? "Item")} × ${l.quantity ?? 1}</li>`)
         .join("");
       return {
         subject: "You left something in your cart",
@@ -322,7 +328,7 @@ export async function renderTemplate(
           `<h1 style="font-size:20px;margin:0 0 8px;">Still thinking it over?</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">Your cart is saved and ready:</p>
            <ul style="color:#c3ccd9;font-size:14px;padding-left:20px;">${lines}</ul>
-           <a href="${SITE}/shop" style="display:inline-block;margin-top:16px;background:${ACCENT};color:${INK};font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;">Complete your order</a>`,
+           <a href="${recoveryLink(String(payload.recovery_request_id ?? ""))}" style="display:inline-block;margin-top:16px;background:${ACCENT};color:${INK};font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;">Complete your order</a>`,
           unsubOf(payload),
         ),
       };
@@ -344,7 +350,7 @@ export async function renderTemplate(
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Pick up where you left off whenever you're ready.
            </p>
-           ${payButton(`${SITE}/shop`, "Complete your order")}`,
+           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Complete your order")}`,
           unsubOf(payload),
         ),
       };
@@ -356,12 +362,12 @@ export async function renderTemplate(
           "We'll stop reminding you after this one.",
           `<h1 style="font-size:20px;margin:0 0 8px;">Last call on your cart</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             This is the last reminder we'll send — your cart stays saved, but we won't email you about it again.
+             This is the last reminder for this cart. Your restore link expires seven days after you requested it.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             First order with us? Code <strong style="font-family:monospace;">WELCOME10</strong> takes 10% off at checkout.
+             Review current prices and availability at checkout.
            </p>
-           ${payButton(`${SITE}/shop`, "Complete your order")}`,
+           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Complete your order")}`,
           unsubOf(payload),
         ),
       };

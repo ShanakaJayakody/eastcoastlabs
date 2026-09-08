@@ -34,3 +34,23 @@ describe('authoritative cart eligibility',()=>{
  });
 
 });
+
+it('prefers an explicit live identity even when its display label changed',async()=>{
+ fixture.rows.push({...fixture.rows[0],id:'three',pack_size:3,price_cents:2500,label:'3-pack'});
+ const r=await resolveCart([{key:'sample',slug:'sample',variantId:'three',variantLabel:'old display',quantity:1}]);
+ expect(r.items[0].variantId).toBe('three');expect(r.subtotalCents).toBe(2500);
+});
+it('never falls back from an explicit invalid, inactive or mismatched identity',async()=>{
+ fixture.rows.push({...fixture.rows[0],id:'other',products:{slug:'other',name:'Other',status:'active'}});
+ for(const variantId of ['missing','other','']) {
+  const r=await resolveCart([{key:'sample',slug:'sample',variantId,variantLabel:'1 vial',quantity:1}]);
+  expect(r.items).toEqual([]);
+ }
+ fixture.rows[0].active=false;
+ expect((await resolveCart([{key:'sample',slug:'sample',variantId:'variant',variantLabel:'1 vial',quantity:1}])).items).toEqual([]);
+});
+it('does not reinterpret explicit variant identities as bundle or gift lines',async()=>{
+ fixture.stack={name:'Sample bundle',bundlePriceCents:1000,freeBacWater:false,components:[{slug:'sample',name:'Sample'}]};
+ const r=await resolveCart([{key:'stack:sample',slug:'sample',variantId:'variant',variantLabel:'1 vial',quantity:1}]);
+ expect(r.items).toEqual([]);expect(r.warnings.length).toBeGreaterThan(0);
+});

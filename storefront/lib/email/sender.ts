@@ -17,7 +17,7 @@ async function sendOne(row: OutboxRow): Promise<DeliveryResult> {
   if (!key) return { ok: false, error: "RESEND_API_KEY not configured" };
   try {
     let payload = row.payload ?? {};
-    if (!isTransactional(row.template) && row.template !== "subscription_confirmation") {
+    if (!isTransactional(row.template) && row.template !== "subscription_confirmation" && row.template !== "cart_recovery_confirmation") {
       const url = unsubscribeUrl(row.to_email);
       if (!url) return { ok: false, error: "Unsubscribe signing secret is not configured" };
       payload = { ...payload, unsubscribe_url: url };

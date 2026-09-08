@@ -1,11 +1,14 @@
 "use server";
 
+import { checkoutFieldErrors, type CheckoutFieldErrors } from "@/lib/checkout-fields";
+import { verifiedRecoveryEpisode } from "@/lib/recovery-consent";
+import { validCheckoutLines as validateLines, normalizeCheckoutLines } from "@/lib/checkout-lines";
 import { after } from "next/server";
 import { createHash } from "node:crypto";
 import { resolveCart, type ClientCartLine, type ResolvedCartLine } from "@/lib/checkout";
 import { createOrder, findCheckoutReplay, type CreatedOrder } from "@/lib/admin/orders";
 import { validateDiscount } from "@/lib/admin/discounts";
-import { captureCart, markCartRecovered } from "@/lib/admin/cart-recovery";
+import { markCartRecovered } from "@/lib/admin/cart-recovery";
 import { getSettings } from "@/lib/settings";
 import { quoteShipping, shippingCentsFor, isShippingMethod, type ShippingMethod, type ShippingQuote } from "@/lib/shipping";
 import { availablePaymentOptions, isPaymentMethod, type PaymentMethod, type PaymentOption } from "@/lib/payments";
@@ -21,34 +24,18 @@ export interface PlaceOrderInput {
 }
 export type PlaceOrderResult =
   | { ok: true; orderNumber: string; orderId: string; totalCents: number; warnings: string[]; paymentUrl: string; replayed: boolean; purchasedLines?: ResolvedCartLine[] }
-  | { ok: false; error: string; outOfStockSku?: string; quote?: CartQuote };
+  | { ok: false; error: string; outOfStockSku?: string; quote?: CartQuote; fieldErrors?: CheckoutFieldErrors };
 export interface CartQuote {
   lines: ResolvedCartLine[]; version: string;
   subtotalCents: number; discountCents: number; shippingCents: number; shippingMethod: ShippingMethod;
   shippingOptions: ShippingQuote[]; totalCents: number; giftApplied: boolean; discountError?: string;
   warnings: string[]; paymentOptions: PaymentOption[];
 }
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const bounded = (v: unknown, max: number, required = true): v is string =>
   typeof v === "string" && v.length <= max && (!required || v.trim().length > 0);
-function validateLines(lines: ClientCartLine[]): boolean {
-  return Array.isArray(lines) && lines.length > 0 && lines.length <= 50 && lines.every((l) =>
-    l && bounded(l.key, 160) && bounded(l.slug, 120) && bounded(l.variantLabel, 160)
-    && Number.isInteger(l.quantity) && l.quantity >= 1 && l.quantity <= 99)
-    && new Set(lines.map((l) => l.key)).size === lines.length;
-}
 function validate(input: PlaceOrderInput): string | null {
-  if (!input || !bounded(input.email, 254) || !EMAIL_RE.test(input.email.trim())) return "Enter a valid email address.";
-  if (!bounded(input.name, 150)) return "Enter your full name (up to 150 characters).";
-  const a = input.address;
-  if (!a || !bounded(a.line1, 200)) return "Enter your street address.";
-  if (!bounded(a.suburb, 100)) return "Enter your suburb.";
-  if (!bounded(a.state, 3) || !["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"].includes(a.state.trim().toUpperCase())) return "Select an Australian state or territory.";
-  if (!bounded(a.postcode, 4) || !/^\d{4}$/.test(a.postcode)) return "Enter a valid 4-digit postcode.";
-  if (a.country !== undefined && (!bounded(a.country, 2) || a.country.toUpperCase() !== "AU")) return "We currently ship within Australia.";
-  if ((a.line2 !== undefined && !bounded(a.line2, 200, false)) || (a.phone !== undefined && !bounded(a.phone, 30, false)) || (input.deliveryInstructions !== undefined && !bounded(input.deliveryInstructions, 500, false))) return "Please shorten your address, phone or delivery instructions.";
   if (!validateLines(input.lines)) return "Your cart contains invalid items or quantities. Please review it.";
   if (!bounded(input.idempotencyKey, 36) || !UUID.test(input.idempotencyKey)) return "Please refresh checkout before placing your order.";
   if (!bounded(input.quoteVersion, 80)) return "Wait for your order total to load.";
@@ -81,15 +68,6 @@ export async function quoteCart(lines: ClientCartLine[], discountCode?: string, 
   return (await resolveQuote(lines, discountCode, shippingMethod)).quote;
 }
 
-/** Recovery is only queued after an explicit capture; delivery rechecks current consent and cart state. */
-export async function captureCartEmail(email: string, lines: ClientCartLine[]): Promise<string | null> {
-  if (!bounded(email, 254) || !EMAIL_RE.test(email.trim()) || !validateLines(lines)) return null;
-  try {
-    const resolved = await resolveCart(lines);
-    return await captureCart(email, resolved.lines.filter((l) => !l.isGift).map((l) => ({ name: l.name, variantLabel: l.variantLabel, quantity: l.quantity })), resolved.subtotalCents);
-  } catch { return null; }
-}
-
 function success(order: CreatedOrder, warnings: string[] = []): PlaceOrderResult {
   return { ok: true, orderNumber: order.orderNumber, orderId: order.orderId, totalCents: order.totalCents,
     paymentUrl: paymentPath(order.orderId), replayed: order.replayed, warnings, purchasedLines: order.purchasedLines };
@@ -110,6 +88,8 @@ export async function recoverCheckoutAttempt(idempotencyKey: string, requestFing
 }
 
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+  const fieldErrors = checkoutFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return {ok:false,error:"Check the highlighted details.",fieldErrors};
   const invalid = validate(input);
   if (invalid) return { ok: false, error: invalid };
   try {
@@ -122,7 +102,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     const email = input.email.trim().toLowerCase();
     const name = input.name.trim();
     const discountCode = input.discountCode?.trim().toUpperCase() || undefined;
-    const requestFingerprint = hash({ email, name, shippingAddress, lines: input.lines.map(({ key, slug, variantLabel, quantity }) => ({ key, slug, variantLabel, quantity })), paymentMethod: input.paymentMethod, discountCode });
+    const requestFingerprint = hash({ email, name, shippingAddress, lines: normalizeCheckoutLines(input.lines), paymentMethod: input.paymentMethod, discountCode });
     // Test key availability before a transaction can commit without a usable receipt.
     createOrderAccessToken(input.idempotencyKey, "payment");
     const existing = await findCheckoutReplay(input.idempotencyKey, requestFingerprint);
@@ -130,11 +110,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     const { quote, resolved, settings } = await resolveQuote(input.lines, discountCode, input.shippingMethod);
     if (input.quoteVersion !== quote.version) return { ok: false, error: "Your order details have changed. Review the updated summary and place your order again.", quote };
     if (!resolved.items.length) return { ok: false, error: "None of the items in your cart are available.", quote };
-    if (quote.discountError) return { ok: false, error: quote.discountError, quote };
+    if (quote.discountError) return { ok: false, error: quote.discountError, fieldErrors:{discount:quote.discountError}, quote };
     if (!isPaymentMethod(input.paymentMethod) || !quote.paymentOptions.some((o) => o.method === input.paymentMethod)) {
-      return { ok: false, error: "Select an available payment method.", quote };
+      return { ok: false, error: "Select an available payment method.", fieldErrors:{payment:"Select an available payment method."}, quote };
     }
-    if (input.shippingMethod && input.shippingMethod !== quote.shippingMethod) return { ok: false, error: "Select an available shipping method.", quote };
+    if (input.shippingMethod && input.shippingMethod !== quote.shippingMethod) return { ok: false, error: "Select an available shipping method.", fieldErrors:{shipping:"Select an available shipping method."}, quote };
     let analyticsClientId: string | undefined;
     if (process.env.GA4_API_SECRET && /^G-[A-Z0-9]+$/.test(process.env.NEXT_PUBLIC_GA4_ID ?? "")) {
       const { cookies } = await import("next/headers");
@@ -142,12 +122,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       const match = cookie?.match(/^GA\d+\.\d+\.(\d{1,20}\.\d{1,20})$/);
       analyticsClientId = match?.[1];
     }
+    const recoveryEpisodeId = await verifiedRecoveryEpisode(email,input.lines).catch(()=>undefined);
     const order = await createOrder({ email, name, shippingAddress, items: resolved.items, extraItems: resolved.extraItems,
       discountCode, shippingCents: quote.shippingCents, paymentMethod: input.paymentMethod, actor: email,
       idempotencyKey: input.idempotencyKey, requestFingerprint, analyticsClientId, purchasedLines: resolved.lines, paymentExpiryHours: settings.paymentExpiryHours, expectedTotalCents: quote.totalCents });
     // Email intent is inserted by the commerce transaction. Provider delivery
     // belongs to the outbox worker and cannot turn a committed order into a failure.
-    await markCartRecovered(email, order.orderId, input.recoveryEpisodeId).catch(() => console.error("Checkout recovery attribution awaits investigation"));
+    await markCartRecovered(email, order.orderId, recoveryEpisodeId).catch(() => console.error("Checkout recovery attribution awaits investigation"));
     try { after(async () => {
       const { dispatchOrderEmails } = await import("@/lib/email/sender");
       await dispatchOrderEmails(order.orderId).catch(() => console.error("Order email awaits outbox retry"));

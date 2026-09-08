@@ -7,6 +7,7 @@ import { adminDb } from "./db";
 export type EmailTemplate =
   | "admin_daily_brief"
   | "subscription_confirmation"
+  | "cart_recovery_confirmation"
   | "order_confirmation"
   | "order_shipped"
   | "order_refunded"

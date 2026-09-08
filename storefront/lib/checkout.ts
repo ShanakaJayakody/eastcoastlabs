@@ -22,11 +22,12 @@ export interface ClientCartLine {
   key: string;
   slug: string;
   variantLabel: string;
+  variantId?: string;
   quantity: number;
 }
 
 export interface ResolvedCartLine {
-  key: string; slug: string; name: string; variantLabel: string;
+  key: string; slug: string; name: string; variantLabel: string; variantId?: string;
   quantity: number; unitPriceCents: number; lineTotalCents: number; isGift: boolean;
 }
 
@@ -72,6 +73,7 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const warnings: string[] = [];
   const clean = lines
     .filter((l) => l && typeof l.slug === "string" && typeof l.key === "string" && typeof l.variantLabel === "string")
+    .filter(l => l.variantId === undefined || (!isStackKey(l.key) && !isGiftKey(l.key)))
     .map((l) => ({
       ...l,
       quantity: Math.min(99, Math.max(1, Math.floor(Number(l.quantity) || 1))),
@@ -117,6 +119,10 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const variantKey = (slug: string, pack: number) => `${slug}::${pack}`;
   const byKey = new Map(variants.map((v) => [variantKey(v.slug, v.pack_size), v]));
 
+  const lookup = (line: ClientCartLine) => line.variantId !== undefined
+    ? variants.find(v => v.id === line.variantId && v.slug === line.slug)
+    : byKey.get(variantKey(line.slug, getAccessory(line.slug) ? 1 : packSizeFromLabel(line.variantLabel)));
+
   const items: NewOrderItem[] = [];
   const extraItems: ExtraOrderItem[] = [];
 
@@ -139,7 +145,7 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
     if (bacPoolId) {
       const paidBacVials = paidLines
         .filter((l) => !isStackKey(l.key) && l.slug === BAC_WATER_SLUG)
-        .reduce((sum, l) => sum + packSizeFromLabel(l.variantLabel) * l.quantity, 0);
+        .reduce((sum, l) => sum + (lookup(l)?.pack_size ?? 0) * l.quantity, 0);
       const avail = await getAvailability(bacPoolId);
       const net = Math.max(0, (avail?.available ?? 0) - paidBacVials);
       // Kits claim their vials first (they're paid), free bonuses get the rest.
@@ -232,13 +238,11 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
     // tiers — an accessory unit is always ONE stock unit, so its variant lives
     // at pack_size 1. Parsing "100 pack" as a 100-vial tier would miss the
     // variant. Missing/retired accessory variants are unavailable.
-    const accessory = getAccessory(line.slug);
-    const pack = accessory ? 1 : packSizeFromLabel(line.variantLabel);
-    const variant = byKey.get(variantKey(line.slug, pack));
+    const variant = lookup(line);
 
     if (variant) {
       items.push({ variantId: variant.id, qty: line.quantity, expectedPriceCents: variant.price_cents });
-      resolvedLines.push({ key: line.key, slug: line.slug, name: variant.name, variantLabel: variant.label, quantity: line.quantity, unitPriceCents: variant.price_cents, lineTotalCents: variant.price_cents * line.quantity, isGift: false });
+      resolvedLines.push({ key: line.key, slug: line.slug, name: variant.name, variantLabel: variant.label, variantId:variant.id, quantity: line.quantity, unitPriceCents: variant.price_cents, lineTotalCents: variant.price_cents * line.quantity, isGift: false });
       continue;
     }
 

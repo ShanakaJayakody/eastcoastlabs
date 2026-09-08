@@ -18,3 +18,18 @@ it('refreshes persisted prices from the current server catalogue snapshot',()=>{
 
 function CompleteProbe(){const c=useCart();return <><output>{JSON.stringify(c.lines)}</output><button onClick={()=>c.completeOrder([{key:'one',quantity:1}])}>Complete</button></>}
 it('removes only purchased quantities and preserves unavailable lines',()=>{localStorage.setItem('ecl_cart_v1',JSON.stringify([{...line,quantity:3},{...line,key:'unavailable',slug:'unavailable',quantity:1}]));render(<CartProvider><CompleteProbe/></CartProvider>);fireEvent.click(screen.getByText('Complete'));const result=JSON.parse(screen.getByRole('status').textContent!);expect(result.map((l:{key:string;quantity:number})=>[l.key,l.quantity])).toEqual([['one',2],['unavailable',1]]);});
+it('adds modern purchase identities from live variants while retaining explicit stored identities',()=>{
+ localStorage.setItem('ecl_cart_v1',JSON.stringify([{...line,key:'old',variantId:'stale-id',quantity:1}]));
+ render(<CartProvider variants={{'one:1':'live-id'}}><Probe/></CartProvider>);fireEvent.click(screen.getByText('Add'));
+ const rows=JSON.parse(screen.getByRole('status').textContent!);expect(rows[0].variantId).toBe('stale-id');expect(rows[1].variantId).toBe('live-id');
+});
+function VariantCompleteProbe(){const c=useCart();return <><output>{JSON.stringify(c.lines)}</output><button onClick={()=>c.completeOrder([{key:'one',quantity:1,variantId:'original',slug:'one'}])}>Complete variant</button></>}
+it('replay completion never removes a newer variant sharing the original cart key',()=>{
+ localStorage.setItem('ecl_cart_v1',JSON.stringify([{...line,variantId:'replacement',quantity:1}]));render(<CartProvider><VariantCompleteProbe/></CartProvider>);
+ fireEvent.click(screen.getByText('Complete variant'));expect(JSON.parse(screen.getByRole('status').textContent!)[0].quantity).toBe(1);
+});
+function PackProbe(){const c=useCart();return <><output>{JSON.stringify(c.lines)}</output><button onClick={()=>c.addLine({...line,variantLabel:'Custom label'},1,3)}>Add pack</button></>}
+it('selects modern pack identity from structured purchase size, independent of display labels',()=>{
+ render(<CartProvider variants={{'one:1':'single-id','one:3':'pack-id'}}><PackProbe/></CartProvider>);fireEvent.click(screen.getByText('Add pack'));
+ expect(JSON.parse(screen.getByRole('status').textContent!)[0].variantId).toBe('pack-id');
+});

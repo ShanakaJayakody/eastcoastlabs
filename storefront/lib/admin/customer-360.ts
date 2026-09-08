@@ -266,7 +266,7 @@ export async function deriveSequenceState(person: LoadedPerson): Promise<Sequenc
     const stages = deriveStages(
       CART_STAGES,
       cart.updated_at,
-      (n) => cartRelatedId(summary.email, n, cart.updated_at),
+      (n) => cart.current_episode_id ? `${cart.current_episode_id}:${n}` : cartRelatedId(summary.email, n, cart.updated_at),
       outbox,
     );
     push(

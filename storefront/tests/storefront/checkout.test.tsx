@@ -6,10 +6,11 @@ import {cleanup} from "@testing-library/react";
 afterEach(cleanup);
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
-const m=vi.hoisted(()=>({quote:vi.fn(),place:vi.fn(),recover:vi.fn(),push:vi.fn(),clear:vi.fn(),lines:[{key:'a',slug:'a',name:'Local name',variantLabel:'1 vial',quantity:1,unitPrice:12}]}));
+const m=vi.hoisted(()=>({quote:vi.fn(),place:vi.fn(),recover:vi.fn(),request:vi.fn(),push:vi.fn(),clear:vi.fn(),lines:[{key:'a',slug:'a',name:'Local name',variantLabel:'1 vial',quantity:1,unitPrice:12}]}));
 vi.mock('@/lib/cart-context',()=>({useCart:()=>({lines:m.lines,ready:true,completeOrder:m.clear})}));
 vi.mock('next/navigation',()=>({useRouter:()=>({push:m.push})}));
 vi.mock('@/app/(store)/checkout/actions',()=>({quoteCart:m.quote,placeOrder:m.place,recoverCheckoutAttempt:m.recover,captureCartEmail:vi.fn()}));
+vi.mock('@/app/cart-recovery/actions',()=>({requestCartRecovery:m.request}));
 import CheckoutForm from '@/components/CheckoutForm';
 const quote={version:'v1',lines:[{key:'a',slug:'a',name:'Authoritative name',variantLabel:'1 vial',quantity:1,unitPriceCents:1200,lineTotalCents:1200,isGift:false}],subtotalCents:1200,totalCents:1200,shippingCents:0,discountCents:0,paymentOptions:[{method:'bank_transfer',label:'Bank transfer',badges:[],blurb:'Transfer'}],shippingOptions:[],warnings:[]};
 beforeEach(()=>{sessionStorage.clear();m.lines=[{key:'a',slug:'a',name:'Local name',variantLabel:'1 vial',quantity:1,unitPrice:12}];vi.stubGlobal("crypto",webcrypto);m.quote.mockReset();m.place.mockReset();m.recover.mockReset();m.push.mockReset();m.clear.mockReset();});
@@ -87,4 +88,26 @@ it('keeps recovery available when an earlier transaction has not committed yet',
  await screen.findByRole('alert');
  fireEvent.click(screen.getByRole('button',{name:'Check previous order attempt'}));
  await waitFor(()=>expect(navigate).toHaveBeenCalled());expect(m.place).not.toHaveBeenCalled();
+});
+
+it('links server errors to fields and focuses the first invalid control while keeping attempt recovery',async()=>{
+ m.quote.mockResolvedValue(quote);m.place.mockResolvedValue({ok:false,error:'Check your details.',fieldErrors:{email:'Enter a valid email.',postcode:'Enter four digits.'}});
+ render(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());submitForm();
+ await waitFor(()=>expect(screen.getByLabelText('Email address')).toHaveFocus());
+ expect(screen.getByLabelText('Email address')).toHaveAttribute('aria-invalid','true');
+ expect(screen.getByLabelText('Postcode')).toHaveAccessibleDescription('Enter four digits.');
+ expect(screen.getByRole('button',{name:'Check previous order attempt'})).toBeEnabled();
+});
+
+it('requests cart mail only after an unchecked purpose choice and explicit button, never on email blur',async()=>{
+ m.quote.mockResolvedValue(quote);m.request.mockResolvedValue({ok:true,message:'Check your email to confirm.'});render(<CheckoutForm/>);
+ const email=screen.getByLabelText('Email address');fireEvent.change(email,{target:{value:'person@test.local'}});fireEvent.blur(email);
+ expect(m.request).not.toHaveBeenCalled();const choice=screen.getByRole('checkbox',{name:/cart link/i});expect(choice).not.toBeChecked();
+ expect(screen.getByRole('button',{name:'Email my cart link'})).toBeDisabled();fireEvent.click(choice);fireEvent.click(screen.getByRole('button',{name:'Email my cart link'}));
+ expect(await screen.findByText('Check your email to confirm.')).toBeVisible();expect(m.request).toHaveBeenCalledTimes(1);
+ expect(localStorage.getItem('ecl_cart_v1')??'').not.toContain('person@test.local');
+});
+it('keeps quote discount errors linked before any submission',async()=>{
+ m.quote.mockResolvedValue({...quote,discountError:'Code is unavailable.'});render(<CheckoutForm/>);
+ await screen.findByText('Code is unavailable.');expect(screen.getByLabelText('Discount code')).toHaveAttribute('aria-invalid','true');expect(screen.getByLabelText('Discount code')).toHaveAccessibleDescription('Code is unavailable.');
 });

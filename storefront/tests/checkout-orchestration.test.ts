@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("@/lib/recovery-consent",()=>({verifiedRecoveryEpisode:async()=>undefined}));
 vi.mock("next/server", () => ({ after: vi.fn() }));
 const m = vi.hoisted(() => ({ resolve: vi.fn(), create: vi.fn(), replay: vi.fn(), recovered: vi.fn(), discount: vi.fn() }));
 vi.mock("@/lib/checkout", () => ({ resolveCart: m.resolve }));
@@ -66,4 +67,10 @@ it('does not expose a receipt for missing or invalid recovery credentials',async
  expect((await recoverCheckoutAttempt(id,'bad')).ok).toBe(false);expect(m.replay).not.toHaveBeenCalled();
  const result=await recoverCheckoutAttempt(id,'b'.repeat(64));
  expect(result).toMatchObject({ok:false,notFound:true});expect(m.create).not.toHaveBeenCalled();
+});
+
+it('returns named field errors for all invalid checkout details',async()=>{
+ const r=await placeOrder({...input,email:'bad',name:'',address:{line1:'',suburb:'',state:'XX',postcode:'x'}});
+ expect(r).toMatchObject({ok:false,fieldErrors:{email:expect.any(String),name:expect.any(String),street:expect.any(String),suburb:expect.any(String),state:expect.any(String),postcode:expect.any(String)}});
+ expect(m.create).not.toHaveBeenCalled();
 });
