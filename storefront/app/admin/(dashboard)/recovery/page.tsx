@@ -82,7 +82,7 @@ export default async function RecoveryPage({
 
       </section>
 
-      <p className="rounded-xl border border-line p-4 text-sm text-muted">Captured: {metrics.captured} · Exposed to a sent recovery email: {metrics.exposed} · Linked orders created: {metrics.orderCreated} · Linked paid orders: {metrics.paid} · Paid after exposure: {metrics.attributedPaid}. {metrics.legacyUnknown} legacy snapshots have unknown attribution. Checkout no longer captures email silently; a future explicit consent flow is required for new capture episodes.</p>
+      <p className="rounded-xl border border-line p-4 text-sm text-muted">Captured: {metrics.captured} · Exposed to a sent recovery email: {metrics.exposed} · Linked orders created: {metrics.orderCreated} · Linked paid orders: {metrics.paid} · Paid after exposure: {metrics.attributedPaid}. {metrics.legacyUnknown} legacy snapshots have unknown attribution. New recovery episodes require an explicit checkout request; reminders start only after mailbox confirmation.</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Active carts"

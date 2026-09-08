@@ -39,6 +39,34 @@ test('cart traps keyboard focus and restores its opener on Escape',async({page})
  await expect(dialog).toBeHidden();
  await expect(opener).toBeFocused();
 });
+for(const variant of ['store','dossier'] as const){
+ test(`${variant} mobile navigation covers the viewport and keeps themed controls reachable`,async({page},testInfo)=>{
+  test.skip(testInfo.project.name==='desktop','Mobile navigation is hidden on desktop.');
+  await page.goto(`/frame.html?header=${variant}`);
+  const opener=page.getByRole('button',{name:variant==='dossier'?'Toggle menu':'Open menu',exact:true});
+  await opener.click();
+  const dialog=page.getByRole('dialog',{name:'Navigation menu'});
+  await expect(dialog).toBeVisible();
+  const viewport=page.viewportSize()!;
+  expect(await dialog.locator('..').boundingBox()).toEqual({x:0,y:0,...viewport});
+  expect(await dialog.locator('..').locator(':scope > [aria-hidden="true"]').boundingBox()).toEqual({x:0,y:0,...viewport});
+  expect(await dialog.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(variant==='dossier'?'rgb(244, 242, 237)':'rgb(8, 11, 16)');
+  const close=dialog.getByRole('button',{name:'Close menu',exact:true});
+  const links=dialog.getByRole('link');
+  expect(await links.count()).toBe(variant==='dossier'?4:5);
+  for(const control of [close,...await links.all()])await expect(control).toBeInViewport({ratio:1});
+  await expect(close).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(links.last()).toBeFocused();
+  for(let count=0;count<12;count++){
+   await page.keyboard.press('Tab');
+   expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBe(true);
+  }
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+ });
+}
 test('uncertain submission retains recovery identity but no customer fields after reload',async({page})=>{
  await page.getByLabel('Email address',{exact:true}).fill('synthetic@example.test');
  await page.getByLabel('Full name',{exact:true}).fill('Synthetic Buyer');

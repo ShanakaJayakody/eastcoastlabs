@@ -28,7 +28,7 @@ export default function DossierHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  return (
+  return (<>
     <header
       className={`sticky top-0 z-40 bg-ink/95 backdrop-blur transition-[border-color] ${
         scrolled ? "border-b border-line" : "border-b border-transparent"
@@ -76,6 +76,8 @@ export default function DossierHeader() {
         </div>
       </div>
 
+    </header>
+      {/* Stay within the paper theme, outside the blurred header's containing block. */}
       <Modal open={menuOpen} onClose={() => setMenuOpen(false)} label="Navigation menu" className="w-full max-w-md bg-ink p-6">
         <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="ml-auto block p-2">✕</button>
         <nav>
@@ -92,6 +94,6 @@ export default function DossierHeader() {
           ))}
         </nav>
       </Modal>
-    </header>
+    </>
   );
 }

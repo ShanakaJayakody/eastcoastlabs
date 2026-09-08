@@ -52,7 +52,8 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   const [retry, setRetry] = useState(0);
   const [quotedKey, setQuotedKey] = useState("");
   const errorRef = useRef<HTMLParagraphElement>(null);
-  const attempt = useRef<{key:string;id:string} | null>(null);
+  const attempt = useRef<{key:string;id:string;unconfirmed?:boolean} | null>(null);
+  const automaticShippingChange = useRef(false);
   const [previousAttempt,setPreviousAttempt] = useState<StoredCheckoutAttempt|null>(null);
   useEffect(()=>{setPreviousAttempt(readCheckoutAttempt());},[]);
   const payload = normalizeCheckoutLines(lines);
@@ -77,6 +78,10 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
         if (cancelled) return;
         setQuote(q);
         setQuotedKey(requestKey);
+        // A disabled service may have been replaced by the authoritative quote.
+        // Changing the request key keeps submission blocked until it is repriced.
+        if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
+        setShippingMethod(q.shippingMethod);
         setPaymentMethod(current => current && q.paymentOptions.some(o => o.method === current)
           ? current : q.paymentOptions[0]?.method ?? null);
       }).catch(() => {
@@ -103,20 +108,44 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       },
       lines: payload, paymentMethod, discountCode: appliedCode.trim().toUpperCase() || undefined,
     });
+    // An automatic service fallback must not authorise a second order while
+    // the original request may still commit. Explicit customer edits stay distinct.
+    if(automaticShippingChange.current && attempt.current?.unconfirmed && attempt.current.key!==attemptKey){
+      const previous=JSON.parse(attempt.current.key);
+      previous.shippingAddress.shipping_method=shippingMethod;
+      if(!quote!.paymentOptions.some(o=>o.method===previous.paymentMethod))previous.paymentMethod=paymentMethod;
+      if(JSON.stringify(previous)===attemptKey){
+        setError("Shipping changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.");
+        return;
+      }
+    }
     startTransition(async () => {
       try {
         const hash = await checkoutRequestHash(attemptKey);
         const stored = hash ? readCheckoutAttempt() : null;
         if (!attempt.current || attempt.current.key !== attemptKey) {
-          attempt.current = {key:attemptKey,id:stored?.hash===hash ? stored.id : crypto.randomUUID()};
+          attempt.current = {key:attemptKey,id:stored?.hash===hash ? stored.id : crypto.randomUUID(),unconfirmed:stored?.hash===hash};
         }
+        const submittedAttempt=attempt.current;
+        const wasUnconfirmed=!!submittedAttempt.unconfirmed;
+        submittedAttempt.unconfirmed=true;
         const idempotencyKey = attempt.current.id;
         if(hash){const saved={id:idempotencyKey,hash};saveCheckoutAttempt(saved);setPreviousAttempt(saved);}
         const res = await placeOrder({email,name,address,discountCode:appliedCode || undefined,
           paymentMethod,shippingMethod,deliveryInstructions:deliveryInstructions || undefined,
           lines:payload,idempotencyKey,quoteVersion:quote!.version});
         if (!res.ok) {
-          if (res.quote) {setQuote(res.quote);setQuotedKey(requestKey);}
+          if (res.quote) {
+            // This response declined the current request, but cannot rule out a
+            // still-running earlier request whose response was lost.
+            if(!wasUnconfirmed)submittedAttempt.unconfirmed=false;
+            const q=res.quote;
+            setQuote(q);setQuotedKey(requestKey);
+            if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
+            setShippingMethod(q.shippingMethod);
+            setPaymentMethod(current => current && q.paymentOptions.some(o => o.method === current)
+              ? current : q.paymentOptions[0]?.method ?? null);
+          }
           setFieldErrors(res.fieldErrors ?? {});setError(res.error);
           return;
         }
@@ -295,7 +324,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
                       type="radio"
                       name="shipping"
                       checked={isSel}
-                      onChange={() => setShippingMethod(opt.method)}
+                      onChange={() => {automaticShippingChange.current=false;setShippingMethod(opt.method);}}
                       className="sr-only"
                     />
                     <span
