@@ -15,7 +15,19 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+        env:
+          POSTGRES_PASSWORD: ecl-disposable-test-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: storefront
@@ -23,7 +35,7 @@ jobs:
       CI: 'true'
       NEXT_TELEMETRY_DISABLED: '1'
       # CI never receives production service/provider credentials. Tests use
-      # in-memory PGlite and fake provider boundaries; no database is deployed.
+      # PGlite, disposable PostgreSQL and fake providers; no database is deployed.
       SUPABASE_DB_URL: ''
       SUPABASE_SERVICE_ROLE_KEY: ''
       NEXT_PUBLIC_SUPABASE_URL: ''
@@ -50,6 +62,15 @@ jobs:
         run: npm ci
       - name: Isolated regression tests and migration validation
         run: npm test
+      - name: Independent PostgreSQL sessions and backup restoration
+        run: npm run test:postgres
+        env:
+          ECL_TEST_PG_URL: postgresql://postgres:ecl-disposable-test-only@127.0.0.1:5432/postgres
+          ECL_TEST_PG_CONTAINER: ${{ job.services.postgres.id }}
+      - name: Install isolated acceptance browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser and accessibility acceptance with synthetic fixtures
+        run: npm run test:browser
       - name: High-severity dependency advisories
         run: npm audit --audit-level=high
       - name: Typecheck
@@ -58,3 +79,15 @@ jobs:
         run: npm run lint
       - name: Production build without service credentials
         run: npm run build
+      - name: Route JavaScript budgets
+        run: npm run check:budgets
+      - name: Preserve browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: browser-acceptance
+          path: |
+            storefront/playwright-report/
+            storefront/test-results/
+          retention-days: 7
+          if-no-files-found: ignore

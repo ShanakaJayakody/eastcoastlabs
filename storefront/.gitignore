@@ -29,3 +29,7 @@ yarn-error.log*
 next-env.d.ts
 .vercel
 .next-verify/
+
+# browser acceptance artifacts
+/playwright-report/
+/test-results/

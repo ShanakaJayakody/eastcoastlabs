@@ -1,0 +1,14 @@
+{
+  "description": "Initial JavaScript: sum of gzip-compressed unique route and ancestor-layout chunks. Decimal kB. Review increases explicitly; do not automatically reset limits after a failure.",
+  "routeGzipKB": {
+    "/(store)/page": 138,
+    "/(store)/shop/page": 140,
+    "/(store)/product/[slug]/page": 140,
+    "/(store)/checkout/page": 145,
+    "/admin/(dashboard)/products/[slug]/page": 170,
+    "/admin/(dashboard)/orders/[id]/page": 175
+  },
+  "fieldTargets": {"windowDays": 28,"percentile": 75,"LCPms": 2500,"INPms": 200,"CLS": 0.1},
+  "queryTargets": {"percentile": 95,"quoteMs": 750,"adminListMs": 1000,"minimumSamples": 100},
+  "availabilityTarget": {"windowDays": 30,"percent": 99.9,"fastBurn": {"hours": 1,"rate": 14.4},"slowBurn": {"hours": 6,"rate": 6}}
+}
