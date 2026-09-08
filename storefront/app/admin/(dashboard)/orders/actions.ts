@@ -7,14 +7,11 @@ import {
   markPaid,
   updateOrderTracking,
   setStatus,
-  refundOrder,
-  refundOrderItems,
   updatePendingOrderItemQty,
   removeOrderItem,
   cancelOrder,
   reinstateOrder,
   type OrderStatus,
-  type LineRefund,
 } from "@/lib/admin/orders";
 import { logAudit } from "@/lib/admin/audit";
 
@@ -107,6 +104,7 @@ export async function advanceStatus(
   trackingNumber?: string,
 ): Promise<ActionResult> {
   const session = await requireAdmin();
+  if (!["processing", "shipped", "completed"].includes(to)) return { ok: false, error: "Use the dedicated reviewed order action." };
   try {
     await setStatus(orderId, to, { actor: session.email, trackingNumber: trackingNumber?.trim() || undefined });
     revalidatePath(`/admin/orders/${orderId}`);
@@ -130,6 +128,7 @@ export async function bulkAdvanceStatus(
 ): Promise<ActionResult & { moved?: number; failed?: {id:string;error:string}[] }> {
   const session = await requireAdmin();
   if (!orderIds.length) return { ok: false, error: "No orders selected." };
+  if (!["processing", "shipped", "completed"].includes(to)) return { ok: false, error: "Use the dedicated reviewed order action." };
 
   const failed: {id:string;error:string}[] = [];
   let moved = 0;
@@ -174,38 +173,6 @@ export async function bulkConfirmPayment(
   revalidatePath("/admin");
   if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.map(f=>f.id).join(", ")}`, failed };
   return { ok: true, moved, failed };
-}
-
-export async function refund(orderId: string, restock = false): Promise<ActionResult> {
-  const session = await requireAdmin();
-  try {
-    await refundOrder(orderId, { actor: session.email, restock });
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath("/admin/orders");
-    return { ok: true };
-  } catch (err) {
-    return fail(err);
-  }
-}
-
-export interface RefundLinesResult {
-  ok: boolean;
-  error?: string;
-  refundedCents?: number;
-  fullyRefunded?: boolean;
-}
-
-/** Record a refund on paid orders; payment movement remains manual. */
-export async function refundLines(orderId: string, refunds: LineRefund[], restock = false, idempotencyKey?:string): Promise<RefundLinesResult> {
-  const session = await requireAdmin();
-  try {
-    const result = await refundOrderItems(orderId, refunds, { actor: session.email, restock, idempotencyKey });
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath("/admin/orders");
-    return { ok: true, refundedCents: result.refundedCents, fullyRefunded: result.fullyRefunded };
-  } catch (err) {
-    return fail(err);
-  }
 }
 
 /** Edit a line's quantity on a still-pending order (server-priced, stock-safe). */

@@ -3,9 +3,9 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { confirmPayment, correctTracking, advanceStatus, refund, cancel, addNote, reinstate } from "@/app/admin/(dashboard)/orders/actions";
+import { confirmPayment, correctTracking, advanceStatus, cancel, addNote, reinstate } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
-import {formatAud} from "@/lib/format";
+import RefundReview from "./RefundReview";
 import type { OrderStatus, ReinstateLineCheck } from "@/lib/admin/orders";
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
@@ -18,7 +18,7 @@ export default function OrderActions({
   orderId,
   status,
   stockCheck,
-  orderNumber, remainingRefundCents, trackingNumber, hasRefunds=false,
+  orderNumber, trackingNumber, hasRefunds=false,
 }: {
   orderId: string;
   orderNumber?:string;
@@ -66,9 +66,9 @@ export default function OrderActions({
   return (
     <div className="space-y-4 rounded-xl border border-line bg-surface p-4">
       <h3 className="text-sm font-semibold text-fg">Actions</h3>
-      <ConfirmModal open={confirming!==null} title={`${confirming==='refund'?'Record refund':'Cancel order'} · ${orderNumber ?? orderId}`} confirmLabel={confirming==='refund'?'Record refund':'Cancel order'} tone="danger" pending={pending} onCancel={()=>setConfirming(null)} onConfirm={()=>run(()=>confirming==='refund'?refund(orderId,restock):cancel(orderId,restock),confirming==='refund'?'Refund recorded — arrange the bank transfer separately':'Order cancellation recorded')} body={<>
-        {confirming==='refund' && remainingRefundCents!=null && <p>Remaining refund: {formatAud(remainingRefundCents/100)}</p>}
-        <p>This updates the order record. Money is not transferred; return any money owed through your bank separately. {confirming==='refund'?'A refund record email is queued for the customer.':'Cancellation does not send a refund confirmation.'}</p>
+      {confirming==='refund' && <RefundReview orderId={orderId} selection={null} onClose={()=>setConfirming(null)}/>}
+      <ConfirmModal open={confirming==='cancel'} title={`Cancel order · ${orderNumber ?? orderId}`} confirmLabel="Cancel order" tone="danger" pending={pending} onCancel={()=>setConfirming(null)} onConfirm={()=>run(()=>cancel(orderId,restock),'Order cancellation recorded')} body={<>
+        <p>This updates the order record. Money is not transferred; return any money owed through your bank separately. Cancellation does not send a refund confirmation.</p>
         {status!=='pending' && <label className="mt-3 flex gap-2"><input type="checkbox" checked={restock} onChange={e=>setRestock(e.target.checked)}/>Restore remaining units to sellable stock only if physically returned or still on hand.</label>}
       </>} />
       {(status==='shipped'||status==='completed') && <div className="space-y-2"><label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><button disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking),'Tracking updated')}>Save tracking correction</button></div>}

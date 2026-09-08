@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Minus, Plus, X } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { OrderStatus } from "@/lib/admin/orders";
-import { editItemQty, removeItem, refundLines } from "@/app/admin/(dashboard)/orders/actions";
+import { editItemQty, removeItem } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
+import RefundReview from "./RefundReview";
 
 export interface ItemRow {
   id: string;
@@ -47,8 +48,6 @@ export default function OrderItemsPanel({
   const [pending, start] = useTransition();
   const [refundQty, setRefundQty] = useState<Record<string, number>>({});
   const [removing, setRemoving] = useState<ItemRow | null>(null);
-  const refundAttempt=useRef<{signature:string;key:string}|null>(null);
-  const [restock,setRestock]=useState(false);
   const [confirmRefund, setConfirmRefund] = useState(false);
 
   const editable = status === "pending";
@@ -61,7 +60,6 @@ export default function OrderItemsPanel({
       else toast.error(res.error ?? "Failed");
     });
 
-  const refundLineCount = Object.values(refundQty).filter((q) => q > 0).length;
 
   const anySelected = Object.values(refundQty).some((q) => q > 0);
 
@@ -129,6 +127,8 @@ export default function OrderItemsPanel({
                     {remaining > 0 ? (
                       <input
                         type="number"
+                        aria-label={`Refund quantity for ${it.product_name ?? "item"}`}
+                        disabled={pending || confirmRefund}
                         min={0}
                         max={remaining}
                         value={refundQty[it.id] ?? 0}
@@ -199,43 +199,7 @@ export default function OrderItemsPanel({
         onCancel={() => setRemoving(null)}
       />
 
-      <ConfirmModal
-        open={confirmRefund}
-        title="Refund these lines?"
-        body={
-          <>
-            <p className="font-medium text-fg">The recorded amount uses the order’s discount allocation and remaining refundable balance.</p>
-            <p className="mt-1.5 text-muted">
-              Across {refundLineCount} line{refundLineCount === 1 ? "" : "s"}. Money is not moved automatically — refund it in your payment
-              provider or bank separately.
-            </p>
-            <label className="mt-3 flex gap-2"><input type="checkbox" checked={restock} onChange={e=>setRestock(e.target.checked)}/>Physically returned units can be restored to sellable stock.</label>
-          </>
-        }
-        confirmLabel="Record refund"
-        tone="danger"
-        pending={pending}
-        onConfirm={() => {
-          const lines = Object.entries(refundQty)
-            .filter(([, q]) => q > 0)
-            .map(([itemId, qty]) => ({ itemId, qty }));
-          start(async () => {
-            const signature=JSON.stringify({lines,restock});
-            if(refundAttempt.current?.signature!==signature)refundAttempt.current={signature,key:crypto.randomUUID()};
-            const res = await refundLines(orderId, lines, restock,refundAttempt.current.key);
-            if (res.ok) {
-              toast.success(
-                `Recorded refund ${cents(res.refundedCents ?? 0)}${res.fullyRefunded ? " — order fully refunded" : ""}`,
-              );
-              refundAttempt.current=null;
-              setRefundQty({});
-              setConfirmRefund(false);
-              router.refresh();
-            } else toast.error(res.error ?? "Refund failed");
-          });
-        }}
-        onCancel={() => setConfirmRefund(false)}
-      />
+      {confirmRefund && <RefundReview orderId={orderId} selection={Object.entries(refundQty).filter(([,qty])=>qty>0).map(([itemId,qty])=>({itemId,qty}))} onClose={()=>setConfirmRefund(false)} onSuccess={()=>setRefundQty({})}/>}
 
       <dl className="space-y-1.5 border-t border-line px-4 py-3 text-sm">
         <div className="flex justify-between">

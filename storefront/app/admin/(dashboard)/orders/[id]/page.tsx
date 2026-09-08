@@ -1,3 +1,5 @@
+import RefundSettlements from "@/components/admin/RefundSettlements";
+import { getRefundSettlements } from "@/lib/admin/refunds";
 import { Suspense } from "react";
 import AuditTrail from "@/components/admin/AuditTrail";
 import Link from "next/link";
@@ -22,7 +24,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const order = await getOrder(id);
   if (!order) notFound();
 
-  const profit = await profitForOrders([id]);
+  const [profit, settlements] = await Promise.all([profitForOrders([id]), getRefundSettlements(id)]);
   // Only a cancelled order can be reinstated, so only it pays for the check.
   const stockCheck =
     order.status === "cancelled" ? await reinstateStockCheck(id) : undefined;
@@ -66,9 +68,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           />
           {order.refunded_cents > 0 && (
             <p className="text-right text-xs text-warn">
-              Total refunded to date: {cents(order.refunded_cents)}
+              Refunds recorded to date: {cents(order.refunded_cents)}
             </p>
           )}
+
+          <RefundSettlements orderId={id} refundedCents={order.refunded_cents} settlements={settlements} />
 
           {/* Profit — admin-only, from the COGS frozen at payment */}
           {profit.cogsCents > 0 && (
