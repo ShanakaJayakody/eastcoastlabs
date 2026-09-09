@@ -5,14 +5,7 @@ import { verifySvixSignature } from "@/lib/email/webhook-verify";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Resend delivery webhooks — the "did it land?" half of the email system.
- *
- * Always returns 200 once the payload is verified, even when we can't match the
- * event to an outbox row. A webhook endpoint that returns errors for its own
- * bookkeeping problems gets retried, then throttled, then disabled by the
- * provider — losing the events we DO care about.
- */
+// Verified events are acknowledged only after durable persistence; the provider can retry outages.
 
 /** Resend event name -> our enum. Unlisted events are acknowledged and ignored. */
 const EVENT_MAP: Record<string, string> = {
@@ -63,36 +56,21 @@ export async function POST(request: Request) {
   if (!event) return NextResponse.json({ ok: true, ignored: payload.type ?? null });
 
   const recipient = Array.isArray(payload.data?.to) ? payload.data?.to[0] : payload.data?.to;
-  const toEmail = (recipient ?? "").trim().toLowerCase();
+  const toEmail = typeof recipient === "string" ? recipient.trim().toLowerCase() : "";
   if (!toEmail) return NextResponse.json({ ok: true, ignored: "no recipient" });
 
   const db = adminDb();
   const messageId = payload.data?.email_id ?? null;
 
-  // Match on the provider id we recorded at send time. Emails sent before Phase C
-  // have no id stored, so fall back to this recipient's most recent send — a
-  // slightly fuzzy attribution is far better than dropping the event entirely.
+  // Unknown provider IDs remain unmatched. Guessing the recipient's latest
+  // email would corrupt attribution when deliveries arrive out of order.
   let outboxId: string | null = null;
   if (messageId) {
-    const { data } = await db
-      .from("email_outbox")
-      .select("id")
-      .eq("provider_message_id", messageId)
-      .maybeSingle();
-    outboxId = (data as { id: string } | null)?.id ?? null;
+    const { data, error } = await db.from("email_outbox").select("id")
+      .eq("provider_message_id", messageId).eq("to_email", toEmail).maybeSingle();
+    if (error) return NextResponse.json({error:"storage_unavailable"},{status:503});
+    outboxId = (data as {id:string}|null)?.id ?? null;
   }
-  if (!outboxId) {
-    const { data } = await db
-      .from("email_outbox")
-      .select("id")
-      .eq("to_email", toEmail)
-      .eq("status", "sent")
-      .order("sent_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    outboxId = (data as { id: string } | null)?.id ?? null;
-  }
-
   // Webhooks are at-least-once. svix-id is the provider's own event identifier,
   // so it's the natural dedupe key for a redelivery.
   const providerEventId = request.headers.get("svix-id");
@@ -105,7 +83,7 @@ export async function POST(request: Request) {
       provider_event_id: providerEventId,
       detail: {
         message_id: messageId,
-        link: payload.data?.click?.link ?? null,
+        link: safeLink(payload.data?.click?.link),
         bounce_type: payload.data?.bounce?.type ?? null,
         bounce_subtype: payload.data?.bounce?.subType ?? null,
         bounce_message: payload.data?.bounce?.message ?? null,
@@ -114,9 +92,9 @@ export async function POST(request: Request) {
     },
     { onConflict: "provider_event_id", ignoreDuplicates: true },
   );
-  if (error) console.error("resend webhook: event insert failed", error.message);
-
-  await maybeSuppress(event, payload, toEmail);
+  if (error) return NextResponse.json({error:"storage_unavailable"},{status:503});
+  try { await maybeSuppress(event, payload, toEmail); }
+  catch { return NextResponse.json({error:"suppression_unavailable"},{status:503}); }
 
   return NextResponse.json({ ok: true, event, matched: Boolean(outboxId) });
 }
@@ -136,21 +114,9 @@ async function maybeSuppress(event: string, payload: ResendPayload, toEmail: str
   if (!shouldSuppress) return;
 
   const db = adminDb();
-  const now = new Date().toISOString();
   const reason = event === "complained" ? "complaint" : "bounce";
-
-  const { data: existing } = await db.from("subscribers").select("id").eq("email", toEmail);
-  if ((existing ?? []).length) {
-    await db
-      .from("subscribers")
-      .update({ unsubscribed_at: now })
-      .eq("email", toEmail)
-      .is("unsubscribed_at", null);
-  } else {
-    await db
-      .from("subscribers")
-      .upsert({ email: toEmail, source: reason, unsubscribed_at: now }, { onConflict: "email,source" });
-  }
+  const {error}=await db.rpc("suppress_marketing",{p_email:toEmail,p_source:reason});
+  if(error)throw new Error("Suppression persistence failed");
 
   await logAudit({
     actor: "system:resend-webhook",
@@ -163,4 +129,15 @@ async function maybeSuppress(event: string, payload: ResendPayload, toEmail: str
       message: payload.data?.bounce?.message ?? null,
     },
   });
+}
+
+function safeLink(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value);
+    if (!["https:","http:"].includes(url.protocol)) return null;
+    const path = /^\/(pay|checkout|leave-a-review|subscribe|api)(?:\/|$)/.test(url.pathname)
+      ? "/private-link" : url.pathname;
+    return `${url.origin}${path}`;
+  } catch { return null; }
 }

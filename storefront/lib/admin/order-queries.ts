@@ -125,15 +125,15 @@ export async function listOrders(
  * can show live numbers — a queue you can't count isn't a queue.
  */
 export async function orderStatusCounts(): Promise<Record<string, number>> {
-  const { data, error } = await adminDb().from("orders").select("status");
-  if (error) throw new Error(`orderStatusCounts: ${error.message}`);
-  const counts: Record<string, number> = { all: 0, to_fulfil: 0 };
-  for (const row of data ?? []) {
-    const s = row.status as OrderStatus;
-    counts[s] = (counts[s] ?? 0) + 1;
-    counts.all += 1;
-    if (TO_FULFIL.includes(s)) counts.to_fulfil += 1;
-  }
+  const statuses:OrderStatus[]=["pending","paid","processing","shipped","completed","cancelled","refunded"];
+  const results=await Promise.all(statuses.map(async status=>{
+    const {count,error}=await adminDb().from("orders").select("*",{head:true,count:"exact"}).eq("status",status);
+    if(error)throw new Error(`orderStatusCounts: ${error.message}`);
+    return {status,count:count??0};
+  }));
+  const counts:Record<string,number>={all:0,to_fulfil:0};
+  for(const {status,count} of results){counts[status]=count;counts.all+=count;if(TO_FULFIL.includes(status))counts.to_fulfil+=count;}
+
   return counts;
 }
 

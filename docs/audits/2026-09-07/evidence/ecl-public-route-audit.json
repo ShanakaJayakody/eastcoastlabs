@@ -1,0 +1,451 @@
+[
+  {
+    "url": "https://eastcoastlabs.com.au",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/",
+    "seconds": 0.771,
+    "html_bytes": 138273,
+    "title": "East Coast Labs \u2014 Lab-grade research peptides, independently tested",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/shop",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/shop",
+    "seconds": 0.6,
+    "html_bytes": 134818,
+    "title": "Shop research peptides \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/stacks",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/stacks",
+    "seconds": 0.778,
+    "html_bytes": 74230,
+    "title": "Research Stacks \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/lab-results",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/lab-results",
+    "seconds": 0.55,
+    "html_bytes": 98842,
+    "title": "Lab Results \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/KLOW-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/IGF1LR3-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/Reta10mg-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/GLOW-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/Tirz10mg-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/MOTS-C-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/Selank-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/GHKCu-Dec25.pdf",
+      "https://eastcoastlabs.com.au/coa/MT2-Nov25.pdf",
+      "https://eastcoastlabs.com.au/coa/Sema5mg-Nov25.pdf",
+      "https://eastcoastlabs.com.au/coa/TB500-Nov25.pdf",
+      "https://eastcoastlabs.com.au/coa/Semax-Nov25.pdf",
+      "https://eastcoastlabs.com.au/coa/BPC157-Nov25.pdf",
+      "https://eastcoastlabs.com.au/coa/Tesa-Nov25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/learn",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/learn",
+    "seconds": 0.863,
+    "html_bytes": 56037,
+    "title": "Research Hub \u2014 Peptide Guides, Reconstitution & Purity Testing \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/about",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/about",
+    "seconds": 0.479,
+    "html_bytes": 41569,
+    "title": "About \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/cart",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/cart",
+    "seconds": 0.943,
+    "html_bytes": 37029,
+    "title": "Cart \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/collections/recovery-repair",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/collections/recovery-repair",
+    "seconds": 0.458,
+    "html_bytes": 59700,
+    "title": "Recovery & Repair \u2014 Research Peptides \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/collections/metabolic-weight",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/collections/metabolic-weight",
+    "seconds": 0.421,
+    "html_bytes": 60116,
+    "title": "Metabolic & Weight \u2014 Research Peptides \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/collections/cognitive-focus",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/collections/cognitive-focus",
+    "seconds": 0.375,
+    "html_bytes": 46685,
+    "title": "Cognitive & Focus \u2014 Research Peptides \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/collections/longevity-cellular",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/collections/longevity-cellular",
+    "seconds": 0.453,
+    "html_bytes": 59602,
+    "title": "Longevity & Cellular \u2014 Research Peptides \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/collections/skin-aesthetics",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/collections/skin-aesthetics",
+    "seconds": 0.487,
+    "html_bytes": 55254,
+    "title": "Skin & Aesthetics \u2014 Research Peptides \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 1,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/tesamorelin",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/tesamorelin",
+    "seconds": 0.718,
+    "html_bytes": 80334,
+    "title": "Tesamorelin \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/Tesa-Nov25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/mots-c",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/mots-c",
+    "seconds": 0.883,
+    "html_bytes": 80060,
+    "title": "MOTS-C \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/MOTS-C-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/semax",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/semax",
+    "seconds": 0.757,
+    "html_bytes": 79803,
+    "title": "Semax \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/Semax-Nov25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/selank",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/selank",
+    "seconds": 0.65,
+    "html_bytes": 80004,
+    "title": "Selank \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/Selank-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/semaglutide",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/semaglutide",
+    "seconds": 0.812,
+    "html_bytes": 80404,
+    "title": "Semaglutide \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/Sema5mg-Nov25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/tirzepatide",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/tirzepatide",
+    "seconds": 0.748,
+    "html_bytes": 80192,
+    "title": "Tirzepatide \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/Tirz10mg-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/retatrutide",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/retatrutide",
+    "seconds": 0.724,
+    "html_bytes": 74078,
+    "title": "Retatrutide \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/Reta10mg-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/tb-500",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/tb-500",
+    "seconds": 0.628,
+    "html_bytes": 79948,
+    "title": "TB-500 \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/TB500-Nov25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/mt2",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/mt2",
+    "seconds": 0.693,
+    "html_bytes": 80068,
+    "title": "MT2 \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/MT2-Nov25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/klow",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/klow",
+    "seconds": 0.601,
+    "html_bytes": 75638,
+    "title": "KLOW \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/KLOW-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/igf",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/igf",
+    "seconds": 0.687,
+    "html_bytes": 79773,
+    "title": "IGF \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/IGF1LR3-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/glow",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/glow",
+    "seconds": 0.822,
+    "html_bytes": 79627,
+    "title": "GLOW \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/GLOW-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/ghk-cu",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/ghk-cu",
+    "seconds": 0.782,
+    "html_bytes": 80030,
+    "title": "GHK-cu \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/GHKCu-Dec25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/bpc-157",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/bpc-157",
+    "seconds": 0.647,
+    "html_bytes": 80336,
+    "title": "BPC-157 \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": true,
+    "coa_links": [
+      "https://eastcoastlabs.com.au/coa/BPC157-Nov25.pdf"
+    ]
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/bacteriostatic-water",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/bacteriostatic-water",
+    "seconds": 0.586,
+    "html_bytes": 65573,
+    "title": "Bacteriostatic Water \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/kpv",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/kpv",
+    "seconds": 0.817,
+    "html_bytes": 69904,
+    "title": "KPV \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": false,
+    "coa_links": []
+  },
+  {
+    "url": "https://eastcoastlabs.com.au/product/nad-plus",
+    "status": 200,
+    "final": "https://www.eastcoastlabs.com.au/product/nad-plus",
+    "seconds": 0.576,
+    "html_bytes": 69656,
+    "title": "NAD+ \u2014 East Coast Labs",
+    "h1_count": 1,
+    "canonical": null,
+    "robots": null,
+    "jsonld_count": 2,
+    "has_placeholder": false,
+    "coa_links": []
+  }
+]

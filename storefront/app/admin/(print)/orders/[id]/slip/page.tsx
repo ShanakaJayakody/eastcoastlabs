@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import { getOrder } from "@/lib/admin/order-queries";
-import { coaByCompound } from "@/lib/admin/slips";
+import { getOrderFulfilment } from "@/lib/admin/fulfilment";
 import PackingSlip from "@/components/admin/PackingSlip";
 import PrintButton from "@/components/admin/PrintButton";
 
@@ -15,8 +15,7 @@ export default async function PackingSlipPage({ params }: { params: Promise<{ id
   const order = await getOrder(id);
   if (!order) notFound();
 
-  const names = [...new Set(order.items.map((i) => i.product_name ?? "").filter(Boolean))];
-  const coas = await coaByCompound(names);
+  const fulfilment = await getOrderFulfilment(id);
 
   return (
     <main className="mx-auto max-w-2xl bg-white p-10 text-black print:p-0">
@@ -26,7 +25,7 @@ export default async function PackingSlipPage({ params }: { params: Promise<{ id
         <PrintButton />
       </div>
 
-      <PackingSlip order={order} coas={coas} />
+      <PackingSlip order={order} fulfilment={fulfilment} />
     </main>
   );
 }

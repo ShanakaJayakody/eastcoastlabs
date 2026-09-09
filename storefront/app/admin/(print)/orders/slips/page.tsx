@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/admin/auth";
 import { getOrder } from "@/lib/admin/order-queries";
-import { coaByCompound } from "@/lib/admin/slips";
+import { getOrderFulfilment } from "@/lib/admin/fulfilment";
 import PackingSlip from "@/components/admin/PackingSlip";
 import PrintButton from "@/components/admin/PrintButton";
 
@@ -25,9 +25,7 @@ export default async function BatchSlipsPage({
   const slips = await Promise.all(
     orders.map(async (order) => ({
       order,
-      coas: await coaByCompound([
-        ...new Set(order.items.map((i) => i.product_name ?? "").filter(Boolean)),
-      ]),
+      fulfilment: await getOrderFulfilment(order.id),
     })),
   );
 
@@ -47,11 +45,11 @@ export default async function BatchSlipsPage({
           No orders found for those IDs. Select orders in the admin list and choose “Print slips”.
         </p>
       ) : (
-        slips.map(({ order, coas }, i) => (
+        slips.map(({ order, fulfilment }, i) => (
           <PackingSlip
             key={order.id}
             order={order}
-            coas={coas}
+            fulfilment={fulfilment}
             pageBreak={i < slips.length - 1}
           />
         ))

@@ -5,17 +5,14 @@ import { requireAdmin } from "@/lib/admin/auth";
 import { adminDb } from "@/lib/admin/db";
 import {
   markPaid,
+  updateOrderTracking,
   setStatus,
-  refundOrder,
-  refundOrderItems,
   updatePendingOrderItemQty,
   removeOrderItem,
   cancelOrder,
   reinstateOrder,
   type OrderStatus,
-  type LineRefund,
 } from "@/lib/admin/orders";
-import { queueEmail } from "@/lib/admin/email";
 import { logAudit } from "@/lib/admin/audit";
 
 export interface ActionResult {
@@ -23,14 +20,6 @@ export interface ActionResult {
   error?: string;
 }
 
-async function orderEmail(orderId: string): Promise<{ email: string; number: string } | null> {
-  const { data } = await adminDb()
-    .from("orders")
-    .select("customer_email, order_number")
-    .eq("id", orderId)
-    .maybeSingle();
-  return data ? { email: data.customer_email as string, number: data.order_number as string } : null;
-}
 
 function fail(err: unknown): ActionResult {
   const msg = err instanceof Error ? err.message : String(err);
@@ -42,15 +31,6 @@ export async function confirmPayment(orderId: string, paymentRef?: string): Prom
   const session = await requireAdmin();
   try {
     await markPaid(orderId, { actor: session.email, paymentRef: paymentRef?.trim() || undefined });
-    const info = await orderEmail(orderId);
-    if (info)
-      await queueEmail({
-        to: info.email,
-        template: "order_confirmation",
-        payload: { order_number: info.number },
-        relatedType: "order",
-        relatedId: orderId,
-      });
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
@@ -70,26 +50,16 @@ export async function confirmPayment(orderId: string, paymentRef?: string): Prom
  */
 export async function reinstate(
   orderId: string,
-  opts: { toPaid?: boolean; paymentRef?: string } = {},
+  opts: { toPaid?: boolean; paymentRef?: string; idempotencyKey?:string } = {},
 ): Promise<ActionResult> {
   const session = await requireAdmin();
   try {
-    const { reinstatedTo } = await reinstateOrder(orderId, {
+    await reinstateOrder(orderId, {
       actor: session.email,
       toPaid: opts.toPaid,
+      idempotencyKey:opts.idempotencyKey,
       paymentRef: opts.paymentRef?.trim() || undefined,
     });
-    if (reinstatedTo === "paid") {
-      const info = await orderEmail(orderId);
-      if (info)
-        await queueEmail({
-          to: info.email,
-          template: "order_confirmation",
-          payload: { order_number: info.number },
-          relatedType: "order",
-          relatedId: orderId,
-        });
-    }
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
@@ -116,15 +86,6 @@ export async function bulkReinstate(
   for (const id of orderIds) {
     try {
       await reinstateOrder(id, { actor: session.email, toPaid: true });
-      const info = await orderEmail(id);
-      if (info)
-        await queueEmail({
-          to: info.email,
-          template: "order_confirmation",
-          payload: { order_number: info.number },
-          relatedType: "order",
-          relatedId: id,
-        });
       done++;
     } catch (err) {
       failed.push({ id, error: err instanceof Error ? err.message : String(err) });
@@ -143,19 +104,9 @@ export async function advanceStatus(
   trackingNumber?: string,
 ): Promise<ActionResult> {
   const session = await requireAdmin();
+  if (!["processing", "shipped", "completed"].includes(to)) return { ok: false, error: "Use the dedicated reviewed order action." };
   try {
     await setStatus(orderId, to, { actor: session.email, trackingNumber: trackingNumber?.trim() || undefined });
-    if (to === "shipped") {
-      const info = await orderEmail(orderId);
-      if (info)
-        await queueEmail({
-          to: info.email,
-          template: "order_shipped",
-          payload: { order_number: info.number, tracking_number: trackingNumber?.trim() ?? null },
-          relatedType: "order",
-          relatedId: orderId,
-        });
-    }
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
@@ -174,37 +125,23 @@ export async function advanceStatus(
 export async function bulkAdvanceStatus(
   orderIds: string[],
   to: OrderStatus,
-): Promise<ActionResult & { moved?: number; failed?: string[] }> {
+): Promise<ActionResult & { moved?: number; failed?: {id:string;error:string}[] }> {
   const session = await requireAdmin();
   if (!orderIds.length) return { ok: false, error: "No orders selected." };
+  if (!["processing", "shipped", "completed"].includes(to)) return { ok: false, error: "Use the dedicated reviewed order action." };
 
-  const failed: string[] = [];
+  const failed: {id:string;error:string}[] = [];
   let moved = 0;
   for (const id of orderIds) {
     try {
       await setStatus(id, to, { actor: session.email });
-      if (to === "shipped") {
-        const info = await orderEmail(id);
-        if (info)
-          await queueEmail({
-            to: info.email,
-            template: "order_shipped",
-            payload: { order_number: info.number, tracking_number: null },
-            relatedType: "order",
-            relatedId: id,
-          });
-      }
-      moved += 1;
-    } catch (err) {
-      const info = await orderEmail(id).catch(() => null);
-      failed.push(info?.number ?? id.slice(0, 8));
-      console.error(`bulkAdvanceStatus(${id}):`, err);
-    }
+      moved++;
+    } catch(err) {failed.push({id,error:err instanceof Error ? err.message : String(err)});}
   }
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
-  if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.join(", ")}`, failed };
+  if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.map(f=>f.id).join(", ")}`, failed };
   return { ok: true, moved, failed };
 }
 
@@ -216,88 +153,26 @@ export async function bulkAdvanceStatus(
  */
 export async function bulkConfirmPayment(
   orderIds: string[],
-): Promise<ActionResult & { moved?: number; failed?: string[] }> {
+): Promise<ActionResult & { moved?: number; failed?: {id:string;error:string}[] }> {
   const session = await requireAdmin();
   if (!orderIds.length) return { ok: false, error: "No orders selected." };
 
-  const failed: string[] = [];
+  const failed: {id:string;error:string}[] = [];
   let moved = 0;
   for (const id of orderIds) {
     try {
       await markPaid(id, { actor: session.email });
-      const info = await orderEmail(id);
-      if (info)
-        await queueEmail({
-          to: info.email,
-          template: "order_confirmation",
-          payload: { order_number: info.number },
-          relatedType: "order",
-          relatedId: id,
-        });
       moved += 1;
     } catch (err) {
-      const info = await orderEmail(id).catch(() => null);
-      failed.push(info?.number ?? id.slice(0, 8));
+      failed.push({id,error:err instanceof Error ? err.message : String(err)});
       console.error(`bulkConfirmPayment(${id}):`, err);
     }
   }
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
-  if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.join(", ")}`, failed };
+  if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.map(f=>f.id).join(", ")}`, failed };
   return { ok: true, moved, failed };
-}
-
-export async function refund(orderId: string): Promise<ActionResult> {
-  const session = await requireAdmin();
-  try {
-    await refundOrder(orderId, { actor: session.email });
-    const info = await orderEmail(orderId);
-    if (info)
-      await queueEmail({
-        to: info.email,
-        template: "order_refunded",
-        payload: { order_number: info.number },
-        relatedType: "order",
-        relatedId: orderId,
-      });
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath("/admin/orders");
-    return { ok: true };
-  } catch (err) {
-    return fail(err);
-  }
-}
-
-export interface RefundLinesResult {
-  ok: boolean;
-  error?: string;
-  refundedCents?: number;
-  fullyRefunded?: boolean;
-}
-
-/** Refund specific quantities on specific lines — works on pending or paid+ orders. */
-export async function refundLines(orderId: string, refunds: LineRefund[]): Promise<RefundLinesResult> {
-  const session = await requireAdmin();
-  try {
-    const result = await refundOrderItems(orderId, refunds, { actor: session.email });
-    const info = await orderEmail(orderId);
-    if (info)
-      await queueEmail({
-        to: info.email,
-        template: "order_refunded",
-        payload: { order_number: info.number, amount_cents: result.refundedCents },
-        relatedType: "order",
-        // Distinct per call (unlike the full-refund path, which fires once) so a
-        // second partial refund on the same order isn't deduped as identical.
-        relatedId: `${orderId}:${Date.now()}`,
-      });
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath("/admin/orders");
-    return { ok: true, refundedCents: result.refundedCents, fullyRefunded: result.fullyRefunded };
-  } catch (err) {
-    return fail(err);
-  }
 }
 
 /** Edit a line's quantity on a still-pending order (server-priced, stock-safe). */
@@ -324,10 +199,10 @@ export async function removeItem(orderId: string, itemId: string): Promise<Actio
   }
 }
 
-export async function cancel(orderId: string): Promise<ActionResult> {
+export async function cancel(orderId: string, restock = false): Promise<ActionResult> {
   const session = await requireAdmin();
   try {
-    await cancelOrder(orderId, { actor: session.email });
+    await cancelOrder(orderId, { actor: session.email, restock });
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     return { ok: true };
@@ -342,12 +217,13 @@ export async function addNote(orderId: string, message: string): Promise<ActionR
   const text = message.trim();
   if (!text) return { ok: false, error: "Note is empty." };
   try {
-    await adminDb().from("order_events").insert({
+    const {error} = await adminDb().from("order_events").insert({
       order_id: orderId,
       type: "note",
       message: text,
       actor_email: session.email,
     });
+    if(error)throw new Error(error.message);
     await logAudit({
       actor: session.email,
       action: "order.note",
@@ -360,4 +236,12 @@ export async function addNote(orderId: string, message: string): Promise<ActionR
   } catch (err) {
     return fail(err);
   }
+}
+
+export async function correctTracking(orderId:string,trackingNumber:string,notify=false):Promise<ActionResult>{
+ const session=await requireAdmin();
+ try{
+  await updateOrderTracking(orderId,trackingNumber,{actor:session.email,notify});
+  revalidatePath(`/admin/orders/${orderId}`);revalidatePath("/admin/orders");return {ok:true};
+ }catch(err){return fail(err);}
 }

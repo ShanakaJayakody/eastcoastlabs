@@ -11,6 +11,7 @@ import { csvRow } from "@/lib/csv";
  * subscribers, and cart sessions — deduped by email.
  */
 import { adminDb } from "./db";
+import { readAll } from "./read-all";
 
 export type Segment =
   | "all"
@@ -62,17 +63,10 @@ function vipThreshold(ltvs: number[]): number {
 
 export async function listPeople(): Promise<PersonRow[]> {
   const db = adminDb();
-  const [{ data: customers }, { data: carts }, { data: subs }] = await Promise.all([
-    db
-      .from("customers")
-      .select("email, name, orders_count, ltv_cents, last_order_at")
-      .order("ltv_cents", { ascending: false })
-      .limit(1000),
-    db
-      .from("cart_sessions")
-      .select("email, subtotal_cents, reminder_stage, updated_at, status")
-      .eq("status", "active"),
-    db.from("subscribers").select("email, unsubscribed_at"),
+  const [customers,carts,subs] = await Promise.all([
+    readAll((start,end)=>db.from("customers").select("email, name, orders_count, ltv_cents, last_order_at").order("email").range(start,end)),
+    readAll((start,end)=>db.from("cart_sessions").select("email, subtotal_cents, reminder_stage, updated_at, status").eq("status","active").order("email").range(start,end)),
+    readAll((start,end)=>db.from("subscribers").select("email, unsubscribed_at").order("email").range(start,end)),
   ]);
 
   const rows = new Map<string, PersonRow>();
@@ -149,7 +143,7 @@ export async function listPeople(): Promise<PersonRow[]> {
   // Cart value first when there's no purchase history — an active $260 cart
   // deserves attention above a $0 lead.
   return all.sort(
-    (a, b) => b.ltvCents - a.ltvCents || (b.cartValueCents ?? 0) - (a.cartValueCents ?? 0),
+    (a, b) => b.ltvCents - a.ltvCents || (b.cartValueCents ?? 0) - (a.cartValueCents ?? 0) || a.email.localeCompare(b.email),
   );
 }
 
@@ -158,7 +152,7 @@ export function filterPeople(rows: PersonRow[], segment: Segment, q?: string): P
   return rows.filter((r) => {
     if (segment !== "all" && !r.segments.includes(segment)) return false;
     if (!needle) return true;
-    return r.email.includes(needle) || (r.name ?? "").toLowerCase().includes(needle);
+    return r.email.toLowerCase().includes(needle) || (r.name ?? "").toLowerCase().includes(needle);
   });
 }
 
@@ -203,4 +197,22 @@ export function peopleCsv(rows: PersonRow[]): string {
     ]),
   );
   return [csvRow(head), ...lines].join("\n");
+}
+
+/** Filter before fetching a page; complete segment thresholds live in the view. */
+export async function listPeoplePage(segment: Segment, search: string|undefined, page=1, pageSize=50): Promise<{rows:PersonRow[];total:number}> {
+ let query=adminDb().from('admin_people').select('*',{count:'exact'});
+ if(segment!=='all') query=query.contains('segments',[segment]);
+ if(search?.trim()){
+  const needle=search.trim().replace(/[,%_*()"\\]/g,'');
+  if(needle)query=query.or(`email.ilike.%${needle}%,name.ilike.%${needle}%`);
+ }
+ const {data,count,error}=await query.order('ltvCents',{ascending:false}).order('cartValueCents',{ascending:false,nullsFirst:false}).order('email').range((page-1)*pageSize,page*pageSize-1);
+ if(error)throw new Error(error.message);
+ return {rows:(data??[]) as PersonRow[],total:count??0};
+}
+export async function peopleSegmentCounts():Promise<Record<Segment,number>>{
+ const {data,error}=await adminDb().rpc('admin_people_counts');
+ if(error)throw new Error(error.message);
+ return {...Object.fromEntries(Object.keys(SEGMENT_LABELS).map(k=>[k,0])),...data} as Record<Segment,number>;
 }

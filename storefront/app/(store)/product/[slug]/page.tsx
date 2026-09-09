@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getCatalog, type CatalogProduct } from "@/lib/catalog";
+import { getCatalogProduct, getCatalogProducts, type CatalogProduct } from "@/lib/catalog";
 import { getCrossSellSlugs } from "@/lib/crosssells";
 import { getCoaForProduct } from "@/lib/coa";
 import { getProductCopy, getHomeCopy } from "@/lib/content";
@@ -17,6 +17,7 @@ import ReviewSummary from "@/components/ReviewSummary";
 import ReviewSection from "@/components/ReviewSection";
 import EmailCapture from "@/components/EmailCapture";
 import { getAggregate } from "@/lib/reviews";
+import { getSettings } from "@/lib/settings";
 import { getGuideForCompound } from "@/lib/guides";
 
 export const revalidate = 300;
@@ -31,16 +32,16 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const { bySlug } = await getCatalog();
-  const product = bySlug.get(slug);
+  const product = await getCatalogProduct(slug);
   if (!product) return { title: "Product not found" };
   const desc = stripHtml(product.short_description || product.description).slice(0, 160);
   return {
-    title: product.name,
-    description: desc || `${product.name} — research-use-only peptide, independently tested.`,
+    title: product.seo_title || product.name,
+    alternates: { canonical: `/product/${product.slug}` },
+    description: product.seo_description || desc || `${product.name} — research-use-only peptide, independently tested.`,
     openGraph: {
       title: `${product.name} — East Coast Labs`,
-      description: desc,
+      description: product.seo_description || desc,
       images: product.images?.[0]?.src ? [product.images[0].src] : undefined,
     },
   };
@@ -48,8 +49,7 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { products, bySlug } = await getCatalog();
-  const product = bySlug.get(slug);
+  const product = await getCatalogProduct(slug);
   if (!product) notFound();
 
   const minorUnit = product.prices.currency_minor_unit;
@@ -58,11 +58,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // and what checkout charges cannot drift apart.
   const tiers = product.tiers;
 
-  const [copy, coa, homeCopy, guide] = await Promise.all([
+  const [copy, coa, homeCopy, guide, bySlug] = await Promise.all([
     getProductCopy(product.name, product.slug),
     getCoaForProduct(product.name, product.slug),
     getHomeCopy(),
     getGuideForCompound(product.slug),
+    getCatalogProducts(["bacteriostatic-water",...getCrossSellSlugs(product.slug)]),
   ]);
 
   const bacWaterProduct = product.slug === "bacteriostatic-water" ? null : bySlug.get("bacteriostatic-water");
@@ -80,7 +81,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     .filter((p): p is CatalogProduct => p != null && p.slug !== product.slug)
     .slice(0, 3);
 
-  const descriptor = copy?.descriptor || stripHtml(product.short_description);
+  const descriptor = stripHtml(product.short_description) || copy?.descriptor;
+  const settings = await getSettings();
   const rating = await getAggregate(product.slug);
 
   // Product JSON-LD
@@ -108,7 +110,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       priceCurrency: product.prices.currency_code || "AUD",
       price: singleMajor.toFixed(2),
       availability: product.is_in_stock !== false ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      url: `https://eastcoastlabs.com.au/product/${product.slug}`,
+      url: `https://www.eastcoastlabs.com.au/product/${product.slug}`,
     },
   };
 
@@ -123,12 +125,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <span className="text-fg-2">{product.name}</span>
       </nav>
 
-      <div className="grid gap-10 lg:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Gallery */}
-        <ProductGallery images={product.images ?? []} name={product.name} />
+        <div className="order-2 lg:col-start-1 lg:row-start-1 lg:row-span-2"><ProductGallery images={product.images ?? []} name={product.name} /></div>
 
         {/* Buy column */}
-        <div>
+        <div className="order-1 min-w-0 lg:col-start-2">
           <div className="flex items-center gap-2 text-xs text-muted-2">
             <span className="uppercase tracking-wider">{product.sku}</span>
             <span
@@ -145,7 +147,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <ReviewSummary rating={rating.rating} count={rating.count} showSampleTag />
             </a>
           )}
-          {descriptor && <p className="mt-3 text-sm leading-relaxed text-muted">{descriptor}</p>}
+          {descriptor && <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted">{descriptor}</p>}
           {guide && (
             <a
               href={`/learn/${guide.slug}`}
@@ -155,7 +157,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </a>
           )}
           <ResearchDisclaimer variant="badge" className="mt-4" />
-
+          <p className="mt-3 text-sm font-semibold text-accent">Single vial: {new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(singleMajor)}</p>
+          <a href="#pack-options" className="mt-2 inline-block text-sm text-accent underline">View pack prices and availability</a>
+        </div>
+        <div id="pack-options" className="order-3 min-w-0 scroll-mt-24 lg:col-start-2">
           {product.is_in_stock === false ? (
             <div className="mt-6 rounded-xl border border-line bg-surface p-5">
               <p className="text-sm font-semibold text-fg">Out of stock — get notified</p>
@@ -184,6 +189,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 singlePriceMinor={product.prices.price}
                 minorUnit={minorUnit}
                 bacWater={bacWater}
+                available={product.available}
               />
             </div>
           )}
@@ -201,11 +207,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </div>
 
       {/* Description */}
-      {copy?.html && (
+      {(product.description || copy?.html) && (
         <section className="mt-12 grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-lg font-semibold text-fg">Product details</h2>
-            <div className="prose-ecl" dangerouslySetInnerHTML={{ __html: copy.html }} />
+            {product.description ? <div className="prose-ecl whitespace-pre-line">{stripHtml(product.description.replace(/<\/(?:p|div|li|h[1-6])>/gi, "\n"))}</div> : <div className="prose-ecl" dangerouslySetInnerHTML={{ __html: copy!.html }} />}
           </div>
 
           {/* Guarantee block */}
@@ -219,15 +225,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </li>
               <li className="flex gap-2">
                 <span className="text-accent">✓</span>
-                Every batch independently tested by JanoShik, published before listing.
+                Check the certificate availability above and confirm batch documentation before ordering.
               </li>
               <li className="flex gap-2">
                 <span className="text-accent">✓</span>
-                1-business-day dispatch from Australia. Discreet packaging &amp; billing.
+                Orders are prepared after payment confirmation. Shipping options appear at checkout.
               </li>
             </ul>
             <p className="mt-4 text-xs text-muted-2">
-              Questions? <a href="mailto:eclpeptides@gmail.com" className="text-accent">eclpeptides@gmail.com</a>
+              Questions? <a href={`mailto:${settings.supportEmail}`} className="text-accent">{settings.supportEmail}</a>
             </p>
           </aside>
         </section>

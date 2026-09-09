@@ -1,5 +1,6 @@
 "use client";
 
+import Modal from "./Modal";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -28,18 +29,9 @@ export default function Header() {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Lock body scroll while the mobile menu is open.
-  useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "";
-      };
-    }
-  }, [menuOpen]);
-
-  return (
+  return (<>
     <header className="sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur supports-[backdrop-filter]:bg-ink/70">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[80] focus:rounded focus:bg-accent focus:p-3 focus:text-accent-ink">Skip to main content</a>
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
         <Link href="/" className="group flex items-center gap-2.5" aria-label="East Coast Labs home">
           <Image
@@ -79,7 +71,7 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={openCart}
+            onClick={() => {setMenuOpen(false);openCart();}}
             className="btn-press relative inline-flex h-10 items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-medium text-fg transition-colors hover:border-accent/50"
             aria-label="Open cart"
           >
@@ -122,12 +114,10 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile menu panel */}
-      <div
-        className={`overflow-hidden border-t border-line bg-ink/95 backdrop-blur transition-[max-height] duration-300 ease-out md:hidden ${
-          menuOpen ? "max-h-96" : "max-h-0"
-        }`}
-      >
+    </header>
+      {/* Keep the fixed dialog outside the header's backdrop-filter containing block. */}
+      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} label="Navigation menu" className="w-full max-w-md rounded-xl border border-line bg-ink p-3">
+        <button type="button" onClick={() => setMenuOpen(false)} className="ml-auto block p-3 text-fg" aria-label="Close menu">✕</button>
         <nav className="mx-auto flex max-w-6xl flex-col px-4 py-2">
           {NAV.map((item) => (
             <Link
@@ -143,7 +133,7 @@ export default function Header() {
             </Link>
           ))}
         </nav>
-      </div>
-    </header>
+      </Modal>
+    </>
   );
 }

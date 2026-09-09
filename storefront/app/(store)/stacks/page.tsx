@@ -8,9 +8,10 @@ import Reveal from "@/components/Reveal";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/stacks" },
   title: "Research Stacks",
   description:
-    "Curated peptide stacks — the compounds most commonly researched together, priced below single vials. Every batch independently tested.",
+    "Curated peptide stacks — the compounds most commonly researched together, priced below single vials. Check available batch documentation.",
 };
 
 export default async function StacksPage() {

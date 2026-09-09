@@ -1,244 +1,148 @@
 "use server";
 
-/**
- * Native checkout.
- *
- * The client posts contact + shipping details and its cart lines WITHOUT prices;
- * lib/checkout.ts re-derives every amount server-side, then createOrder() writes
- * a `pending` order and atomically reserves stock.
- *
- * Payment is customer-initiated (PayID or bank transfer), so "place order" and
- * "pay" are two separate events. The order exists the moment the shopper
- * submits; the payment details, reference, and hold window are shown next.
- */
-
-import { resolveCart, type ClientCartLine } from "@/lib/checkout";
-import { createOrder, setOrderPaymentPlan } from "@/lib/admin/orders";
+import { checkoutFieldErrors, type CheckoutFieldErrors } from "@/lib/checkout-fields";
+import { verifiedRecoveryEpisode } from "@/lib/recovery-consent";
+import { validCheckoutLines as validateLines, normalizeCheckoutLines } from "@/lib/checkout-lines";
+import { after } from "next/server";
+import { createHash } from "node:crypto";
+import { resolveCart, type ClientCartLine, type ResolvedCartLine } from "@/lib/checkout";
+import { createOrder, findCheckoutReplay, type CreatedOrder } from "@/lib/admin/orders";
 import { validateDiscount } from "@/lib/admin/discounts";
-import { captureCart, markCartRecovered } from "@/lib/admin/cart-recovery";
+import { markCartRecovered } from "@/lib/admin/cart-recovery";
 import { getSettings } from "@/lib/settings";
 import { quoteShipping, shippingCentsFor, isShippingMethod, type ShippingMethod, type ShippingQuote } from "@/lib/shipping";
-import {
-  availablePaymentOptions,
-  isPaymentMethod,
-  referenceForOrderNumber,
-  type PaymentMethod,
-  type PaymentOption,
-} from "@/lib/payments";
-import { queueEmail } from "@/lib/admin/email";
+import { availablePaymentOptions, isPaymentMethod, type PaymentMethod, type PaymentOption } from "@/lib/payments";
+import { paymentPath, createOrderAccessToken } from "@/lib/order-access";
 
 export interface CheckoutAddress {
-  line1: string;
-  line2?: string;
-  suburb: string;
-  state: string;
-  postcode: string;
-  country?: string;
-  phone?: string;
+  line1: string; line2?: string; suburb: string; state: string; postcode: string; country?: string; phone?: string;
 }
-
 export interface PlaceOrderInput {
-  email: string;
-  name: string;
-  address: CheckoutAddress;
-  lines: ClientCartLine[];
-  discountCode?: string;
-  paymentMethod?: PaymentMethod;
-  shippingMethod?: ShippingMethod;
-  deliveryInstructions?: string;
+  email: string; name: string; address: CheckoutAddress; lines: ClientCartLine[];
+  discountCode?: string; paymentMethod?: PaymentMethod; shippingMethod?: ShippingMethod; deliveryInstructions?: string;
+  idempotencyKey: string; quoteVersion: string; recoveryEpisodeId?: string;
 }
-
 export type PlaceOrderResult =
-  | { ok: true; orderNumber: string; orderId: string; totalCents: number; warnings: string[] }
-  | { ok: false; error: string; outOfStockSku?: string };
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+  | { ok: true; orderNumber: string; orderId: string; totalCents: number; warnings: string[]; paymentUrl: string; replayed: boolean; purchasedLines?: ResolvedCartLine[] }
+  | { ok: false; error: string; outOfStockSku?: string; quote?: CartQuote; fieldErrors?: CheckoutFieldErrors };
+export interface CartQuote {
+  lines: ResolvedCartLine[]; version: string;
+  subtotalCents: number; discountCents: number; shippingCents: number; shippingMethod: ShippingMethod;
+  shippingOptions: ShippingQuote[]; totalCents: number; giftApplied: boolean; discountError?: string;
+  warnings: string[]; paymentOptions: PaymentOption[];
+}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+const bounded = (v: unknown, max: number, required = true): v is string =>
+  typeof v === "string" && v.length <= max && (!required || v.trim().length > 0);
 function validate(input: PlaceOrderInput): string | null {
-  if (!input.email || !EMAIL_RE.test(input.email.trim())) return "Enter a valid email address.";
-  if (!input.name?.trim()) return "Enter your full name.";
-  const a = input.address;
-  if (!a?.line1?.trim()) return "Enter your street address.";
-  if (!a.suburb?.trim()) return "Enter your suburb.";
-  if (!a.state?.trim()) return "Select your state.";
-  if (!/^\d{4}$/.test((a.postcode ?? "").trim())) return "Enter a valid 4-digit postcode.";
-  if (!input.lines?.length) return "Your cart is empty.";
+  if (!validateLines(input.lines)) return "Your cart contains invalid items or quantities. Please review it.";
+  if (!bounded(input.idempotencyKey, 36) || !UUID.test(input.idempotencyKey)) return "Please refresh checkout before placing your order.";
+  if (!bounded(input.quoteVersion, 80)) return "Wait for your order total to load.";
+  if (input.recoveryEpisodeId !== undefined && (!bounded(input.recoveryEpisodeId, 36) || !UUID.test(input.recoveryEpisodeId))) return "Please refresh checkout.";
+  if (input.discountCode !== undefined && !bounded(input.discountCode, 50, false)) return "Enter a valid discount code.";
   return null;
 }
 
-export interface CartQuote {
-  subtotalCents: number;
-  discountCents: number;
-  shippingCents: number;
-  shippingMethod: ShippingMethod;
-  shippingOptions: ShippingQuote[];
-  totalCents: number;
-  giftApplied: boolean;
-  discountError?: string;
-  warnings: string[];
-  paymentOptions: PaymentOption[];
-}
-
-/** Quote the cart server-side (used by the checkout summary so displayed totals
- *  are the same numbers the order will be written with). */
-export async function quoteCart(
-  lines: ClientCartLine[],
-  discountCode?: string,
-  shippingMethod?: ShippingMethod,
-): Promise<CartQuote> {
+async function resolveQuote(lines: ClientCartLine[], discountCode?: string, shippingMethod?: ShippingMethod) {
+  if (!validateLines(lines)) throw new Error("Your cart contains invalid items or quantities.");
+  if (discountCode !== undefined && !bounded(discountCode, 50, false)) throw new Error("Invalid discount code.");
   const [resolved, settings] = await Promise.all([resolveCart(lines), getSettings()]);
-  let discountCents = 0;
-  let discountError: string | undefined;
-  if (discountCode?.trim()) {
-    const d = await validateDiscount(discountCode, resolved.subtotalCents);
-    if (d.ok) discountCents = d.discountCents;
-    else discountError = d.error;
-  }
+  const discount = discountCode?.trim() ? await validateDiscount(discountCode, resolved.subtotalCents) : null;
+  const discountCents = discount?.ok ? discount.discountCents : 0;
   const afterDiscount = resolved.subtotalCents - discountCents;
-  const requested = isShippingMethod(shippingMethod) ? shippingMethod : "standard";
-  const shipping = shippingCentsFor(afterDiscount, requested, settings);
-
-  return {
-    subtotalCents: resolved.subtotalCents,
-    discountCents,
-    shippingCents: shipping.cents,
-    shippingMethod: shipping.method,
-    shippingOptions: quoteShipping(afterDiscount, settings),
-    totalCents: afterDiscount + shipping.cents,
-    giftApplied: resolved.giftApplied,
-    discountError,
-    warnings: resolved.warnings,
-    paymentOptions: availablePaymentOptions(settings),
+  const shipping = shippingCentsFor(afterDiscount, isShippingMethod(shippingMethod) ? shippingMethod : "standard", settings);
+  const value = {
+    lines: resolved.lines, subtotalCents: resolved.subtotalCents, discountCents, shippingCents: shipping.cents,
+    shippingMethod: shipping.method, shippingOptions: quoteShipping(afterDiscount, settings),
+    totalCents: afterDiscount + shipping.cents, giftApplied: resolved.giftApplied,
+    discountError: discount && !discount.ok ? discount.error : undefined,
+    warnings: resolved.warnings, paymentOptions: availablePaymentOptions(settings),
   };
+  // Includes resolved stock identities and allocations, so a replaced variant,
+  // missing gift or changed bundle cannot silently reuse an old confirmation.
+  const quote: CartQuote = { ...value, version: hash({ ...value, items: resolved.items, discountCode: discountCode?.trim().toUpperCase() ?? "" }) };
+  return { quote, resolved, settings };
+}
+export async function quoteCart(lines: ClientCartLine[], discountCode?: string, shippingMethod?: ShippingMethod): Promise<CartQuote> {
+  return (await resolveQuote(lines, discountCode, shippingMethod)).quote;
 }
 
-/** Capture email + cart for abandoned-cart recovery. Fire-and-forget from the
- *  client (email blur); never blocks or errors the checkout flow. */
-export async function captureCartEmail(email: string, lines: ClientCartLine[]): Promise<void> {
-  if (!email?.includes("@") || !lines?.length) return;
+function success(order: CreatedOrder, warnings: string[] = []): PlaceOrderResult {
+  return { ok: true, orderNumber: order.orderNumber, orderId: order.orderId, totalCents: order.totalCents,
+    paymentUrl: paymentPath(order.orderId), replayed: order.replayed, warnings, purchasedLines: order.purchasedLines };
+}
+/** Read-only recovery works even when the committed reservation exhausted stock.
+ * The random attempt key and exact original request hash form a private pair. */
+export async function recoverCheckoutAttempt(idempotencyKey: string, requestFingerprint: string): Promise<PlaceOrderResult | { ok: false; notFound: true; error: string }> {
+  if (!bounded(idempotencyKey, 36) || !UUID.test(idempotencyKey)
+    || !bounded(requestFingerprint, 64) || !/^[a-f0-9]{64}$/.test(requestFingerprint)) {
+    return { ok: false, error: "The saved order attempt is invalid. Please contact support if you already submitted an order." };
+  }
   try {
-    const resolved = await resolveCart(lines);
-    const named = lines.map((l) => ({
-      name: l.slug,
-      variantLabel: l.variantLabel,
-      quantity: l.quantity,
-    }));
-    await captureCart(email, named, resolved.subtotalCents);
+    const order = await findCheckoutReplay(idempotencyKey, requestFingerprint);
+    return order ? success(order) : { ok: false, notFound: true, error: "No completed order was found yet. You can retry with the same details; please keep this checkout session open." };
   } catch {
-    /* best-effort — never surfaces to the shopper */
+    return { ok: false, error: "We couldn't check your earlier order yet. Please try checking again before placing another order." };
   }
 }
 
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+  const fieldErrors = checkoutFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return {ok:false,error:"Check the highlighted details.",fieldErrors};
   const invalid = validate(input);
   if (invalid) return { ok: false, error: invalid };
-
   try {
-    const [resolved, settings] = await Promise.all([resolveCart(input.lines), getSettings()]);
-    if (!resolved.items.length && !resolved.extraItems.length) {
-      return { ok: false, error: "None of the items in your cart are available." };
-    }
-
-    // The payment method must be one we currently offer — a stale or tampered
-    // value falls back to the first configured method rather than writing an
-    // order nobody can pay for.
-    const offered = availablePaymentOptions(settings);
-    if (!offered.length) {
-      return {
-        ok: false,
-        error: "Payments are temporarily unavailable. Please contact support before ordering.",
-      };
-    }
-    const paymentMethod: PaymentMethod =
-      isPaymentMethod(input.paymentMethod) && offered.some((o) => o.method === input.paymentMethod)
-        ? input.paymentMethod
-        : offered[0].method;
-
-    // Shipping is priced server-side from the discounted subtotal for the same
-    // reason prices are: the client may ask for express, it may not decide what
-    // express costs.
-    const discount = input.discountCode?.trim()
-      ? await validateDiscount(input.discountCode, resolved.subtotalCents)
-      : null;
-    const discountCents = discount?.ok ? discount.discountCents : 0;
-    const requested = isShippingMethod(input.shippingMethod) ? input.shippingMethod : "standard";
-    const shipping = shippingCentsFor(resolved.subtotalCents - discountCents, requested, settings);
-
-    const instructions = input.deliveryInstructions?.trim().slice(0, 500);
-
-    const order = await createOrder({
-      email: input.email,
-      name: input.name.trim(),
-      shippingAddress: {
-        line1: input.address.line1.trim(),
-        line2: input.address.line2?.trim() || null,
-        suburb: input.address.suburb.trim(),
-        state: input.address.state.trim(),
-        postcode: input.address.postcode.trim(),
-        country: input.address.country?.trim() || "AU",
-        phone: input.address.phone?.trim() || null,
-        shipping_method: shipping.method,
-        delivery_instructions: instructions || null,
-      },
-      items: resolved.items,
-      extraItems: resolved.extraItems,
-      discountCode: input.discountCode?.trim() || undefined,
-      shippingCents: shipping.cents,
-      paymentMethod,
-      actor: input.email.trim().toLowerCase(),
-    });
-
-    // The reference and the hold window are what make a customer-initiated
-    // payment matchable and time-bounded. Written immediately after create so an
-    // order can never exist in `pending` without them.
-    const reference = referenceForOrderNumber(order.orderNumber);
-    await setOrderPaymentPlan(order.orderId, {
-      reference,
-      expiryHours: settings.paymentExpiryHours,
-    });
-
-    // Payment instructions email. Best-effort: a mail failure must not lose the
-    // order — the details are also on the confirmation page the shopper is about
-    // to land on, and the reminder sweep will try again.
-    await queueEmail({
-      to: input.email,
-      template: "payment_instructions",
-      payload: {
-        order_number: order.orderNumber,
-        order_id: order.orderId,
-        payment_method: paymentMethod,
-        reference,
-        amount_cents: order.totalCents,
-      },
-      relatedType: "order",
-      relatedId: order.orderId,
-    }).catch((err) => console.error("payment_instructions email failed:", err));
-
-    // Best-effort: suppression failing must never break checkout, but it should
-    // be visible server-side rather than silently swallowed (a failure here means
-    // a real customer could get a stale "you left this in your cart" email).
-    await markCartRecovered(input.email, order.orderId).catch((err) =>
-      console.error("markCartRecovered failed:", err),
-    );
-
-    return {
-      ok: true,
-      orderNumber: order.orderNumber,
-      orderId: order.orderId,
-      totalCents: order.totalCents,
-      warnings: resolved.warnings,
+    const shippingAddress = {
+      line1: input.address.line1.trim(), line2: input.address.line2?.trim() || null,
+      suburb: input.address.suburb.trim(), state: input.address.state.trim().toUpperCase(), postcode: input.address.postcode.trim(),
+      country: "AU", phone: input.address.phone?.trim() || null,
+      shipping_method: input.shippingMethod ?? "standard", delivery_instructions: input.deliveryInstructions?.trim() || null,
     };
+    const email = input.email.trim().toLowerCase();
+    const name = input.name.trim();
+    const discountCode = input.discountCode?.trim().toUpperCase() || undefined;
+    const requestFingerprint = hash({ email, name, shippingAddress, lines: normalizeCheckoutLines(input.lines), paymentMethod: input.paymentMethod, discountCode });
+    // Test key availability before a transaction can commit without a usable receipt.
+    createOrderAccessToken(input.idempotencyKey, "payment");
+    const existing = await findCheckoutReplay(input.idempotencyKey, requestFingerprint);
+    if (existing) return success(existing);
+    const { quote, resolved, settings } = await resolveQuote(input.lines, discountCode, input.shippingMethod);
+    if (input.quoteVersion !== quote.version) return { ok: false, error: "Your order details have changed. Review the updated summary and place your order again.", quote };
+    if (!resolved.items.length) return { ok: false, error: "None of the items in your cart are available.", quote };
+    if (quote.discountError) return { ok: false, error: quote.discountError, fieldErrors:{discount:quote.discountError}, quote };
+    if (!isPaymentMethod(input.paymentMethod) || !quote.paymentOptions.some((o) => o.method === input.paymentMethod)) {
+      return { ok: false, error: "Select an available payment method.", fieldErrors:{payment:"Select an available payment method."}, quote };
+    }
+    if (input.shippingMethod && input.shippingMethod !== quote.shippingMethod) return { ok: false, error: "Select an available shipping method.", fieldErrors:{shipping:"Select an available shipping method."}, quote };
+    let analyticsClientId: string | undefined;
+    if (process.env.GA4_API_SECRET && /^G-[A-Z0-9]+$/.test(process.env.NEXT_PUBLIC_GA4_ID ?? "")) {
+      const { cookies } = await import("next/headers");
+      const cookie = (await cookies()).get("_ga")?.value;
+      const match = cookie?.match(/^GA\d+\.\d+\.(\d{1,20}\.\d{1,20})$/);
+      analyticsClientId = match?.[1];
+    }
+    const recoveryEpisodeId = await verifiedRecoveryEpisode(email,input.lines).catch(()=>undefined);
+    const order = await createOrder({ email, name, shippingAddress, items: resolved.items, extraItems: resolved.extraItems,
+      discountCode, shippingCents: quote.shippingCents, paymentMethod: input.paymentMethod, actor: email,
+      idempotencyKey: input.idempotencyKey, requestFingerprint, analyticsClientId, purchasedLines: resolved.lines, paymentExpiryHours: settings.paymentExpiryHours, expectedTotalCents: quote.totalCents });
+    // Email intent is inserted by the commerce transaction. Provider delivery
+    // belongs to the outbox worker and cannot turn a committed order into a failure.
+    await markCartRecovered(email, order.orderId, recoveryEpisodeId).catch(() => console.error("Checkout recovery attribution awaits investigation"));
+    try { after(async () => {
+      const { dispatchOrderEmails } = await import("@/lib/email/sender");
+      await dispatchOrderEmails(order.orderId).catch(() => console.error("Order email awaits outbox retry"));
+    }); } catch { /* Durable intent remains available to the cron worker. */ }
+    return success(order, resolved.warnings);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.startsWith("OUT_OF_STOCK:")) {
-      const sku = msg.split(":")[1];
-      return {
-        ok: false,
-        error: "One of your items just sold out. Please adjust your cart and try again.",
-        outOfStockSku: sku,
-      };
+    if (msg.includes("CHECKOUT_RATE_LIMIT")) return { ok: false, error: "You have several recent payment requests. Please use your existing payment email or contact support before placing another order." };
+    if (msg.includes("OUT_OF_STOCK:")) return { ok: false, error: "One of your items just sold out. Please adjust your cart and try again.", outOfStockSku: msg.split("OUT_OF_STOCK:")[1]?.split(/\s/)[0] };
+    if (msg.includes("QUOTE_CHANGED")) {
+      const updated = await resolveQuote(input.lines, input.discountCode, input.shippingMethod).catch(() => null);
+      return { ok: false, error: "A price changed while you were checking out. Review the updated order summary and try again.", quote: updated?.quote };
     }
-    console.error("placeOrder failed:", msg);
-    return { ok: false, error: "We couldn't place your order. Please try again." };
+    console.error("Checkout transaction could not be confirmed; inspect the private operation log");
+    return { ok: false, error: "We couldn't confirm your order. Please retry with the same details; a completed attempt will be recovered safely." };
   }
 }

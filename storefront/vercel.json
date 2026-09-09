@@ -25,5 +25,10 @@
       "path": "/api/cron/daily-brief",
       "schedule": "0 21 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  }
 }

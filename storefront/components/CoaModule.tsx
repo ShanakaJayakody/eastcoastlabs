@@ -44,17 +44,16 @@ export default function CoaModule({ record }: { record: CoaRecord | null }) {
             )}
           </div>
           <p className="mt-3 text-xs text-muted-2">
-            Independently verify your batch against the published result, or send it to any lab — if
-            it&apos;s below our purity guarantee, we cover the test.
+            Use the published certificate and laboratory verification link to check the result. Contact support if you need help identifying the relevant batch.
           </p>
         </>
       ) : (
         <p className="mt-4 text-sm text-muted">
-          The Certificate of Analysis for the current batch is being published. Results appear on our{" "}
+          A verified Certificate of Analysis is currently unavailable for this product. Check our{" "}
           <a href="/lab-results" className="text-accent">
             Lab Results
           </a>{" "}
-          page before listing.
+          page or contact support for batch documentation before ordering.
         </p>
       )}
     </section>

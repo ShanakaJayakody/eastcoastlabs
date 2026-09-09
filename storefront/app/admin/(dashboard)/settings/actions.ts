@@ -2,16 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
-import { putSetting, SETTING_KEYS } from "@/lib/settings";
-import { logAudit } from "@/lib/admin/audit";
+import { putSettings, SETTING_KEYS } from "@/lib/settings";
 
 export interface ActionResult {
   ok: boolean;
   error?: string;
   message?: string;
+  version?: number;
 }
 
 export interface SettingsInput {
+  version?: number;
   announcementItems: string[];
   freeShippingThreshold: number;
   giftThreshold: number;
@@ -36,13 +37,23 @@ export interface SettingsInput {
 export async function saveSettings(input: SettingsInput): Promise<ActionResult> {
   const session = await requireAdmin();
 
+  const bounded = (n: number) => Number.isFinite(n) && n >= 0 && n <= 1_000_000;
+  if (![input.standardShippingCents, input.expressShippingCents].every(n => bounded(n) && Number.isInteger(n)))
+    return {ok:false,error:"Shipping prices must be whole cents between 0 and 1,000,000."};
+  if (!bounded(input.expressFreeThreshold)) return {ok:false,error:"Express free-shipping threshold is invalid."};
+  if (!Number.isInteger(input.paymentWindowHours) || input.paymentWindowHours < 1 || input.paymentWindowHours > 720)
+    return {ok:false,error:"Payment hold window must be 1–720 whole hours."};
+  if (!Number.isInteger(input.paymentExpiryHours) || input.paymentExpiryHours < 1 || input.paymentExpiryHours > 720)
+    return {ok:false,error:"Payment expiry must be 1–720 whole hours."};
+  if (!Array.isArray(input.announcementItems) || input.announcementItems.some(s => typeof s !== "string" || s.length > 500) || input.announcementItems.length > 20)
+    return {ok:false,error:"Add up to 20 announcement items of 500 characters each."};
   const items = input.announcementItems.map((s) => s.trim()).filter(Boolean);
   if (!items.length) return { ok: false, error: "Add at least one announcement item." };
-  if (!Number.isFinite(input.freeShippingThreshold) || input.freeShippingThreshold < 0)
+  if (!bounded(input.freeShippingThreshold))
     return { ok: false, error: "Free-shipping threshold must be a positive number." };
-  if (!Number.isFinite(input.giftThreshold) || input.giftThreshold < 0)
+  if (!bounded(input.giftThreshold))
     return { ok: false, error: "Gift threshold must be a positive number." };
-  if (!input.supportEmail.includes("@")) return { ok: false, error: "Enter a valid support email." };
+  if (!/^\S+@\S+\.\S+$/.test(input.supportEmail.trim())) return { ok: false, error: "Enter a valid support email." };
 
   // A method can only be switched on if it has the details a customer needs to
   // actually pay — enabling PayID with a blank identifier would render an empty
@@ -50,9 +61,9 @@ export async function saveSettings(input: SettingsInput): Promise<ActionResult> 
   const payid = input.payidIdentifier.trim();
   const bsb = input.bankBsb.trim();
   const acct = input.bankAccountNumber.trim();
-  if (input.payidEnabled && !payid)
+  if (input.payidEnabled && (!payid || !input.payidName.trim()))
     return { ok: false, error: "Add a PayID (email, phone, or ABN) before enabling PayID." };
-  if (input.bankTransferEnabled && (!bsb || !acct))
+  if (input.bankTransferEnabled && (!bsb || !acct || !input.bankAccountName.trim()))
     return { ok: false, error: "Add both a BSB and an account number before enabling bank transfer." };
   if (!input.payidEnabled && !input.bankTransferEnabled)
     return { ok: false, error: "At least one payment method must stay enabled." };
@@ -70,45 +81,14 @@ export async function saveSettings(input: SettingsInput): Promise<ActionResult> 
     };
 
   try {
-    await putSetting(SETTING_KEYS.announcementItems, items, session.email);
-    await putSetting(SETTING_KEYS.freeShippingThreshold, input.freeShippingThreshold, session.email);
-    await putSetting(SETTING_KEYS.giftThreshold, input.giftThreshold, session.email);
-    await putSetting(SETTING_KEYS.supportEmail, input.supportEmail.trim(), session.email);
-
-    await putSetting(SETTING_KEYS.payidEnabled, input.payidEnabled, session.email);
-    await putSetting(SETTING_KEYS.payidIdentifier, payid, session.email);
-    await putSetting(SETTING_KEYS.payidName, input.payidName.trim(), session.email);
-    await putSetting(SETTING_KEYS.bankTransferEnabled, input.bankTransferEnabled, session.email);
-    await putSetting(SETTING_KEYS.bankBsb, bsb, session.email);
-    await putSetting(SETTING_KEYS.bankAccountNumber, acct, session.email);
-    await putSetting(SETTING_KEYS.bankAccountName, input.bankAccountName.trim(), session.email);
-    await putSetting(SETTING_KEYS.paymentWindowHours, input.paymentWindowHours, session.email);
-    await putSetting(SETTING_KEYS.paymentExpiryHours, input.paymentExpiryHours, session.email);
-
-    await putSetting(SETTING_KEYS.standardShippingCents, input.standardShippingCents, session.email);
-    await putSetting(SETTING_KEYS.expressShippingEnabled, input.expressShippingEnabled, session.email);
-    await putSetting(SETTING_KEYS.expressShippingCents, input.expressShippingCents, session.email);
-    await putSetting(SETTING_KEYS.expressFreeThreshold, input.expressFreeThreshold, session.email);
-
-    await logAudit({
-      actor: session.email,
-      action: "settings.update",
-      entityType: "settings",
-      // Account details are credentials-adjacent: log that they changed, not
-      // what they changed to.
-      diff: {
-        ...input,
-        announcementItems: items,
-        payidIdentifier: payid ? "[set]" : "[cleared]",
-        bankBsb: bsb ? "[set]" : "[cleared]",
-        bankAccountNumber: acct ? "[set]" : "[cleared]",
-      },
-    });
+    const normalised = {...input, announcementItems:items,supportEmail:input.supportEmail.trim(),payidIdentifier:payid,payidName:input.payidName.trim(),bankBsb:bsb,bankAccountNumber:acct.replace(/\s/g,""),bankAccountName:input.bankAccountName.trim()};
+    const values = Object.fromEntries(Object.entries(SETTING_KEYS).map(([field,key]) => [key,normalised[field as keyof typeof SETTING_KEYS]]));
+    const version = await putSettings(values,input.version,session.email);
 
     // Every storefront surface that renders these values.
     revalidatePath("/", "layout");
     revalidatePath("/admin/settings");
-    return { ok: true, message: "Settings saved — storefront updated" };
+    return { ok: true, version, message: "Settings saved — storefront updated" };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }

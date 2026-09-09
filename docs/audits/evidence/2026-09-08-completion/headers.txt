@@ -1,0 +1,14 @@
+
+> eastcoastlabs-storefront@1.0.0 test:headers
+> node scripts/verify-headers.mjs
+
+PASS /cart-recovery: HTTP 200, private response headers
+PASS /cart-recovery?token=synthetic-invalid: HTTP 200, private response headers
+PASS /checkout: HTTP 200, private response headers
+PASS /checkout/thank-you: HTTP 200, private response headers
+PASS /pay/synthetic-invalid: HTTP 404, private response headers
+PASS /leave-a-review: HTTP 200, private response headers
+PASS /subscribe/confirm: HTTP 200, private response headers
+PASS /api/unsubscribe: HTTP 200, private response headers
+PASS /api/operations/health: HTTP 503, private response headers
+9 private response checks passed; owned loopback production server only

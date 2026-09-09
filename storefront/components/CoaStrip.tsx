@@ -6,7 +6,7 @@ export default function CoaStrip({ records }: { records: CoaRecord[] }) {
   if (records.length === 0) {
     return (
       <div className="rounded-lg border border-line bg-surface p-6 text-sm text-muted">
-        Latest batch results are being published — check the{" "}
+        Verified batch documents are currently unavailable. Check the{" "}
         <Link href="/lab-results" className="text-accent">
           Lab Results
         </Link>{" "}
@@ -31,6 +31,7 @@ export default function CoaStrip({ records }: { records: CoaRecord[] }) {
           <p className="mt-1 truncate text-sm font-semibold text-fg">{r.compound}</p>
           <p className="font-mono text-[11px] text-muted-2">#{r.batch_id}</p>
           <p className="mt-1 text-[11px] text-muted">{r.lab} · {r.test_date}</p>
+          <a href={r.coa_url} target="_blank" rel="noopener noreferrer" className="mt-2 block text-xs text-accent">View certificate →</a>
         </div>
       ))}
     </div>

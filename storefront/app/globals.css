@@ -13,7 +13,7 @@
   --color-line: #232c38;
   --color-line-2: #2e3947;
   --color-muted: #8b96a8;
-  --color-muted-2: #667085;
+  --color-muted-2: #838fa3;
   --color-fg: #e7ebf2;
   --color-fg-2: #c3ccd9;
   --color-accent: #2fd4c8;
@@ -50,7 +50,7 @@ html {
   --color-line: #d9d4c9;
   --color-line-2: #b8b2a4;
   --color-muted: #6e6759;
-  --color-muted-2: #8a8375;
+  --color-muted-2: #6f6759;
   --color-fg: #171512;
   --color-fg-2: #3e3a33;
   --color-accent: #1a5c4a; /* laboratory green — 6.4:1 on paper */
@@ -495,7 +495,7 @@ body {
   --color-line: #1e2a44;
   --color-line-2: #2c3c5e;
   --color-muted: #8b96b0;
-  --color-muted-2: #64708c;
+  --color-muted-2: #838fa3;
   --color-fg: #ecf1fb;
   --color-fg-2: #c4cde0;
   --color-accent: #37e2d4;   /* brighter lab teal */

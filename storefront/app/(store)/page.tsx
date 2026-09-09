@@ -1,7 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getCatalog } from "@/lib/catalog";
-import { getLatestCoa } from "@/lib/coa";
+import { getLatestCoa, getCoaForProduct } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import ProductCard from "@/components/ProductCard";
 import { decorateCards } from "@/lib/storefront-catalog";
@@ -19,6 +20,7 @@ import { getCollections } from "@/lib/collections";
 import VariantTag from "@/components/VariantTag";
 
 export const revalidate = 300;
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const BESTSELLER_SLUGS = ["tesamorelin", "mots-c", "semax", "selank", "bpc-157", "tb-500", "glow", "ghk-cu"];
 
@@ -40,9 +42,9 @@ export default async function HomePage() {
   // Hero visual: a featured vial (the teal BPC-157 render matches the accent).
   const heroProduct = bySlug.get("bpc-157") ?? grid[0] ?? products[0];
   const heroImage = heroProduct?.images?.[0]?.src;
-  const heroBatch = coa[0]; // most-recent published COA for the floating proof card
+  const heroBatch = heroProduct ? await getCoaForProduct(heroProduct.name, heroProduct.slug) : null; // most-recent published COA for the floating proof card
   // Split the H1 into sentences so the final one can carry the accent gradient.
-  const heroLines = copy.heroH1.split(/(?<=\.)\s+/).filter(Boolean);
+  const heroLines = "Research peptides. Explore the catalogue.".split(/(?<=\.)\s+/).filter(Boolean);
 
   // Rising "molecular" particles in the hero visual (position/size/timing).
   const HERO_PARTICLES = [
@@ -101,7 +103,7 @@ export default async function HomePage() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
               </span>
-              Independently tested by JanoShik · COA published before ship
+              Australian research supplies · Batch documentation
             </div>
 
             <h1 className="mt-5 text-balance text-4xl font-bold leading-[1.05] tracking-tight text-fg sm:text-5xl lg:text-6xl">
@@ -126,7 +128,7 @@ export default async function HomePage() {
               className="hero-in mt-5 max-w-md text-lg leading-relaxed text-muted"
               style={{ animationDelay: "0.5s" }}
             >
-              {copy.heroSub}
+              Browse compounds, compare pack prices and check available batch certificates.
             </p>
 
             {siteRating && (
@@ -149,7 +151,7 @@ export default async function HomePage() {
                 href="/shop"
                 className="btn-press rounded-lg bg-accent px-6 py-3.5 text-sm font-semibold text-accent-ink shadow-lg shadow-accent/20 transition hover:brightness-95 hover:shadow-accent/30"
               >
-                Shop bestsellers
+                Shop compounds
               </Link>
               <Link
                 href="/lab-results"
@@ -213,8 +215,8 @@ export default async function HomePage() {
                   <div className="flex items-center gap-2.5">
                     <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent/15 text-accent">🔬</span>
                     <div>
-                      <p className="text-sm font-bold text-fg">≥ 98% purity</p>
-                      <p className="text-[11px] text-muted">HPLC verified, every batch</p>
+                      <p className="text-sm font-bold text-fg">Research use only</p>
+                      <p className="text-[11px] text-muted">Check batch documentation</p>
                     </div>
                   </div>
                 </div>
@@ -244,9 +246,9 @@ export default async function HomePage() {
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-fg">
-              {copy.proofHeading || "Latest batch results — updated with every restock"}
+              Available batch documentation
             </h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted">{copy.proofSupport}</p>
+            <p className="mt-1 max-w-2xl text-sm text-muted">Certificates appear here after their published documents have been verified.</p>
           </div>
           <Link href="/lab-results" className="text-sm font-medium text-accent">
             View all results →
@@ -302,7 +304,7 @@ export default async function HomePage() {
               <h2 className="text-xl font-semibold text-fg">Research stacks — buy the set, save more</h2>
               <p className="mt-1 max-w-2xl text-sm text-muted">
                 The peptides most commonly studied together, priced below single vials. One
-                shipment, matching COAs.
+                shipment. Check certificate availability for each compound.
               </p>
             </div>
             <Link href="/stacks" className="text-sm font-medium text-accent">

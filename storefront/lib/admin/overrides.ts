@@ -18,11 +18,12 @@ import type { SequenceId } from "./sequences";
 
 /** Emails currently paused for one sequence. */
 export async function pausedEmailsFor(sequence: SequenceId): Promise<Set<string>> {
-  const { data } = await adminDb()
+  const { data, error } = await adminDb()
     .from("sequence_overrides")
     .select("email")
     .eq("sequence", sequence)
     .eq("action", "pause");
+  if (error) throw new Error(`Cannot read sequence pauses: ${error.message}`);
   return new Set((data ?? []).map((r) => (r as { email: string }).email));
 }
 
@@ -42,11 +43,12 @@ export function inList(emails: Set<string> | string[]): string | null {
 export async function listPauses(): Promise<
   { email: string; sequence: string; actor_email: string; reason: string | null; created_at: string }[]
 > {
-  const { data } = await adminDb()
+  const { data, error } = await adminDb()
     .from("sequence_overrides")
     .select("email, sequence, actor_email, reason, created_at")
     .order("created_at", { ascending: false })
     .limit(200);
+  if (error) throw new Error(`Cannot read sequence pauses: ${error.message}`);
   return (data ?? []) as {
     email: string;
     sequence: string;

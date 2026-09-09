@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * order-only customers (who never subscribed) can still opt out of marketing.
  */
 
-function page(title: string, body: string): NextResponse {
+function page(title: string, body: string, status = 200): NextResponse {
   return new NextResponse(
     `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} — East Coast Labs</title></head>
 <body style="margin:0;background:#080b10;color:#e7ebf2;font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;">
@@ -19,7 +19,7 @@ function page(title: string, body: string): NextResponse {
 <h1 style="font-size:20px;margin:0 0 12px;">${title}</h1>
 <p style="color:#8b96a8;font-size:14px;line-height:1.6;">${body}</p>
 </div></body></html>`,
-    { headers: { "Content-Type": "text/html; charset=utf-8" } },
+    { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } },
   );
 }
 
@@ -34,13 +34,9 @@ export async function GET(req: Request) {
   }
 
   const sb = supabaseAdmin();
-  if (sb) {
-    const now = new Date().toISOString();
-    await sb
-      .from("subscribers")
-      .upsert({ email, source: "unsubscribe", unsubscribed_at: now }, { onConflict: "email,source" });
-    await sb.from("subscribers").update({ unsubscribed_at: now }).eq("email", email);
-  }
+  if (!sb) return page("Please try again", "We couldn't save your preference. Please try this link again shortly or contact us.", 503);
+  const { error } = await sb.rpc("suppress_marketing", { p_email: email, p_source: "unsubscribe" });
+  if (error) return page("Please try again", "We couldn't save your preference. Please try this link again shortly or contact us.", 503);
 
   return page(
     "You're unsubscribed",

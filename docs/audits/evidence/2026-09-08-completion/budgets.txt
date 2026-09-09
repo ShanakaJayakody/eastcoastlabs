@@ -1,0 +1,10 @@
+
+> eastcoastlabs-storefront@1.0.0 check:budgets
+> node scripts/route-budgets.mjs
+
+PASS /(store)/page: 130.9 kB gzip; limit 138 kB (12 unique JS files)
+PASS /(store)/shop/page: 133.3 kB gzip; limit 140 kB (12 unique JS files)
+PASS /(store)/product/[slug]/page: 132.5 kB gzip; limit 140 kB (12 unique JS files)
+PASS /(store)/checkout/page: 134.8 kB gzip; limit 145 kB (12 unique JS files)
+PASS /admin/(dashboard)/products/[slug]/page: 159.1 kB gzip; limit 170 kB (13 unique JS files)
+PASS /admin/(dashboard)/orders/[id]/page: 150.1 kB gzip; limit 175 kB (12 unique JS files)

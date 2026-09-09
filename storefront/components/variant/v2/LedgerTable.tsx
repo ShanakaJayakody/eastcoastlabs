@@ -10,7 +10,7 @@ export default function LedgerTable({ records }: { records: CoaRecord[] }) {
   if (records.length === 0) {
     return (
       <p className="border border-line bg-surface p-6 text-sm text-muted">
-        Batch results are being published — check the Lab Results page shortly.
+        Verified batch documents are currently unavailable. Contact support for the relevant certificate before ordering.
       </p>
     );
   }
@@ -18,7 +18,7 @@ export default function LedgerTable({ records }: { records: CoaRecord[] }) {
   return (
     <div className="border border-line bg-surface">
       {/* Header row — desktop only */}
-      <div className="hidden grid-cols-[100px_1.4fr_100px_1fr_120px_100px] gap-4 border-b border-line px-5 py-3 font-data text-[11px] uppercase tracking-[0.08em] text-muted-2 sm:grid">
+      <div className="hidden grid-cols-[100px_1.4fr_100px_1fr_120px_100px] gap-4 border-b border-line px-5 py-3 font-data text-[11px] uppercase tracking-[0.08em] text-muted-2 lg:grid">
         <span>Batch</span>
         <span>Compound</span>
         <span>Purity</span>
@@ -30,7 +30,7 @@ export default function LedgerTable({ records }: { records: CoaRecord[] }) {
       {records.map((r, i) => (
         <div
           key={r.batch_id}
-          className={`grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-4 transition-colors hover:bg-surface-2 sm:grid-cols-[100px_1.4fr_100px_1fr_120px_100px] sm:items-center sm:gap-4 sm:py-3 ${
+          className={`grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-4 transition-colors hover:bg-surface-2 lg:grid-cols-[100px_minmax(0,1.4fr)_90px_minmax(0,1fr)_110px_90px] lg:items-center lg:gap-4 lg:py-3 ${
             i > 0 ? "border-t border-line" : ""
           }`}
         >

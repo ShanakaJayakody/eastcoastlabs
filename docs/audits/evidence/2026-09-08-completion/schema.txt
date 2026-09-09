@@ -1,0 +1,20 @@
+Read-only schema-only dump: 46812 bytes; SHA256 9514790db416c44491534ee7ff6c5af8543d6cf31a962a87c8d385cd1c971a19
+Production public schema and grants restored into an empty disposable database
+PASS 20260908090000_order_access_privacy.sql
+PASS 20260908100000_commerce_integrity.sql
+PASS 20260908110000_admin_integrity.sql
+PASS 20260908120000_outbox_integrity.sql
+PASS 20260908130000_subscription_consent.sql
+PASS 20260908140000_recovery_episodes.sql
+PASS 20260908150000_review_statistics.sql
+PASS 20260908160000_paid_analytics.sql
+PASS 20260908170000_stock_notifications.sql
+PASS 20260908180000_refund_workflow.sql
+PASS 20260908190000_fulfilment_workflows.sql
+PASS 20260908200000_cart_recovery_consent.sql
+PASS 20260908210000_operations_completion.sql
+PASS 20260908220000_application_privileges.sql
+No inherited TRUNCATE/REFERENCES/TRIGGER/MAINTAIN privileges remain on application tables for anon/authenticated/service_role
+[{"current_user":"anon","allowed":false}]
+Privilege probe: 42501 permission denied for table reviews
+14 forward migrations applied to actual production public schema; anonymous order identity denied; no customer records copied

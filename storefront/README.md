@@ -1,110 +1,45 @@
-# East Coast Labs — Storefront
+# East Coast Labs storefront and admin
 
-Production Next.js headless-commerce storefront for **East Coast Labs**, a research-use-only
-peptide supplier. Catalog, inventory, orders, and settings live in Supabase; the storefront
-owns its own cart, checkout, and order lifecycle end to end.
+Next.js 15 / React 19 / TypeScript application with Supabase PostgreSQL, Supabase Auth/Storage and optional Resend/GA4 integrations. The native checkout reserves an order and presents PayID or bank-transfer instructions. An administrator confirms payment before stock settles and a paid purchase is recorded. Bank refunds are recorded manually; this application does not move bank funds.
 
-**Payment is customer-initiated — PayID or direct bank transfer.** Mainstream card processors
-do not serve this category, so there is no gateway and the app never touches card data. An
-order is created in `pending` with a payment reference and a hold window; the customer
-transfers; an admin confirms receipt, which is what settles stock. Unpaid orders send
-themselves reminders and auto-cancel at expiry, releasing their reserved stock. See
-`lib/payments.ts`, `lib/admin/payment-ops.ts`, and `/pay/[id]`.
+## Local development
 
-## Stack
+Use Node.js 22.12 or newer in the 22.x line and npm 10.9.8. `package-lock.json` is the canonical lockfile; Bun is no longer used for installation.
 
-- **Next.js 15** (App Router) + **React 19**
-- **TypeScript** (strict)
-- **Tailwind CSS v4**
-- **marked** for markdown copy rendering
-- Server-side catalog/COA fetches (work despite CORS); client-side cart (Store API + Cart-Token).
-
-## Getting started
-
-```bash
-npm install
-cp .env.example .env.local   # fill in values (defaults point at live prod)
-npm run dev                  # http://localhost:3000
+```sh
+npm ci
+cp .env.example .env.local
+npm run dev
 ```
 
-### Production build
+Fill only the services needed in your isolated environment. Never point automated tests at a production database. Without Supabase, public pages render unavailable/empty states and checkout writes are unavailable. Certificates never fall back to historical CSV proof. Admin requires a valid Supabase Auth session and an active `admin_users` allowlist entry.
 
-```bash
+```sh
+npm test
+npm run typecheck
+npm run lint
 npm run build
-npm run start
+npm run preview:audit
 ```
 
-## Environment
+The last command runs a loopback-only component fixture on port 4174 with synthetic data and fake checkout actions. It is outside application routes. See [preview instructions](tests/preview/README.md). Tests clear service credentials and reject unexpected network calls; PostgreSQL behaviour tests run in disposable PGlite databases. Separate-session PostgreSQL races still require staging validation.
 
-See `.env.example`. All values are non-secret public endpoints.
+## Data and business boundaries
 
-| Var | Purpose | Default |
-|-----|---------|---------|
-| `WOO_API_BASE` | WooCommerce Store API + custom ECL REST base | `https://eastcoastlabs.com.au` |
-| `WOO_CHECKOUT_BASE` | Base for the checkout hand-off (`<base>/checkout`) | `https://eastcoastlabs.com.au` |
-| `NEXT_PUBLIC_GA4_ID` | GA4 measurement ID (`G-XXXX…`). Blank = analytics off | *(unset)* |
-| `NEXT_PUBLIC_KLAVIYO_ID` | Klaviyo company/site ID. Blank = Klaviyo off | *(unset)* |
+- Catalogue, active variants, prices and inventory come from Supabase. Listings use summary columns and stable pages; PDP details use direct slug queries. Historical catalogue data supplies stable display IDs/order only.
+- Cart storage is validated and synchronised between tabs. Prices and sale eligibility are re-resolved on the server. Checkout reviews a versioned quote, commits atomically and reuses a private attempt identity when results are uncertain.
+- Order creation, transitions, refunds, stock claims, operation history and notification intent use service-only transactional RPCs. Refund amounts include allocated discounts and remaining shipping. Physical returns are explicit; financial refund recording never implies a bank transfer was sent.
+- Payment and review links require scoped expiring signatures. Display order numbers or raw primary keys alone disclose no receipt. Public review columns exclude private order IDs.
+- Admin product/settings saves use revisions and atomic writes. Product drafts survive related media/stock refresh. Packing quantities exclude refunded units. Certificates on slips are general verified documents; parcel lot allocation is not implemented.
+- Queued email is leased, rechecked for eligibility and retried with a stable provider key. Confirmation of subscription requires mailbox access. Later unsubscribe invalidates older pending opt-in links. Cron credentials fail closed.
+- Browser analytics excludes private pages and removes query/referrer data. `order_created` is distinct from optional server-side paid `purchase`. The database remains the financial authority.
 
-`WOO_API_BASE` and `WOO_CHECKOUT_BASE` are exposed to the browser bundle via
-`next.config.ts` `env` (the client cart and checkout hand-off need them).
+Content decks in `content/` support editorial pages; product copy and SEO fields saved in admin take precedence for live products. Recurring delivery is not offered. Legacy Woo modules remain solely for an explicitly configured emergency fallback; do not enable them without separately validating that integration.
 
-## Routes
+## Database and release
 
-| Route | Description |
-|-------|-------------|
-| `/` | Home — hero, live batch-results strip (COA), bestsellers, testing steps, restock promo, FAQ |
-| `/shop` | Collection grid — image, name, "from $X/vial", stock |
-| `/product/[slug]` | PDP — gallery, tier radio cards, restock/bac-water options, add-to-cart, sticky bar, COA module, description, guarantee, FAQ, cross-sells, Product JSON-LD |
-| `/lab-results` | All published COA rows |
-| `/about` | About page (from copy deck) |
-| `/cart` | Full-page cart (mirrors the drawer) |
+Read [migration procedures](docs/MIGRATIONS.md) before any application/database release. `supabase/apply.mjs` records full migration filenames and SHA-256 checksums, uses a session advisory lock and never automatically runs `seed.sql`. Existing installations require an explicit verified baseline; rerunning historical SQL can overwrite admin content.
 
-## Data sources
+The audit changes are staged for review, not deployed. The [implementation report](../docs/audits/2026-09-08-IMPLEMENTATION.md) maps findings to code and remaining work. The [release runbook](docs/AUDIT-RELEASE.md) contains required staging checks, data reconciliation and operational configuration.
 
-- **Catalog** — `GET {WOO_API_BASE}/wp-json/wc/store/v1/products` (live, public). Prices are integer
-  minor units formatted to AUD in `lib/format.ts`.
-- **Cart** — `wc/store/v1/cart` + `add-item`/`update-item`/`remove-item`, with the `Cart-Token`
-  response header persisted to a cookie and resent (`lib/woo.ts`). See "Backend-gated" below.
-- **COA** — custom `GET {WOO_API_BASE}/wp-json/ecl/v1/coa`. Falls back to the CSV fixture at
-  `data/coa-seed.csv` when the endpoint 404s (`lib/coa.ts`).
-- **Copy** — markdown decks in `content/` (synced from the project `docs/`), parsed by
-  `lib/content.ts`.
-- **Tier pricing / cross-sells** — `data/price-table.json`, `data/cross-sells.json`.
-
-> The `content/` and `data/` files are bundled in-repo so the app is self-contained and
-> Vercel-deployable. Re-sync them from `../docs` and `../ecl-conversion/data` when the source
-> copy changes.
-
-## ⚠️ Backend-gated (works only after the WooCommerce plugin ships)
-
-The build and all catalog/COA reads work **now**. These light up automatically once the backend
-plugin is pushed — no code change required:
-
-1. **Client-side cart** — `wc/store/v1/cart*` endpoints are **CORS-gated and not enabled yet**, so
-   live add/update/remove calls fail. The UI uses a localStorage-backed cart mirror so the drawer,
-   badge, and free-shipping progress work regardless; each mutation also fires a best-effort Store
-   API call that succeeds post-deploy.
-2. **Checkout hand-off** — relies on the storefront and WooCommerce sharing a domain (shared
-   `Cart-Token` + session cookie). See the comment in `lib/cart-context.tsx`.
-3. **COA endpoint** — `ecl/v1/coa` 404s today; the app renders the CSV fixture until it's live.
-4. **Tier cards** — the live catalog currently exposes every product as `simple`. Tier (1/3/6)
-   pricing comes from `data/price-table.json` as a bridge; when the backend exposes real
-   `variations`, the PDP prefers those.
-
-## Compliance
-
-Research-use-only store. No dosing, benefit, results, or human/animal-consumption language
-anywhere. Quantities are "vials"/"packs". The line **"Research use only — not for human or animal
-consumption."** appears on the PDP, cart, and footer.
-
-## Deploy (Vercel)
-
-1. Push this directory to a Git repo (or `vercel` from here).
-2. Import the project in Vercel; framework preset **Next.js** is auto-detected.
-3. Set env vars (`WOO_API_BASE`, `WOO_CHECKOUT_BASE`, `NEXT_PUBLIC_GA4_ID`,
-   `NEXT_PUBLIC_KLAVIYO_ID`) in **Project → Settings → Environment Variables**.
-4. Deploy. For the client cart + checkout hand-off to work, host the storefront on the **same
-   registrable domain** as WooCommerce (e.g. `shop.eastcoastlabs.com.au`) and ensure the backend
-   Store API sends CORS + `Cart-Token` headers.
-
-Catalog and COA pages use `revalidate = 300` (ISR, 5-minute freshness).
+Additional guides: [checkout abuse limits](docs/CHECKOUT-ABUSE.md), [paid analytics](docs/PAID-ANALYTICS.md).

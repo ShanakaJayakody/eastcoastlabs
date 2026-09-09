@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { cartLineDestination, MAX_CART_QUANTITY } from "@/lib/cart-line";
 import { useCart } from "@/lib/cart-context";
 import { formatAud } from "@/lib/format";
 import FreeShippingProgress from "./FreeShippingProgress";
@@ -98,7 +99,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <Link
-                      href={`/product/${line.slug}`}
+                      href={cartLineDestination(line)}
                       onClick={onNavigate}
                       className="block truncate text-sm font-semibold text-fg hover:text-accent"
                     >
@@ -132,6 +133,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
                     <button
                       type="button"
                       onClick={() => updateQty(line.key, line.quantity + 1)}
+                      disabled={line.quantity >= MAX_CART_QUANTITY}
                       className="btn-press grid h-10 w-10 place-items-center text-base text-fg-2 hover:text-fg"
                       aria-label="Increase quantity"
                     >
@@ -157,8 +159,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
           <span className="text-base font-bold text-fg">{formatAud(subtotal)}</span>
         </div>
         <p className="text-[11px] text-muted-2">
-          Shipping &amp; taxes calculated at checkout. You&apos;ll see &quot;EAST COAST LABS&quot; on
-          your statement.
+          Shipping and the confirmed total appear at checkout. Bank transfer details follow when you place the order.
         </p>
         <button
           type="button"

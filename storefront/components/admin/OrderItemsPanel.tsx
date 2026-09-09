@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { Minus, Plus, X } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { OrderStatus } from "@/lib/admin/orders";
-import { editItemQty, removeItem, refundLines } from "@/app/admin/(dashboard)/orders/actions";
+import { editItemQty, removeItem } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
+import RefundReview from "./RefundReview";
 
 export interface ItemRow {
   id: string;
@@ -59,12 +60,7 @@ export default function OrderItemsPanel({
       else toast.error(res.error ?? "Failed");
     });
 
-  const refundLineCount = Object.values(refundQty).filter((q) => q > 0).length;
 
-  const selectedRefundCents = items.reduce((sum, it) => {
-    const q = refundQty[it.id] ?? 0;
-    return sum + q * it.unit_price_cents;
-  }, 0);
   const anySelected = Object.values(refundQty).some((q) => q > 0);
 
   return (
@@ -131,6 +127,8 @@ export default function OrderItemsPanel({
                     {remaining > 0 ? (
                       <input
                         type="number"
+                        aria-label={`Refund quantity for ${it.product_name ?? "item"}`}
+                        disabled={pending || confirmRefund}
                         min={0}
                         max={remaining}
                         value={refundQty[it.id] ?? 0}
@@ -161,7 +159,7 @@ export default function OrderItemsPanel({
 
       {refundable && anySelected && (
         <div className="flex items-center justify-between border-t border-line bg-ink-2 px-4 py-3">
-          <span className="text-sm text-fg-2">Refund total: {cents(selectedRefundCents)}</span>
+          <span className="text-sm text-fg-2">Refund total: the selected quantities</span>
           <button
             disabled={pending}
             onClick={() => setConfirmRefund(true)}
@@ -184,8 +182,7 @@ export default function OrderItemsPanel({
               </p>
               <p className="mt-1.5 text-muted">
                 Removes {removing.qty} × {cents(removing.unit_price_cents)} from this order and
-                releases the stock it had reserved. The order total drops by{" "}
-                {cents(removing.line_total_cents)}.
+                releases the stock it had reserved. The server recalculates discounts, shipping and the remaining order total.
               </p>
             </>
           )
@@ -202,40 +199,7 @@ export default function OrderItemsPanel({
         onCancel={() => setRemoving(null)}
       />
 
-      <ConfirmModal
-        open={confirmRefund}
-        title="Refund these lines?"
-        body={
-          <>
-            <p className="font-medium text-fg">{cents(selectedRefundCents)} back to the customer</p>
-            <p className="mt-1.5 text-muted">
-              Across {refundLineCount} line{refundLineCount === 1 ? "" : "s"}. The refunded stock is
-              returned to inventory. Money is not moved automatically — refund it in your payment
-              provider or bank separately.
-            </p>
-          </>
-        }
-        confirmLabel="Record refund"
-        tone="danger"
-        pending={pending}
-        onConfirm={() => {
-          const lines = Object.entries(refundQty)
-            .filter(([, q]) => q > 0)
-            .map(([itemId, qty]) => ({ itemId, qty }));
-          start(async () => {
-            const res = await refundLines(orderId, lines);
-            if (res.ok) {
-              toast.success(
-                `Refunded ${cents(res.refundedCents ?? 0)}${res.fullyRefunded ? " — order fully refunded" : ""}`,
-              );
-              setRefundQty({});
-              setConfirmRefund(false);
-              router.refresh();
-            } else toast.error(res.error ?? "Refund failed");
-          });
-        }}
-        onCancel={() => setConfirmRefund(false)}
-      />
+      {confirmRefund && <RefundReview orderId={orderId} selection={Object.entries(refundQty).filter(([,qty])=>qty>0).map(([itemId,qty])=>({itemId,qty}))} onClose={()=>setConfirmRefund(false)} onSuccess={()=>setRefundQty({})}/>}
 
       <dl className="space-y-1.5 border-t border-line px-4 py-3 text-sm">
         <div className="flex justify-between">

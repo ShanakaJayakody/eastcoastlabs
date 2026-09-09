@@ -1,4 +1,5 @@
 import { formatAud } from "@/lib/format";
+import type { OrderFulfilment } from "@/lib/admin/fulfilment";
 import type { OrderDetail } from "@/lib/admin/order-queries";
 
 const cents = (c: number) => formatAud(c / 100);
@@ -10,13 +11,16 @@ const cents = (c: number) => formatAud(c / 100);
  */
 export default function PackingSlip({
   order,
-  coas,
+  fulfilment,
   pageBreak = false,
 }: {
   order: OrderDetail;
-  coas: Record<string, string>;
+  /** Legacy caller compatibility; product-wide certificates are not parcel evidence. */
+  coas?: Record<string, string>;
+  fulfilment?: OrderFulfilment;
   pageBreak?: boolean;
 }) {
+  const shippable = order.status === "cancelled" || order.status === "refunded" ? [] : order.items.map(it => ({...it, packQty: Math.max(0,it.qty-(it.refunded_qty ?? 0))})).filter(it=>it.packQty>0);
   const addr = order.shipping_address ?? {};
   return (
     <section className={pageBreak ? "break-after-page" : ""}>
@@ -60,13 +64,13 @@ export default function PackingSlip({
         <thead>
           <tr className="border-b border-black text-left">
             <th className="py-2">Item</th>
-            <th className="py-2">Batch / COA</th>
-            <th className="py-2 text-center">Qty</th>
-            <th className="py-2 text-right">Amount</th>
+            <th className="py-2">Physical lot allocation</th>
+            <th className="py-2 text-center">Qty to pack</th>
+            <th className="py-2 text-right">Original line amount</th>
           </tr>
         </thead>
         <tbody>
-          {order.items.map((it) => (
+          {shippable.map((it) => (
             <tr key={it.id} className="border-b border-neutral-300">
               <td className="py-2">
                 <span className="font-medium">{it.product_name}</span>
@@ -75,8 +79,8 @@ export default function PackingSlip({
                   {it.sku ? ` · ${it.sku}` : ""}
                 </span>
               </td>
-              <td className="py-2 font-mono text-xs">{coas[it.product_name ?? ""] ?? "—"}</td>
-              <td className="py-2 text-center">{it.qty}</td>
+              <td className="py-2 font-mono text-xs">{fulfilment?.lines.some(l=>l.itemId===it.id) ? "See physical units below" : `${it.packQty} unallocated order units · physical pool unknown`}</td>
+              <td className="py-2 text-center">{it.packQty}</td>
               <td className="py-2 text-right">{cents(it.line_total_cents)}</td>
             </tr>
           ))}
@@ -106,19 +110,29 @@ export default function PackingSlip({
           </tr>
           <tr className="border-t-2 border-black font-bold">
             <td colSpan={3} className="py-2 text-right">
-              Total
+              Original order total
             </td>
             <td className="py-2 text-right">{cents(order.total_cents)}</td>
           </tr>
         </tfoot>
       </table>
 
+      {!!fulfilment?.lines.length && <section className="mt-5 space-y-3 text-xs" aria-label="Physical lot assignments">
+        <h2 className="font-bold">Recorded physical lot assignments</h2>
+        {fulfilment.lines.map(line=><div key={`${line.itemId}-${line.poolId}`}>
+          <p className="font-semibold">{line.productName} · {line.variantLabel} · {line.poolName} pool</p>
+          {line.allocations.map(a=><div key={a.lotId}><p>{a.lotCode} · {a.units} physical units</p>{a.coa?<a href={a.coa.url} className="underline">Verified COA {a.coa.batchId}</a>:<p>No verified COA linked</p>}</div>)}
+          <p>{line.unallocatedUnits} unallocated physical units</p>
+          {line.allocatedUnits>line.requiredUnits&&<p>{fulfilment.editable?"Physical release must be reviewed before dispatch.":"Historical dispatched assignments retained after refund."}</p>}
+        </div>)}
+      </section>}
+      <p className="mt-3 text-xs text-neutral-600">Packing quantities exclude refunded units. Amounts above show the original order accounting.</p>
       <footer className="mt-10 border-t border-neutral-300 pt-4 text-xs text-neutral-600">
         <p className="font-bold uppercase">
           Research use only — not for human or animal consumption.
         </p>
         <p className="mt-1">
-          Every batch is independently tested. Certificates of analysis are published at
+          Lot references above are actual operator-recorded assignments. Unallocated units have no recorded batch. Available certificates are published at
           eastcoastlabs.com.au/lab-results
         </p>
       </footer>

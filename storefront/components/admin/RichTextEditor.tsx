@@ -25,13 +25,16 @@ export default function RichTextEditor({
   value,
   onChange,
   minHeight = 160,
+  label = "Description",
 }: {
   value: string;
   onChange: (html: string) => void;
   minHeight?: number;
+  label?: string;
 }) {
   const editor = useEditor({
     immediatelyRender: false,
+    autofocus: "end",
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] } }),
       Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-accent-2 underline" } }),
@@ -39,6 +42,9 @@ export default function RichTextEditor({
     content: value,
     editorProps: {
       attributes: {
+        role: "textbox",
+        "aria-label": label,
+        "aria-multiline": "true",
         class: "prose-ecl max-w-none focus:outline-none px-3 py-2 text-sm text-fg-2",
         style: `min-height:${minHeight}px`,
       },

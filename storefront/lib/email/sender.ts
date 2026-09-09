@@ -1,123 +1,90 @@
 import "server-only";
-
-/**
- * Resend sender + outbox drain.
- *
- * Sending is best-effort and MUST NOT block or fail the caller's business
- * transaction (an order is valid even if its confirmation email fails to send).
- * Every attempt updates the outbox row's status, so failures are visible and
- * retryable via drainOutbox() instead of silently vanishing.
- */
 import { Resend } from "resend";
 import { adminDb } from "@/lib/admin/db";
 import { renderTemplate } from "./templates";
+import { unsubscribeUrl } from "./unsubscribe";
+import { isTransactional } from "@/lib/admin/sequences";
 import type { EmailTemplate } from "@/lib/admin/email";
 
+interface OutboxRow { id: string; to_email: string; template: EmailTemplate; payload: Record<string, unknown>; lease_token: string; rendered_subject?: string; rendered_html?: string }
+interface DeliveryResult { ok: boolean; cancelled?: boolean; error?: string; messageId?: string }
 const FROM = process.env.RESEND_FROM_EMAIL || "East Coast Labs <orders@eastcoastlabs.com.au>";
 
-function client(): Resend | null {
+/** Rendering and eligibility happen before the final check. The RPC verifies
+ * the current lease, opt-out, operator pause and order/cart state just before sending. */
+async function sendOne(row: OutboxRow): Promise<DeliveryResult> {
   const key = process.env.RESEND_API_KEY;
-  return key ? new Resend(key) : null;
-}
-
-interface OutboxRow {
-  id: string;
-  to_email: string;
-  template: EmailTemplate;
-  payload: Record<string, unknown>;
-}
-
-/**
- * Templates that have been retired. Rows queued before removal are still sitting
- * in the outbox; without this guard they'd fall through renderTemplate's default
- * branch and mail a customer a blank "Notification." email.
- */
-const RETIRED_TEMPLATES = new Set<string>(["post_purchase_coa", "welcome_2"]);
-
-/**
- * Send one outbox row. Never throws — returns a result the caller persists.
- *
- * The returned messageId is what makes Phase C possible: Resend's webhooks
- * identify an email only by its provider id, so unless we record it at send
- * time there is no way to attach a later "opened" or "bounced" event back to
- * the row that caused it.
- */
-export async function sendOne(
-  row: OutboxRow,
-): Promise<{ ok: boolean; error?: string; messageId?: string }> {
-  if (RETIRED_TEMPLATES.has(row.template)) {
-    return { ok: false, error: `Template "${row.template}" is retired — not sent.` };
-  }
-  const resend = client();
-  if (!resend) return { ok: false, error: "RESEND_API_KEY not configured" };
+  if (!key) return { ok: false, error: "RESEND_API_KEY not configured" };
   try {
-    const { subject, html } = await renderTemplate(row.template, row.payload ?? {});
-    const { data, error } = await resend.emails.send({
-      from: FROM,
-      to: row.to_email,
-      subject,
-      html,
+    let payload = row.payload ?? {};
+    if (!isTransactional(row.template) && row.template !== "subscription_confirmation" && row.template !== "cart_recovery_confirmation") {
+      const url = unsubscribeUrl(row.to_email);
+      if (!url) return { ok: false, error: "Unsubscribe signing secret is not configured" };
+      payload = { ...payload, unsubscribe_url: url };
+    }
+    const rendered = row.rendered_subject && row.rendered_html
+      ? { subject: row.rendered_subject, html: row.rendered_html }
+      : await renderTemplate(row.template, payload);
+    const { data: message, error: prepareError } = await adminDb().rpc("prepare_email_delivery_v2", {
+      p_id: row.id, p_lease: row.lease_token, p_subject: rendered.subject, p_html: rendered.html, p_from: FROM,
     });
+    if (prepareError || !message?.subject || !message?.html || !message?.from || !message?.tag) return { ok: false, error: `Cannot freeze email body: ${prepareError?.message ?? "missing message"}` };
+    const { subject, html, from, tag } = message as { subject: string; html: string; from:string; tag:string };
+    const { data: allowed, error: eligibilityError } = await adminDb().rpc("authorize_email_delivery", { p_id: row.id, p_lease: row.lease_token });
+    if (eligibilityError) return { ok: false, error: `Eligibility check failed: ${eligibilityError.message}` };
+    if (!allowed) return { ok: false, cancelled: true };
+    const { data, error } = await new Resend(key).emails.send(
+      { from, to: row.to_email, subject, html, tags:[{name:'ecl_outbox_id',value:tag}] },
+      { idempotencyKey: `ecl-outbox/${row.id}` },
+    );
     if (error) return { ok: false, error: error.message };
-    return { ok: true, messageId: data?.id };
+    if (!data?.id) return { ok: false, error: "Provider returned no message identity" };
+    return { ok: true, messageId: data.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-/** Attempt to send a single freshly-queued row immediately, updating its status. */
+async function deliverClaimed(rows: OutboxRow[]) {
+  let sent=0, failed=0, cancelled=0;
+  for (const row of rows) {
+    const result = await sendOne(row);
+    if (result.cancelled) { cancelled++; continue; } // RPC already terminalised it, or lease belongs to another worker.
+    const { error } = await adminDb().rpc("finish_email_outbox", {
+      p_id: row.id, p_lease: row.lease_token, p_status: result.ok ? "sent" : "failed",
+      p_error: result.error ?? null, p_provider_id: result.messageId ?? null,
+    });
+    // Never report sent/failed bookkeeping success if the write failed. The
+    // lease will expire; retries retain the same provider identity.
+    if (error) throw new Error(`Cannot persist delivery outcome for ${row.id}; reconcile provider: ${error.message}`);
+    if (result.ok) sent++; else failed++;
+  }
+  return { sent, failed, cancelled };
+}
 export async function sendImmediately(rowId: string): Promise<void> {
-  const db = adminDb();
-  const { data: row } = await db
-    .from("email_outbox")
-    .select("id, to_email, template, payload")
-    .eq("id", rowId)
-    .maybeSingle();
-  if (!row) return;
-
-  const res = await sendOne(row as OutboxRow);
-  await db
-    .from("email_outbox")
-    .update(
-      res.ok
-        ? {
-            status: "sent",
-            sent_at: new Date().toISOString(),
-            provider_message_id: res.messageId ?? null,
-          }
-        : { status: "failed", error: res.error },
-    )
-    .eq("id", rowId);
+  const { data, error } = await adminDb().rpc("claim_email_outbox", { p_limit: 1, p_id: rowId });
+  if (error) throw new Error(`Cannot claim email: ${error.message}`);
+  await deliverClaimed((data ?? []) as OutboxRow[]);
+}
+export async function drainOutbox(limit = 50): Promise<{ sent: number; failed: number; cancelled: number }> {
+  // Claim one at a time so a slow provider cannot let later rows in a batch
+  // expire their leases before this worker starts them.
+  let sent=0, failed=0, cancelled=0;
+  for (let i=0; i<Math.max(1,Math.min(100,limit)); i++) {
+    const { data, error } = await adminDb().rpc("claim_email_outbox", { p_limit: 1, p_id: null });
+    if (error) throw new Error(`Cannot claim outbox: ${error.message}`);
+    if (!data?.length) break;
+    const result = await deliverClaimed(data as OutboxRow[]);
+    sent+=result.sent; failed+=result.failed; cancelled+=result.cancelled;
+  }
+  return { sent, failed, cancelled };
 }
 
-/** Drain queued + failed rows (retry). Used by the cron route. */
-export async function drainOutbox(limit = 50): Promise<{ sent: number; failed: number }> {
-  const db = adminDb();
-  const { data } = await db
-    .from("email_outbox")
-    .select("id, to_email, template, payload")
-    .in("status", ["queued", "failed"])
-    .order("created_at", { ascending: true })
-    .limit(limit);
-
-  let sent = 0;
-  let failed = 0;
-  for (const row of (data ?? []) as OutboxRow[]) {
-    const res = await sendOne(row);
-    if (res.ok) {
-      await db
-        .from("email_outbox")
-        .update({
-          status: "sent",
-          sent_at: new Date().toISOString(),
-          provider_message_id: res.messageId ?? null,
-        })
-        .eq("id", row.id);
-      sent++;
-    } else {
-      await db.from("email_outbox").update({ status: "failed", error: res.error }).eq("id", row.id);
-      failed++;
-    }
-  }
-  return { sent, failed };
+/** Prioritise newly committed order email after the HTTP response. Cron also
+ * discovers these rows if the request worker exits before its callback runs. */
+export async function dispatchOrderEmails(orderId: string): Promise<void> {
+  const { data, error } = await adminDb().from("email_outbox").select("id")
+    .eq("payload->>order_id", orderId).in("status", ["queued", "failed"]).order("created_at").limit(10);
+  if (error) throw new Error(`Cannot read order notifications: ${error.message}`);
+  for (const row of data ?? []) await sendImmediately(row.id);
 }

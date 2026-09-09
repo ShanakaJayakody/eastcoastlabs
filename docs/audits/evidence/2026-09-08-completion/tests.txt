@@ -1,0 +1,405 @@
+
+> eastcoastlabs-storefront@1.0.0 test
+> vitest run --reporter=verbose
+
+
+ RUN  v5.0.0 /Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront
+
+ ✓ tests/admin/fulfilment-workflow.test.ts > registers evidenced existing units without adding stock; rejects excess, reused receipts and unverified certificates 46ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > replays one checkout without reserving or creating twice and rejects another customer using its key 39ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > rolls back the complete order when an item write fails 18ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > settles a shared pool once, freezes cost, and paid cannot lose to stale expiry 33ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > serializes competing assignments, counts pack units and rejects foreign pools 58ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > preserves evidence after refund, requires physical release and freezes shipped assignments 35ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > carrier commits reject stale previews and return independent outcomes, using canonical tracking events 38ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > cancel before payment releases the claim and prevents payment 27ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > refunds one of three then the remaining two, allocating discount and final shipping exactly 25ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > partial return then cancel restores only the remaining units 23ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > money-only refunds do not put shipped goods on the shelf 23ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > rejects duplicate/conflicting carrier rows and denies public RPC access 31ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > rejects manual tracking conflicts too, and emits optional durable notification intent only once 55ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > prints explicit pool units, real assignments, verified certificate and missing allocation 26ms
+ ✓ tests/operations-completion.test.ts > cancels unattempted intent but refuses active leases and ambiguous provider contact 15ms
+ ✓ tests/operations-completion.test.ts > retry preserves frozen identity, backoff and budget; old or spent sends require reconciliation 9ms
+ ✓ tests/operations-completion.test.ts > reconciliation requires recorded exact provider identity; recipient-only evidence is insufficient 9ms
+ ✓ tests/operations-completion.test.ts > creates and launches product bundles atomically and records opening pool stock once 17ms
+ ✓ tests/operations-completion.test.ts > records actual net goods and final shipping once with immutable original analytics identity 28ms
+ ✓ tests/operations-completion.test.ts > removes hostile inherited and default ACLs while preserving safe reads and deliberate helper revocations 12ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > rejects inactive parent or variant and stale totals without writes 19ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > validates all refund quantities before any money or stock changes 23ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > reinstates and pays atomically with stock, but cannot revive already refunded units 19ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > edits pending quantities and shipping atomically and cannot remove the final line 19ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > expiry checks the locked order deadline and is idempotent 17ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > tracking correction preserves dispatch time and rejects pending orders 21ms
+ ✓ tests/operations-completion.test.ts > retains refund event evidence without analytics identity and settlements never enqueue a second refund 17ms
+ ✓ tests/operations-completion.test.ts > rechecks reconciliation proof under lock and never reassigns a provider identity 6ms
+ ✓ tests/operations-completion.test.ts > freezes the sender before authorization and rejects invented historical sender identity 5ms
+ ✓ tests/operations-completion.test.ts > suppressed recovery consent cannot be restored by an operator retry 9ms
+ ✓ tests/operations-completion.test.ts > never reclaims a refund after an abandoned lease or a recorded transport failure 4ms
+ ✓ tests/operations-completion.test.ts > only exposes verified COA records through the anonymous database interface 2ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > rejects a verified wrong-compound certificate and reversal of a registered receipt 22ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > cancellation keeps evidence until explicit physical release, and a failed audit rolls back allocation 34ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > rechecks shipped tracking previews and rolls back a failed notification per row 36ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > does not silently replace a lot certificate when the published certificate is edited 25ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > looks up a committed attempt using its original server fingerprint after catalog changes 14ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > protects existing hold deadlines against payment-plan retries 14ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > rolls back payment after the first pool movement when the next movement fails 18ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > allocates odd discount pennies across lines and sequential returns without drift 27ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > reserves kit water alongside kit stock and returns each dependency once 21ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > restricts all commerce RPCs to the service role 10ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > removes hostile default table privileges while retaining only service reads and guarded RPC writes 50ms
+ ✓ tests/admin/fulfilment-workflow.test.ts > rejects conflicting tracking at commit even for a matching historical preview state 23ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > rejects a bundle quote if a component price changes before atomic creation 12ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > does not fill an unknown historical sale cost during reinstatement 17ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > previews the same combined stock claims and refund eligibility as reinstatement 23ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > holds limited discount capacity until payment or cancellation and rechecks it on reinstatement 21ms
+ ✓ tests/commerce-integrity.test.ts > transactional commerce > releases a discount claim when a pending edit removes eligibility 16ms
+ ✓ tests/commerce-integrity.test.ts > public checkout reservation limits > limits normalized email to five unexpired pending orders, but allows committed replay and admin creation 23ms
+ ✓ tests/commerce-integrity.test.ts > public checkout reservation limits > frees the pending slot when a prior order expires, while enforcing ten creates per rolling hour across cancellation 31ms
+ ✓ tests/commerce-integrity.test.ts > returns original purchased lines on commit and both replay paths after stock and price change 15ms
+ ✓ tests/commerce-integrity.test.ts > rejects a purchased-line snapshot that disagrees with the transaction-resolved goods amount 13ms
+ ✓ tests/storefront/checkout.test.tsx > shows a failed quote with an actionable retry 204ms
+ ✓ tests/migration-smoke.test.ts > applies the complete migration chain to an isolated database with restricted public roles 1287ms
+ ✓ tests/storefront/checkout.test.tsx > disables submission immediately while a changed cart is repriced 52ms
+ ✓ tests/storefront/checkout.test.tsx > gives every checkout field a persistent accessible label 26ms
+ ✓ tests/admin/refund-workflow.test.ts > previews discounted partial and final refunds exactly, shipping once, without automatic stock return 48ms
+ ✓ tests/admin/refund-workflow.test.ts > rejects stale or changed reviews atomically but replays a committed request 37ms
+ ✓ tests/storefront/checkout.test.tsx > retries an uncertain submission with the same identity and retains contact input 87ms
+ ✓ tests/storefront/checkout.test.tsx > ignores an obsolete quote response after a newer cart is quoted 32ms
+ ✓ tests/storefront/checkout.test.tsx > uses a full document navigation to the exact secure payment URL after success 42ms
+ ✓ tests/admin/refund-workflow.test.ts > rejects malformed selections before creating money or stock mutations 27ms
+ ✓ tests/admin/refund-workflow.test.ts > settles only recorded refunds with replay, conflict, bounds, and immutable audit evidence 32ms
+ ✓ tests/admin/refund-workflow.test.ts > requires real transfer evidence and denies public RPC/table access 25ms
+ ✓ tests/admin/refund-workflow.test.ts > preserves odd discount pennies through three reviewed returns and restores stock only once 33ms
+ ✓ tests/admin/refund-workflow.test.ts > rolls back the canonical refund and its commit evidence when audit insert fails 29ms
+ ✓ tests/storefront/checkout.test.tsx > keeps an uncertain order identity when only the authoritative quote version changes 97ms
+ ✓ tests/storefront/checkout.test.tsx > normalizes cosmetic contact and address edits when retrying an uncertain order 109ms
+ ✓ tests/storefront/checkout.test.tsx > recovers the same attempt after a reload without storing contact or cart details 123ms
+ ✓ tests/storefront/checkout.test.tsx > recovers an uncertain persisted attempt without a sellable quote or re-entered contact 19ms
+ ✓ tests/storefront/checkout.test.tsx > does not clear the cart from a fresh quote when replay lacks its original purchased lines 22ms
+ ✓ tests/storefront/checkout.test.tsx > keeps recovery available when an earlier transaction has not committed yet 41ms
+ ✓ tests/storefront/checkout.test.tsx > links server errors to fields and focuses the first invalid control while keeping attempt recovery 53ms
+ ✓ tests/storefront/checkout.test.tsx > requests cart mail only after an unchecked purpose choice and explicit button, never on email blur 42ms
+ ✓ tests/storefront/checkout.test.tsx > keeps quote discount errors linked before any submission 24ms
+ ✓ tests/storefront/checkout.test.tsx > reconciles disabled Express shipping from a refresh quote before successfully submitting Standard 143ms
+ ✓ tests/storefront/checkout.test.tsx > reconciles disabled Express shipping from a submission quote before successfully submitting Standard 134ms
+ ✓ tests/storefront/checkout.test.tsx > keeps the original uncertain Express attempt and purchased evidence recoverable after a Standard requote 138ms
+ ✓ tests/storefront/checkout.test.tsx > requires recovery before an automatic shipping fallback from refresh can duplicate an uncertain order 193ms
+ ✓ tests/migration-runner.test.ts > applies once and reapply preserves subsequent admin edits 1249ms
+ ✓ tests/migration-runner.test.ts > refuses a changed checksum or missing applied file before new SQL 15ms
+ ✓ tests/migration-runner.test.ts > refuses an untracked existing database and baselines exact files without replaying their SQL 15ms
+ ✓ tests/migration-runner.test.ts > dry-run is read-only on fresh and baselined databases 16ms
+ ✓ tests/migration-runner.test.ts > rolls back a failed file and its ledger entry while preserving prior migrations 13ms
+ ✓ tests/storefront/checkout.test.tsx > requires recovery before an automatic shipping fallback from submission can duplicate an uncertain order 177ms
+ ✓ tests/migration-runner.test.ts > baseline ledger writes are all-or-nothing 19ms
+ ✓ tests/migration-runner.test.ts > rejects backdated new files and baselining an empty database 12ms
+ ✓ tests/migration-runner.test.ts > allows only the exact historical duplicate pair and validates future identities 3ms
+ ✓ tests/migration-runner.test.ts > validates TLS by default and permits explicitly disabled TLS only on loopback 2ms
+ ✓ tests/migration-runner.test.ts > rejects ambiguous CLI arguments instead of silently selecting a different mode 1ms
+ ✓ tests/migration-runner.test.ts > validates every checked-in migration without reading a seed file 13ms
+ ✓ tests/migration-runner.test.ts > rejects top-level transaction control without mistaking function bodies or strings for commands 1ms
+ ✓ tests/migration-runner.test.ts > does not allow URL query host overrides to defeat local-only TLS disable 0ms
+ ✓ tests/migration-runner.test.ts > rolls back successfully executed SQL when its checksum ledger insert fails 11ms
+ ✓ tests/migration-runner.test.ts > fails before creating a ledger when another runner owns the advisory lock 2ms
+ ✓ tests/storefront/checkout.test.tsx > blocks submission until the reconciled shipping request has a fresh quote 101ms
+ ✓ tests/stock-notification-bridge.test.ts > retains a never-sent stock request through unavailable stock and the next restock 26ms
+ ✓ tests/stock-notification-bridge.test.ts > never rearms an alert after a potentially accepted provider attempt 14ms
+ ✓ tests/storefront/checkout.test.tsx > retains the uncertain PayID attempt when refresh automatically falls back to bank transfer with unchanged Standard shipping 184ms
+ ✓ tests/storefront/checkout.test.tsx > retains the uncertain PayID attempt when submission automatically falls back to bank transfer with unchanged Standard shipping 182ms
+ ✓ tests/admin/atomic.test.ts > atomic admin writes > a bad middle variant rolls back product and earlier prices 13ms
+ ✓ tests/admin/atomic.test.ts > atomic admin writes > saves all product fields once and rejects stale editors 3ms
+ ✓ tests/admin/atomic.test.ts > atomic admin writes > settings save rolls back if any key invalid, then rejects stale revision 6ms
+ ✓ tests/admin/atomic.test.ts > reversing the latest receipt restores quantity and weighted valuation, but never rewinds later movements 6ms
+ ✓ tests/admin/atomic.test.ts > People database projection searches and counts beyond 1000 before stable pagination 30ms
+ ✓ tests/admin/atomic.test.ts > People counts actual paid orders and nets partial/full refunds without treating pending checkout as purchase 2ms
+ ✓ tests/recovery-consent.test.ts > requires mailbox proof, then repeats the same immutable episode without granting newsletter consent 16ms
+ ✓ tests/recovery-consent.test.ts > expires confirmation at 24 hours and restore at seven days without reactivation 4ms
+ ✓ tests/recovery-consent.test.ts > a later suppression revokes old pending and confirmed links; a fresh request never restores newsletter permission 6ms
+ ✓ tests/recovery-consent.test.ts > queues only purpose-confirmed current episodes, honors pause and rechecks suppression after claim 11ms
+ ✓ tests/recovery-consent.test.ts > public database roles cannot request, confirm or read bearer hashes 2ms
+ ✓ tests/recovery-consent.test.ts > credits only the exact restored cart and matching mailbox; changed quantities or identities are organic 6ms
+ ✓ tests/recovery-consent.test.ts > has a bounded sequence, idempotent requests and no general subscriber fallback 11ms
+ ✓ tests/recovery-consent.test.ts > service role can use wrapped eligibility while anonymous callers cannot 1ms
+ ✓ tests/recovery-consent.test.ts > a link requested before an order cannot restart recovery after that order 3ms
+ ✓ tests/recovery-consent.test.ts > manual payload shares the sweep identity and disappears when purpose consent is stopped 7ms
+ ✓ tests/recovery-consent.test.ts > operator purpose stop revokes pending requests without changing newsletter permission 2ms
+ ✓ tests/commerce-outbox.test.ts > rolls back order, inventory and events when its durable email insert fails 28ms
+ ✓ tests/commerce-outbox.test.ts > emits one payment confirmation and discounted shipping-inclusive refund deltas 22ms
+ ✓ tests/commerce-outbox.test.ts > rejects queued instructions for an old total after a pending edit 26ms
+ ✓ tests/commerce-outbox.test.ts > enqueues expiry atomically and emits no second message on replay 17ms
+ ✓ tests/stock-notifications.test.ts > queues and marks a request atomically, once per request 27ms
+ ✓ tests/stock-notifications.test.ts > rolls back all notification claims when the durable outbox insert fails 12ms
+ ✓ tests/stock-notifications.test.ts > a new signup changes request identity and may alert again while superseding the old intent 11ms
+ ✓ tests/stock-notifications.test.ts > checks current pooled stock and active variant/parent before queueing and before delivery 11ms
+ ✓ tests/stock-notifications.test.ts > keeps suppressed requests unclaimed and does not expose the RPC publicly 8ms
+ ✓ tests/stock-notifications.test.ts > uses the single-vial inventory pool for pack availability 10ms
+ ✓ tests/stock-notifications.test.ts > rearms an unsent unavailable alert for the next restock while preserving its original request date 11ms
+ ✓ tests/stock-notifications.test.ts > does not rearm available, superseded, suppressed or previously attempted notifications 10ms
+ ✓ tests/paid-analytics-commerce.test.ts > follows real commerce creation and discounted payment, with no duplicate after paid reinstatement 31ms
+ ✓ tests/admin/recovery-episodes.test.ts > identical active capture reuses an episode; changed capture preserves an immutable earlier episode 13ms
+ ✓ tests/admin/recovery-episodes.test.ts > attribution requires concrete episode, real sent exposure before order creation and net paid funds 11ms
+ ✓ tests/admin/recovery-episodes.test.ts > email-only completion suppresses reminders without claiming episode attribution 3ms
+ ✓ tests/admin/recovery-episodes.test.ts > queue insert failure leaves recovery stage unconsumed; consent and pauses gate atomic retry 11ms
+ ✓ tests/outbox-integrity.test.ts > claims a row once and rejects stale lease completion 15ms
+ ✓ tests/outbox-integrity.test.ts > rechecks suppression and stale payment state after claim 7ms
+ ✓ tests/outbox-integrity.test.ts > failed sends wait for backoff and exhausted attempts become terminal 4ms
+ ✓ tests/outbox-integrity.test.ts > a committed commerce event creates durable email intent once in the same transaction 3ms
+ ✓ tests/outbox-integrity.test.ts > freezes the provider body across retries and rejects stale payment amounts 3ms
+ ✓ tests/outbox-integrity.test.ts > reconciles exact provider events received before and after completion, never another recipient 3ms
+ ✓ tests/subscription-consent.test.ts > a public request never clears existing suppression and is rate bounded 12ms
+ ✓ tests/subscription-consent.test.ts > only a matching unexpired mailbox confirmation renews consent once 6ms
+ ✓ tests/subscription-consent.test.ts > unsubscribe is durable and cancels pending marketing while retaining order notifications 3ms
+ ✓ tests/subscription-consent.test.ts > a later unsubscribe invalidates an earlier unconfirmed opt-in link 2ms
+ ✓ tests/subscription-consent.test.ts > expired or already confirmed requests cannot authorise an email 3ms
+ ✓ tests/subscription-consent.test.ts > confirmed welcome uses the same lifetime identity as admin manual sends 0ms
+ ✓ tests/paid-analytics-sql.test.ts > durably snapshots one privacy-safe net purchase at the first payment time 19ms
+ ✓ tests/paid-analytics-sql.test.ts > does not create events without an authentic-shaped analytics client ID or for unpaid events 5ms
+ ✓ tests/paid-analytics-sql.test.ts > rolls back payment event when its durable purchase insert fails 8ms
+ ✓ tests/paid-analytics-sql.test.ts > claims exclusively, reclaims expired leases, and rejects stale completion 11ms
+ ✓ tests/paid-analytics-sql.test.ts > backs off failures and retires attempts older than the GA4 72-hour window 9ms
+ ✓ tests/paid-analytics-sql.test.ts > denies public execution and retires the final failed attempt 7ms
+ ✓ tests/paid-analytics-sql.test.ts > exposes retired-only queues as unhealthy through a service-only dead count 7ms
+ ✓ tests/review-statistics.test.ts > calculates full published-review counts without fetching a capped page of bodies 1033ms
+ ✓ tests/review-privacy.test.ts > public review reads cannot expose private order references or draft reviews 1039ms
+ ✓ tests/admin/drafts.test.tsx > dirty description survives refreshed media and stock props 155ms
+ ✓ tests/admin/drafts.test.tsx > restores the unsaved draft after leaving and returning with browser back 65ms
+ ✓ tests/admin/drafts.test.tsx > defers formatting controls until explicit description editing 45ms
+ ✓ tests/admin/order-actions.test.tsx > pending orders have no invalid refund action 74ms
+ ✓ tests/admin/refund-workflow-ui.test.tsx > requires exact full refund review, binds stock choice, and forces renewed review after stale state 172ms
+ ✓ tests/admin/refund-workflow-ui.test.tsx > previews selected line quantities and retains the same commit key after uncertain failure 70ms
+ ✓ tests/admin/refund-workflow-ui.test.tsx > records an already-made manual transfer with reference and date, and displays saved evidence 27ms
+ ✓ tests/admin/order-actions.test.tsx > records a full refund only after explicit confirmation 77ms
+ ✓ tests/admin/order-actions.test.tsx > a mixed five-order bulk result retains exact failures and their selections 103ms
+ ✓ tests/admin/order-actions.test.tsx > a cancelled order with recorded refunds cannot be reinstated even with available stock 9ms
+ ✓ tests/admin/fulfilment-ui.test.tsx > registers counted existing stock with explicit receipt, certificate and physical evidence 137ms
+ ✓ tests/admin/fulfilment-ui.test.tsx > shows physical pack units and requires evidence when releasing an existing allocation 22ms
+ ✓ tests/admin/fulfilment-ui.test.tsx > previews CSV, selects valid rows only and reports stale per-row outcomes without resending successes 45ms
+ ✓ tests/admin/fulfilment-ui.test.tsx > prints assigned physical lots and explicit unallocated units without inferring a certificate 38ms
+ ✓ tests/storefront/buybox.test.tsx > offers one-time purchases only 44ms
+ ✓ tests/storefront/buybox.test.tsx > chooses a feasible pack and bounds adds against cart vials 106ms
+ ✓ tests/admin/email-operation-controls.test.tsx > requires an operator reason and shows guarded retry errors instead of claiming a send 114ms
+ ✓ tests/admin/email-operation-controls.test.tsx > offers reconciliation for ambiguous sends and requires a provider ID 20ms
+ ✓ tests/admin/email-operation-controls.test.tsx > active leases expose a waiting state without mutation controls 2ms
+ ✓ tests/storefront/cart.test.tsx > rejects corrupted stored line records 84ms
+ ✓ tests/storefront/cart.test.tsx > bounds quantities and refreshes price when readding 12ms
+ ✓ tests/storefront/cart.test.tsx > accepts another tab clearing the cart 6ms
+ ✓ tests/storefront/cart.test.tsx > refreshes persisted prices from the current server catalogue snapshot 4ms
+ ✓ tests/storefront/cart.test.tsx > removes only purchased quantities and preserves unavailable lines 5ms
+ ✓ tests/storefront/cart.test.tsx > adds modern purchase identities from live variants while retaining explicit stored identities 4ms
+ ✓ tests/storefront/cart.test.tsx > replay completion never removes a newer variant sharing the original cart key 4ms
+ ✓ tests/storefront/cart.test.tsx > selects modern pack identity from structured purchase size, independent of display labels 7ms
+ ✓ tests/admin/operations.test.tsx > admin confirmations and fulfilment > starts on cancel and contains keyboard focus 94ms
+ ✓ tests/admin/operations.test.tsx > admin confirmations and fulfilment > prints remaining quantities and excludes fully refunded lines 28ms
+ ✓ tests/admin/operations.test.tsx > focuses the safe cancel action even when the body contains a stock checkbox 4ms
+ ✓ tests/admin/lazy-description.test.tsx > imports only on editing intent and keeps the typing surface stable when the chunk arrives 111ms
+ ✓ tests/storefront/discovery.test.tsx > can filter to available products with a result count 100ms
+ ✓ tests/storefront/discovery.test.tsx > sorts products by current single price 8ms
+ ✓ tests/storefront/discovery.test.tsx > restores shareable stock and search filters from the URL 14ms
+ ✓ tests/storefront/recovery.test.tsx > viewing a recovery page has no consent or cart effects; network failure keeps the cart 101ms
+ ✓ tests/storefront/recovery.test.tsx > request transport failure shows an actionable message without a form submission 23ms
+ ✓ tests/storefront/email-capture.test.tsx > shows the server confirmation state instead of claiming subscribed 99ms
+ ✓ tests/storefront/email-capture.test.tsx > exposes delivery failure accessibly on every viewport 14ms
+ ✓ tests/admin/lazy-description-fallback.test.tsx > retains a usable controlled textarea after the formatting chunk fails 112ms
+ ✓ tests/cron-access.test.ts > cron endpoint 0 > refuses missing configuration without starting any job 94ms
+ ✓ tests/cron-access.test.ts > cron endpoint 0 > refuses a wrong bearer and allows the configured bearer 1ms
+ ✓ tests/cron-access.test.ts > cron endpoint 1 > refuses missing configuration without starting any job 6ms
+ ✓ tests/cron-access.test.ts > cron endpoint 1 > refuses a wrong bearer and allows the configured bearer 1ms
+ ✓ tests/cron-access.test.ts > cron endpoint 2 > refuses missing configuration without starting any job 4ms
+ ✓ tests/cron-access.test.ts > cron endpoint 2 > refuses a wrong bearer and allows the configured bearer 1ms
+ ✓ tests/cron-access.test.ts > cron endpoint 3 > refuses missing configuration without starting any job 4ms
+ ✓ tests/cron-access.test.ts > cron endpoint 3 > refuses a wrong bearer and allows the configured bearer 1ms
+ ✓ tests/order-access-routes.test.ts > private order routes > does not query customer records using a sequential receipt number 29ms
+ ✓ tests/order-access-routes.test.ts > private order routes > does not query payment details knowing only an order UUID 34ms
+ ✓ tests/order-access-routes.test.ts > private order routes > does not query polling status knowing only an order UUID 1ms
+ ✓ tests/storefront/modal.test.tsx > unmounts all closed cart controls 15ms
+ ✓ tests/storefront/modal.test.tsx > focuses and traps the open cart and restores the trigger on close 89ms
+ ✓ tests/storefront/dispatch-subscribe.test.tsx > the dossier newsletter passes real subscription validation and requests mailbox confirmation 107ms
+ ✓ tests/lifecycle-pagination.test.ts > processes the later welcome cohort after the first 500 deduplicated candidates 8ms
+ ✓ tests/lifecycle-pagination.test.ts > processes the later post-purchase cohort after the first 500 deduplicated candidates 4ms
+ ✓ tests/lifecycle-pagination.test.ts > processes the later review thanks cohort after the first 500 deduplicated candidates 4ms
+ ✓ tests/lifecycle-pagination.test.ts > processes the later replenishment cohort after the first 500 deduplicated candidates 3ms
+ ✓ tests/lifecycle-pagination.test.ts > processes the later winback cohort after the first 500 deduplicated candidates 3ms
+ ✓ tests/lifecycle-pagination.test.ts > processes the later second purchase cohort after the first 500 deduplicated candidates 4ms
+ ✓ tests/lifecycle-pagination.test.ts > fails closed on a later candidate page instead of sending a partial cohort 2ms
+ ✓ tests/lifecycle-pagination.test.ts > paginates a large related lookup inside its email chunk before deciding eligibility 4ms
+ ✓ tests/storefront/analytics-loader.test.tsx > does not load third-party analytics on /pay/order 16ms
+ ✓ tests/storefront/analytics-loader.test.tsx > does not load third-party analytics on /checkout/thank-you 2ms
+ ✓ tests/storefront/analytics-loader.test.tsx > does not load third-party analytics on /leave-a-review 2ms
+ ✓ tests/storefront/analytics-loader.test.tsx > does not load third-party analytics on /admin 2ms
+ ✓ tests/storefront/analytics-loader.test.tsx > does not load third-party analytics on /subscribe-confirm 3ms
+ ✓ tests/storefront/analytics-loader.test.tsx > does not load third-party analytics on /unsubscribe 1ms
+ ✓ tests/storefront/analytics-loader.test.tsx > uses only sanitized public URL and no private referrer during initialization 9ms
+ ✓ tests/storefront/analytics-loader.test.tsx > suppresses newsletter capture on transaction route /checkout 3ms
+ ✓ tests/storefront/analytics-loader.test.tsx > suppresses newsletter capture on transaction route /pay/order 2ms
+ ✓ tests/storefront/analytics-loader.test.tsx > suppresses newsletter capture on transaction route /checkout/thank-you 1ms
+ ✓ tests/storefront/analytics-loader.test.tsx > suppresses newsletter capture on transaction route /cart 1ms
+ ✓ tests/email-template-privacy.test.ts > replaces legacy review URLs with scoped links without email or predictable receipt fields 3ms
+ ✓ tests/email-template-privacy.test.ts > payment reminder copy uses the fixed deadline instead of queue-time hours remaining 18ms
+ ✓ tests/email-template-privacy.test.ts > every recovery email uses the same opaque private restore link and no arbitrary destination 2ms
+ ✓ tests/admin/email-states.test.tsx > does not display a queued delivery as sent 22ms
+ ✓ tests/admin/email-states.test.tsx > does not display a sending delivery as sent 3ms
+ ✓ tests/admin/email-states.test.tsx > does not display a failed delivery as sent 4ms
+ ✓ tests/admin/email-states.test.tsx > does not display a dead delivery as sent 2ms
+ ✓ tests/admin/email-states.test.tsx > recognizes a confirmed lifetime welcome as completed and advances to the later touch 1ms
+ ✓ tests/admin/email-states.test.tsx > retains terminal delivery failures in email performance totals 1ms
+ ✓ tests/admin/email-states.test.tsx > includes admin_daily_brief in the preview gallery with a usable payload 1ms
+ ✓ tests/admin/email-states.test.tsx > includes subscription_confirmation in the preview gallery with a usable payload 0ms
+ ✓ tests/storefront/product-copy.test.ts > does not publish missing scientific values or study placeholders from the copy deck 17ms
+ ✓ tests/storefront/exit-intent.test.tsx > never interrupts transaction route /checkout 18ms
+ ✓ tests/storefront/exit-intent.test.tsx > never interrupts transaction route /checkout/thank-you 2ms
+ ✓ tests/storefront/exit-intent.test.tsx > never interrupts transaction route /pay/order 2ms
+ ✓ tests/storefront/exit-intent.test.tsx > never interrupts transaction route /subscribe/confirm 1ms
+ ✓ tests/storefront/exit-intent.test.tsx > hides footer capture on the actual subscription confirmation route 4ms
+ ✓ tests/recovery-delivery.test.ts > delivers the real confirmation and reminder templates through a fake provider with the same private restore link 17ms
+ ✓ tests/recovery-delivery.test.ts > never calls the fake provider when delivery eligibility is revoked after rendering 1ms
+ ✓ tests/admin/people.test.ts > search, segments and export cover people beyond first 1000 with stable ties 14ms
+ ✓ tests/paid-analytics-worker.test.ts > does not claim or deliver when optional analytics configuration is absent 2ms
+ ✓ tests/paid-analytics-worker.test.ts > sends the frozen payment time and stable transaction ID on uncertain retries 1ms
+ ✓ tests/paid-analytics-worker.test.ts > only sends allowlisted analytics fields even if queue JSON contains personal data 1ms
+ ✓ tests/paid-analytics-worker.test.ts > retires invalid amounts and expired timestamps without provider requests 0ms
+ ✓ tests/paid-analytics-worker.test.ts > retries rate limits but retires permanent HTTP client errors without logging secrets 1ms
+ ✓ tests/paid-analytics-worker.test.ts > surfaces bookkeeping failure after provider acceptance rather than reporting success 1ms
+ ✓ tests/paid-analytics-worker.test.ts > reports outstanding dead rows even when no analytics intent remains claimable 0ms
+ ✓ tests/paid-analytics-worker.test.ts > sends an immutable incremental refund with goods separate from shipping, strips PII and keeps its event time 0ms
+ ✓ tests/paid-analytics-worker.test.ts > retires an ambiguous refund transport instead of automatically repeating a financial delta 1ms
+ ✓ tests/operations-health.test.ts > keeps unauthorized authentication failures private before database access 4ms
+ ✓ tests/operations-health.test.ts > keeps unconfigured authentication failures private before database access 1ms
+ ✓ tests/operations-health.test.ts > returns only aggregate health and never cron payloads or recipient details 3ms
+ ✓ tests/operations-health.test.ts > fails closed for overdue jobs and redacts database failures 1ms
+ ✓ tests/admin/email-operations.test.ts > repairs a missing provider ID only after exact read-only frozen-message retrieval proof 2ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({}) 1ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"tags":[]}) 1ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"tags":[{"name":"ecl_outbox_id","value":"another-identical-intent"}]}) 1ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"html":"Changed"}) 0ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"from":"other@example.test"}) 0ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"to":["other@example.test"]}) 0ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"subject":"Changed"}) 0ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"html":null}) 1ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"last_event":"scheduled"}) 1ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"id":"wrong"}) 0ms
+ ✓ tests/admin/email-operations.test.ts > leaves uncertain or mismatched provider content unresolved ({"cc":["private@example.test"]}) 0ms
+ ✓ tests/admin/email-operations.test.ts > does not guess an absent historical sender or expose provider retrieval errors 0ms
+ ✓ tests/admin/email-operations.test.ts > actions require admin identity and never accept an actor from client input 1ms
+ ✓ tests/checkout-orchestration.test.ts > returns the changed authoritative quote without creating an order 3ms
+ ✓ tests/checkout-orchestration.test.ts > commits a reviewed quote with an atomic expiry and a secure payment URL 1ms
+ ✓ tests/checkout-orchestration.test.ts > retrieves an identical committed attempt before rechecking changed stock 1ms
+ ✓ tests/checkout-orchestration.test.ts > rejects non-Australian/invalid state and invalid request identities before any lookup 0ms
+ ✓ tests/checkout-orchestration.test.ts > returns validation errors for hostile runtime optional field types 0ms
+ ✓ tests/checkout-orchestration.test.ts > provides a fresh reviewable quote after the transactional price check races 1ms
+ ✓ tests/checkout-orchestration.test.ts > checks an uncertain attempt without resolving or placing another order 0ms
+ ✓ tests/checkout-orchestration.test.ts > does not expose a receipt for missing or invalid recovery credentials 0ms
+ ✓ tests/checkout-orchestration.test.ts > returns named field errors for all invalid checkout details 1ms
+ ✓ tests/admin/lifecycle-failures.test.ts > surfaces recipient lookup errors from sweepWelcomeSeries 2ms
+ ✓ tests/admin/lifecycle-failures.test.ts > surfaces recipient lookup errors from sweepPostPurchase 1ms
+ ✓ tests/admin/lifecycle-failures.test.ts > surfaces recipient lookup errors from sweepReviewThankYou 1ms
+ ✓ tests/admin/lifecycle-failures.test.ts > surfaces recipient lookup errors from sweepReplenishment 1ms
+ ✓ tests/admin/lifecycle-failures.test.ts > surfaces recipient lookup errors from sweepWinback 0ms
+ ✓ tests/admin/lifecycle-failures.test.ts > surfaces recipient lookup errors from sweepSecondPurchaseNudge 0ms
+ ✓ tests/admin/lifecycle-failures.test.ts > fails closed when the orders eligibility lookup fails 0ms
+ ✓ tests/admin/lifecycle-failures.test.ts > fails closed when the subscribers eligibility lookup fails 0ms
+ ✓ tests/admin/lifecycle-failures.test.ts > fails closed when the sequence_overrides eligibility lookup fails 1ms
+ ✓ tests/admin/lifecycle-failures.test.ts > counts only inserted outbox rows, not deduplicated queue attempts 1ms
+ ✓ tests/admin/lifecycle-failures.test.ts > reports missing unsubscribe signing configuration as a failed job 0ms
+ ✓ tests/webhook-delivery.test.ts > fails closed without a signing secret even in development 2ms
+ ✓ tests/webhook-delivery.test.ts > does not attribute an unmatched provider ID to the last email sent to that address 5ms
+ ✓ tests/webhook-delivery.test.ts > returns a retryable failure when a verified event cannot be persisted 1ms
+ ✓ tests/storefront/analytics.test.ts > buffers a view before readiness and flushes it once when provider is available 8ms
+ ✓ tests/storefront/analytics.test.ts > never emits from private route /cart-recovery?token=secret 2ms
+ ✓ tests/storefront/analytics.test.ts > never emits from private route /pay/id?token=secret 1ms
+ ✓ tests/storefront/analytics.test.ts > never emits from private route /checkout/thank-you?order=secret 1ms
+ ✓ tests/storefront/analytics.test.ts > never emits from private route /leave-a-review?token=secret 1ms
+ ✓ tests/storefront/analytics.test.ts > never emits from private route /admin 0ms
+ ✓ tests/storefront/analytics.test.ts > never emits from private route /subscribe-confirm?token=secret 0ms
+ ✓ tests/storefront/analytics.test.ts > never emits from private route /unsubscribe?token=secret 0ms
+ ✓ tests/storefront/analytics.test.ts > overrides automatic location and referrer with sanitized public paths 1ms
+ ✓ tests/storefront/analytics.test.ts > drops pending public analytics when navigation enters a private page 1ms
+ ✓ tests/admin/manual-email-payloads.test.ts > binds manual post_purchase_review to an order identity, never a caller-supplied review URL 2ms
+ ✓ tests/admin/manual-email-payloads.test.ts > binds manual post_purchase_review_reminder to an order identity, never a caller-supplied review URL 1ms
+ ✓ tests/admin/manual-email-payloads.test.ts > binds manual recovery to the current immutable capture episode 1ms
+ ✓ tests/admin/manual-email-payloads.test.ts > provides a signable order identity in the post_purchase_review preview 0ms
+ ✓ tests/admin/manual-email-payloads.test.ts > provides a signable order identity in the post_purchase_review_reminder preview 0ms
+ ✓ tests/admin/manual-email-payloads.test.ts > refuses a manual recovery message with explicit unavailable-consent result 0ms
+ ✓ tests/admin/manual-email-payloads.test.ts > admin suppression and purpose stop use revoking RPCs 1ms
+ ✓ tests/admin/manual-email-payloads.test.ts > provides an opaque-link identity in the cart_recovery_confirmation preview 0ms
+ ✓ tests/admin/manual-email-payloads.test.ts > provides an opaque-link identity in the abandoned_cart preview 1ms
+ ✓ tests/admin/manual-email-payloads.test.ts > provides an opaque-link identity in the abandoned_cart_2 preview 0ms
+ ✓ tests/admin/manual-email-payloads.test.ts > provides an opaque-link identity in the abandoned_cart_3 preview 0ms
+ ✓ tests/cron-health.test.ts > records partial work failures as failed and makes the scheduler see a failure 3ms
+ ✓ tests/cron-health.test.ts > hourly jobs go overdue while daily jobs are still within schedule 1ms
+ ✓ tests/cron-health.test.ts > does not report healthy/never when the health query fails 1ms
+ ✓ tests/cron-health.test.ts > treats terminal analytics delivery failures as failed cron work 0ms
+ ✓ tests/email-sender.test.ts > uses the same provider idempotency key on retried delivery 2ms
+ ✓ tests/email-sender.test.ts > does not deliver a cancelled or newly suppressed claimed row 1ms
+ ✓ tests/email-sender.test.ts > surfaces persistence failure after provider acceptance for reconciliation 1ms
+ ✓ tests/email-sender.test.ts > sends the frozen sender with frozen body even when deployment defaults change 0ms
+ ✓ tests/email-sender.test.ts > binds provider retrieval to the same frozen outbox tag on every send 0ms
+ ✓ tests/recovery-actions.test.ts > requires explicit purpose agreement before resolving or capturing contact 3ms
+ ✓ tests/recovery-actions.test.ts > rejects malformed structured IDs and invalid contacts before persistence 1ms
+ ✓ tests/recovery-actions.test.ts > restores repriced lines only after valid proof and keeps its bearer in an HttpOnly cookie 1ms
+ ✓ tests/recovery-actions.test.ts > fails invalid links without touching cart or cookie and attribution requires a private cookie 0ms
+ ✓ tests/admin/stock-postcommit.test.ts > reports a saved adjustment with a warning after audit follow-up fails 2ms
+ ✓ tests/admin/stock-postcommit.test.ts > reports a saved adjustment with a warning after read follow-up fails 1ms
+ ✓ tests/admin/stock-postcommit.test.ts > reports a saved adjustment with a warning after notify follow-up fails 0ms
+ ✓ tests/admin/stock-postcommit.test.ts > still rejects a failed stock movement before reporting saved 1ms
+ ✓ tests/admin/refund-actions.test.ts > keeps quote inputs and authenticated actor on the database boundary 3ms
+ ✓ tests/admin/refund-actions.test.ts > returns a stale-review instruction and never hides a database error as success 1ms
+ ✓ tests/admin/refund-actions.test.ts > generic status actions cannot bypass reviewed refunds 1ms
+ ✓ tests/admin/refund-actions.test.ts > rejects fractional cents and unauthenticated mutation without invoking the database 1ms
+ ✓ tests/commerce-cart.test.ts > authoritative cart eligibility > treats saved subscribe labels as one-time purchases at the full price 3ms
+ ✓ tests/commerce-cart.test.ts > authoritative cart eligibility > does not resolve a variant belonging to an archived parent 1ms
+ ✓ tests/commerce-cart.test.ts > authoritative cart eligibility > does not turn an inactive accessory into an unstocked sale 0ms
+ ✓ tests/commerce-cart.test.ts > authoritative cart eligibility > keeps zero-priced bundle components in integer cents 0ms
+ ✓ tests/commerce-cart.test.ts > prefers an explicit live identity even when its display label changed 0ms
+ ✓ tests/commerce-cart.test.ts > never falls back from an explicit invalid, inactive or mismatched identity 1ms
+ ✓ tests/commerce-cart.test.ts > does not reinterpret explicit variant identities as bundle or gift lines 0ms
+ ✓ tests/admin/fulfilment-actions.test.ts > gates all fulfilment operations before reading or writing 3ms
+ ✓ tests/admin/fulfilment-actions.test.ts > uses the authenticated actor, preserves per-row outcomes and surfaces failures 1ms
+ ✓ tests/admin/settings.test.ts > rejects invalid shipping cents NaN before persistence 2ms
+ ✓ tests/admin/settings.test.ts > rejects invalid shipping cents Infinity before persistence 0ms
+ ✓ tests/admin/settings.test.ts > rejects invalid shipping cents -1 before persistence 0ms
+ ✓ tests/admin/settings.test.ts > rejects invalid shipping cents 0.5 before persistence 0ms
+ ✓ tests/admin/settings.test.ts > rejects invalid hold hours NaN before persistence 0ms
+ ✓ tests/admin/settings.test.ts > rejects invalid hold hours Infinity before persistence 0ms
+ ✓ tests/admin/settings.test.ts > rejects invalid hold hours -1 before persistence 0ms
+ ✓ tests/admin/settings.test.ts > rejects invalid hold hours 0 before persistence 0ms
+ ✓ tests/admin/settings.test.ts > rejects invalid hold hours 721 before persistence 1ms
+ ✓ tests/stock-notifications-wrapper.test.ts > returns only the durable RPC result 2ms
+ ✓ tests/stock-notifications-wrapper.test.ts > surfaces a failed claim instead of reporting zero successful notifications 1ms
+ ✓ tests/stock-notifications-wrapper.test.ts > surfaces a failed waitlist count instead of displaying an empty list 1ms
+ ✓ tests/admin/product-atomic-adapters.test.ts > creates product, tiers, stock and audit via one transaction 3ms
+ ✓ tests/admin/product-atomic-adapters.test.ts > launch errors surface without partial direct writes or an activation after failure 1ms
+ ✓ tests/order-access.test.ts > scoped order access > accepts a signed token only for its order, scope and lifetime 2ms
+ ✓ tests/order-access.test.ts > scoped order access > rejects malformed tokens and fails closed when keys are missing or rotated 1ms
+ ✓ tests/order-access.test.ts > scoped order access > does not mint tokens for invalid IDs or invalid lifetimes 0ms
+ ✓ tests/admin/carrier-csv.test.ts > parses BOM, CRLF, quoted commas, escaped quotes and embedded newlines 2ms
+ ✓ tests/admin/carrier-csv.test.ts > rejects invalid headers, malformed quoting, empty tracking, duplicated orders/tracking and oversized input 2ms
+ ✓ tests/admin/carrier-csv.test.ts > allows reordered headers but rejects control characters in order/tracking fields 1ms
+ ✓ tests/route-budgets.test.ts > route JavaScript budgets > includes parent layouts and deduplicates shared chunks, excluding unrelated routes and CSS 2ms
+ ✓ tests/route-budgets.test.ts > route JavaScript budgets > fails if a required route vanishes or exceeds its explicit gzip allowance 1ms
+ ✓ tests/admin/recovery.test.ts > recovery list uses same capture cohort as its period metrics 3ms
+ ✓ tests/storefront/catalog.test.ts > keeps an intentionally empty active catalog empty 2ms
+ ✓ tests/storefront/catalog.test.ts > does not sell an inactive single variant or count its stock 0ms
+ ✓ tests/storefront/catalog.test.ts > only offers packs that fit available vials 1ms
+ ✓ tests/payment-expiry.test.ts > does not cancel an order that was paid after the expiry candidate read 3ms
+ ✓ tests/admin/automation.test.ts > shows exact dead-letter workload and provider error without mutating the queue 2ms
+ ✓ tests/recovery-links.test.ts > derives an opaque stable purpose-separated token, and only hash is used for lookup 3ms
+ ✓ tests/admin/counts.test.ts > order badge counts include every order beyond the API row cap 3ms
+ ✓ tests/review-access.test.ts > does not look up private purchase data using an unsigned order reference 2ms
+ ✓ tests/storefront/cart-destinations.test.ts > routes product, gift, accessory and bundle lines to existing page families 2ms
+ ✓ tests/storefront/cart-destinations.test.ts > counts pack vials and bundle component quantities together 0ms
+ ✓ tests/catalog-detail.test.ts > finds an active product directly by slug even when it is not in the listing page 2ms
+ ✓ tests/admin/product-bulk.test.ts > a failed middle product reports its ID and still applies later selected products 2ms
+ ✓ tests/storefront/coa.test.ts > does not present seed or unverified broken documents as published proof 2ms
+ ✓ tests/storefront/coa.test.ts > keeps a successful empty proof catalogue empty 0ms
+ ✓ tests/storefront/stacks.test.ts > uses current cents and the limiting component availability 2ms
+ ✓ tests/admin/order-notes.test.ts > a rejected note insert returns failure instead of a success audit and clearing the editor 2ms
+ ✓ tests/storefront/availability.test.ts > keeps missing, archived and disabled pool items unavailable 2ms
+
+ Test Files  79 passed (79)
+      Tests  389 passed (389)
+   Start at  13:46:48
+   Duration  16.76s (tests 69%, environment 20%, import 6%, transform 3%, setup 1%)
+
+    Isolate  79 workers spawned · ~191ms startup each (spawn + environment, per file)
+             at least ~4.85s faster with isolate: false — reuses workers across files instead of one per file
+

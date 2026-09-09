@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getGuide, getGuides } from "@/lib/guides";
-import { getCatalog } from "@/lib/catalog";
+import { getCatalogProducts } from "@/lib/catalog";
 import ProductCard from "@/components/ProductCard";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 
 export const revalidate = 3600;
 
-const SITE = "https://eastcoastlabs.com.au";
+const SITE = "https://www.eastcoastlabs.com.au";
 
 export function generateStaticParams() {
   return getGuides().then((gs) => gs.map((g) => ({ slug: g.slug })));
@@ -40,7 +40,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const guide = await getGuide(slug);
   if (!guide) notFound();
 
-  const [allGuides, { bySlug }] = await Promise.all([getGuides(), getCatalog()]);
+  const [allGuides, bySlug] = await Promise.all([getGuides(), getCatalogProducts(guide.compounds)]);
   const relatedProducts = guide.compounds
     .map((c) => bySlug.get(c))
     .filter((p): p is NonNullable<typeof p> => p != null)

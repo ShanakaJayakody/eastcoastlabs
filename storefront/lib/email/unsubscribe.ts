@@ -10,7 +10,7 @@ import "server-only";
  */
 import { createHmac, timingSafeEqual } from "crypto";
 
-const SITE = "https://eastcoastlabs.com.au";
+const SITE = "https://www.eastcoastlabs.com.au";
 
 const secret = () => process.env.UNSUBSCRIBE_SECRET || process.env.CRON_SECRET || "";
 
@@ -27,6 +27,7 @@ export function signUnsubscribeToken(email: string): string | null {
 export function verifyUnsubscribeToken(token: string): string | null {
   const key = secret();
   if (!key) return null;
+  if (token.length > 500 || token.split(".").length !== 2) return null;
   const [emailPart, sig] = token.split(".");
   if (!emailPart || !sig) return null;
   let email: string;

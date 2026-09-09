@@ -1,10 +1,12 @@
 import "server-only";
+import { createOrderAccessToken } from "@/lib/order-access";
 
 /**
  * Marketing lifecycle sweeps — the Resend-native replacement for a Klaviyo flow
  * engine. Same architecture as payment-ops: idempotent cron sweeps over
  * existing tables, with email_outbox's (to_email, template, related_id) unique
- * index as the send-exactly-once guarantee. No scheduling column, no state
+ * index for one intent per stage. Provider delivery uses a separately leased
+ * worker with bounded idempotency; it is not an exactly-once guarantee. No scheduling column, no state
  * machine — a stage is due when its source row's age crosses the threshold and
  * the outbox has no row for that stage yet.
  *
@@ -20,6 +22,7 @@ import "server-only";
  */
 
 import { adminDb } from "./db";
+import { readAll } from "./read-all";
 import { queueEmail, type EmailTemplate } from "./email";
 import {
   isTransactional,
@@ -35,21 +38,32 @@ import {
 import { pausedEmailsFor } from "./overrides";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
-const SITE = "https://eastcoastlabs.com.au";
+const SITE = "https://www.eastcoastlabs.com.au";
 const DAY_MS = 86_400_000;
 
 const daysSince = (iso: string) => (Date.now() - new Date(iso).getTime()) / DAY_MS;
 const isoDaysAgo = (days: number) => new Date(Date.now() - days * DAY_MS).toISOString();
 
+/** Bound URL/filter size independently of result size: one email can have
+ * many matching rows, so every chunk also needs stable result pagination. */
+async function readChunks<T>(values:string[], page:(ids:string[],start:number,end:number)=>PromiseLike<{data:T[]|null;error:{message:string}|null}>):Promise<T[]> {
+  const unique=[...new Set(values)];const rows:T[]=[];
+  for(let offset=0;offset<unique.length;offset+=200){
+    const ids=unique.slice(offset,offset+200);
+    rows.push(...await readAll<T>((start,end)=>page(ids,start,end)));
+  }
+  return rows;
+}
+
 /** Emails with unsubscribed_at set on any subscribers row. */
 async function suppressedEmails(emails: string[]): Promise<Set<string>> {
   const unique = [...new Set(emails)];
   if (!unique.length) return new Set();
-  const { data } = await adminDb()
+  const data = await readChunks(unique,(ids,start,end)=>adminDb()
     .from("subscribers")
     .select("email")
-    .in("email", unique)
-    .not("unsubscribed_at", "is", null);
+    .in("email", ids)
+    .not("unsubscribed_at", "is", null).order("id").range(start,end));
   return new Set((data ?? []).map((r) => (r as { email: string }).email));
 }
 
@@ -68,11 +82,11 @@ interface MarketingSend {
  * swabs" produces nothing anyone reads.
  *
  * Read from `products.categories` so adding an accessory in the admin is enough;
- * an empty result simply means every order is treated as reviewable, which is
- * the safe direction to fail.
+ * an empty result means every order is treated as reviewable. A failed read
+ * stops the sweep so missing catalogue data cannot trigger unwanted requests.
  */
 async function accessorySlugs(): Promise<Set<string>> {
-  const { data } = await adminDb().from("products").select("slug").contains("categories", ["accessory"]);
+  const data = await readAll((start,end)=>adminDb().from("products").select("slug").contains("categories", ["accessory"]).order("id").range(start,end));
   return new Set((data ?? []).map((p) => (p as { slug: string }).slug));
 }
 
@@ -85,11 +99,12 @@ async function accessorySlugs(): Promise<Set<string>> {
 async function recentMarketingRecipients(emails: string[], days: number): Promise<Set<string>> {
   const unique = [...new Set(emails)];
   if (!unique.length) return new Set();
-  const { data } = await adminDb()
+  const since=isoDaysAgo(days);
+  const data = await readChunks(unique,(ids,start,end)=>adminDb()
     .from("email_outbox")
     .select("to_email, template")
-    .in("to_email", unique)
-    .gte("created_at", isoDaysAgo(days));
+    .in("to_email", ids)
+    .gte("created_at", since).order("id").range(start,end));
   return new Set(
     ((data ?? []) as { to_email: string; template: EmailTemplate }[])
       .filter((r) => !isTransactional(r.template))
@@ -112,36 +127,34 @@ async function queueMarketing(sends: MarketingSend[], sequence?: SequenceId): Pr
     if (suppressed.has(send.to)) continue;
     if (paused.has(send.to)) continue;
     const unsub = unsubscribeUrl(send.to);
-    if (!unsub) {
-      console.error("lifecycle: no UNSUBSCRIBE_SECRET/CRON_SECRET configured — marketing sends skipped");
-      return queued;
-    }
-    await queueEmail({
+    if (!unsub) throw new Error("Lifecycle unsubscribe signing secret is not configured");
+    const inserted = await queueEmail({
       to: send.to,
       template: send.template,
       payload: { ...(send.payload ?? {}), unsubscribe_url: unsub },
       relatedType: send.relatedType,
       relatedId: send.relatedId,
     });
-    queued++;
+    if (inserted) queued++;
   }
   return queued;
 }
 
 /**
- * Welcome series stages 2 and 3 (stage 1 is queued directly by /api/subscribe).
+ * Lifetime welcome series: stage 1 is queued on mailbox confirmation, and stage 3
+ * keeps the original subscriber date. Renewed consent does not replay either touch.
  * A subscriber leaves the series the moment they place any order — the series'
  * job is the first purchase.
  */
 export async function sweepWelcomeSeries(): Promise<{ queued: number }> {
   const db = adminDb();
-  const { data } = await db
+  const since=isoDaysAgo(18);
+  const data = await readAll((start,end)=>db
     .from("subscribers")
     .select("email, source, created_at")
     .is("unsubscribed_at", null)
-    .gte("created_at", isoDaysAgo(18))
-    .order("created_at", { ascending: true })
-    .limit(500);
+    .gte("created_at", since)
+    .order("created_at", { ascending: true }).order("id").range(start,end));
 
   const bySubscriber = new Map<string, string>();
   for (const row of (data ?? []) as { email: string; source: string | null; created_at: string }[]) {
@@ -151,10 +164,10 @@ export async function sweepWelcomeSeries(): Promise<{ queued: number }> {
   }
   if (!bySubscriber.size) return { queued: 0 };
 
-  const { data: orderRows } = await db
+  const orderRows = await readChunks([...bySubscriber.keys()],(ids,start,end)=>db
     .from("orders")
     .select("customer_email")
-    .in("customer_email", [...bySubscriber.keys()]);
+    .in("customer_email", ids).order("id").range(start,end));
   const purchased = new Set((orderRows ?? []).map((r) => (r as { customer_email: string }).customer_email));
 
   const stages: { days: number; n: 3; template: EmailTemplate }[] = [
@@ -193,9 +206,7 @@ interface ReviewOrderRow extends FulfilledOrderRow {
 
 /** The review form URL for an order — the emails append &rating=N per star. */
 const reviewUrlFor = (order: FulfilledOrderRow) =>
-  `${SITE}/leave-a-review?order=${encodeURIComponent(order.order_number)}&email=${encodeURIComponent(
-    order.customer_email,
-  )}`;
+  `${SITE}/leave-a-review?token=${createOrderAccessToken(order.id, "review")}`;
 
 /**
  * Post-purchase review sequence — three touches off shipped_at.
@@ -214,20 +225,21 @@ const reviewUrlFor = (order: FulfilledOrderRow) =>
  */
 export async function sweepPostPurchase(): Promise<{ queued: number }> {
   const db = adminDb();
-  const { data } = await db
+  const since=isoDaysAgo(45);
+  const data = await readAll((start,end)=>db
     .from("orders")
     .select(
       "id, order_number, customer_email, created_at, shipped_at, order_items(product_slug, product_name)",
     )
     .in("status", ["shipped", "completed"])
     .not("shipped_at", "is", null)
-    .gte("shipped_at", isoDaysAgo(45))
-    .limit(500);
+    .gte("shipped_at", since)
+    .order("shipped_at").order("id").range(start,end));
   const orders = (data ?? []) as unknown as ReviewOrderRow[];
   if (!orders.length) return { queued: 0 };
 
-  const [{ data: reviewRows }, accessories] = await Promise.all([
-    db.from("reviews").select("order_id").in("order_id", orders.map((o) => o.id)),
+  const [reviewRows, accessories] = await Promise.all([
+    readChunks(orders.map((o)=>o.id),(ids,start,end)=>db.from("reviews").select("order_id").in("order_id",ids).order("id").range(start,end)),
     accessorySlugs(),
   ]);
   const reviewed = new Set((reviewRows ?? []).map((r) => (r as { order_id: string }).order_id));
@@ -269,6 +281,7 @@ export async function sweepPostPurchase(): Promise<{ queued: number }> {
     const payload = {
       order_number: order.order_number,
       review_url: reviewUrlFor(order),
+      order_id: order.id,
       products: [...new Set(items.map((i) => i.product_name))],
     };
 
@@ -311,12 +324,13 @@ interface ReviewRow {
  */
 export async function sweepReviewThankYou(): Promise<{ queued: number }> {
   const db = adminDb();
-  const { data } = await db
+  const since=isoDaysAgo(7);
+  const data = await readAll((start,end)=>db
     .from("reviews")
     .select("id, created_at, rating, orders(customer_email)")
     .not("order_id", "is", null)
-    .gte("created_at", isoDaysAgo(7))
-    .limit(500);
+    .gte("created_at", since)
+    .order("created_at").order("id").range(start,end));
   const reviews = (data ?? []) as unknown as ReviewRow[];
 
   const sends: MarketingSend[] = [];
@@ -357,15 +371,16 @@ const packSizeFromLabel = (label: string): number => {
  */
 export async function sweepReplenishment(): Promise<{ queued: number }> {
   const db = adminDb();
-  const { data } = await db
+  const since=isoDaysAgo(200);
+  const data = await readAll((start,end)=>db
     .from("orders")
     .select(
       "id, order_number, customer_email, created_at, shipped_at, order_items(product_name, qty, variant_label, product_variants(pack_size))",
     )
     .in("status", ["shipped", "completed"])
     .not("shipped_at", "is", null)
-    .gte("shipped_at", isoDaysAgo(200))
-    .limit(500);
+    .gte("shipped_at", since)
+    .order("shipped_at").order("id").range(start,end));
   const orders = (data ?? []) as unknown as ReplenishmentOrderRow[];
   if (!orders.length) return { queued: 0 };
 
@@ -378,11 +393,11 @@ export async function sweepReplenishment(): Promise<{ queued: number }> {
 
   // "Reordered since" includes pending/unpaid orders — any newer order means
   // the customer doesn't need a restock nudge.
-  const { data: allOrders } = await db
+  const allOrders = await readChunks([...latestByEmail.keys()],(ids,start,end)=>db
     .from("orders")
     .select("customer_email, created_at")
-    .in("customer_email", [...latestByEmail.keys()])
-    .neq("status", "cancelled");
+    .in("customer_email", ids)
+    .neq("status", "cancelled").order("id").range(start,end));
   const newestByEmail = new Map<string, string>();
   for (const row of (allOrders ?? []) as { customer_email: string; created_at: string }[]) {
     const prev = newestByEmail.get(row.customer_email);
@@ -425,12 +440,13 @@ interface CustomerRow {
 /** Winback: 60d and 90d inactivity touches, each sent at most once per lapse. */
 export async function sweepWinback(): Promise<{ queued: number }> {
   const db = adminDb();
-  const { data } = await db
+  const since=isoDaysAgo(150);const until=isoDaysAgo(60);
+  const data = await readAll((start,end)=>db
     .from("customers")
     .select("email, orders_count, last_order_at")
-    .gte("last_order_at", isoDaysAgo(150))
-    .lte("last_order_at", isoDaysAgo(60))
-    .limit(500);
+    .gte("last_order_at", since)
+    .lte("last_order_at", until)
+    .order("last_order_at").order("email").range(start,end));
   const customers = (data ?? []) as CustomerRow[];
 
   const sends: MarketingSend[] = [];
@@ -462,22 +478,24 @@ export async function sweepWinback(): Promise<{ queued: number }> {
  */
 export async function sweepSecondPurchaseNudge(): Promise<{ queued: number }> {
   const db = adminDb();
-  const { data } = await db
+  const since=isoDaysAgo(60);const until=isoDaysAgo(30);
+  const data = await readAll((start,end)=>db
     .from("customers")
     .select("email, orders_count, last_order_at")
     .eq("orders_count", 1)
-    .gte("last_order_at", isoDaysAgo(60))
-    .lte("last_order_at", isoDaysAgo(30))
-    .limit(500);
+    .gte("last_order_at", since)
+    .lte("last_order_at", until)
+    .order("last_order_at").order("email").range(start,end));
   const customers = (data ?? []) as CustomerRow[];
   if (!customers.length) return { queued: 0 };
 
-  const { data: recentReplenishment } = await db
+  const recentSince=isoDaysAgo(30);
+  const recentReplenishment = await readChunks(customers.map((c)=>c.email),(ids,start,end)=>db
     .from("email_outbox")
     .select("to_email")
     .eq("template", "replenishment")
-    .in("to_email", customers.map((c) => c.email))
-    .gte("created_at", isoDaysAgo(30));
+    .in("to_email", ids)
+    .gte("created_at", recentSince).order("id").range(start,end));
   const recentlyNudged = new Set(
     (recentReplenishment ?? []).map((r) => (r as { to_email: string }).to_email),
   );

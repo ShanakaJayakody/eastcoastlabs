@@ -7,10 +7,9 @@ export default function DispatchGrid({ freeShippingThreshold }: { freeShippingTh
       label: "Dispatch",
       content: (
         <>
-          <p className="font-serif-display text-xl text-fg">1 business day</p>
+          <p className="font-serif-display text-xl text-fg">After payment confirmation</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Orders placed before 3:30pm AEST ship the same business day, from Australia. Your card
-            statement reads "EAST COAST LABS" — no product names, discreet by default.
+            Bank transfer details are provided after placing your order. Orders are prepared after payment confirmation.
           </p>
         </>
       ),

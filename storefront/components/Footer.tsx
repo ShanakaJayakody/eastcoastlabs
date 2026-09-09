@@ -1,16 +1,17 @@
+import MarketingOnly from "./MarketingOnly";
 import Link from "next/link";
 import Image from "next/image";
 import ResearchDisclaimer from "./ResearchDisclaimer";
 import EmailCapture from "./EmailCapture";
 import { getCollections } from "@/lib/collections";
 
-export default function Footer() {
+export default function Footer({ supportEmail = "eclpeptides@gmail.com" }: { supportEmail?: string }) {
   const collections = getCollections();
   return (
     <footer className="mt-20 border-t border-line bg-ink-2">
       <div className="mx-auto max-w-6xl px-4 py-12">
         {/* Newsletter */}
-        <div className="mb-10 grid gap-5 rounded-2xl border border-line bg-surface/40 p-6 sm:grid-cols-2 sm:items-center sm:p-8">
+        <MarketingOnly><div className="mb-10 grid gap-5 rounded-2xl border border-line bg-surface/40 p-6 sm:grid-cols-2 sm:items-center sm:p-8">
           <div>
             <p className="text-lg font-semibold text-fg">Restock alerts &amp; new compounds</p>
             <p className="mt-1 text-sm text-muted">
@@ -20,6 +21,7 @@ export default function Footer() {
           <EmailCapture source="footer" cta="Subscribe" successMsg="✓ Subscribed — watch your inbox." />
         </div>
 
+        </MarketingOnly>
         <div className="grid gap-10 md:grid-cols-4 lg:grid-cols-5">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5">
@@ -27,9 +29,7 @@ export default function Footer() {
               <p className="text-sm font-semibold tracking-[0.18em] text-fg">EAST COAST LABS</p>
             </div>
             <p className="mt-3 max-w-sm text-sm text-muted">
-              Australian owned &amp; operated supplier of research-use-only peptides. Every batch
-              independently tested by JanoShik, with the Certificate of Analysis published before it
-              ships.
+              Australian supplier of research-use-only peptides. Browse available batch documentation on our Lab Results page.
             </p>
             <p className="mt-4 text-sm text-fg-2">Australian owned &amp; operated</p>
           </div>
@@ -62,11 +62,10 @@ export default function Footer() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-2">Support</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
-                <a href="mailto:eclpeptides@gmail.com" className="text-fg-2 hover:text-accent">
-                  eclpeptides@gmail.com
+                <a href={`mailto:${supportEmail}`} className="text-fg-2 hover:text-accent">
+                  {supportEmail}
                 </a>
               </li>
-              <li className="text-muted">ABN: [PENDING]</li>
               <li className="text-muted">Mon–Fri, 9am–5pm AEST</li>
             </ul>
           </div>

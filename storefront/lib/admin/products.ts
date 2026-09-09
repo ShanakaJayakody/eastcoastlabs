@@ -114,6 +114,7 @@ export function vialsOnHand(variants: { pack_size: number; on_hand: number }[]):
 }
 
 const SELECT_PRODUCT = `
+  edit_version,
   id, slug, name, sku, status, images, short_description, description, seo_title, seo_description, unit_cost_cents,
   product_variants (
     id, sku, pack_size, label, price_cents, compare_at_cents, active, position,
@@ -122,6 +123,7 @@ const SELECT_PRODUCT = `
 `;
 
 interface RawProduct {
+  edit_version: number;
   id: string;
   slug: string;
   name: string;
@@ -178,6 +180,7 @@ export async function listProducts(opts: { search?: string; lowStockOnly?: boole
 }
 
 export interface ProductDetail extends ProductListRow {
+  edit_version: number;
   short_description: string | null;
   description: string | null;
   seo_title: string | null;
@@ -209,6 +212,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
     totalOnHand: pool.onHand, // vials
     lowStock: variants.some((v) => v.available <= v.low_stock_threshold),
     minPriceCents: variants.length ? Math.min(...variants.map((v) => v.price_cents)) : 0,
+    edit_version: p.edit_version,
     short_description: p.short_description,
     description: p.description,
     seo_title: p.seo_title,
@@ -257,21 +261,6 @@ export function tierPriceCents(singleCents: number, packSize: number): number {
   return Math.round((singleCents * packSize * (1 - discount)) / 100) * 100; // whole dollars
 }
 
-/** Unique-ify a slug/sku by appending -2, -3 … so create/duplicate never 409s. */
-async function uniqueValue(
-  table: "products" | "product_variants",
-  column: "slug" | "sku",
-  base: string,
-): Promise<string> {
-  const db = adminDb();
-  for (let n = 1; n < 50; n++) {
-    const candidate = n === 1 ? base : `${base}-${n}`;
-    const { data } = await db.from(table).select("id").eq(column, candidate).maybeSingle();
-    if (!data) return candidate;
-  }
-  return `${base}-${Date.now()}`;
-}
-
 export interface NewVariantInput {
   pack_size: number;
   label: string;
@@ -300,82 +289,19 @@ export async function createProduct(
   input: CreateProductInput,
   actor: string,
 ): Promise<{ slug: string }> {
-  const db = adminDb();
-  const baseSlug = slugify(input.slug || input.name);
-  if (!baseSlug) throw new Error("A product name is required.");
-  const slug = await uniqueValue("products", "slug", baseSlug);
-  const sku = await uniqueValue(
-    "products",
-    "sku",
-    (input.sku || `ECL-${baseSlug.toUpperCase().replace(/-/g, "").slice(0, 10)}`).toUpperCase(),
-  );
-
-  const { data: product, error } = await db
-    .from("products")
-    .insert({
-      slug,
-      name: input.name.trim(),
-      sku,
-      compound: input.compound?.trim() || null,
-      short_description: input.short_description ?? null,
-      description: input.description ?? null,
-      status: input.status ?? "draft",
-      images: [],
-      categories: [],
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(`createProduct: ${error.message}`);
-  const productId = product.id as string;
-
-  const variants = input.variants.length
-    ? input.variants
-    : [
-        { pack_size: 1, label: "1 vial", price_cents: 0 },
-        { pack_size: 3, label: "3-pack", price_cents: 0 },
-        { pack_size: 6, label: "6-pack", price_cents: 0 },
-      ];
-
-  for (const [i, v] of variants.entries()) {
-    const variantSku = await uniqueValue("product_variants", "sku", `${sku}-${v.pack_size}`);
-    const { data: created, error: vErr } = await db
-      .from("product_variants")
-      .insert({
-        product_id: productId,
-        sku: variantSku,
-        pack_size: v.pack_size,
-        label: v.label,
-        price_cents: Math.max(0, Math.round(v.price_cents)),
-        position: i,
-      })
-      .select("id")
-      .single();
-    if (vErr) throw new Error(`createProduct(variant ${v.pack_size}): ${vErr.message}`);
-
-    const variantId = created.id as string;
-    await db.from("inventory").insert({ variant_id: variantId }).select().maybeSingle();
-    // Opening stock is vials, so it goes to the pool (pack_size 1) only — the
-    // pack tiers derive their availability from it.
-    if (input.initialStock && input.initialStock > 0 && v.pack_size === 1) {
-      await recordMovement({
-        variantId,
-        qty: Math.round(input.initialStock),
-        reason: "received",
-        actor,
-        note: "opening stock",
-      });
-    }
-  }
-
-  await logAudit({
-    actor,
-    action: "product.create",
-    entityType: "product",
-    entityId: slug,
-    diff: { name: input.name, variants: variants.length, status: input.status ?? "draft" },
+  const slug = slugify(input.slug || input.name);
+  if (!slug) throw new Error("A product name is required.");
+  const variants = input.variants.length ? input.variants : [
+    {pack_size:1,label:"1 vial",price_cents:0},
+    {pack_size:3,label:"3-pack",price_cents:0},
+    {pack_size:6,label:"6-pack",price_cents:0},
+  ];
+  const {data,error} = await adminDb().rpc("admin_create_product", {
+    p_input:{...input,slug,sku:(input.sku || `ECL-${slug.toUpperCase().replace(/-/g, "").slice(0,10)}`).toUpperCase(),variants},p_actor:actor,
   });
-
-  return { slug };
+  if(error)throw new Error(error.message);
+  if(!data?.slug)throw new Error("Product transaction returned no slug");
+  return {slug:data.slug};
 }
 
 /**
@@ -399,74 +325,15 @@ export async function addTiers(
   },
   actor: string,
 ): Promise<void> {
-  const db = adminDb();
-  const { data: product, error } = await db
-    .from("products")
-    .select("id, sku, slug, product_variants ( id )")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (error) throw new Error(`addTiers: ${error.message}`);
-  if (!product) throw new Error("Product not found.");
-  if ((product.product_variants as { id: string }[] | null)?.length) {
-    throw new Error("This product already has pack tiers.");
-  }
-
-  const single = Math.max(0, Math.round(opts.singlePriceCents));
-  const baseSku = (product.sku as string | null) ?? `ECL-${slug.toUpperCase().replace(/-/g, "").slice(0, 10)}`;
-  const tiers: NewVariantInput[] = [
-    { pack_size: 1, label: "1 vial", price_cents: single },
-    { pack_size: 3, label: "3-pack", price_cents: opts.pack3PriceCents ?? tierPriceCents(single, 3) },
-    { pack_size: 6, label: "6-pack", price_cents: opts.pack6PriceCents ?? tierPriceCents(single, 6) },
+  const single=opts.singlePriceCents;
+  const tiers:NewVariantInput[]=[
+    {pack_size:1,label:"1 vial",price_cents:single},
+    {pack_size:3,label:"3-pack",price_cents:opts.pack3PriceCents ?? tierPriceCents(single,3)},
+    {pack_size:6,label:"6-pack",price_cents:opts.pack6PriceCents ?? tierPriceCents(single,6)},
   ];
-
-  for (const [i, tier] of tiers.entries()) {
-    const variantSku = await uniqueValue("product_variants", "sku", `${baseSku}-${tier.pack_size}`);
-    const { data: created, error: vErr } = await db
-      .from("product_variants")
-      .insert({
-        product_id: product.id,
-        sku: variantSku,
-        pack_size: tier.pack_size,
-        label: tier.label,
-        price_cents: Math.max(0, Math.round(tier.price_cents)),
-        position: i,
-      })
-      .select("id")
-      .single();
-    if (vErr) throw new Error(`addTiers(variant ${tier.pack_size}): ${vErr.message}`);
-
-    const variantId = created.id as string;
-    await db.from("inventory").insert({ variant_id: variantId }).select().maybeSingle();
-    // Opening stock is vials, so it lands on the pool tier only.
-    if (opts.initialStock && opts.initialStock > 0 && tier.pack_size === 1) {
-      await recordMovement({
-        variantId,
-        qty: Math.round(opts.initialStock),
-        reason: "received",
-        actor,
-        note: "opening stock",
-      });
-    }
-  }
-
-  if (opts.activate) {
-    await db
-      .from("products")
-      .update({ status: "active", coming_soon_rank: null, updated_at: new Date().toISOString() })
-      .eq("id", product.id);
-  }
-
-  await logAudit({
-    actor,
-    action: "product.tiers.add",
-    entityType: "product",
-    entityId: slug,
-    diff: {
-      single_price_cents: single,
-      initial_stock: opts.initialStock ?? 0,
-      activated: Boolean(opts.activate),
-    },
-  });
+  if(opts.initialStock!=null && !Number.isInteger(opts.initialStock))throw new Error("Opening stock must be a whole number");
+  const {error}=await adminDb().rpc("admin_launch_product",{p_slug:slug,p_tiers:tiers,p_stock:opts.initialStock??0,p_activate:opts.activate??false,p_actor:actor});
+  if(error)throw new Error(error.message);
 }
 
 /**
@@ -589,37 +456,29 @@ export async function adjustStockWithNotify(opts: {
   reason: MovementReason;
   actor: string;
   note?: string;
-}): Promise<{ notified: number }> {
+}): Promise<{ notified: number; warning?: string }> {
   const db = adminDb();
-  const { data: before } = await db
-    .from("inventory")
-    .select("on_hand, reserved")
-    .eq("variant_id", opts.variantId)
-    .maybeSingle();
+  const { data: before, error: beforeError } = await db.from("inventory")
+    .select("on_hand, reserved").eq("variant_id", opts.variantId).maybeSingle();
+  if (beforeError) throw new Error(`Cannot read stock before adjustment: ${beforeError.message}`);
   const availableBefore = (before?.on_hand ?? 0) - (before?.reserved ?? 0);
 
   await recordMovement(opts);
-  await logAudit({
-    actor: opts.actor,
-    action: "stock.adjust",
-    entityType: "product_variant",
-    entityId: opts.variantId,
-    diff: { qty: opts.qty, reason: opts.reason, note: opts.note ?? null },
-  });
-
-  const { data: after } = await db
-    .from("inventory")
-    .select("on_hand, reserved")
-    .eq("variant_id", opts.variantId)
-    .maybeSingle();
-  const availableAfter = (after?.on_hand ?? 0) - (after?.reserved ?? 0);
-
-  // Restock event: nothing available → something available.
-  if (availableBefore <= 0 && availableAfter > 0) {
-    const notified = await queueBackInStock(opts.variantId);
-    return { notified };
-  }
-  return { notified: 0 };
+  // The ledger write has committed. Follow-up failure must never invite the
+  // operator to repeat this quantity adjustment.
+  const warnings: string[] = [];
+  try {
+    await logAudit({actor:opts.actor,action:"stock.adjust",entityType:"product_variant",entityId:opts.variantId,
+      diff:{qty:opts.qty,reason:opts.reason,note:opts.note??null}});
+  } catch { warnings.push("Audit recording could not be confirmed."); }
+  let notified=0;
+  try {
+    const {data:after,error:afterError}=await db.from("inventory").select("on_hand, reserved").eq("variant_id",opts.variantId).maybeSingle();
+    if(afterError || !after)throw new Error("Availability read failed");
+    const availableAfter=after.on_hand-after.reserved;
+    if(availableBefore<=0 && availableAfter>0)notified=await queueBackInStock(opts.variantId);
+  } catch { warnings.push("Availability notifications could not be checked or queued."); }
+  return {notified,...(warnings.length?{warning:`Stock saved. ${warnings.join(" ")} Do not repeat the adjustment; review the stock ledger and email queue.`}:{})};
 }
 
 export interface MovementRow {

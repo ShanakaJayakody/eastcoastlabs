@@ -10,7 +10,7 @@
 import { GA4_ID } from "./env";
 import { getVariant, type Variant } from "./variant";
 
-type GtagArgs = [string, string, Record<string, unknown>?];
+type GtagArgs = [string, string | Date, Record<string, unknown>?];
 declare global {
   interface Window {
     gtag?: (...args: GtagArgs) => void;
@@ -18,29 +18,48 @@ declare global {
   }
 }
 
-export const ga4Enabled = () => GA4_ID !== "";
+export const ga4Enabled = () => /^G-[A-Z0-9]+$/i.test(GA4_ID);
 
-/**
- * The single gtag call site. Merges the split-test arm into every outgoing
- * event as a top-level `variant` param.
- *
- * Note `variant` here is the A/B arm ("control" | "v1"), which is a different
- * concept from `GaItem.item_variant` — that one is the pack size ("3-pack") and
- * lives inside each item, not at the event level.
- *
- * The GA4-disabled guard runs first so nothing at all happens — not even the
- * cookie read — when analytics is switched off.
- *
- * An explicit `variant` in `params` wins over the cookie-derived one, because
- * a caller that just resolved the arm itself (VariantTag) holds the
- * authoritative value.
- */
+/** Only public catalogue/content paths may be sent; private identifiers are
+ * rejected entirely, and query/hash/referrer are never included. */
+export function analyticsAllowed(path: string): boolean {
+  return /^(?:\/|\/1|\/(?:shop|stacks|lab-results|learn|about|checkout)|\/(?:product|collections|learn)\/[a-z0-9-]+)\/?$/.test(path);
+}
+export function safeAnalyticsLocation(href: string): string | null {
+  try {
+    const url = new URL(href);
+    return analyticsAllowed(url.pathname) ? `${url.origin}${url.pathname}` : null;
+  } catch { return null; }
+}
+
+const buffered: {event:string;params:Record<string,unknown>}[] = [];
+const deduped = new Set<string>();
+export function flushAnalytics() {
+  if (typeof window === "undefined" || !ga4Enabled()) return;
+  if (!safeAnalyticsLocation(window.location.href)) {buffered.length = 0;return;}
+  if (typeof window.gtag !== "function") return;
+  for (const entry of buffered.splice(0)) {
+    try { window.gtag("event",entry.event,entry.params); } catch { /* Analytics cannot interrupt an order or navigation. */ }
+  }
+}
 function gtagEvent(event: string, params: Record<string, unknown>) {
-  if (typeof window === "undefined" || !ga4Enabled() || typeof window.gtag !== "function") return;
+  if (typeof window === "undefined" || !ga4Enabled()) return;
+  const pageLocation = safeAnalyticsLocation(window.location.href);
+  if (!pageLocation) {buffered.length=0;return;}
   const variant = getVariant();
-  // Omitted entirely when unattributed: GA4 records an explicit null as a real
-  // value and it pollutes the variant breakdown.
-  window.gtag("event", event, variant === null ? params : { variant, ...params });
+  buffered.push({event,params:{...(variant ? {variant} : {}),...params,page_location:pageLocation,page_referrer:""}});
+  if (buffered.length > 100) buffered.shift();
+  flushAnalytics();
+}
+export function trackPageView() { gtagEvent("page_view",{}); }
+export function trackWebVital(metric: {name:string;value:number;rating?:string}) {
+  if (!Number.isFinite(metric.value)) return;
+  gtagEvent("web_vitals",{metric_name:metric.name,metric_value:metric.value,metric_rating:metric.rating});
+}
+export function trackOrderCreated(transactionId: string, items: GaItem[], value: number) {
+  if (deduped.has(`created:${transactionId}`)) return;
+  deduped.add(`created:${transactionId}`);
+  gtagEvent("order_created",{transaction_id:transactionId,currency:"AUD",value,items});
 }
 
 export interface GaItem {
@@ -68,6 +87,8 @@ export function trackBeginCheckout(items: GaItem[], value: number) {
 }
 
 export function trackPurchase(transactionId: string, items: GaItem[], value: number) {
+  if (deduped.has(`paid:${transactionId}`)) return;
+  deduped.add(`paid:${transactionId}`);
   gtagEvent("purchase", { transaction_id: transactionId, currency: "AUD", value, items });
 }
 

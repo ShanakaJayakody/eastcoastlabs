@@ -136,7 +136,8 @@ export async function getProductCopy(productName: string, productSlug?: string):
   const section = await findSection(productName, productSlug);
   if (!section) return null;
   const descriptor = firstMatch(section.body, /\*\*Opening:\*\*\s*(.+)/);
-  const html = await marked.parse(section.body);
+  const publishable = section.body.split("\n").filter(line => !/PLACEHOLDER|OWNER INPUT/i.test(line)).join("\n");
+  const html = await marked.parse(publishable);
   return { descriptor: descriptor.trim(), html };
 }
 
@@ -146,8 +147,8 @@ export async function getAboutHtml(): Promise<string> {
   let md = await readDoc("ABOUT_PAGE_COPY.md");
   // Owner-input placeholders render as an explicit pending marker.
   md = md
-    .replace(/\[OWNER INPUT: Provide Australian Business Number\]/g, "[PENDING]")
+    .replace(/^.*\[OWNER INPUT: Provide Australian Business Number\].*$/gm, "")
     .replace(/\*\*\[OWNER INPUT:[^\]]*\]\*\*/g, "")
-    .replace(/\[OWNER INPUT:[^\]]*\]/g, "[PENDING]");
+    .replace(/\[OWNER INPUT:[^\]]*\]/g, "");
   return marked.parse(md);
 }

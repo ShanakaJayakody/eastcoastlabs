@@ -19,14 +19,16 @@ export default function StickyCta() {
 
   return (
     <div
+      inert={!shown}
+      aria-hidden={!shown}
       className={`pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line-2 bg-ink/97 px-4 py-3 backdrop-blur transition-transform duration-300 md:hidden ${
         shown ? "translate-y-0" : "translate-y-full"
       }`}
     >
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-data text-[11px] uppercase tracking-wide text-fg">Batch-verified</p>
-          <p className="truncate text-[11px] text-muted">Free shipping over $150 · AU dispatch</p>
+          <p className="truncate font-data text-[11px] uppercase tracking-wide text-fg">Research compounds</p>
+          <p className="truncate text-[11px] text-muted">Shipping options at checkout</p>
         </div>
         <Link
           href="/shop"

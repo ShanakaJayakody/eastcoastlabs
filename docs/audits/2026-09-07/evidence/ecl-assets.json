@@ -1,0 +1,185 @@
+[
+  {
+    "type": "css",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/css/f93b5809e1736308.css",
+    "status": 200,
+    "bytes": 15126,
+    "contentType": "text/css; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/4bd1b696-f785427dddbba9fb.js",
+    "status": 200,
+    "bytes": 54863,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/1255-0559f572f89b09fa.js",
+    "status": 200,
+    "bytes": 46896,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/main-app-2f12b3c254e69c7a.js",
+    "status": 200,
+    "bytes": 560,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": null
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/2619-3c9e02e22d10480a.js",
+    "status": 200,
+    "bytes": 3385,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/1356-8ac2296275443024.js",
+    "status": 200,
+    "bytes": 5169,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/3769-7637bb424595e7fb.js",
+    "status": 200,
+    "bytes": 2312,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/1219-9274161fd056729b.js",
+    "status": 200,
+    "bytes": 3195,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/1251-1eeae78e322f8946.js",
+    "status": 200,
+    "bytes": 2720,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/app/(variant)/layout-816cdabf4a32d6e8.js",
+    "status": 200,
+    "bytes": 1340,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/app/(store)/layout-3f54b6f9a0665615.js",
+    "status": 200,
+    "bytes": 3174,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/app/(store)/page-589911a4a7f9ebee.js",
+    "status": 200,
+    "bytes": 2484,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "status": 200,
+    "bytes": 39797,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=%2Flogo.png&w=96&q=75",
+    "status": 200,
+    "bytes": 3196,
+    "contentType": "image/webp",
+    "encoding": null
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Fbpc-157%2Fprimary.png&w=3840&q=75",
+    "error": "HTTP Error 402: Payment Required"
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Ftesamorelin%2Fprimary.png&w=3840&q=75",
+    "error": "HTTP Error 402: Payment Required"
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Fmots-c%2Fprimary.png&w=3840&q=75",
+    "status": 200,
+    "bytes": 131626,
+    "contentType": "image/webp",
+    "encoding": null
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Fsemax%2Fprimary.png&w=3840&q=75",
+    "status": 200,
+    "bytes": 135660,
+    "contentType": "image/webp",
+    "encoding": null
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Fselank%2Fprimary.png&w=3840&q=75",
+    "status": 200,
+    "bytes": 143266,
+    "contentType": "image/webp",
+    "encoding": null
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Ftb-500%2Fprimary.png&w=3840&q=75",
+    "status": 200,
+    "bytes": 127458,
+    "contentType": "image/webp",
+    "encoding": null
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Fglow%2Fprimary.png&w=3840&q=75",
+    "status": 200,
+    "bytes": 93358,
+    "contentType": "image/webp",
+    "encoding": null
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Fghk-cu%2Fprimary.png&w=3840&q=75",
+    "error": "HTTP Error 402: Payment Required"
+  },
+  {
+    "type": "image",
+    "url": "https://www.eastcoastlabs.com.au/_next/image?url=https%3A%2F%2Fyeszjgbqumulvtltkfsw.supabase.co%2Fstorage%2Fv1%2Fobject%2Fpublic%2Fproduct-images%2Ftirzepatide%2Fprimary.png&w=3840&q=75",
+    "status": 200,
+    "bytes": 153368,
+    "contentType": "image/webp",
+    "encoding": null
+  },
+  {
+    "type": "script",
+    "url": "https://www.eastcoastlabs.com.au/_next/static/chunks/webpack-e3e8009364bc1df1.js",
+    "status": 200,
+    "bytes": 1903,
+    "contentType": "application/javascript; charset=utf-8",
+    "encoding": "gzip"
+  }
+]

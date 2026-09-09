@@ -29,14 +29,7 @@ export function verifySvixSignature(
   },
   secret: string | undefined,
 ): VerifyResult {
-  if (!secret) {
-    // No secret configured: only tolerable outside production, and never silent.
-    if (process.env.NODE_ENV === "production") {
-      return { ok: false, status: 401, reason: "webhook secret not configured" };
-    }
-    console.warn("resend webhook: no RESEND_WEBHOOK_SECRET set — payload NOT verified");
-    return { ok: true, unverified: true };
-  }
+  if (!secret) return { ok: false, status: 401, reason: "webhook secret not configured" };
 
   const { id, timestamp, signature } = headers;
   if (!id || !timestamp || !signature) {
@@ -44,7 +37,7 @@ export function verifySvixSignature(
   }
 
   const sentAt = Number(timestamp);
-  if (!Number.isFinite(sentAt)) {
+  if (!Number.isSafeInteger(sentAt)) {
     return { ok: false, status: 400, reason: "bad svix-timestamp" };
   }
   if (Math.abs(Date.now() / 1000 - sentAt) > TOLERANCE_SECONDS) {
@@ -53,6 +46,7 @@ export function verifySvixSignature(
 
   // Secrets arrive as "whsec_<base64>"; the raw key is the decoded remainder.
   const key = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+  if (key.length < 16) return { ok:false,status:401,reason:"invalid webhook secret" };
   const expected = createHmac("sha256", key)
     .update(`${id}.${timestamp}.${body}`)
     .digest("base64");

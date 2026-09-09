@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import type { ResolvedStack } from "@/lib/stacks";
-import { formatAud, formatAudWhole } from "@/lib/format";
+import { reservedVials } from "@/lib/cart-line";
+import { formatAud } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
 import { trackAddToCart } from "@/lib/analytics";
@@ -13,12 +14,14 @@ import { trackAddToCart } from "@/lib/analytics";
  * site's StackCard — only the presentation differs.
  */
 export default function ProtocolCard({ stack, index }: { stack: ResolvedStack; index: number }) {
-  const { addLine, stockFor } = useCart();
+  const { addLine, stockFor, lines } = useCart();
   const { openCart } = useUI();
   const bacStock = stockFor("bacteriostatic-water");
   const bacAvailable = bacStock === null || bacStock > 0;
 
+  const available = Math.min(...stack.components.map(c => Math.max(0, c.available - reservedVials(lines,c.slug))));
   function handleAdd() {
+    if (available < 1) return;
     const variantLabel = `Stack · ${stack.components.map((c) => c.name).join(" + ")}`;
     addLine(
       {
@@ -27,6 +30,7 @@ export default function ProtocolCard({ stack, index }: { stack: ResolvedStack; i
         name: stack.name,
         slug: stack.slug,
         variantLabel,
+        components: stack.components.map(c => c.slug),
         image: stack.components[0]?.image,
         unitPrice: stack.bundlePrice,
       },
@@ -88,16 +92,17 @@ export default function ProtocolCard({ stack, index }: { stack: ResolvedStack; i
 
           <div className="mt-4 flex items-end justify-between">
             <div className="font-data">
-              <span className="text-2xl text-fg">{formatAudWhole(stack.bundlePrice)}</span>
+              <span className="text-2xl text-fg">{formatAud(stack.bundlePrice)}</span>
               <span className="ml-2 text-sm text-muted-2 line-through">{formatAud(stack.componentsTotal)}</span>
-              <p className="mt-0.5 text-[12px] text-accent-2">Save {formatAudWhole(stack.savings)}</p>
+              <p className="mt-0.5 text-[12px] text-accent-2">Save {formatAud(stack.savings)}</p>
             </div>
             <button
               type="button"
               onClick={handleAdd}
+              disabled={available < 1}
               className="border border-fg bg-fg px-5 py-2.5 font-data text-[13px] font-medium text-ink transition hover:opacity-85"
             >
-              Add protocol
+              {available < 1 ? "Out of stock" : "Add bundle"}
             </button>
           </div>
         </div>

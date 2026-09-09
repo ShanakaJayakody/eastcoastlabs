@@ -4,9 +4,10 @@ import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import CoaVerify from "@/components/CoaVerify";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/lab-results" },
   title: "Lab Results",
   description:
-    "Every batch tested by an independent lab. Every result published. Browse published Certificates of Analysis from JanoShik.",
+    "Browse available verified Certificates of Analysis for research products.",
 };
 
 export const revalidate = 300;
@@ -19,12 +20,10 @@ export default async function LabResultsPage() {
       <div className="max-w-2xl">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Transparency</p>
         <h1 className="mt-2 text-3xl font-bold text-fg">
-          Every batch tested by an independent lab. Every result published.
+          Batch Certificates of Analysis
         </h1>
         <p className="mt-3 text-sm text-muted">
-          We test every batch through JanoShik, an independent laboratory. Purity results are
-          published here before products are listed. No exceptions. If a batch doesn&apos;t pass, it
-          doesn&apos;t ship.
+          Only documents whose publication has been verified are shown here. Match the compound and batch identifier to your product.
         </p>
       </div>
 
@@ -36,7 +35,7 @@ export default async function LabResultsPage() {
 
       {records.length === 0 ? (
         <div className="mt-10 rounded-lg border border-line bg-surface p-8 text-center text-muted">
-          Published results will appear here shortly.
+          Verified batch documents are currently unavailable. Please contact support for the relevant certificate before ordering.
         </div>
       ) : (
         <>

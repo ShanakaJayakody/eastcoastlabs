@@ -2,9 +2,8 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import {
-  listPeople,
-  filterPeople,
-  segmentCounts,
+  listPeoplePage,
+  peopleSegmentCounts,
   SEGMENT_LABELS,
   type Segment,
 } from "@/lib/admin/people";
@@ -37,18 +36,15 @@ export default async function CustomersPage({
     SEGMENT_ORDER.includes(rawSegment as Segment) ? rawSegment : "all"
   ) as Segment;
 
-  const people = await listPeople();
-  const counts = segmentCounts(people);
-  const matching = filterPeople(people, segment, q);
-
-  // Page in memory: segments and lifetime value are derived across the whole
-  // set in listPeople, so paging at the database would break the segment counts
-  // above. The source query is already capped at 1000 people.
-  const pages = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
-  const page = Math.min(pages, Math.max(1, parseInt(rawPage ?? "1", 10) || 1));
-  const rows = matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const firstShown = matching.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const lastShown = (page - 1) * PAGE_SIZE + rows.length;
+  let page=Math.max(1,parseInt(rawPage??"1",10)||1);
+  const [counts,initial]=await Promise.all([peopleSegmentCounts(),listPeoplePage(segment,q,page,PAGE_SIZE)]);
+  const total=initial.total;
+  const pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  const result=page>pages ? await listPeoplePage(segment,q,pages,PAGE_SIZE) : initial;
+  page=Math.min(page,pages);
+  const rows=result.rows;
+  const firstShown=total===0?0:(page-1)*PAGE_SIZE+1;
+  const lastShown=(page-1)*PAGE_SIZE+rows.length;
 
   const hrefFor = (s: Segment) => {
     const params = new URLSearchParams();
@@ -79,11 +75,11 @@ export default async function CustomersPage({
     <div className="admin-stagger space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {matching.length === 0
+          {total === 0
             ? `0 of ${counts.all} people`
-            : `Showing ${firstShown}–${lastShown} of ${matching.length}`}
+            : `Showing ${firstShown}–${lastShown} of ${total}`}
           {segment !== "all" && ` · ${SEGMENT_LABELS[segment]}`}
-          {matching.length !== counts.all && ` · ${counts.all} in total`}
+          {total !== counts.all && ` · ${counts.all} in total`}
         </p>
         <form action="/admin/customers" className="flex gap-2">
           {segment !== "all" && <input type="hidden" name="segment" value={segment} />}
@@ -128,6 +124,7 @@ export default async function CustomersPage({
         })}
       </div>
 
+      <p className="text-xs text-muted">Purchase counts include confirmed paid orders, including later refunds. Lifetime value is paid total less recorded refunds. Cohort dates use payment time; older paid records without it use the legacy order date. Unpaid checkouts remain leads.</p>
       <CustomersTable rows={rows} />
 
       {pages > 1 && (

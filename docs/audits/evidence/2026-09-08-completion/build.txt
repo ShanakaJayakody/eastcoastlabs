@@ -1,0 +1,99 @@
+
+> eastcoastlabs-storefront@1.0.0 build
+> next build
+
+   ▲ Next.js 15.5.25
+   - Experiments (use with caution):
+     ✓ authInterrupts
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 6.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/37) ...
+   Generating static pages (9/37) 
+   Generating static pages (18/37) 
+   Generating static pages (27/37) 
+ ✓ Generating static pages (37/37)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                              Size  First Load JS  Revalidate  Expire
+┌ ○ /                                                 2.83 kB         118 kB          5m      1y
+├ ○ /_not-found                                         211 B         103 kB
+├ ○ /1                                                5.03 kB         120 kB          5m      1y
+├ ○ /about                                              211 B         103 kB
+├ ƒ /admin                                            8.77 kB         125 kB
+├ ƒ /admin/audit                                        181 B         106 kB
+├ ƒ /admin/automation                                 1.43 kB         107 kB
+├ ƒ /admin/coas                                       4.15 kB         117 kB
+├ ƒ /admin/customers                                  4.89 kB         122 kB
+├ ƒ /admin/customers/[email]                            186 B         123 kB
+├ ƒ /admin/customers/export                             211 B         103 kB
+├ ƒ /admin/discounts                                  4.68 kB         121 kB
+├ ƒ /admin/email-templates                              181 B         106 kB
+├ ƒ /admin/email-templates/preview                      211 B         103 kB
+├ ○ /admin/login                                       1.9 kB         104 kB
+├ ƒ /admin/orders                                     7.95 kB         125 kB
+├ ƒ /admin/orders/[id]                                5.71 kB         126 kB
+├ ƒ /admin/orders/[id]/pack                            2.9 kB         123 kB
+├ ƒ /admin/orders/[id]/slip                             320 B         103 kB
+├ ƒ /admin/orders/export                                211 B         103 kB
+├ ƒ /admin/orders/fulfilment                          3.13 kB         109 kB
+├ ƒ /admin/orders/new                                 3.02 kB         120 kB
+├ ƒ /admin/orders/slips                                 320 B         103 kB
+├ ƒ /admin/pipeline                                     181 B         106 kB
+├ ƒ /admin/products                                   5.48 kB         132 kB
+├ ƒ /admin/products/[slug]                            8.29 kB         135 kB
+├ ƒ /admin/products/export                              211 B         103 kB
+├ ƒ /admin/products/new                               3.08 kB         120 kB
+├ ƒ /admin/recovery                                     187 B         123 kB
+├ ƒ /admin/reports                                    1.49 kB         107 kB
+├ ƒ /admin/reviews                                    2.85 kB         116 kB
+├ ƒ /admin/settings                                   3.41 kB         117 kB
+├ ƒ /api/cron/abandoned-carts                           211 B         103 kB
+├ ƒ /api/cron/daily-brief                               211 B         103 kB
+├ ƒ /api/cron/email-outbox                              211 B         103 kB
+├ ƒ /api/cron/lifecycle                                 211 B         103 kB
+├ ƒ /api/cron/payment-ops                               211 B         103 kB
+├ ƒ /api/operations/health                              211 B         103 kB
+├ ƒ /api/subscribe                                      211 B         103 kB
+├ ƒ /api/unsubscribe                                    211 B         103 kB
+├ ƒ /api/webhooks/resend                                211 B         103 kB
+├ ○ /cart                                               573 B         119 kB
+├ ƒ /cart-recovery                                    1.17 kB         108 kB
+├ ○ /checkout                                         6.76 kB         117 kB
+├ ƒ /checkout/thank-you                                 181 B         106 kB
+├ ● /collections/[slug]                                 506 B         112 kB          5m      1y
+├   ├ /collections/recovery-repair                                                    5m      1y
+├   ├ /collections/metabolic-weight                                                   5m      1y
+├   ├ /collections/cognitive-focus                                                    5m      1y
+├   └ [+2 more paths]
+├ ○ /icon.png                                             0 B            0 B
+├ ○ /lab-results                                      1.32 kB         104 kB          5m      1y
+├ ○ /learn                                            1.27 kB         107 kB          1h      1y
+├ ● /learn/[slug]                                       176 B         111 kB          1h      1y
+├   ├ /learn/how-peptide-purity-is-tested                                             1h      1y
+├   ├ /learn/understanding-a-certificate-of-analysis                                  1h      1y
+├   ├ /learn/reconstituting-research-peptides                                         1h      1y
+├   └ [+11 more paths]
+├ ƒ /leave-a-review                                   1.84 kB         104 kB
+├ ƒ /pay/[id]                                         1.71 kB         108 kB
+├ ƒ /product/[slug]                                    4.5 kB         120 kB
+├ ○ /robots.txt                                         211 B         103 kB
+├ ○ /shop                                             5.24 kB         120 kB          5m      1y
+├ ○ /sitemap.xml                                        211 B         103 kB
+├ ○ /stacks                                           2.73 kB         114 kB          5m      1y
+└ ƒ /subscribe/confirm                                  211 B         103 kB
++ First Load JS shared by all                          103 kB
+  ├ chunks/1255-19c7949c2ac21bd7.js                   46.3 kB
+  ├ chunks/4bd1b696-f785427dddbba9fb.js               54.2 kB
+  └ other shared chunks (total)                       2.07 kB
+
+
+ƒ Middleware                                          65.7 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

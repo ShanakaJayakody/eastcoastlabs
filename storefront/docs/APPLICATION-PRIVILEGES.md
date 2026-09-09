@@ -1,0 +1,11 @@
+# Application database privileges
+
+Migration `20260908220000_application_privileges.sql` removes historical inherited public application privileges, including TRUNCATE, REFERENCES, TRIGGER and PostgreSQL 17+ MAINTAIN. Row-level security and immutable-row triggers do not protect TRUNCATE. Anonymous/authenticated roles retain only the safe review columns under published-review RLS and the COA records with a verified document and an HTTP(S) document URL. Service-role CRUD required by existing invoker RPCs and sender modules remains; refund evidence retains SELECT/INSERT only. No private helper receives a new EXECUTE grant.
+
+Existing-object cleanup is limited to public-schema objects owned by the actual migration role, excluding extension members. Other owners and managed auth/storage/extensions objects are untouched. The deliberate service-only wrappers remain accessible and their bypass helpers remain revoked.
+
+Default-ACL changes apply only to the actual migration role (`CURRENT_USER`, postgres in production), first globally and then in public. PostgreSQL combines global and schema defaults: a per-schema REVOKE cannot cancel a global grant, including built-in PUBLIC function EXECUTE. The migration therefore explicitly revokes that migration role's global public function default and historical grants to anon/authenticated/service_role. Future private functions require an explicit service grant when intended. Public-schema defaults allow service CRUD on new tables and USAGE/SELECT on sequences, with no dangerous table privileges. A new table requiring stricter access must still explicitly revoke inherited service CRUD before its narrow grant.
+
+The global revocations also remove those defaults for future objects created by this same migration role outside public; they do not alter another managed role's defaults or existing managed objects. This scope is necessary for PostgreSQL default-ACL semantics. See [ALTER DEFAULT PRIVILEGES](https://www.postgresql.org/docs/17/sql-alterdefaultprivileges.html).
+
+The hostile-default fixture grants broad global table/sequence/function defaults before replaying the entire chain, then tests new disposable objects created after cleanup. Native PostgreSQL release verification separately checks the actual grants and backup/restore boundary.

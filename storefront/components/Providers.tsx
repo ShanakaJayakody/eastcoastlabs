@@ -8,6 +8,8 @@ export default function Providers({
   children,
   thresholds,
   stock,
+  prices,
+  variants,
 }: {
   children: ReactNode;
   /** Resolved server-side from admin settings by the layout. Omitted → the
@@ -15,9 +17,11 @@ export default function Providers({
   thresholds?: CartThresholds;
   /** Live availability per slug (bac water + accessories), from the layout. */
   stock?: Record<string, number>;
+  prices?: Record<string, number>;
+  variants?: Record<string,string>;
 }) {
   return (
-    <CartProvider thresholds={thresholds} stock={stock}>
+    <CartProvider thresholds={thresholds} stock={stock} prices={prices} variants={variants}>
       <UIProvider>{children}</UIProvider>
     </CartProvider>
   );

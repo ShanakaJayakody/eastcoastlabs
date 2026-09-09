@@ -1,0 +1,15 @@
+
+> eastcoastlabs-storefront@1.0.0 test
+> vitest run
+
+
+ RUN  v5.0.0 /Users/shanakajayakody/eastcoastlabs/.worktrees/audit-implementation/storefront
+
+
+ Test Files  60 passed (60)
+      Tests  265 passed (265)
+   Start at  02:10:30
+   Duration  11.87s (tests 66%, environment 23%, import 7%, transform 3%, setup 1%, worker 1%)
+
+    Isolate  60 workers spawned · ~193ms startup each (spawn + environment, per file)
+             at least ~3.68s faster with isolate: false — reuses workers across files instead of one per file

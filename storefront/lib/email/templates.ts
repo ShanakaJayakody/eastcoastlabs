@@ -1,4 +1,6 @@
 /** Plain, on-brand HTML email templates. No client tracking, no external assets. */
+import {recoveryLink} from "@/lib/recovery-token";
+import { paymentPath, createOrderAccessToken } from "@/lib/order-access";
 import type { EmailTemplate } from "@/lib/admin/email";
 import { formatAud } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
@@ -39,20 +41,19 @@ const unsubOf = (payload: Record<string, unknown>): string | undefined =>
 
 const cents = (c: number) => formatAud(c / 100);
 
-const SITE = "https://eastcoastlabs.com.au";
+const SITE = "https://www.eastcoastlabs.com.au";
 
 /** Monitored support inbox — the same address the site footer publishes. */
-const SUPPORT_EMAIL = "eclpeptides@gmail.com";
 
 /** Payment details as a two-column table — the same fields the pay page shows. */
 function instructionsTable(ins: PaymentInstructions): string {
   const rows = ins.fields
     .map(
       (f) => `<tr>
-        <td style="padding:8px 12px 8px 0;color:#8b96a8;font-size:13px;white-space:nowrap;">${f.label}</td>
+        <td style="padding:8px 12px 8px 0;color:#8b96a8;font-size:13px;white-space:nowrap;">${esc(f.label)}</td>
         <td style="padding:8px 0;color:${FG};font-size:15px;font-weight:600;${
           f.mono ? "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0.02em;" : ""
-        }">${f.value}</td>
+        }">${esc(f.value)}</td>
       </tr>`,
     )
     .join("");
@@ -61,7 +62,7 @@ function instructionsTable(ins: PaymentInstructions): string {
 
 function notesList(notes: string[]): string {
   return `<ul style="color:#8b96a8;font-size:13px;line-height:1.7;padding-left:18px;margin:12px 0 0;">
-    ${notes.map((n) => `<li style="margin:6px 0;">${n}</li>`).join("")}
+    ${notes.map((n) => `<li style="margin:6px 0;">${esc(n)}</li>`).join("")}
   </ul>`;
 }
 
@@ -77,8 +78,15 @@ async function paymentBlock(payload: Record<string, unknown>): Promise<{
   const settings = await getSettings();
   return {
     instructions: buildInstructions(method, { reference, amountCents, settings }),
-    payUrl: `${SITE}/pay/${String(payload.order_id ?? "")}`,
+    payUrl: `${SITE}${paymentPath(String(payload.order_id ?? ""))}`,
   };
+}
+
+function paymentDeadline(payload: Record<string, unknown>): string {
+  const date = new Date(String(payload.payment_expires_at ?? ""));
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleString("en-AU", { timeZone: "Australia/Melbourne", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })
+    : "at the deadline shown on your payment page";
 }
 
 const payButton = (url: string, label: string) =>
@@ -122,7 +130,24 @@ export async function renderTemplate(
   template: EmailTemplate,
   payload: Record<string, unknown>,
 ): Promise<{ subject: string; html: string }> {
+  const settings = await getSettings();
+  const SUPPORT_EMAIL = settings.supportEmail;
   switch (template) {
+    case "admin_daily_brief": {
+      if (typeof payload.subject !== "string" || typeof payload.html !== "string") throw new Error("Invalid daily brief");
+      return { subject:payload.subject,html:payload.html };
+    }
+    case "cart_recovery_confirmation": {
+      const url = recoveryLink(String(payload.recovery_request_id ?? ""));
+      return {subject:"Confirm your saved cart link",html:shell("Confirm your cart link and reminders.",
+        `<h1 style="font-size:20px;">Your cart link</h1><p>Use this link within 24 hours and press Confirm and restore to request up to three reminders at 1 hour, 24 hours and 72 hours after confirmation if still eligible. This does not subscribe you to the newsletter. Your restore link expires seven days after your request. Ignore this email if you did not request it.</p>${payButton(url,"Confirm and restore cart")}`)};
+    }
+    case "subscription_confirmation": {
+      const url = String(payload.confirmation_url ?? "");
+      if (!url.startsWith(`${SITE}/subscribe/confirm?token=`)) throw new Error("Invalid confirmation link");
+      return { subject: "Confirm your East Coast Labs subscription", html: shell("Confirm your email subscription.",
+        `<h1 style="font-size:20px;">Confirm your subscription</h1><p>Use this link within 24 hours to receive our email updates. If you did not request this, ignore this email.</p>${payButton(url, "Confirm subscription")}`) };
+    }
     case "payment_instructions": {
       const orderNumber = String(payload.order_number ?? "");
       const { instructions, payUrl } = await paymentBlock(payload);
@@ -150,7 +175,7 @@ export async function renderTemplate(
       const orderNumber = String(payload.order_number ?? "");
       const { instructions, payUrl } = await paymentBlock(payload);
       const amount = cents(Number(payload.amount_cents ?? 0));
-      const hoursLeft = Number(payload.hours_left ?? 0);
+      const deadline = paymentDeadline(payload);
       return {
         subject: `Reminder: ${orderNumber} is waiting for payment`,
         html: shell(
@@ -158,7 +183,7 @@ export async function renderTemplate(
           `<h1 style="font-size:20px;margin:0 0 8px;">Still holding your order</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              We haven't seen a transfer for <strong style="font-family:monospace;">${orderNumber}</strong> yet.
-             Your items stay reserved for about <strong>${hoursLeft} more ${hoursLeft === 1 ? "hour" : "hours"}</strong>,
+             Your reservation ends <strong>${deadline}</strong>,
              then they go back on sale.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
@@ -179,25 +204,25 @@ export async function renderTemplate(
       const orderNumber = String(payload.order_number ?? "");
       const { instructions, payUrl } = await paymentBlock(payload);
       const amount = cents(Number(payload.amount_cents ?? 0));
-      const hoursLeft = Math.max(1, Number(payload.hours_left ?? 0));
+      const deadline = paymentDeadline(payload);
       return {
         // The last thing we send before the reservation goes. It has to read as
         // a deadline, not a third polite reminder — the two earlier nudges
         // already used up the polite register.
-        subject: `Last chance: ${orderNumber} is released in ${hoursLeft} ${hoursLeft === 1 ? "hour" : "hours"}`,
+        subject: `Payment deadline for ${orderNumber}`,
         html: shell(
-          `${orderNumber} is released in about ${hoursLeft} ${hoursLeft === 1 ? "hour" : "hours"}.`,
+          `${orderNumber}: reservation ends ${deadline}.`,
           `<h1 style="font-size:20px;margin:0 0 8px;">Your order is about to be released</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              <strong style="font-family:monospace;">${orderNumber}</strong> is still unpaid. We're holding
-             your items for about <strong>${hoursLeft} more ${hoursLeft === 1 ? "hour" : "hours"}</strong>.
+             your items until <strong>${deadline}</strong>.
              After that the order is cancelled and the stock goes back on sale — we can't promise it
              will still be there afterwards.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Already paid? Nothing to do — transfers can take a few hours to show up, and a first
              PayID payment to a new payee can be held by your bank for up to 24 hours. If it lands
-             late, reply to this email and we'll reinstate the order.
+             late, reply to this email so we can check availability and resolve your payment.
            </p>
            ${
              instructions
@@ -218,7 +243,7 @@ export async function renderTemplate(
           `<h1 style="font-size:20px;margin:0 0 8px;">We've released your order</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              We didn't receive payment for <strong style="font-family:monospace;">${orderNumber}</strong>, so the
-             stock has gone back on sale. Nothing was charged and there's nothing to cancel.
+             stock has gone back on sale. If you already sent a transfer, reply to this email so we can check it.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Still want it? Ordering again takes a minute — or reply to this email if your transfer is
@@ -264,13 +289,13 @@ export async function renderTemplate(
       const orderNumber = String(payload.order_number ?? "");
       const amount = typeof payload.amount_cents === "number" ? cents(payload.amount_cents) : null;
       return {
-        subject: `Refund processed — ${orderNumber}`,
+        subject: `Refund recorded — ${orderNumber}`,
         html: shell(
-          `A refund for ${orderNumber} has been processed.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Refund processed</h1>
+          `A refund for ${orderNumber} has been recorded.`,
+          `<h1 style="font-size:20px;margin:0 0 8px;">Refund recorded</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             ${amount ? `${amount} has` : "A refund has"} been processed for order
-             <strong style="font-family:monospace;">${orderNumber}</strong>. Funds typically appear in 3-5 business days.
+             ${amount ? `${amount} has` : "A refund has"} been recorded for order
+             <strong style="font-family:monospace;">${orderNumber}</strong>. Please reply to this email if you need confirmation of the bank transfer.
            </p>`,
         ),
       };
@@ -294,7 +319,7 @@ export async function renderTemplate(
     case "abandoned_cart": {
       const items = Array.isArray(payload.cart) ? (payload.cart as { name?: string; quantity?: number }[]) : [];
       const lines = items
-        .map((l) => `<li style="margin:4px 0;">${l.name ?? "Item"} × ${l.quantity ?? 1}</li>`)
+        .map((l) => `<li style="margin:4px 0;">${esc(l.name ?? "Item")} × ${l.quantity ?? 1}</li>`)
         .join("");
       return {
         subject: "You left something in your cart",
@@ -303,7 +328,7 @@ export async function renderTemplate(
           `<h1 style="font-size:20px;margin:0 0 8px;">Still thinking it over?</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">Your cart is saved and ready:</p>
            <ul style="color:#c3ccd9;font-size:14px;padding-left:20px;">${lines}</ul>
-           <a href="${SITE}/shop" style="display:inline-block;margin-top:16px;background:${ACCENT};color:${INK};font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;">Complete your order</a>`,
+           <a href="${recoveryLink(String(payload.recovery_request_id ?? ""))}" style="display:inline-block;margin-top:16px;background:${ACCENT};color:${INK};font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;">Complete your order</a>`,
           unsubOf(payload),
         ),
       };
@@ -318,14 +343,14 @@ export async function renderTemplate(
              Your cart is still saved. Here's what to know before you decide:
            </p>
            <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
-             <li>Australian-owned and operated, dispatched within 1 business day</li>
+             <li>Dispatched from Australia after payment confirmation</li>
              <li>Plain, discreet packaging and billing on every order</li>
-             <li>Free shipping over $150</li>
+             <li>Free standard shipping from ${cents(Math.round(settings.freeShippingThreshold * 100))}</li>
            </ul>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Pick up where you left off whenever you're ready.
            </p>
-           ${payButton(`${SITE}/shop`, "Complete your order")}`,
+           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Complete your order")}`,
           unsubOf(payload),
         ),
       };
@@ -337,12 +362,12 @@ export async function renderTemplate(
           "We'll stop reminding you after this one.",
           `<h1 style="font-size:20px;margin:0 0 8px;">Last call on your cart</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             This is the last reminder we'll send — your cart stays saved, but we won't email you about it again.
+             This is the last reminder for this cart. Your restore link expires seven days after you requested it.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             First order with us? Code <strong style="font-family:monospace;">WELCOME10</strong> takes 10% off at checkout.
+             Review current prices and availability at checkout.
            </p>
-           ${payButton(`${SITE}/shop`, "Complete your order")}`,
+           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Complete your order")}`,
           unsubOf(payload),
         ),
       };
@@ -361,9 +386,9 @@ export async function renderTemplate(
              We do things differently from most peptide suppliers:
            </p>
            <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
-             <li>Australian-owned and operated, dispatched within 1 business day</li>
+             <li>Dispatched from Australia after payment confirmation</li>
              <li>Plain, discreet packaging and billing on every order</li>
-             <li>Free shipping over $150</li>
+             <li>Free standard shipping from ${cents(Math.round(settings.freeShippingThreshold * 100))}</li>
            </ul>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              No fabricated reviews. No fake sale prices. No "limited time" pressure tactics. Just
@@ -418,7 +443,7 @@ export async function renderTemplate(
     }
     case "post_purchase_review": {
       const orderNumber = String(payload.order_number ?? "");
-      const reviewUrl = typeof payload.review_url === "string" ? payload.review_url : `${SITE}/leave-a-review`;
+      const reviewUrl = `${SITE}/leave-a-review?token=${createOrderAccessToken(String(payload.order_id ?? ""), "review")}`;
       const bought = productNames(payload);
       return {
         subject: "How was your order from East Coast Labs?",
@@ -446,7 +471,7 @@ export async function renderTemplate(
       };
     }
     case "post_purchase_review_reminder": {
-      const reviewUrl = typeof payload.review_url === "string" ? payload.review_url : `${SITE}/leave-a-review`;
+      const reviewUrl = `${SITE}/leave-a-review?token=${createOrderAccessToken(String(payload.order_id ?? ""), "review")}`;
       const bought = productNames(payload);
       return {
         subject: "One question, 30 seconds",
@@ -520,7 +545,7 @@ export async function renderTemplate(
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">We haven't seen you in a while. Here's what's new:</p>
            <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
              <li>Bulk pack pricing on every peptide — save up to 20% per vial in 6-packs</li>
-             <li>Free shipping over $150 · 1-business-day dispatch from Australia</li>
+             <li>Free standard shipping from ${cents(Math.round(settings.freeShippingThreshold * 100))} · dispatch from Australia after payment confirmation</li>
            </ul>
            ${payButton(`${SITE}/shop`, "Shop now")}`,
           unsubOf(payload),
@@ -549,7 +574,7 @@ export async function renderTemplate(
           `<h1 style="font-size:20px;margin:0 0 8px;">Thanks for your first order</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              It's been about a month since your first order with us. Reordering takes a minute, and
-             dispatch is within 1 business day.
+             dispatch follows payment confirmation.
            </p>
            ${payButton(`${SITE}/shop`, "Reorder now")}`,
           unsubOf(payload),

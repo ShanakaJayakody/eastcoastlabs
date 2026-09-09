@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useUI } from "@/lib/ui-context";
+import Modal from "./Modal";
 import EmailCapture from "./EmailCapture";
 
 /**
@@ -12,11 +15,14 @@ import EmailCapture from "./EmailCapture";
 const SEEN_KEY = "ecl_exit_intent_seen";
 
 export default function ExitIntentModal() {
+  const pathname = usePathname();
+  const { cartOpen } = useUI();
+  const transaction = /^\/(checkout|pay|cart|leave-a-review|subscribe|unsubscribe)(\/|$)/.test(pathname);
   const [open, setOpen] = useState(false);
-  const [claimed, setClaimed] = useState(false);
+  const [claimed, setClaimed] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || transaction || cartOpen || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     try {
       if (localStorage.getItem(SEEN_KEY)) return;
     } catch {
@@ -26,7 +32,7 @@ export default function ExitIntentModal() {
     let armed = false;
     const armTimer = setTimeout(() => {
       armed = true;
-    }, 6000);
+    }, 30000);
 
     const trigger = () => {
       if (!armed) return;
@@ -40,33 +46,23 @@ export default function ExitIntentModal() {
     };
 
     const onMouseOut = (e: MouseEvent) => {
-      if (e.clientY <= 0) trigger();
+      if (e.clientY <= 0 && !e.relatedTarget) trigger();
     };
-    const onScroll = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      if (max > 0 && window.scrollY / max > 0.45) trigger();
-    };
-
     function cleanup() {
       clearTimeout(armTimer);
       document.removeEventListener("mouseout", onMouseOut);
-      window.removeEventListener("scroll", onScroll);
+
     }
 
     document.addEventListener("mouseout", onMouseOut);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return cleanup;
-  }, []);
 
-  if (!open) return null;
+    return cleanup;
+  }, [pathname, transaction, cartOpen]);
+
+  if (!open || transaction || cartOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={() => setOpen(false)}
-      />
-      <div className="animate-in relative w-full max-w-md overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
+    <Modal open={open} onClose={() => setOpen(false)} label="First order offer" className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -88,10 +84,7 @@ export default function ExitIntentModal() {
         <div className="px-6 py-6">
           {claimed ? (
             <div className="text-center">
-              <p className="text-sm text-muted">Your code — use it at checkout:</p>
-              <p className="mt-2 rounded-lg border border-dashed border-accent/50 bg-accent/10 py-3 text-center text-lg font-bold tracking-widest text-accent">
-                WELCOME10
-              </p>
+              <p role="status" className="text-sm text-muted">{claimed}</p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -106,7 +99,7 @@ export default function ExitIntentModal() {
                 source="exit_intent"
                 cta="Get my 10% code"
                 successMsg=""
-                onDone={() => setClaimed(true)}
+                onDone={setClaimed}
               />
               <p className="mt-3 text-center text-[11px] text-muted-2">
                 No spam. Unsubscribe anytime. Research use only.
@@ -114,7 +107,6 @@ export default function ExitIntentModal() {
             </>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

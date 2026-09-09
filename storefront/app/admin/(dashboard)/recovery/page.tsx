@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DollarSign, Percent, ShoppingCart, Send } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import { formatAud } from "@/lib/format";
+import {readAll} from "@/lib/admin/read-all";
 import { listCartsFor, recoveryMetrics, recoveryFunnel } from "@/lib/admin/cart-recovery";
 import { parseRevenueScale, windowMeta, type RevenueScale } from "@/lib/admin/order-queries";
 import PeriodNav from "@/components/admin/PeriodNav";
@@ -27,22 +28,21 @@ const TABS: { id: Tab; label: string }[] = [
 export default async function RecoveryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; scale?: string; at?: string }>;
+  searchParams: Promise<{ tab?: string; scale?: string; at?: string; page?: string }>;
 }) {
   await requireAdmin();
   const sp = await searchParams;
   const tab = (TABS.some((t) => t.id === sp.tab) ? sp.tab : "active") as Tab;
 
-  // No period in the URL keeps the original rolling 30-day view, so the page
-  // means the same thing it always did until someone actively steps back.
-  const periodActive = Boolean(sp.scale || sp.at);
   const meta = windowMeta(parseRevenueScale(sp.scale), sp.at);
-  const range = periodActive ? { startIso: meta.startIso, endIso: meta.endIso } : 30;
+  const range = { startIso: meta.startIso, endIso: meta.endIso };
+  const page=Math.max(1,Math.floor(Number(sp.page)||1));
+  const tabHref=(to:Tab,p=1)=>{const params=new URLSearchParams({tab:to,scale:meta.scale,page:String(p)});if(sp.at)params.set("at",sp.at);return `/admin/recovery?${params}`;};
 
   const [metrics, funnel, carts, paused] = await Promise.all([
     recoveryMetrics(range),
     recoveryFunnel(range),
-    listCartsFor(tab, 50),
+    listCartsFor(tab, 50, range, page),
     pausedEmailsFor("cart_recovery"),
   ]);
 
@@ -57,13 +57,7 @@ export default async function RecoveryPage({
   // One outbox read for the whole page: the steppers need to know which touches
   // actually went out, and per-row queries would mean N round trips.
   const emails = carts.map((c) => c.email);
-  const { data: outboxRows } = emails.length
-    ? await adminDb()
-        .from("email_outbox")
-        .select("id, template, related_id, status, created_at, sent_at")
-        .in("to_email", emails)
-        .in("template", ["abandoned_cart", "abandoned_cart_2", "abandoned_cart_3"])
-    : { data: [] };
+  const outboxRows = emails.length ? await readAll<{id:string;template:string;related_id:string|null;status:string;created_at:string;sent_at:string|null}>((start,end)=>adminDb().from("email_outbox").select("id,template,related_id,status,created_at,sent_at").in("to_email",emails).in("template",["abandoned_cart","abandoned_cart_2","abandoned_cart_3"]).order("id").range(start,end)) : [];
 
   const byEmail = new Map<string, typeof outboxRows>();
   for (const row of outboxRows ?? []) {
@@ -82,18 +76,13 @@ export default async function RecoveryPage({
         </p>
       </div>
 
-      {/* Period stepper. Absent from the URL, the page keeps its original
-          rolling 30-day meaning; stepping switches to calendar windows. */}
+      {/* The list and metrics share the selected calendar capture cohort. */}
       <section className="admin-card rounded-xl p-4">
         <PeriodNav meta={meta} hrefFor={linkFor} />
-        {!periodActive && (
-          <p className="mt-2 text-xs text-muted-2">
-            Showing a rolling 30 days. Step or switch scale above to read calendar periods
-            instead.
-          </p>
-        )}
+
       </section>
 
+      <p className="rounded-xl border border-line p-4 text-sm text-muted">Captured: {metrics.captured} · Exposed to a sent recovery email: {metrics.exposed} · Linked orders created: {metrics.orderCreated} · Linked paid orders: {metrics.paid} · Paid after exposure: {metrics.attributedPaid}. {metrics.legacyUnknown} legacy snapshots have unknown attribution. New recovery episodes require an explicit checkout request; reminders start only after mailbox confirmation.</p>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           label="Active carts"
@@ -109,15 +98,15 @@ export default async function RecoveryPage({
           icon={Send}
         />
         <StatCard
-          label="Recovery rate"
+          label="Exposed → paid"
           value={metrics.recoveryRatePct === null ? "—" : `${metrics.recoveryRatePct}%`}
-          sub={`Carts captured · ${periodActive ? meta.title : "last 30 days"}`}
+          sub={`Paid after sent exposure · ${meta.title}`}
           icon={Percent}
         />
         <StatCard
-          label="Revenue recovered"
+          label="Attributed net paid"
           value={cents(metrics.revenueRecoveredCents)}
-          sub={`${metrics.recovered30d} cart(s) converted · ${periodActive ? meta.title : "last 30 days"}`}
+          sub={`${metrics.attributedPaid} exposed paid episodes · ${meta.title}`}
           icon={DollarSign}
           tone="accent"
         />
@@ -127,7 +116,7 @@ export default async function RecoveryPage({
       <section className="admin-card rounded-xl p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="text-sm font-semibold text-fg">
-            Recovery funnel · {periodActive ? meta.title : "30 days"}
+            Recovery email engagement · {meta.title}
           </h3>
           <span className="text-[11px] text-muted-2">
             Opens are directional — Apple Mail pre-fetches tracking pixels
@@ -141,14 +130,13 @@ export default async function RecoveryPage({
             is configured.
           </p>
         ) : (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {(
               [
                 { label: "Sent", value: funnel.sent },
                 { label: "Delivered", value: funnel.delivered },
                 { label: "Opened", value: funnel.opened },
                 { label: "Clicked", value: funnel.clicked },
-                { label: "Recovered", value: funnel.recovered },
               ] as const
             ).map((step, i) => {
               const pct = funnel.sent > 0 ? Math.round((step.value / funnel.sent) * 100) : 0;
@@ -176,7 +164,7 @@ export default async function RecoveryPage({
         {TABS.map((t) => (
           <Link
             key={t.id}
-            href={t.id === "active" ? "/admin/recovery" : `/admin/recovery?tab=${t.id}`}
+            href={tabHref(t.id)}
             className={`rounded-full border px-3 py-1 text-xs font-medium ${
               t.id === tab
                 ? "border-accent/40 bg-accent/10 text-accent"
@@ -188,6 +176,7 @@ export default async function RecoveryPage({
         ))}
       </div>
 
+      <nav aria-label="Recovery pages" className="flex gap-4 text-sm">{page>1 && <Link href={tabHref(tab,page-1)}>Previous page</Link>}<span>Page {page} · {carts.length} carts in this period</span>{carts.length===50 && <Link href={tabHref(tab,page+1)}>Next page</Link>}</nav>
       {carts.length === 0 ? (
         <p className="admin-card rounded-xl px-4 py-10 text-center text-sm text-muted">
           {tab === "active"
@@ -224,7 +213,7 @@ export default async function RecoveryPage({
 
             if (tab !== "active") {
               return (
-                <div key={cart.email} className="admin-card rounded-xl p-4">
+                <div key={cart.episode_id ?? cart.email} className="admin-card rounded-xl p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <Link
@@ -247,7 +236,8 @@ export default async function RecoveryPage({
                           View order
                         </Link>
                       )}
-                      {tab === "expired" && <Badge tone="neutral">aged out</Badge>}
+                      {cart.legacy_unknown && <Badge tone="neutral">legacy · attribution unknown</Badge>}
+                      {tab === "expired" && <Badge tone="neutral">closed / aged out</Badge>}
                       <span className="text-sm font-medium tabular-nums text-fg">
                         {cents(cart.subtotal_cents)}
                       </span>
@@ -272,7 +262,7 @@ export default async function RecoveryPage({
               nextStage: next?.stage ?? null,
               nextLabel: next?.label ?? null,
             };
-            return <SequenceCard key={cart.email} email={cart.email} data={data} />;
+            return <SequenceCard key={cart.episode_id ?? cart.email} email={cart.email} data={data} />;
           })}
         </div>
       )}

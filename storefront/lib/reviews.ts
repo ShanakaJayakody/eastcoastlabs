@@ -10,6 +10,7 @@ import "server-only";
  *
  * Server-only: every consumer (PDP, product cards, home) is a server component.
  */
+import { cache } from "react";
 import { supabaseAdmin } from "./supabase";
 
 export interface Review {
@@ -39,7 +40,6 @@ interface Row {
   created_at: string;
 }
 
-const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /**
  * Retired: the storefront no longer renders placeholder reviews, so nothing needs
@@ -54,85 +54,43 @@ export function verifiedLabel(): string {
   return "Verified buyer";
 }
 
-async function fetchPublished(slug?: string): Promise<Row[]> {
+async function fetchPublished(slug?: string, limit=50): Promise<Row[]> {
   const db = supabaseAdmin();
   if (!db) return [];
   let q = db
     .from("reviews")
     .select("product_slug, author, location, rating, title, body, verified, created_at")
     .eq("status", "published")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }).limit(Math.max(1,Math.min(50,limit)));
   if (slug) q = q.eq("product_slug", slug);
   const { data, error } = await q;
   if (error || !data) return [];
   return data as Row[];
 }
 
-/** Aggregate + detailed reviews for a product slug (null when none exist). */
-export async function getProductReviews(slug: string): Promise<ProductReviews | null> {
-  const rows = await fetchPublished(slug);
-  if (!rows.length) return null;
-  const sum = rows.reduce((s, r) => s + r.rating, 0);
-  return {
-    rating: round1(sum / rows.length),
-    count: rows.length,
-    reviews: rows.map((r) => ({
-      author: r.author,
-      location: r.location ?? undefined,
-      rating: r.rating,
-      date: r.created_at.slice(0, 10),
-      verified: r.verified,
-      title: r.title,
-      body: r.body,
-    })),
-  };
+type Aggregate = { rating:number;count:number };
+const statistics = cache(async (slug?:string):Promise<Record<string,Aggregate>> => {
+ const db=supabaseAdmin();if(!db)return {};
+ const {data,error}=await db.rpc("review_statistics",{p_slugs:slug?[slug]:null});
+ if(error){console.warn("Review statistics unavailable");return {};}
+ return Object.fromEntries((data??[]).map((r:{product_slug:string|null;rating:number;count:number})=>[r.product_slug??"*",{rating:Number(r.rating),count:Number(r.count)}]));
+});
+const mapReview=(r:Row):Review=>({author:r.author,location:r.location??undefined,rating:r.rating,date:r.created_at.slice(0,10),verified:r.verified,title:r.title,body:r.body});
+/** Most recent 50 reviews plus the complete aggregate. */
+export const getProductReviews=cache(async (slug:string):Promise<ProductReviews|null>=>{
+ const [stats,rows]=await Promise.all([statistics(slug),fetchPublished(slug)]);
+ return stats[slug]?{...stats[slug],reviews:rows.map(mapReview)}:null;
+});
+export async function getAggregate(slug:string):Promise<Aggregate|null>{return (await statistics(slug))[slug]??null;}
+export async function getSiteAggregate():Promise<Aggregate|null>{return (await statistics())["*"]??null;}
+export async function getRecentReviews(limit=3):Promise<(Review&{productSlug:string})[]>{
+ return (await fetchPublished(undefined,limit)).map(r=>({...mapReview(r),productSlug:r.product_slug}));
 }
-
-/** Just the aggregate (rating + count) — for cards and the buy box. */
-export async function getAggregate(slug: string): Promise<{ rating: number; count: number } | null> {
-  const rows = await fetchPublished(slug);
-  if (!rows.length) return null;
-  const sum = rows.reduce((s, r) => s + r.rating, 0);
-  return { rating: round1(sum / rows.length), count: rows.length };
-}
-
-/** Site-wide aggregate across every published review — homepage trust chip. */
-export async function getSiteAggregate(): Promise<{ rating: number; count: number } | null> {
-  const rows = await fetchPublished();
-  if (!rows.length) return null;
-  const sum = rows.reduce((s, r) => s + r.rating, 0);
-  return { rating: round1(sum / rows.length), count: rows.length };
-}
-
-/** Most recent published reviews site-wide, for testimony sections. Empty when none exist — never padded. */
-export async function getRecentReviews(limit = 3): Promise<(Review & { productSlug: string })[]> {
-  const rows = await fetchPublished();
-  return rows.slice(0, limit).map((r) => ({
-    productSlug: r.product_slug,
-    author: r.author,
-    location: r.location ?? undefined,
-    rating: r.rating,
-    date: r.created_at.slice(0, 10),
-    verified: r.verified,
-    title: r.title,
-    body: r.body,
-  }));
-}
-
-/** Batched aggregates for a list of slugs — used by decorateCards(). */
-export async function getAggregates(
-  slugs: string[],
-): Promise<Record<string, { rating: number; count: number }>> {
-  if (!slugs.length) return {};
-  const rows = await fetchPublished();
-  const out: Record<string, { sum: number; n: number }> = {};
-  for (const r of rows) {
-    if (!slugs.includes(r.product_slug)) continue;
-    out[r.product_slug] ??= { sum: 0, n: 0 };
-    out[r.product_slug].sum += r.rating;
-    out[r.product_slug].n += 1;
-  }
-  return Object.fromEntries(
-    Object.entries(out).map(([slug, v]) => [slug, { rating: round1(v.sum / v.n), count: v.n }]),
-  );
+export async function getAggregates(slugs:string[]):Promise<Record<string,Aggregate>>{
+ if(!slugs.length)return {};
+ const db=supabaseAdmin();if(!db)return {};
+ const {data,error}=await db.rpc("review_statistics",{p_slugs:slugs});
+ if(error){console.warn("Review statistics unavailable");return {};}
+ return Object.fromEntries((data??[]).filter((r:{product_slug:string|null})=>r.product_slug!==null)
+  .map((r:{product_slug:string;rating:number;count:number})=>[r.product_slug,{rating:Number(r.rating),count:Number(r.count)}]));
 }

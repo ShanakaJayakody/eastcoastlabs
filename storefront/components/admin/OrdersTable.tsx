@@ -59,6 +59,9 @@ export default function OrdersTable({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkResults,setBulkResults] = useState<{id:string;error:string}[]>([]);
+  useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem("admin-order-bulk-failures")??"[]");if(Array.isArray(saved) && saved.every(r=>typeof r.id==="string" && typeof r.error==="string")){setBulkResults(saved);setSelected(new Set(saved.map(r=>r.id)));}}catch{}},[]);
+  const rememberFailures=(failed:{id:string;error:string}[])=>{setBulkResults(failed);setSelected(new Set(failed.map(f=>f.id)));try{sessionStorage.setItem("admin-order-bulk-failures",JSON.stringify(failed));}catch{}};
   const [confirming, setConfirming] = useState<"ship" | "pay" | "reinstate" | null>(null);
   // -1 means "nothing focused yet"; the first j or k lands on the first row.
   const [cursor, setCursor] = useState(-1);
@@ -116,7 +119,6 @@ export default function OrdersTable({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
     // `toggle` is stable in behaviour; rows and cursor are the real inputs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, cursor, router, confirming]);
 
   // A shorter page after filtering must not leave the cursor past the end.
@@ -138,7 +140,7 @@ export default function OrdersTable({
   const toggle = (id: string) =>
     setSelected((s) => {
       const next = new Set(s);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if(next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
 
@@ -157,17 +159,17 @@ export default function OrdersTable({
 
   function markPaid() {
     const ids = payableSelected.map((r) => r.id);
-    setConfirming(null);
     start(async () => {
       const res = await bulkConfirmPayment(ids);
+      setConfirming(null);
+      rememberFailures(res.failed ?? ids.map(id=>({id,error:res.error ?? "Unknown result"})));
       if (res.ok) {
         toast.success(`${res.moved} order${res.moved === 1 ? "" : "s"} marked paid`);
         if (res.failed?.length) {
           toast.error(
-            `${res.failed.length} order${res.failed.length === 1 ? "" : "s"} did not move — open them individually to see why`,
+            `${res.failed.length} order${res.failed.length === 1 ? "" : "s"} did not move — see the results below`,
           );
         }
-        setSelected(new Set());
         router.refresh();
       } else {
         toast.error(res.error ?? "Bulk update failed");
@@ -177,17 +179,17 @@ export default function OrdersTable({
 
   function markShipped() {
     const ids = shippableSelected.map((r) => r.id);
-    setConfirming(null);
     start(async () => {
       const res = await bulkAdvanceStatus(ids, "shipped");
+      setConfirming(null);
+      rememberFailures(res.failed ?? ids.map(id=>({id,error:res.error ?? "Unknown result"})));
       if (res.ok) {
         toast.success(`${res.moved} order${res.moved === 1 ? "" : "s"} marked shipped`);
         if (res.failed?.length) {
           toast.error(
-            `${res.failed.length} order${res.failed.length === 1 ? "" : "s"} did not move — open them individually to see why`,
+            `${res.failed.length} order${res.failed.length === 1 ? "" : "s"} did not move — see the results below`,
           );
         }
-        setSelected(new Set());
         router.refresh();
       } else {
         toast.error(res.error ?? "Bulk update failed");
@@ -197,9 +199,10 @@ export default function OrdersTable({
 
   function reinstateSelected() {
     const ids = reinstatableSelected.map((r) => r.id);
-    setConfirming(null);
     start(async () => {
       const res = await bulkReinstate(ids);
+      setConfirming(null);
+      rememberFailures(res.failed);
       if (res.done > 0) {
         toast.success(`${res.done} order${res.done === 1 ? "" : "s"} reinstated and marked paid`);
       }
@@ -207,10 +210,9 @@ export default function OrdersTable({
       // exception — name the count so the operator knows to open those.
       if (res.failed.length) {
         toast.error(
-          `${res.failed.length} could not be reinstated — open them to see what is short`,
+          `${res.failed.length} could not be reinstated — see the results below`,
         );
       }
-      setSelected(new Set());
       router.refresh();
     });
   }
@@ -222,6 +224,12 @@ export default function OrdersTable({
 
   return (
     <>
+      {bulkResults.length>0 && <section aria-label="Bulk operation failures" className="mb-4 rounded-xl border border-warn p-4 text-sm">
+        <h3 className="font-semibold">{bulkResults.length} orders need attention</h3>
+        <p>Failed orders remain selected. Review the reason, then use the bulk action to retry selected eligible orders.</p>
+        <ul>{bulkResults.map(f=><li key={f.id}><Link href={`/admin/orders/${f.id}`} className="underline">{rows.find(r=>r.id===f.id)?.order_number ?? f.id}</Link> — {f.error}</li>)}</ul>
+        <button onClick={()=>rememberFailures([])} className="mt-2 underline">Dismiss results</button>
+      </section>}
       <div className="overflow-hidden rounded-xl border border-line bg-surface">
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-ink-2 text-left text-xs uppercase tracking-wide text-muted">

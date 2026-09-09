@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useId, useRef } from "react";
+
+import { useDialogFocus } from "./useDialogFocus";
 
 /** Controlled confirmation dialog — the admin never uses window.confirm, which blocks automation and can't be themed. */
 export default function ConfirmModal({
@@ -22,21 +24,9 @@ export default function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const confirmRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (open) confirmRef.current?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      // Escape must not abandon an in-flight mutation — the caller owns the outcome until it settles.
-      if (e.key === "Escape" && !pending) onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, pending, onCancel]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const descriptionId = useId();
+  useDialogFocus(open,dialogRef,onCancel,pending);
 
   if (!open) return null;
 
@@ -53,18 +43,22 @@ export default function ConfirmModal({
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
+        aria-describedby={body ? descriptionId : undefined}
         aria-modal="true"
         aria-label={title}
         className="admin-card admin-enter w-full max-w-md rounded-2xl p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-base font-semibold text-fg">{title}</h2>
-        {body && <div className="mt-2 text-sm text-fg-2">{body}</div>}
+        {body && <div id={descriptionId} className="mt-2 text-sm text-fg-2">{body}</div>}
 
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
+            data-dialog-initial
             onClick={onCancel}
             disabled={pending}
             className="rounded-lg border border-line-2 px-3 py-1.5 text-sm text-fg-2 transition hover:bg-surface-2 disabled:opacity-50"
@@ -72,7 +66,6 @@ export default function ConfirmModal({
             Cancel
           </button>
           <button
-            ref={confirmRef}
             type="button"
             onClick={onConfirm}
             disabled={pending}

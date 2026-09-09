@@ -1,7 +1,7 @@
 const ITEMS = [
-  { icon: "🔬", title: "Independent COA every batch", sub: "Tested by JanoShik before listing" },
-  { icon: "✓", title: "≥98% purity verified", sub: "Every batch, every product" },
-  { icon: "📦", title: "1-business-day dispatch", sub: "Ships from Australia" },
+  { icon: "🔬", title: "Batch documentation", sub: "Check available lab results" },
+  { icon: "✓", title: "Research use only", sub: "Not for human consumption" },
+  { icon: "📦", title: "Australian shipping", sub: "Dispatch after payment confirmation" },
   { icon: "🤐", title: "Discreet packaging & billing", sub: "No product names on your statement" },
 ];
 

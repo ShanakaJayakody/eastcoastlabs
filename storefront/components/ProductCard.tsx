@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { WooProduct } from "@/lib/woo";
 import { minorToMajor, formatMinor, formatAud } from "@/lib/format";
-import { fromPerVialLabel, type TierCard } from "@/lib/pricing";
+import { type TierCard } from "@/lib/pricing";
 import Stars from "./Stars";
 
 /** The subset of a product a card needs — lets callers pass slim objects. */
@@ -24,7 +24,7 @@ export default function ProductCard({ product }: { product: CardProduct }) {
   // for anything the DB hasn't answered for.
   const perVialLabel = product.tiers?.length
     ? `from ${formatAud(Math.min(...product.tiers.map((t) => t.perVial)))}/vial`
-    : fromPerVialLabel(product.slug, product.name, single);
+    : `${formatAud(single)}/vial`;
   const inStock = product.is_in_stock !== false;
   const rating = product.rating ?? null;
 
@@ -68,7 +68,7 @@ export default function ProductCard({ product }: { product: CardProduct }) {
         )}
         <div className="mt-auto pt-3">
           {perVialLabel ? (
-            <p className="text-sm font-semibold text-accent">{perVialLabel}</p>
+            <div><p className="text-sm font-semibold text-fg">{formatAud(single)} · 1 vial</p><p className="mt-1 text-xs text-accent">{perVialLabel}{product.tiers?.length ? ` with ${product.tiers.reduce((a,b) => a.perVial < b.perVial ? a : b).vials}-vial pack` : ""}</p></div>
           ) : (
             <p className="text-sm font-semibold text-fg">
               {formatMinor(product.prices.price, product.prices)}

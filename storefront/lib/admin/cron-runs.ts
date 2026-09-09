@@ -1,114 +1,52 @@
-/**
- * Cron run history — did the sweeps actually run, and did they work?
- *
- * Vercel cron is fire-and-forget. Without a record, a job that silently stopped
- * firing looks exactly like a job with nothing to do, and the first symptom is
- * a customer asking why they never got their receipt.
- */
 import "server-only";
 import { adminDb } from "./db";
 
 export const CRON_JOBS = [
-  { job: "email-outbox", label: "Email outbox", schedule: "daily" },
-  { job: "lifecycle", label: "Lifecycle sweeps", schedule: "daily" },
-  { job: "abandoned-carts", label: "Cart recovery", schedule: "daily" },
-  { job: "payment-ops", label: "Unpaid orders", schedule: "daily" },
-  { job: "daily-brief", label: "Daily brief", schedule: "daily" },
+  { job: "email-outbox", label: "Email outbox", schedule: "hourly + daily backstop", overdueHours: 3 },
+  { job: "lifecycle", label: "Lifecycle sweeps", schedule: "daily", overdueHours: 30 },
+  { job: "abandoned-carts", label: "Cart recovery", schedule: "hourly + daily backstop", overdueHours: 3 },
+  { job: "payment-ops", label: "Unpaid orders", schedule: "hourly + daily backstop", overdueHours: 3 },
+  { job: "daily-brief", label: "Daily brief", schedule: "daily", overdueHours: 30 },
 ] as const;
-
-/** A daily job that has not run in this long is overdue, allowing for drift. */
-const OVERDUE_HOURS = 30;
-
 export interface CronRun {
-  job: string;
-  status: "ok" | "failed";
-  detail: Record<string, unknown>;
-  error: string | null;
-  duration_ms: number | null;
-  created_at: string;
+  job:string; status:"ok"|"failed"; detail:Record<string,unknown>; error:string|null; duration_ms:number|null; created_at:string;
 }
-
 export interface CronHealth {
-  job: string;
-  label: string;
-  schedule: string;
-  last: CronRun | null;
-  /** Hours since the last run, or null if it has never run. */
-  ageHours: number | null;
-  state: "ok" | "failed" | "overdue" | "never";
+  job:string;label:string;schedule:string;last:CronRun|null;ageHours:number|null;state:"ok"|"failed"|"overdue"|"never";
 }
-
-/**
- * Wrap a cron body so every invocation is recorded, including the failures.
- *
- * A job that throws is exactly the one worth knowing about, so the error is
- * written before it is re-thrown.
- */
-export async function recordCronRun<T extends Record<string, unknown>>(
-  job: string,
-  work: () => Promise<T>,
-): Promise<T> {
-  const started = Date.now();
+function hasFailures(detail:Record<string,unknown>):boolean {
+  return Object.entries(detail).some(([key,value]) =>
+    (/(?:failed|dead)$/i.test(key) && ((typeof value === "number" && value>0) || (Array.isArray(value) && value.length>0)))
+    || (value!==null && typeof value === "object" && !Array.isArray(value) && hasFailures(value as Record<string,unknown>)));
+}
+export async function recordCronRun<T extends Record<string,unknown>>(job:string,work:()=>Promise<T>):Promise<T> {
+  const started=Date.now();let detail:Record<string,unknown>={};
   try {
-    const detail = await work();
-    await write(job, "ok", detail, null, Date.now() - started);
-    return detail;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    await write(job, "failed", {}, message, Date.now() - started);
+    detail=await work();
+    if(hasFailures(detail))throw new Error("Some job operations failed; see the recorded counts and delivery errors");
+    await write(job,"ok",detail,null,Date.now()-started);
+    return detail as T;
+  } catch(err) {
+    const message=err instanceof Error?err.message:String(err);
+    try { await write(job,"failed",detail,message,Date.now()-started); }
+    catch { console.error(`Cron health persistence failed for ${job}`); }
     throw err;
   }
 }
-
-async function write(
-  job: string,
-  status: "ok" | "failed",
-  detail: Record<string, unknown>,
-  error: string | null,
-  durationMs: number,
-): Promise<void> {
-  // Never let bookkeeping break the job it is recording.
-  try {
-    await adminDb().from("cron_runs").insert({
-      job,
-      status,
-      detail,
-      error,
-      duration_ms: durationMs,
-    });
-  } catch {
-    // Swallowed deliberately: the sweep's own result matters more than the log.
-  }
+async function write(job:string,status:"ok"|"failed",detail:Record<string,unknown>,error:string|null,durationMs:number) {
+  const {error:writeError}=await adminDb().from("cron_runs").insert({job,status,detail,error,duration_ms:durationMs});
+  if(writeError)throw new Error(`Cannot record cron health: ${writeError.message}`);
 }
-
-/** Latest run per job, with a verdict. */
-export async function cronHealth(): Promise<CronHealth[]> {
-  const { data } = await adminDb()
-    .from("cron_runs")
-    .select("job, status, detail, error, duration_ms, created_at")
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  const latest = new Map<string, CronRun>();
-  for (const row of (data ?? []) as CronRun[]) {
-    if (!latest.has(row.job)) latest.set(row.job, row);
-  }
-
-  const now = Date.now();
-  return CRON_JOBS.map(({ job, label, schedule }) => {
-    const last = latest.get(job) ?? null;
-    // Clamped: the database clock and this one differ by milliseconds, which
-    // would otherwise render a fresh run as "-0.00h ago".
-    const ageHours = last
-      ? Math.max(0, (now - new Date(last.created_at).getTime()) / 3_600_000)
-      : null;
-    const state: CronHealth["state"] = !last
-      ? "never"
-      : last.status === "failed"
-        ? "failed"
-        : ageHours != null && ageHours > OVERDUE_HOURS
-          ? "overdue"
-          : "ok";
-    return { job, label, schedule, last, ageHours, state };
-  });
+export async function cronHealth():Promise<CronHealth[]> {
+  return Promise.all(CRON_JOBS.map(async({job,label,schedule,overdueHours})=>{
+    // One indexed lookup per known job cannot crowd infrequent jobs out of a
+    // shared 500-row limit when an hourly scheduler is running frequently.
+    const {data,error}=await adminDb().from("cron_runs").select("job,status,detail,error,duration_ms,created_at")
+      .eq("job",job).order("created_at",{ascending:false}).limit(1).maybeSingle();
+    if(error)throw new Error(`Cannot read cron health: ${error.message}`);
+    const last=(data as CronRun|null)??null;
+    const ageHours=last?Math.max(0,(Date.now()-Date.parse(last.created_at))/3600_000):null;
+    const state: CronHealth["state"] = !last?"never":last.status==="failed"?"failed":ageHours!==null&&ageHours>overdueHours?"overdue":"ok";
+    return {job,label,schedule,last,ageHours,state};
+  }));
 }

@@ -1,13 +1,7 @@
 "use server";
 
-/**
- * Buyer review submission. Auth is the (order number, email) pair — the same
- * proof-of-purchase the customer's own inbox holds. Reviews land in the
- * existing admin moderation queue as status='pending'; nothing renders until
- * an admin publishes it. One review per order, enforced by the partial unique
- * index on reviews.order_id (the insert is the race-safe check).
- */
-
+// A review link proves mailbox access without exposing email or sequential IDs.
+import { verifyOrderAccessToken } from "@/lib/order-access";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export interface OrderProduct {
@@ -24,42 +18,28 @@ export interface LookupResult {
 interface OrderRow {
   id: string;
   status: string;
-  customer_email: string;
   order_items: { product_slug: string; product_name: string }[];
 }
 
-async function findReviewableOrder(
-  orderNumber: string,
-  email: string,
-): Promise<{ order: OrderRow } | { error: string }> {
+async function findReviewableOrder(token: string): Promise<{ order: OrderRow } | { error: string }> {
+  const id = verifyOrderAccessToken(token, "review");
+  if (!id) return { error: "Open the secure review link in your latest review email. If it has expired, contact us for help." };
   const db = supabaseAdmin();
   if (!db) return { error: "Reviews are temporarily unavailable — please try again later." };
-
-  const orderNo = orderNumber.trim().toUpperCase();
-  const clean = email.trim().toLowerCase();
-  if (!orderNo || !clean.includes("@")) {
-    return { error: "Enter the order number and the email you ordered with." };
-  }
-
-  const { data } = await db
-    .from("orders")
-    .select("id, status, customer_email, order_items(product_slug, product_name)")
-    .eq("order_number", orderNo)
-    .maybeSingle();
+  const { data, error } = await db.from("orders")
+    .select("id, status, order_items(product_slug, product_name)").eq("id", id).maybeSingle();
   const order = data as OrderRow | null;
-
-  if (!order || order.customer_email.trim().toLowerCase() !== clean) {
-    return { error: "We couldn't find that order. Check the order number (e.g. ECL-1024) and email." };
-  }
+  if (error || !order) return { error: "This order is temporarily unavailable. Please try again later." };
   if (!["shipped", "completed"].includes(order.status)) {
     return { error: "Reviews open once your order has shipped." };
   }
 
-  const { data: existing } = await db
+  const { data: existing, error: reviewError } = await db
     .from("reviews")
     .select("id")
     .eq("order_id", order.id)
     .maybeSingle();
+  if (reviewError) return { error: "Reviews are temporarily unavailable. Please try again later." };
   if (existing) {
     return { error: "A review for this order has already been submitted — thank you!" };
   }
@@ -79,8 +59,8 @@ async function accessorySlugs(): Promise<Set<string>> {
   return new Set((data ?? []).map((p) => (p as { slug: string }).slug));
 }
 
-export async function lookupOrder(orderNumber: string, email: string): Promise<LookupResult> {
-  const result = await findReviewableOrder(orderNumber, email);
+export async function lookupOrder(token: string): Promise<LookupResult> {
+  const result = await findReviewableOrder(token);
   if ("error" in result) return { ok: false, error: result.error };
 
   const accessories = await accessorySlugs();
@@ -99,8 +79,7 @@ export async function lookupOrder(orderNumber: string, email: string): Promise<L
 }
 
 export interface SubmitInput {
-  orderNumber: string;
-  email: string;
+  token: string;
   productSlug: string;
   author: string;
   rating: number;
@@ -109,14 +88,15 @@ export interface SubmitInput {
 }
 
 export async function submitReview(input: SubmitInput): Promise<{ ok: boolean; error?: string }> {
-  const result = await findReviewableOrder(input.orderNumber, input.email);
+  if (!input || typeof input.token !== "string" || ![input.author,input.title,input.body,input.productSlug].every((v) => typeof v === "string")) return { ok:false,error:"Please complete the review fields." };
+  const result = await findReviewableOrder(input.token);
   if ("error" in result) return { ok: false, error: result.error };
   const { order } = result;
 
   const author = input.author.trim();
   const title = input.title.trim();
   const body = input.body.trim();
-  const rating = Math.round(Number(input.rating));
+  const rating = input.rating;
 
   if (!order.order_items.some((i) => i.product_slug === input.productSlug)) {
     return { ok: false, error: "Pick one of the products from your order." };
@@ -151,7 +131,7 @@ export async function submitReview(input: SubmitInput): Promise<{ ok: boolean; e
     if (error.code === "23505") {
       return { ok: false, error: "A review for this order has already been submitted — thank you!" };
     }
-    console.error("[leave-a-review] insert failed:", error.message);
+    console.error("[leave-a-review] insert failed");
     return { ok: false, error: "Something went wrong saving your review — please try again." };
   }
   return { ok: true };

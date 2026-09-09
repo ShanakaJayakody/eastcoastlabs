@@ -1,8 +1,9 @@
-import { Check, Minus } from "lucide-react";
+import type { StageState } from "@/lib/admin/sequences";
+import { Check, Minus, AlertTriangle } from "lucide-react";
 
 export interface StepperStep {
   label: string;
-  state: "sent" | "next" | "pending" | "skipped" | "missed";
+  state: StageState;
   at?: string | null;
   etaMs?: number | null;
   detail?: string | null;
@@ -37,6 +38,10 @@ function relativeFuture(ms?: number | null): string | null {
 /** The caption under a node depends on state: sent looks backward, next looks forward. */
 function caption(step: StepperStep): string {
   if (step.state === "sent") return relativePast(step.at) ?? (step.detail || "sent");
+  if (step.state === "queued") return "Queued";
+  if (step.state === "sending") return "Sending";
+  if (step.state === "failed") return "Retry scheduled";
+  if (step.state === "dead") return "Delivery stopped — reconcile provider";
   if (step.state === "next") return relativeFuture(step.etaMs) ?? (step.detail || "scheduled");
   return step.detail || step.state;
 }
@@ -57,6 +62,12 @@ function Node({ state }: { state: StepperStep["state"] }) {
           <span className="h-2 w-2 animate-pulse rounded-full bg-accent-2" />
         </span>
       );
+    case "failed":
+    case "dead":
+      return <span className={`${base} border-red-500/50 text-red-300`}><AlertTriangle className="h-3 w-3" aria-hidden /></span>;
+    case "sending":
+    case "queued":
+      return <span className={`${base} border-accent-2/50 bg-accent-2/10`}><span className="h-2 w-2 rounded-full bg-accent-2" /></span>;
     case "skipped":
       return (
         <span className={`${base} border-line-2 text-muted-2`}>

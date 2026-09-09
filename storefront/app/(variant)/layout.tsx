@@ -5,7 +5,7 @@ import DossierHeader from "@/components/variant/v2/DossierHeader";
 import DossierFooter from "@/components/variant/v2/DossierFooter";
 import { newsreader, inter, plexMono } from "@/lib/fonts";
 import { getSettings } from "@/lib/settings";
-import { getUpsellStock } from "@/lib/storefront-catalog";
+import { getUpsellStock, getCartPrices, getCartVariants } from "@/lib/storefront-catalog";
 
 /**
  * A/B variant shell (route /1) — "The Dossier" redesign.
@@ -25,7 +25,7 @@ import { getUpsellStock } from "@/lib/storefront-catalog";
  */
 export default async function VariantLayout({ children }: { children: React.ReactNode }) {
   // Same funnel as (store): thresholds + upsell availability for the shared cart.
-  const [settings, stock] = await Promise.all([getSettings(), getUpsellStock()]);
+  const [settings, stock, prices, variants] = await Promise.all([getSettings(), getUpsellStock(), getCartPrices(), getCartVariants()]);
   return (
     <Providers
       thresholds={{
@@ -33,13 +33,14 @@ export default async function VariantLayout({ children }: { children: React.Reac
         gift: settings.giftThreshold,
       }}
       stock={stock}
+      prices={prices} variants={variants}
     >
       <div
         className={`theme-paper flex min-h-screen flex-col bg-ink text-fg ${newsreader.variable} ${inter.variable} ${plexMono.variable}`}
       >
         <DossierHeader />
-        <main className="flex-1">{children}</main>
-        <DossierFooter />
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">{children}</main>
+        <DossierFooter supportEmail={settings.supportEmail} />
         <CartDrawer />
       </div>
       <Analytics />

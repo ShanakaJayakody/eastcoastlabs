@@ -29,7 +29,7 @@ export interface BumpProduct {
  * abandonment than it earns in attach rate.
  */
 export default function CheckoutBump({ products }: { products: BumpProduct[] }) {
-  const { lines, addLine } = useCart();
+  const { lines, addLine, priceFor } = useCart();
 
   const inCart = useMemo(() => new Set(lines.map((l) => l.slug)), [lines]);
   // Accessories are only relevant next to a compound. An accessories-only
@@ -37,7 +37,7 @@ export default function CheckoutBump({ products }: { products: BumpProduct[] }) 
   const hasPeptide = useMemo(() => lines.some((l) => isPeptideSlug(l.slug)), [lines]);
   // Never suggest something already in the basket — a bump for an item the
   // shopper just added reads as broken.
-  const suggestions = products.filter((p) => !inCart.has(p.slug)).slice(0, 2);
+  const suggestions = products.filter((p) => !inCart.has(p.slug)).slice(0, 2).map(p => ({...p, price:priceFor(p.slug) ?? p.price}));
   if (!hasPeptide || suggestions.length === 0) return null;
 
   return (

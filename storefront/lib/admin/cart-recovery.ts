@@ -1,21 +1,13 @@
 /**
- * Abandoned-cart capture + recovery — three touches (+1h / +24h / +72h).
- *
- * Known structural limit (SystemsThinking review): recovery matching is
- * email-only. If a shopper browses under one email and checks out under a
- * DIFFERENT email, there is no signal connecting the two identities — that cart
- * cannot be suppressed. Mitigation: each capture gets at most one send per
- * stage (reminder_stage is claimed atomically before queuing) and the
- * SAME-email completed-order case is fully suppressed via markCartRecovered().
- *
- * Stage timing anchors on updated_at (last cart activity), not on the previous
- * send — a fresh capture resets the stage counter and restarts the sequence.
+ * Immutable cart episodes and operator reporting. Public cart-link requests now
+ * require mailbox-confirmed, cart-specific permission before creating an episode.
+ * The SQL sweep queues at most three touches (+1h / +24h / +72h); delivery
+ * rechecks permission, current episode, suppression, pauses and later orders.
+ * Same-email checkout suppresses reminders, while attribution requires a proved
+ * restore of the exact cart through the private checkout cookie.
  */
+import { readAll } from "./read-all";
 import { adminDb } from "./db";
-import { queueEmail } from "./email";
-import { CART_STAGES, cartRelatedId } from "./sequences";
-import { inList, pausedEmailsFor } from "./overrides";
-import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
 export interface CapturedLine {
   name: string;
@@ -23,42 +15,22 @@ export interface CapturedLine {
   quantity: number;
 }
 
-/** Upsert the shopper's current cart against their email. Overwrites any prior
- *  snapshot and resets the reminder gate — a fresh capture deserves a fresh window. */
+/** Internal compatibility helper. New public requests use recovery_request and
+ * recovery_confirm; an episode alone never grants permission to send reminders. */
 export async function captureCart(
   email: string,
   cart: CapturedLine[],
   subtotalCents: number,
-): Promise<void> {
-  const clean = email.trim().toLowerCase();
-  if (!clean.includes("@") || !cart.length) return;
-  const db = adminDb();
-  await db.from("cart_sessions").upsert(
-    {
-      email: clean,
-      cart,
-      subtotal_cents: subtotalCents,
-      status: "active",
-      reminder_sent_at: null,
-      reminder_stage: 0,
-      recovered_order_id: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "email" },
-  );
+): Promise<string> {
+ const {data,error}=await adminDb().rpc("recovery_capture",{p_email:email.trim().toLowerCase(),p_cart:cart,p_subtotal:subtotalCents});
+ if(error)throw new Error(error.message);
+ return String(data);
 }
 
-/** Suppress recovery for this email — called right after a successful checkout. */
-export async function markCartRecovered(email: string, orderId: string): Promise<void> {
-  const clean = email.trim().toLowerCase();
-  const { error } = await adminDb()
-    .from("cart_sessions")
-    .update({ status: "recovered", recovered_order_id: orderId, updated_at: new Date().toISOString() })
-    .eq("email", clean)
-    .eq("status", "active");
-  // Never swallow this silently — a failed suppression means a real customer
-  // gets a "you left this in your cart" email after they already bought it.
-  if (error) throw new Error(`markCartRecovered: ${error.message}`);
+/** Suppress by email, but associate revenue only with a supplied capture ID. */
+export async function markCartRecovered(email:string,orderId:string,episodeId?:string):Promise<void>{
+ const {error}=await adminDb().rpc("recovery_complete",{p_email:email.trim().toLowerCase(),p_order:orderId,p_episode:episodeId??null});
+ if(error)throw new Error(`markCartRecovered: ${error.message}`);
 }
 
 /**
@@ -80,59 +52,9 @@ export async function markCartRecovered(email: string, orderId: string): Promise
  * fresh sequence while a re-run of the same capture can't double-send.
  */
 export async function queueAbandonedCartEmails(): Promise<number> {
-  const db = adminDb();
-  let queued = 0;
-
-  // Paused carts are excluded BEFORE the claim, not after: the claim bumps
-  // reminder_stage, so claiming a paused cart would silently consume its next
-  // touch and the operator's pause would cost them the email they were trying
-  // to hold back.
-  const paused = inList(await pausedEmailsFor("cart_recovery"));
-
-  for (let stage = 0; stage < CART_STAGES.length; stage++) {
-    const { from, until, template } = CART_STAGES[stage];
-    const idleSince = new Date(Date.now() - from * 60 * 60 * 1000).toISOString();
-    const idleUntil = new Date(Date.now() - until * 60 * 60 * 1000).toISOString();
-
-    let claim = db
-      .from("cart_sessions")
-      .update({ reminder_stage: stage + 1, reminder_sent_at: new Date().toISOString() })
-      .eq("status", "active")
-      .lte("reminder_stage", stage)
-      .lt("updated_at", idleSince)
-      .gt("updated_at", idleUntil);
-    if (paused) claim = claim.not("email", "in", paused);
-    const { data: claimed } = await claim.select("email, cart, subtotal_cents, updated_at");
-
-    const rows = claimed ?? [];
-    if (!rows.length) continue;
-
-    const { data: unsubRows } = await db
-      .from("subscribers")
-      .select("email")
-      .in("email", rows.map((r) => r.email as string))
-      .not("unsubscribed_at", "is", null);
-    const suppressed = new Set((unsubRows ?? []).map((r) => (r as { email: string }).email));
-
-    for (const row of rows) {
-      const email = row.email as string;
-      if (suppressed.has(email)) continue;
-      const unsub = unsubscribeUrl(email);
-      if (!unsub) {
-        console.error("cart-recovery: no unsubscribe secret configured — marketing sends skipped");
-        return queued;
-      }
-      await queueEmail({
-        to: email,
-        template,
-        payload: { cart: row.cart, subtotal_cents: row.subtotal_cents, unsubscribe_url: unsub },
-        relatedType: "cart_session",
-        relatedId: cartRelatedId(email, stage + 1, row.updated_at as string),
-      });
-      queued++;
-    }
-  }
-  return queued;
+  const {data,error}=await adminDb().rpc("recovery_queue_due",{p_limit:200});
+  if(error)throw new Error(`queueAbandonedCartEmails: ${error.message}`);
+  return Number(data??0);
 }
 
 export interface AbandonedCartRow {
@@ -156,6 +78,8 @@ export async function listAbandonedCarts(idleHours = 1, limit = 10): Promise<Aba
 }
 
 export interface RecoveryCartRow {
+  episode_id?:string;
+  legacy_unknown?:boolean;
   email: string;
   cart: CapturedLine[];
   subtotal_cents: number;
@@ -171,29 +95,39 @@ export interface RecoveryCartRow {
 export async function listCartsFor(
   tab: "active" | "recovered" | "expired",
   limit = 50,
+  range?: RecoveryRange,
+  page = 1,
 ): Promise<RecoveryCartRow[]> {
   const db = adminDb();
   const deadline = new Date(Date.now() - 168 * 60 * 60 * 1000).toISOString();
 
   let q = db
-    .from("cart_sessions")
+    .from("admin_recovery_episodes")
     .select(
-      "email, cart, subtotal_cents, status, reminder_stage, reminder_sent_at, recovered_order_id, created_at, updated_at",
+      "episode_id, legacy_unknown, email, cart, subtotal_cents, status, reminder_stage, reminder_sent_at, recovered_order_id, created_at, updated_at",
     )
-    .order("updated_at", { ascending: false })
-    .limit(limit);
+    .order("updated_at", { ascending: false }).order("episode_id")
+    .range((page-1)*limit,page*limit-1);
 
+  if(range){const {since,until}=boundsOf(range);q=q.gte("created_at",since);if(until)q=q.lt("created_at",until);}
   if (tab === "recovered") q = q.eq("status", "recovered");
   // "Expired" is an active cart that aged past the last recovery window — the
   // sweep will never touch it again, which is precisely why it needs a list.
-  else if (tab === "expired") q = q.eq("status", "active").lt("updated_at", deadline);
-  else q = q.eq("status", "active").gte("updated_at", deadline);
+  else if (tab === "expired") q = q.or(`state.in.(superseded,stopped),and(state.eq.active,updated_at.lt.${deadline}),state.eq.legacy_unknown`);
+  else q = q.eq("state", "active").gte("updated_at", deadline);
 
-  const { data } = await q;
+  const { data,error } = await q;
+  if(error) throw new Error(error.message);
   return (data ?? []) as RecoveryCartRow[];
 }
 
 export interface RecoveryMetrics {
+  captured:number;
+  exposed:number;
+  orderCreated:number;
+  paid:number;
+  attributedPaid:number;
+  legacyUnknown:number;
   activeCarts: number;
   inSequence: number;
   recovered30d: number;
@@ -223,47 +157,14 @@ export async function recoveryMetrics(range: RecoveryRange = 30): Promise<Recove
   const { since, until } = boundsOf(range);
   const idleCutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-  let windowCartsQuery = db
-    .from("cart_sessions")
-    .select("status, recovered_order_id")
-    .gte("created_at", since);
-  if (until) windowCartsQuery = windowCartsQuery.lt("created_at", until);
-
-  const [{ data: windowCarts }, { count: activeCarts }, { data: staged }] = await Promise.all([
-    windowCartsQuery,
-    db
-      .from("cart_sessions")
-      .select("*", { count: "exact", head: true })
-      .eq("status", "active")
-      .lt("updated_at", idleCutoff),
-    db
-      .from("cart_sessions")
-      .select("email")
-      .eq("status", "active")
-      .gt("reminder_stage", 0),
+  const [metricResult,activeResult,stagedResult]=await Promise.all([
+    db.rpc("recovery_episode_metrics",{p_since:since,p_until:until}),
+    db.from("cart_sessions").select("*",{count:"exact",head:true}).eq("status","active").lt("updated_at",idleCutoff),
+    db.from("cart_sessions").select("*",{count:"exact",head:true}).eq("status","active").gt("reminder_stage",0),
   ]);
-
-  const rows = (windowCarts ?? []) as { status: string; recovered_order_id: string | null }[];
-  const recovered = rows.filter((r) => r.status === "recovered");
-  const denominator = rows.length;
-
-  let revenueRecoveredCents = 0;
-  const orderIds = recovered.map((r) => r.recovered_order_id).filter(Boolean) as string[];
-  if (orderIds.length) {
-    const { data: orders } = await db.from("orders").select("total_cents").in("id", orderIds);
-    revenueRecoveredCents = (orders ?? []).reduce(
-      (sum, o) => sum + ((o as { total_cents: number }).total_cents ?? 0),
-      0,
-    );
-  }
-
-  return {
-    activeCarts: activeCarts ?? 0,
-    inSequence: (staged ?? []).length,
-    recovered30d: recovered.length,
-    revenueRecoveredCents,
-    recoveryRatePct: denominator > 0 ? Math.round((recovered.length / denominator) * 100) : null,
-  };
+  if(metricResult.error||activeResult.error||stagedResult.error)throw new Error(metricResult.error?.message??activeResult.error?.message??stagedResult.error?.message);
+  const m=metricResult.data as {captured:number;exposed:number;order_created:number;paid:number;attributed_paid:number;legacy_unknown:number;attributed_net_paid_cents:number};
+  return {activeCarts:activeResult.count??0,inSequence:stagedResult.count??0,recovered30d:m.order_created,revenueRecoveredCents:m.attributed_net_paid_cents,recoveryRatePct:m.exposed>0?Math.round(m.attributed_paid/m.exposed*100):null,captured:m.captured,exposed:m.exposed,orderCreated:m.order_created,paid:m.paid,attributedPaid:m.attributed_paid,legacyUnknown:m.legacy_unknown};
 }
 
 export interface RecoveryFunnel {
@@ -271,11 +172,10 @@ export interface RecoveryFunnel {
   delivered: number;
   opened: number;
   clicked: number;
-  recovered: number;
 }
 
 /**
- * Sent → delivered → opened → clicked → recovered, over recovery emails in the
+ * Sent → delivered → opened → clicked, over recovery emails in the
  * window. Counted per EMAIL rather than per cart: one cart can receive three
  * touches, and "did this touch land" is the question the funnel answers.
  *
@@ -287,22 +187,19 @@ export async function recoveryFunnel(range: RecoveryRange = 30): Promise<Recover
   const { since, until } = boundsOf(range);
   const templates = ["abandoned_cart", "abandoned_cart_2", "abandoned_cart_3"];
 
-  let sentQuery = db
-    .from("email_outbox")
-    .select("id")
-    .in("template", templates)
-    .eq("status", "sent")
-    .gte("created_at", since);
-  if (until) sentQuery = sentQuery.lt("created_at", until);
-  const { data: sentRows } = await sentQuery;
-  const ids = (sentRows ?? []).map((r) => (r as { id: string }).id);
+  const sentRows=await readAll<{id:string}>((start,end)=>{
+    let q=db.from("email_outbox").select("id").in("template",templates).eq("status","sent").gte("created_at",since).order("id").range(start,end);
+    if(until)q=q.lt("created_at",until);
+    return q;
+  });
+  const ids=sentRows.map(r=>r.id);
 
   const counts = { delivered: 0, opened: 0, clicked: 0 };
   if (ids.length) {
-    const { data: events } = await db
-      .from("email_events")
-      .select("outbox_id, event")
-      .in("outbox_id", ids);
+    const events:{outbox_id:string;event:string}[]=[];
+    for(let start=0;start<ids.length;start+=200){
+      events.push(...await readAll<{outbox_id:string;event:string}>((from,to)=>db.from("email_events").select("outbox_id,event").in("outbox_id",ids.slice(start,start+200)).order("id").range(from,to)));
+    }
     // Distinct outbox rows per event — a single email opened five times is one
     // open in a funnel, not five.
     const seen: Record<string, Set<string>> = { delivered: new Set(), opened: new Set(), clicked: new Set() };
@@ -314,15 +211,7 @@ export async function recoveryFunnel(range: RecoveryRange = 30): Promise<Recover
     counts.clicked = seen.clicked.size;
   }
 
-  let recoveredQuery = db
-    .from("cart_sessions")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "recovered")
-    .gte("created_at", since);
-  if (until) recoveredQuery = recoveredQuery.lt("created_at", until);
-  const { count: recovered } = await recoveredQuery;
-
-  return { sent: ids.length, ...counts, recovered: recovered ?? 0 };
+  return { sent:ids.length,...counts };
 }
 
 export async function abandonedCartCount(idleHours = 1): Promise<number> {

@@ -4,19 +4,13 @@
 
 East Coast Labs is an Australian-owned and operated supplier of research-use-only peptides. We provide peptide vials in 1, 3, and 6-vial pack configurations for laboratory and research purposes.
 
-## Why East Coast Labs Exists
-
-**[OWNER INPUT: Provide founder background — e.g., "Founded by researchers with X years of laboratory experience..."]**
-
-**[OWNER INPUT: Provide origin story — e.g., "East Coast Labs was established in [year] to address the lack of transparent testing in the research peptide market. We observed that many suppliers provided no independent verification of product purity, making reliable research difficult."]**
-
 ## How We Operate
 
 ### Dispatch and Shipping
 
-- **Processing time**: Orders are dispatched within 1 business day from our Australian facility
+- **Processing**: Order preparation begins after payment confirmation
 - **Shipping locations**: We ship from Australia to Australian addresses
-- **Free shipping**: Available on orders over $150
+- **Shipping options**: Current rates and free-shipping thresholds appear at checkout
 - **Tracking**: All shipments include tracking information
 
 ### Packaging
@@ -48,23 +42,6 @@ We do not provide dosing information, administration guidance, or therapeutic ad
 
 ## Contact Us
 
-### Support
+For product specifications, include the compound name and your question. For order enquiries, include your order reference. Contact details appear below and in the footer.
 
-**Email**: eclpeptides@gmail.com  
-**Response time**: We reply to all inquiries within 1 business day  
-**Support hours**: Monday–Friday, 9:00 AM – 5:00 PM AEST
-
-For questions about:
-- **Product specifications**: Include the product name and your specific inquiry
-- **Order status**: Include your order number
-- **Technical questions**: We can provide product details, but cannot offer research design guidance
-
-## Business Details
-
-**ABN**: [OWNER INPUT: Provide Australian Business Number]  
-**Location**: [OWNER INPUT: Provide city and state of operations]
-
----
-
-*Last updated: July 2025*  
 *All products supplied by East Coast Labs are for research use only. Not for human consumption.*

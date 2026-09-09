@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Modal from "@/components/Modal";
 import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
 
@@ -27,12 +28,13 @@ export default function DossierHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  return (
+  return (<>
     <header
       className={`sticky top-0 z-40 bg-ink/95 backdrop-blur transition-[border-color] ${
         scrolled ? "border-b border-line" : "border-b border-transparent"
       }`}
     >
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[80] focus:bg-ink focus:p-3">Skip to main content</a>
       <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-8 px-6">
         <Link href="/1" className="shrink-0 text-[13px] font-semibold uppercase tracking-[0.12em] text-fg">
           East Coast Labs
@@ -52,11 +54,11 @@ export default function DossierHeader() {
 
         <div className="ml-auto flex items-center gap-5 md:ml-0">
           <span className="hidden font-data text-[11px] tracking-wide text-muted-2 lg:inline">
-            AU · 1-DAY DISPATCH
+            AU · RESEARCH USE ONLY
           </span>
           <button
             type="button"
-            onClick={openCart}
+            onClick={() => {setMenuOpen(false);openCart();}}
             aria-label={`Open cart, ${count} item${count === 1 ? "" : "s"}`}
             className="font-data text-[13px] font-medium text-fg transition hover:text-accent"
           >
@@ -74,8 +76,11 @@ export default function DossierHeader() {
         </div>
       </div>
 
-      {menuOpen && (
-        <nav className="border-t border-line bg-ink px-6 py-4 md:hidden">
+    </header>
+      {/* Stay within the paper theme, outside the blurred header's containing block. */}
+      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} label="Navigation menu" className="w-full max-w-md bg-ink p-6">
+        <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="ml-auto block p-2">✕</button>
+        <nav>
           {NAV.map((item, i) => (
             <Link
               key={item.href}
@@ -88,7 +93,7 @@ export default function DossierHeader() {
             </Link>
           ))}
         </nav>
-      )}
-    </header>
+      </Modal>
+    </>
   );
 }

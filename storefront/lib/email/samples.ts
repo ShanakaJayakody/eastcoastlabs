@@ -35,6 +35,9 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   {
     label: "Transactional",
     templates: [
+      { id: "admin_daily_brief", name: "Admin daily brief", trigger: "Daily operations summary to active admins" },
+      { id: "cart_recovery_confirmation", name: "Cart confirmation", trigger: "Explicit cart-link request" },
+      { id: "subscription_confirmation", name: "Subscription confirmation", trigger: "Mailbox confirmation requested" },
       { id: "order_confirmation", name: "Order confirmation", trigger: "Payment marked received" },
       { id: "order_shipped", name: "Order shipped", trigger: "Admin marks order shipped" },
       { id: "order_refunded", name: "Order refunded", trigger: "Refund issued in admin" },
@@ -92,6 +95,12 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
     : {};
 
   switch (template) {
+    case "admin_daily_brief":
+      return {subject:"East Coast Labs — sample daily brief",html:"<!doctype html><html><body><h1>Daily operations brief</h1><p>Sample preview: 2 paid orders await dispatch; no failed jobs.</p></body></html>"};
+    case "cart_recovery_confirmation":
+      return {recovery_request_id:"00000000-0000-0000-0000-000000000000"};
+    case "subscription_confirmation":
+      return {confirmation_url:"https://www.eastcoastlabs.com.au/subscribe/confirm?token=sample-preview-token"};
     case "order_confirmation":
     case "payment_expired":
       return { ...base, order_number: "ECL-1042" };
@@ -122,7 +131,7 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
     case "abandoned_cart":
     case "abandoned_cart_2":
     case "abandoned_cart_3":
-      return { ...base, cart: SAMPLE_CART, subtotal_cents: 24900 };
+      return { ...base, cart: SAMPLE_CART, subtotal_cents: 24900, recovery_request_id:"00000000-0000-0000-0000-000000000000", recovery_episode_id:"00000000-0000-0000-0000-000000000001" };
     case "arrival_checkin":
       return { ...base, order_number: "ECL-1042" };
     case "post_purchase_review":
@@ -130,7 +139,7 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
       return {
         ...base,
         order_number: "ECL-1042",
-        review_url: "https://eastcoastlabs.com.au/leave-a-review?order=ECL-1042",
+        order_id: "00000000-0000-0000-0000-000000000000",
         products: ["BPC-157 10mg", "TB-500 10mg"],
       };
     case "review_thank_you":

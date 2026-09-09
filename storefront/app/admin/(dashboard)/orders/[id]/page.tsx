@@ -1,3 +1,7 @@
+import LotPacking from "@/components/admin/LotPacking";
+import { getOrderFulfilment, getLotCatalog } from "@/lib/admin/fulfilment";
+import RefundSettlements from "@/components/admin/RefundSettlements";
+import { getRefundSettlements } from "@/lib/admin/refunds";
 import { Suspense } from "react";
 import AuditTrail from "@/components/admin/AuditTrail";
 import Link from "next/link";
@@ -22,7 +26,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const order = await getOrder(id);
   if (!order) notFound();
 
-  const profit = await profitForOrders([id]);
+  const [profit, settlements, fulfilment, lotCatalog] = await Promise.all([profitForOrders([id]), getRefundSettlements(id), getOrderFulfilment(id), getLotCatalog()]);
   // Only a cancelled order can be reinstated, so only it pays for the check.
   const stockCheck =
     order.status === "cancelled" ? await reinstateStockCheck(id) : undefined;
@@ -66,9 +70,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           />
           {order.refunded_cents > 0 && (
             <p className="text-right text-xs text-warn">
-              Total refunded to date: {cents(order.refunded_cents)}
+              Refunds recorded to date: {cents(order.refunded_cents)}
             </p>
           )}
+
+          <LotPacking fulfilment={fulfilment} catalog={lotCatalog} />
+
+          <RefundSettlements orderId={id} refundedCents={order.refunded_cents} settlements={settlements} />
 
           {/* Profit — admin-only, from the COGS frozen at payment */}
           {profit.cogsCents > 0 && (
@@ -129,7 +137,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         {/* Sidebar */}
         <div className="space-y-4">
-          <OrderActions orderId={order.id} status={order.status} stockCheck={stockCheck} />
+          <OrderActions hasRefunds={order.refunded_cents>0 || order.items.some(item=>item.refunded_qty>0)} orderNumber={order.order_number} remainingRefundCents={Math.max(0,order.total_cents-order.refunded_cents)} trackingNumber={order.tracking_number} orderId={order.id} status={order.status} stockCheck={stockCheck} />
 
           <section className="rounded-xl border border-line bg-surface p-4 text-sm">
             <h3 className="mb-2 text-sm font-semibold text-fg">Customer</h3>

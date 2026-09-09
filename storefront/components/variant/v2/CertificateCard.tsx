@@ -1,5 +1,4 @@
 import type { CoaRecord } from "@/lib/coa";
-import Chromatogram from "./Chromatogram";
 import StampSeal from "./StampSeal";
 import CountUp from "./CountUp";
 
@@ -34,10 +33,7 @@ export default function CertificateCard({ record }: { record: CoaRecord }) {
           <dt className="text-muted-2">Laboratory</dt>
           <dd className="mt-0.5 text-fg">{record.lab}</dd>
         </div>
-        <div>
-          <dt className="text-muted-2">Method</dt>
-          <dd className="mt-0.5 text-fg">HPLC-UV</dd>
-        </div>
+
       </dl>
 
       <div className="mt-6 border-t border-line pt-5">
@@ -47,15 +43,15 @@ export default function CertificateCard({ record }: { record: CoaRecord }) {
         </p>
       </div>
 
-      <Chromatogram className="mt-5 h-12" />
+
 
       <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-4 font-data text-[12px]">
         <a href={record.coa_url} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">
           View original PDF ↗
         </a>
-        <a href={record.lab_verify_url} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">
+        {record.lab_verify_url && <a href={record.lab_verify_url} target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-2">
           Verify with lab ↗
-        </a>
+        </a>}
       </div>
     </div>
   );

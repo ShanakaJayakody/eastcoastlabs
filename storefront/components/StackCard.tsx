@@ -2,20 +2,24 @@
 
 import Image from "next/image";
 import type { ResolvedStack } from "@/lib/stacks";
-import { formatAud, formatAudWhole } from "@/lib/format";
+import { reservedVials } from "@/lib/cart-line";
+import { formatAud } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
 import { trackAddToCart } from "@/lib/analytics";
 
 export default function StackCard({ stack }: { stack: ResolvedStack }) {
-  const { addLine, stockFor } = useCart();
+  const { addLine, stockFor, lines } = useCart();
   const { openCart } = useUI();
   // Don't advertise the free bac water inclusion when the ledger says it's
   // gone — checkout would (correctly) refuse to grant it.
   const bacStock = stockFor("bacteriostatic-water");
   const bacAvailable = bacStock === null || bacStock > 0;
 
+  const available = Math.min(...stack.components.map(c => Math.max(0, c.available - reservedVials(lines,c.slug))));
+
   function handleAdd() {
+    if (available < 1) return;
     const variantLabel = `Stack · ${stack.components.map((c) => c.name).join(" + ")}`;
     addLine(
       {
@@ -24,6 +28,7 @@ export default function StackCard({ stack }: { stack: ResolvedStack }) {
         name: stack.name,
         slug: stack.slug,
         variantLabel,
+        components: stack.components.map(c => c.slug),
         image: stack.components[0]?.image,
         unitPrice: stack.bundlePrice,
       },
@@ -43,7 +48,7 @@ export default function StackCard({ stack }: { stack: ResolvedStack }) {
   }
 
   return (
-    <div className="card-hover flex flex-col overflow-hidden rounded-2xl border border-line bg-surface hover:border-accent/40">
+    <div id={stack.slug} className="scroll-mt-24 card-hover flex flex-col overflow-hidden rounded-2xl border border-line bg-surface hover:border-accent/40">
       {/* Component images */}
       <div className="relative flex items-center justify-center gap-2 border-b border-line bg-ink-2 px-6 pb-6 pt-16">
         {stack.badge && (
@@ -95,11 +100,11 @@ export default function StackCard({ stack }: { stack: ResolvedStack }) {
         <div className="mt-4 flex items-end justify-between border-t border-line pt-4">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-fg">{formatAudWhole(stack.bundlePrice)}</span>
+              <span className="text-2xl font-bold text-fg">{formatAud(stack.bundlePrice)}</span>
               <span className="text-sm text-muted-2 line-through">{formatAud(stack.componentsTotal)}</span>
             </div>
             <span className="text-xs font-semibold text-success">
-              Save {formatAudWhole(stack.savings)}
+              Save {formatAud(stack.savings)}
             </span>
           </div>
         </div>
@@ -107,9 +112,10 @@ export default function StackCard({ stack }: { stack: ResolvedStack }) {
         <button
           type="button"
           onClick={handleAdd}
+          disabled={available < 1}
           className="btn-press mt-4 w-full rounded-xl bg-accent px-5 py-3.5 text-sm font-semibold text-accent-ink transition hover:brightness-95"
         >
-          Add stack to cart · {formatAudWhole(stack.bundlePrice)}
+          {available < 1 ? "Out of stock" : `Add stack to cart · ${formatAud(stack.bundlePrice)}`}
         </button>
       </div>
     </div>

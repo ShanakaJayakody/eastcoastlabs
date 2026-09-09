@@ -2,9 +2,8 @@
  * Server-side cart resolution — the checkout trust boundary.
  *
  * The browser tells us WHAT it wants (product slug, pack size, quantity, whether
- * a line is a subscription, whether a gift is claimed). It never tells us what
- * anything COSTS: every price is re-derived here from product_variants or
- * data/accessories.json, and gift eligibility is re-checked against the server's
+ * a gift is claimed). It never tells us what anything COSTS: every price is
+ * re-derived here from active product_variants, and gift eligibility is re-checked against the server's
  * own subtotal. A tampered cart therefore cannot change what the customer pays.
  *
  * SERVER ONLY — imports the service-role client.
@@ -17,18 +16,23 @@ import { getStackBySlug } from "./stacks";
 import { BAC_WATER_SLUG } from "./bumps";
 import type { NewOrderItem, ExtraOrderItem } from "./admin/orders";
 
-/** Subscribe-and-save rate, mirrored from the storefront BuyBox. */
-export const SUBSCRIBE_DISCOUNT_PCT = 10;
 
 /** What the client is allowed to send us per line. Note: no prices. */
 export interface ClientCartLine {
   key: string;
   slug: string;
   variantLabel: string;
+  variantId?: string;
   quantity: number;
 }
 
+export interface ResolvedCartLine {
+  key: string; slug: string; name: string; variantLabel: string; variantId?: string;
+  quantity: number; unitPriceCents: number; lineTotalCents: number; isGift: boolean;
+}
+
 export interface ResolvedCart {
+  lines: ResolvedCartLine[];
   items: NewOrderItem[];
   extraItems: ExtraOrderItem[];
   subtotalCents: number;
@@ -45,7 +49,6 @@ export function packSizeFromLabel(label: string): number {
   return 1;
 }
 
-const isSubscription = (label: string) => /subscribe/i.test(label);
 const isGiftKey = (key: string) => key.startsWith("gift:");
 /** Stacks are bundles of several products added as ONE cart line (key
  *  "stack:<slug>"). They resolve to real, individually-stocked order items. */
@@ -56,6 +59,8 @@ interface VariantLookup {
   price_cents: number;
   pack_size: number;
   slug: string;
+  name: string;
+  label: string;
 }
 
 /**
@@ -67,12 +72,15 @@ interface VariantLookup {
 export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart> {
   const warnings: string[] = [];
   const clean = lines
-    .filter((l) => l && typeof l.slug === "string")
+    .filter((l) => l && typeof l.slug === "string" && typeof l.key === "string" && typeof l.variantLabel === "string")
+    .filter(l => l.variantId === undefined || (!isStackKey(l.key) && !isGiftKey(l.key)))
     .map((l) => ({
       ...l,
       quantity: Math.min(99, Math.max(1, Math.floor(Number(l.quantity) || 1))),
     }));
 
+  if (clean.length !== lines.length || clean.some((l, i) => l.quantity !== lines[i]?.quantity)) warnings.push("Cart quantities were adjusted; review your order.");
+  const resolvedLines: ResolvedCartLine[] = [];
   const paidLines = clean.filter((l) => !isGiftKey(l.key));
   const giftClaimed = clean.some((l) => isGiftKey(l.key));
 
@@ -99,16 +107,21 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   if (slugs.length) {
     const { data, error } = await adminDb()
       .from("product_variants")
-      .select("id, price_cents, pack_size, products!inner(slug)")
+      .select("id, price_cents, pack_size, label, products!inner(slug, name)")
       .in("products.slug", slugs)
-      .eq("active", true);
+      .eq("active", true)
+      .eq("products.status", "active");
     if (error) throw new Error(`resolveCart: ${error.message}`);
-    variants = (data as unknown as Array<VariantLookup & { products: { slug: string } }>).map(
-      (v) => ({ id: v.id, price_cents: v.price_cents, pack_size: v.pack_size, slug: v.products.slug }),
+    variants = (data as unknown as Array<VariantLookup & { products: { slug: string; name: string } }>).map(
+      (v) => ({ id: v.id, price_cents: v.price_cents, pack_size: v.pack_size, slug: v.products.slug, name: v.products.name, label: v.label }),
     );
   }
   const variantKey = (slug: string, pack: number) => `${slug}::${pack}`;
   const byKey = new Map(variants.map((v) => [variantKey(v.slug, v.pack_size), v]));
+
+  const lookup = (line: ClientCartLine) => line.variantId !== undefined
+    ? variants.find(v => v.id === line.variantId && v.slug === line.slug)
+    : byKey.get(variantKey(line.slug, getAccessory(line.slug) ? 1 : packSizeFromLabel(line.variantLabel)));
 
   const items: NewOrderItem[] = [];
   const extraItems: ExtraOrderItem[] = [];
@@ -125,16 +138,14 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const wantsFreeBac =
     clean.some((l) => isGiftKey(l.key)) || resolvedStacks.some(({ stack }) => stack?.freeBacWater);
   let freeBacBudget = 0;
-  // Whether bac water can cover the kits in this cart. Defaults true so a cart
-  // is never blocked when bac isn't resolvable at all (no product / no ledger
-  // knowledge is not the same as sold out for a PAID kit).
-  let kitBacCovered = true;
+  // Kits fail closed when their required water variant cannot be resolved.
+  let kitBacCovered = kitLines.length === 0;
   if (wantsFreeBac || kitLines.length) {
     const bacPoolId = byKey.get(variantKey(BAC_WATER_SLUG, 1))?.id ?? (await findGiftVariant());
     if (bacPoolId) {
       const paidBacVials = paidLines
         .filter((l) => !isStackKey(l.key) && l.slug === BAC_WATER_SLUG)
-        .reduce((sum, l) => sum + packSizeFromLabel(l.variantLabel) * l.quantity, 0);
+        .reduce((sum, l) => sum + (lookup(l)?.pack_size ?? 0) * l.quantity, 0);
       const avail = await getAvailability(bacPoolId);
       const net = Math.max(0, (avail?.available ?? 0) - paidBacVials);
       // Kits claim their vials first (they're paid), free bonuses get the rest.
@@ -168,20 +179,22 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
       continue;
     }
 
-    const bundleCents = Math.round(stack.bundlePrice * 100);
+    const bundleCents = stack.bundlePriceCents;
     const componentsCents = componentVariants.map(({ variant }) => variant!.price_cents);
     const componentsTotal = componentsCents.reduce((a, b) => a + b, 0);
 
+    resolvedLines.push({ key: line.key, slug: line.slug, name: stack.name, variantLabel: "Bundle", quantity: line.quantity, unitPriceCents: bundleCents, lineTotalCents: bundleCents * line.quantity, isGift: false });
     for (let unit = 0; unit < line.quantity; unit++) {
       let allocated = 0;
       componentVariants.forEach(({ variant }, i) => {
         const isLast = i === componentVariants.length - 1;
         const share = isLast
           ? bundleCents - allocated
-          : Math.round((componentsCents[i] / componentsTotal) * bundleCents);
+          : componentsTotal === 0 ? 0 : Math.round((componentsCents[i] / componentsTotal) * bundleCents);
         allocated += share;
         items.push({
           variantId: variant!.id,
+          expectedPriceCents: variant!.price_cents,
           qty: 1,
           priceOverrideCents: Math.max(0, share),
           labelSuffix: ` · ${stack.name}`,
@@ -224,32 +237,12 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
     // Accessory labels describe contents ("100 pack" of swabs), not vial pack
     // tiers — an accessory unit is always ONE stock unit, so its variant lives
     // at pack_size 1. Parsing "100 pack" as a 100-vial tier would miss the
-    // variant and silently bypass stock via the JSON fallback below.
-    const accessory = getAccessory(line.slug);
-    const pack = accessory ? 1 : packSizeFromLabel(line.variantLabel);
-    const variant = byKey.get(variantKey(line.slug, pack));
+    // variant. Missing/retired accessory variants are unavailable.
+    const variant = lookup(line);
 
     if (variant) {
-      const sub = isSubscription(line.variantLabel);
-      items.push({
-        variantId: variant.id,
-        qty: line.quantity,
-        discountPct: sub ? SUBSCRIBE_DISCOUNT_PCT : 0,
-        labelSuffix: sub ? " · Subscribe" : "",
-      });
-      continue;
-    }
-
-    // Accessory with no DB variant yet (pre-seed) — fall back to the JSON
-    // price as an unstocked extra line, exactly the old behaviour.
-    if (accessory) {
-      extraItems.push({
-        name: accessory.name,
-        slug: accessory.slug,
-        label: accessory.unit,
-        unitPriceCents: Math.round(accessory.price * 100),
-        qty: line.quantity,
-      });
+      items.push({ variantId: variant.id, qty: line.quantity, expectedPriceCents: variant.price_cents });
+      resolvedLines.push({ key: line.key, slug: line.slug, name: variant.name, variantLabel: variant.label, variantId:variant.id, quantity: line.quantity, unitPriceCents: variant.price_cents, lineTotalCents: variant.price_cents * line.quantity, isGift: false });
       continue;
     }
 
@@ -290,20 +283,24 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
           labelSuffix: " · Free gift",
         });
         giftApplied = true;
+        resolvedLines.push({ key: clean.find((l) => isGiftKey(l.key))!.key, slug: BAC_WATER_SLUG, name: "Bacteriostatic Water", variantLabel: "Free gift", quantity: 1, unitPriceCents: 0, lineTotalCents: 0, isGift: true });
       }
     }
   }
 
-  return { items, extraItems, subtotalCents, giftApplied, warnings };
+  return { lines: resolvedLines, items, extraItems, subtotalCents, giftApplied, warnings };
 }
 
 /** The 1-vial bacteriostatic-water variant used for the spend-threshold gift. */
 async function findGiftVariant(): Promise<string | null> {
-  const { data } = await adminDb()
+  const { data, error } = await adminDb()
     .from("product_variants")
     .select("id, products!inner(slug)")
     .eq("products.slug", "bacteriostatic-water")
     .eq("pack_size", 1)
+    .eq("active", true)
+    .eq("products.status", "active")
     .maybeSingle();
+  if (error) throw new Error(`findGiftVariant: ${error.message}`);
   return (data as { id: string } | null)?.id ?? null;
 }

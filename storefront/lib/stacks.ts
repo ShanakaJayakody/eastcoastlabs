@@ -9,13 +9,14 @@
  */
 
 import stacksData from "@/data/stacks.json";
-import { getPricing } from "./pricing";
+import { cache } from "react";
 import { getCatalog } from "./catalog";
 
 export interface StackComponent {
   slug: string;
   name: string;
   image?: string;
+  available: number;
   singleVial: number; // AUD major units
 }
 
@@ -28,6 +29,9 @@ export interface ResolvedStack {
   discountPct: number;
   freeBacWater: boolean;
   components: StackComponent[];
+  available: number;
+  componentsTotalCents: number;
+  bundlePriceCents: number;
   componentsTotal: number; // sum of single-vial prices
   bundlePrice: number; // discounted, whole dollars
   savings: number; // componentsTotal - bundlePrice
@@ -46,35 +50,37 @@ interface RawStack {
 
 const RAW = (stacksData as unknown as { stacks: RawStack[] }).stacks;
 
-export async function getStacks(): Promise<ResolvedStack[]> {
+export const getStacks = cache(async function getStacks(): Promise<ResolvedStack[]> {
   const { products } = await getCatalog();
   const bySlug = new Map(products.map((p) => [p.slug, p]));
 
   const resolved: ResolvedStack[] = [];
   for (const raw of RAW) {
     const components: StackComponent[] = [];
-    let componentsTotal = 0;
+    let componentsTotalCents = 0;
     let ok = true;
 
     for (const slug of raw.components) {
       const product = bySlug.get(slug);
-      const pricing = getPricing(slug, product?.name);
-      if (!product || !pricing) {
+      if (!product || !Number.isSafeInteger(Number(product.prices.price))) {
         ok = false;
         break;
       }
-      componentsTotal += pricing.singleVial;
+      componentsTotalCents += Number(product.prices.price);
       components.push({
         slug,
         name: product.name,
         image: product.images?.[0]?.src,
-        singleVial: pricing.singleVial,
+        singleVial: Number(product.prices.price) / 100,
+        available: product.is_in_stock === false ? 0 : product.available,
       });
     }
 
     if (!ok || components.length === 0) continue;
 
-    const bundlePrice = Math.round(componentsTotal * (1 - raw.discountPct / 100));
+    const bundlePriceCents = Math.round(componentsTotalCents * (1 - raw.discountPct / 100));
+    const componentsTotal = componentsTotalCents / 100;
+    const bundlePrice = bundlePriceCents / 100;
     resolved.push({
       slug: raw.slug,
       name: raw.name,
@@ -84,13 +90,16 @@ export async function getStacks(): Promise<ResolvedStack[]> {
       discountPct: raw.discountPct,
       freeBacWater: raw.freeBacWater ?? false,
       components,
+      available: Math.min(...components.map(c => c.available)),
+      componentsTotalCents,
+      bundlePriceCents,
       componentsTotal: Math.round(componentsTotal * 100) / 100,
       bundlePrice,
       savings: Math.round((componentsTotal - bundlePrice) * 100) / 100,
     });
   }
   return resolved;
-}
+});
 
 export async function getStackBySlug(slug: string): Promise<ResolvedStack | null> {
   return (await getStacks()).find((s) => s.slug === slug) ?? null;

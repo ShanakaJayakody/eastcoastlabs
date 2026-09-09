@@ -47,5 +47,6 @@ export const NAV: NavItem[] = [
   { label: "Emails", href: "/admin/email-templates", icon: Mail, group: "Growth" },
   { label: "Reports", href: "/admin/reports", icon: BarChart3, group: "Growth" },
   { label: "Audit", href: "/admin/audit", icon: ScrollText, group: "System" },
+  { label: "Automation", href: "/admin/automation", icon: Mail, group: "System" },
   { label: "Settings", href: "/admin/settings", icon: Settings, group: "System" },
 ];

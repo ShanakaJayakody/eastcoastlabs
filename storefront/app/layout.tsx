@@ -6,13 +6,13 @@ import "./globals.css";
 // Keeping the root bare is what lets those two worlds not bleed into each other.
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://eastcoastlabs.com.au"),
+  metadataBase: new URL("https://www.eastcoastlabs.com.au"),
   title: {
-    default: "East Coast Labs — Lab-grade research peptides, independently tested",
+    default: "East Coast Labs — Research peptides",
     template: "%s — East Coast Labs",
   },
   description:
-    "Australian-owned supplier of research-use-only peptides. Every batch independently tested by JanoShik with the COA published before it ships. Research use only — not for human or animal consumption.",
+    "Australian supplier of research-use-only peptides. Browse current pack prices and available batch documentation. Not for human or animal consumption.",
 };
 
 export const viewport: Viewport = {

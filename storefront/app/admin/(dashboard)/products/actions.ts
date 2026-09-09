@@ -19,7 +19,8 @@ import {
 } from "@/lib/admin/products";
 import type { MovementReason } from "@/lib/admin/inventory";
 import { adminDb } from "@/lib/admin/db";
-import { applyReceiptCost, tagMovementCost, setUnitCost } from "@/lib/admin/costs";
+import { setUnitCost } from "@/lib/admin/costs";
+import { queueBackInStock } from "@/lib/admin/notifications";
 import { formatAud } from "@/lib/format";
 
 const IMAGE_BUCKET = "product-images";
@@ -29,6 +30,10 @@ export interface ActionResult {
   ok: boolean;
   error?: string;
   message?: string;
+  receiptId?: string;
+  warning?: string;
+  succeeded?:string[];
+  failed?:{id:string;error:string}[];
 }
 
 const REASONS: MovementReason[] = ["received", "adjustment", "recount", "return", "sale"];
@@ -168,27 +173,24 @@ export async function suggestTierPrices(singleAud: number): Promise<{ pack3: num
  * five separate save buttons the editor used to have.
  */
 export async function saveProductAll(
-  slug: string,
-  patch: ProductPatch,
+  slug: string, patch: ProductPatch,
   variants: { id: string; priceAud: number; threshold: number }[],
-): Promise<ActionResult> {
+  version?: number,
+): Promise<ActionResult & {version?:number}> {
   const session = await requireAdmin();
+  if (patch.name != null && (!patch.name.trim() || patch.name.length > 300)) return {ok:false,error:"Product name is required (maximum 300 characters)."};
   for (const v of variants) {
-    if (!Number.isFinite(v.priceAud) || v.priceAud < 0) {
-      return { ok: false, error: "One of the prices isn't a valid number." };
-    }
+    if (!Number.isFinite(v.priceAud) || v.priceAud < 0 || v.priceAud > 1_000_000 || !Number.isInteger(v.threshold) || v.threshold < 0 || v.threshold > 1_000_000)
+      return {ok:false,error:"Enter valid prices and whole nonnegative stock thresholds."};
   }
   try {
-    await updateProduct(slug, patch, session.email);
-    for (const v of variants) {
-      await updateVariant(v.id, { price_cents: Math.round(v.priceAud * 100) }, session.email);
-      await setLowStockThreshold(v.id, Math.round(v.threshold), session.email);
-    }
+    const {data,error} = await adminDb().rpc("admin_save_product", {
+      p_slug:slug,p_patch:patch,p_variants:variants.map(v=>({id:v.id,price_cents:Math.round(v.priceAud*100),threshold:v.threshold})),p_version:version ?? null,p_actor:session.email,
+    });
+    if (error) throw new Error(error.message);
     revalidateProduct(slug);
-    return { ok: true, message: "All changes saved" };
-  } catch (err) {
-    return fail(err);
-  }
+    return {ok:true,version:Number(data),message:"All changes saved"};
+  } catch(err) {return fail(err);}
 }
 
 export async function saveVariantPrice(
@@ -242,46 +244,29 @@ export async function adjustStock(
   unitCostAud?: number | null,
 ): Promise<ActionResult> {
   const session = await requireAdmin();
-  if (!Number.isFinite(qty) || qty === 0) return { ok: false, error: "Enter a non-zero quantity." };
-  if (!REASONS.includes(reason)) return { ok: false, error: "Choose a reason for this change." };
+  if (!Number.isInteger(qty) || qty===0 || Math.abs(qty)>1_000_000) return {ok:false,error:"Enter a whole nonzero quantity within 1,000,000."};
+  if (!REASONS.includes(reason)) return {ok:false,error:"Choose a reason."};
+  if(unitCostAud!=null && (!Number.isFinite(unitCostAud)||unitCostAud<0||unitCostAud>1_000_000)) return {ok:false,error:"Enter a valid receipt cost."};
   try {
-    const { notified } = await adjustStockWithNotify({
-      variantId,
-      qty: Math.round(qty),
-      reason,
-      actor: session.email,
-      note,
-    });
-
-    // A costed receipt updates the weighted-average cost and stamps the price
-    // paid onto the ledger row, so the movement history doubles as the buying
-    // history. Only ever on inbound stock.
-    let costMsg = "";
-    if (reason === "received" && qty > 0 && unitCostAud != null && unitCostAud > 0) {
-      const paidCents = Math.round(unitCostAud * 100);
-      const product = await getProductBySlug(slug);
-      if (product) {
-        await tagMovementCost({ variantId, unitCostCents: paidCents });
-        const avg = await applyReceiptCost({
-          productId: product.id,
-          receivedVials: Math.round(qty),
-          paidCostCents: paidCents,
-        });
-        costMsg = avg != null ? ` · avg cost now ${formatAud(avg / 100)}/vial` : "";
-      }
+    if(reason==="received") {
+      if(qty<1)return {ok:false,error:"A receipt must add stock. Use its receipt reversal to undo."};
+      const {data,error}=await adminDb().rpc("admin_receive_stock",{p_variant:variantId,p_qty:qty,p_cost:unitCostAud==null?null:Math.round(unitCostAud*100),p_actor:session.email,p_note:note??null});
+      if(error)throw new Error(error.message);
+      const result=data as {receipt_id:string;average_cents:number|null;became_available:boolean};
+      let notifications="";
+      if(result.became_available){try{const count=await queueBackInStock(variantId);notifications=` · ${count} availability emails queued (reversal cannot unsend them)`;}catch{notifications=" · availability notifications could not be queued; inspect the email queue";}}
+      revalidateProduct(slug);
+      return {ok:true,receiptId:result.receipt_id,message:`Receipt saved${result.average_cents==null?"":` · average ${formatAud(result.average_cents/100)}/vial`}${notifications}`};
     }
-
+    const {notified,warning}=await adjustStockWithNotify({variantId,qty,reason,actor:session.email,note});
     revalidateProduct(slug);
-    return {
-      ok: true,
-      message:
-        (notified
-          ? `Stock updated — ${notified} back-in-stock ${notified === 1 ? "email" : "emails"} queued`
-          : "Stock updated") + costMsg,
-    };
-  } catch (err) {
-    return fail(err);
-  }
+    return {ok:true,warning,message:`Stock updated${notified?` · ${notified} availability emails queued`:""}`};
+  } catch(err){return fail(err);}
+}
+
+export async function reverseReceipt(slug:string,receiptId:string):Promise<ActionResult>{
+ const session=await requireAdmin();
+ try{const {error}=await adminDb().rpc("admin_reverse_receipt",{p_receipt:receiptId,p_actor:session.email});if(error)throw new Error(error.message);revalidateProduct(slug);return {ok:true,message:"Receipt quantity and valuation reversed. Previously sent notifications cannot be recalled."};}catch(err){return fail(err);}
 }
 
 /** Movement history for one variant, fetched on demand so the stock drawer can
@@ -318,28 +303,13 @@ export async function bulkAdjustStock(
   if (!variantIds.length) return { ok: false, error: "Nothing selected." };
   if (!Number.isFinite(qty) || qty === 0) return { ok: false, error: "Enter a non-zero quantity." };
   if (!REASONS.includes(reason)) return { ok: false, error: "Choose a reason." };
-  try {
-    let notified = 0;
-    for (const id of variantIds) {
-      const res = await adjustStockWithNotify({
-        variantId: id,
-        qty: Math.round(qty),
-        reason,
-        actor: session.email,
-        note: "bulk update",
-      });
-      notified += res.notified;
-    }
-    revalidatePath("/admin/products");
-    revalidatePath("/admin");
-    revalidatePath("/shop");
-    return {
-      ok: true,
-      message: `Updated ${variantIds.length} variants${notified ? ` · ${notified} emails queued` : ""}`,
-    };
-  } catch (err) {
-    return fail(err);
+  const succeeded:string[]=[];const failed:{id:string;error:string}[]=[];const warnings:string[]=[];let notified=0;
+  for(const id of [...new Set(variantIds)]){
+    try{const result=await adjustStockWithNotify({variantId:id,qty:Math.round(qty),reason,actor:session.email,note:"bulk update"});notified+=result.notified;succeeded.push(id);if(result.warning)warnings.push(`${id}: ${result.warning}`);}
+    catch(err){failed.push({id,error:err instanceof Error?err.message:String(err)});}
   }
+  revalidatePath("/admin/products");revalidatePath("/admin");revalidatePath("/shop");
+  return {ok:failed.length===0,succeeded,failed,warning:warnings.length?warnings.join(" "):undefined,message:`Updated ${succeeded.length} variants · ${failed.length} failed${notified?` · ${notified} emails queued`:""}`};
 }
 
 /** Bulk: percentage price change across selected variants. */
@@ -348,21 +318,16 @@ export async function bulkPriceChange(variantIds: string[], pct: number): Promis
   if (!variantIds.length) return { ok: false, error: "Nothing selected." };
   if (!Number.isFinite(pct) || pct === 0) return { ok: false, error: "Enter a non-zero percentage." };
   if (pct < -90 || pct > 500) return { ok: false, error: "Percentage out of safe range." };
-  try {
-    const { adminDb } = await import("@/lib/admin/db");
-    const db = adminDb();
-    const { data } = await db.from("product_variants").select("id, price_cents").in("id", variantIds);
-    for (const v of data ?? []) {
-      const next = Math.max(0, Math.round((v.price_cents as number) * (1 + pct / 100)));
-      await updateVariant(v.id as string, { price_cents: next }, session.email);
-    }
-    revalidatePath("/admin/products");
-    revalidatePath("/shop");
-    revalidatePath("/");
-    return { ok: true, message: `Repriced ${(data ?? []).length} variants by ${pct}%` };
-  } catch (err) {
-    return fail(err);
+  const succeeded:string[]=[];const failed:{id:string;error:string}[]=[];
+  const {data,error}=await adminDb().from("product_variants").select("id,price_cents").in("id",variantIds);
+  if(error)return fail(error.message);
+  const prices=new Map((data??[]).map(v=>[v.id,v.price_cents]));
+  for(const id of [...new Set(variantIds)]){
+    try{if(!prices.has(id))throw new Error("Variant no longer exists");const next=Math.max(0,Math.round(Number(prices.get(id))*(1+pct/100)));await updateVariant(id,{price_cents:next},session.email);succeeded.push(id);}
+    catch(err){failed.push({id,error:err instanceof Error?err.message:String(err)});}
   }
+  revalidatePath("/admin/products");revalidatePath("/shop");revalidatePath("/");
+  return {ok:failed.length===0,succeeded,failed,message:`Repriced ${succeeded.length} variants · ${failed.length} failed`};
 }
 
 export interface ImageResult extends ActionResult {
