@@ -30,11 +30,13 @@ interface BuyBoxProps {
   minorUnit: number;
   available: number;
   bacWater?: BacWaterOption | null;
+  sizeLabel?: string;
+  cartKeyPrefix?: string;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, bacWater, available }: BuyBoxProps) {
+export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, bacWater, available, sizeLabel, cartKeyPrefix }: BuyBoxProps) {
   const { addLine, stockFor, lines } = useCart();
   const { openCart } = useUI();
 
@@ -56,7 +58,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
   const lineTotal = round2(baseTotal);
   const maxQty = Math.min(99, Math.floor(remaining / (activeTier?.vials ?? 1)));
   const canAdd = qty <= maxQty && maxQty > 0;
-  const variantLabel = activeTier ? activeTier.label : "1 vial";
+  const variantLabel = `${activeTier ? activeTier.label : "1 vial"}${sizeLabel ? ` · ${sizeLabel}` : ''}`;
 
   // Sticky add-to-cart bar via IntersectionObserver on the primary ATC block.
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
 
   function handleAdd() {
     if (!canAdd) return;
-    const key = `${product.id}:${activeTier?.id ?? "single"}:once`;
+    const key = `${cartKeyPrefix ?? product.id}:${activeTier?.id ?? "single"}:once`;
     addLine(
       {
         key,

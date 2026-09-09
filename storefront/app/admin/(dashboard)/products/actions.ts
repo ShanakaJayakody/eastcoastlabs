@@ -65,6 +65,7 @@ export async function saveProduct(slug: string, patch: ProductPatch): Promise<Ac
 
 /** Create a product from the "Add product" form. Lands the operator in the editor. */
 export async function createProductAction(input: {
+  sizeLabel?: string;
   name: string;
   compound?: string;
   shortDescription?: string;
@@ -83,6 +84,7 @@ export async function createProductAction(input: {
     const { slug } = await createProduct(
       {
         name: input.name,
+        sizeLabel: input.sizeLabel?.trim() || undefined,
         compound: input.compound,
         short_description: input.shortDescription,
         status: input.status,
@@ -193,6 +195,47 @@ export async function saveProductAll(
   } catch(err) {return fail(err);}
 }
 
+export async function addProductSize(slug: string, input: {
+  currentLabel?: string; label: string; singlePriceAud: number;
+  pack3PriceAud?: number; pack6PriceAud?: number; initialStock: number;
+}): Promise<ActionResult> {
+  const session = await requireAdmin();
+  if (!input.label.trim() || input.label.trim().length > 40) return {ok:false,error:'Enter a size, such as 20 mg or 3 ml (maximum 40 characters).'};
+  if (!Number.isFinite(input.singlePriceAud) || input.singlePriceAud <= 0 || input.singlePriceAud > 1_000_000) return {ok:false,error:'Enter a valid single-vial price.'};
+  if (!Number.isInteger(input.initialStock) || input.initialStock < 0 || input.initialStock > 1_000_000) return {ok:false,error:'Opening stock must be a whole number from 0 to 1,000,000.'};
+  const variants = [{pack_size:1,label:'1 vial',price_cents:Math.round(input.singlePriceAud*100)}];
+  for (const [pack, price] of [[3,input.pack3PriceAud],[6,input.pack6PriceAud]] as const) {
+    if (price === undefined) continue;
+    if (!Number.isFinite(price) || price <= 0 || price > 1_000_000) return {ok:false,error:'Enter a valid pack price or turn off pack offers.'};
+    variants.push({pack_size:pack,label:`${pack}-pack`,price_cents:Math.round(price*100)});
+  }
+  try {
+    const {error} = await adminDb().rpc('admin_add_product_size', {p_slug:slug,p_input:{currentLabel:input.currentLabel,label:input.label,variants,initialStock:input.initialStock},p_actor:session.email});
+    if(error) throw new Error(error.message);
+    revalidateProduct(slug);
+    return {ok:true,message:`${input.label.trim()} added`};
+  } catch(error) {return fail(error);}
+}
+
+export async function saveProductSize(parentSlug: string, input: {
+  id: string; label: string; enabled: boolean; version: number;
+  variants: {id:string;priceAud:number;threshold:number}[];
+}): Promise<ActionResult & {version?:number}> {
+  const session = await requireAdmin();
+  if (!input.label.trim() || input.label.trim().length > 40 || !Number.isSafeInteger(input.version)) return {ok:false,error:'Enter a size label and refresh the product before saving.'};
+  if (input.variants.some(v=>!Number.isFinite(v.priceAud) || v.priceAud<0 || v.priceAud>1_000_000 || !Number.isInteger(v.threshold) || v.threshold<0 || v.threshold>1_000_000)) return {ok:false,error:'Enter valid prices and stock thresholds.'};
+  try {
+    const {data,error} = await adminDb().rpc('admin_save_product_size', {
+      p_parent_slug:parentSlug,p_size_id:input.id,p_label:input.label,p_enabled:input.enabled,
+      p_variants:input.variants.map(v=>({id:v.id,price_cents:Math.round(v.priceAud*100),threshold:v.threshold})),p_version:input.version,p_actor:session.email,
+    });
+    if(error)throw new Error(error.message);
+    revalidateProduct(parentSlug);
+    revalidatePath('/product/[slug]','page');
+    return {ok:true,version:Number(data),message:'Size saved'};
+  } catch(error) {return fail(error);}
+}
+
 export async function saveVariantPrice(
   slug: string,
   variantId: string,
@@ -287,6 +330,7 @@ export async function saveUnitCost(slug: string, unitCostAud: number | null): Pr
     if (!product) return { ok: false, error: "Product not found." };
     await setUnitCost(product.id, unitCostAud == null ? null : Math.round(unitCostAud * 100));
     revalidateProduct(slug);
+    revalidatePath('/admin/products/[slug]','page');
     return { ok: true, message: "Cost updated" };
   } catch (err) {
     return fail(err);

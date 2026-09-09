@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCatalogProduct, getCatalogProducts, type CatalogProduct } from "@/lib/catalog";
 import { getCrossSellSlugs } from "@/lib/crosssells";
 import { getCoaForProduct } from "@/lib/coa";
@@ -7,6 +7,7 @@ import { getProductCopy, getHomeCopy } from "@/lib/content";
 import { minorToMajor } from "@/lib/format";
 import ProductGallery from "@/components/ProductGallery";
 import BuyBox from "@/components/BuyBox";
+import ProductPurchase from '@/components/ProductPurchase';
 import CoaModule from "@/components/CoaModule";
 import TrustRow from "@/components/TrustRow";
 import Faq from "@/components/Faq";
@@ -47,10 +48,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ size?: string }> }) {
   const { slug } = await params;
   const product = await getCatalogProduct(slug);
   if (!product) notFound();
+  if (product.canonicalSlug) redirect(`/product/${product.canonicalSlug}?size=${encodeURIComponent(slug)}`);
+  const initialSize = (await searchParams)?.size;
 
   const minorUnit = product.prices.currency_minor_unit;
   const singleMajor = minorToMajor(product.prices.price, minorUnit);
@@ -105,7 +108,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           },
         }
       : {}),
-    offers: {
+    offers: product.sizes?.length ? {
+      '@type': 'AggregateOffer', priceCurrency: 'AUD',
+      lowPrice: Math.min(...product.sizes.map(size=>Number(size.priceMinor)/100)).toFixed(2),
+      highPrice: Math.max(...product.sizes.map(size=>Number(size.priceMinor)/100)).toFixed(2),
+      offerCount: product.sizes.length,
+      availability: product.is_in_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: `https://www.eastcoastlabs.com.au/product/${product.slug}`,
+    } : {
       "@type": "Offer",
       priceCurrency: product.prices.currency_code || "AUD",
       price: singleMajor.toFixed(2),
@@ -157,11 +167,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </a>
           )}
           <ResearchDisclaimer variant="badge" className="mt-4" />
-          <p className="mt-3 text-sm font-semibold text-accent">Single vial: {new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(singleMajor)}</p>
-          <a href="#pack-options" className="mt-2 inline-block text-sm text-accent underline">View pack prices and availability</a>
+          {!product.sizes?.length && <p className="mt-3 text-sm font-semibold text-accent">Single vial: {new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(singleMajor)}</p>}
+          <a href="#pack-options" className="mt-2 inline-block text-sm text-accent underline">{product.sizes?.length ? 'View sizes, prices and availability' : 'View pack prices and availability'}</a>
         </div>
         <div id="pack-options" className="order-3 min-w-0 scroll-mt-24 lg:col-start-2">
-          {product.is_in_stock === false ? (
+          {product.sizes?.length ? <ProductPurchase key={`${product.slug}:${initialSize ?? ''}`}
+            product={{id:product.id,name:product.name,slug:product.slug,sku:product.sku,image:product.images?.[0]?.src}}
+            sizes={product.sizes} minorUnit={minorUnit} bacWater={bacWater} initialSize={initialSize}/>
+          : product.is_in_stock === false ? (
             <div className="mt-6 rounded-xl border border-line bg-surface p-5">
               <p className="text-sm font-semibold text-fg">Out of stock — get notified</p>
               <p className="mt-1 text-xs text-muted">

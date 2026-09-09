@@ -66,13 +66,17 @@ export const getStacks = cache(async function getStacks(): Promise<ResolvedStack
         ok = false;
         break;
       }
+      // Stack definitions name the original SKU. Other sizes must never
+      // substitute their price or stock for that promised component.
+      const originalSize=product.sizes?.find(size=>size.slug===slug);
+      if(product.sizes && !originalSize){ok=false;break;}
       componentsTotalCents += Number(product.prices.price);
       components.push({
         slug,
-        name: product.name,
+        name: `${product.name}${originalSize ? ` · ${originalSize.label}` : ''}`,
         image: product.images?.[0]?.src,
         singleVial: Number(product.prices.price) / 100,
-        available: product.is_in_stock === false ? 0 : product.available,
+        available: originalSize ? originalSize.available : product.is_in_stock === false ? 0 : product.available,
       });
     }
 

@@ -27,6 +27,7 @@ export default function NewProductForm() {
   const [pending, start] = useTransition();
 
   const [name, setName] = useState("");
+  const [sizeLabel,setSizeLabel] = useState('');
   const [compound, setCompound] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [single, setSingle] = useState("");
@@ -75,6 +76,7 @@ export default function NewProductForm() {
     start(async () => {
       const res = await createProductAction({
         name,
+        sizeLabel,
         compound,
         shortDescription,
         singlePriceAud: singleNum,
@@ -143,7 +145,8 @@ export default function NewProductForm() {
         </section>
 
         <section className="rounded-xl border border-line bg-surface p-5">
-          <h3 className="text-sm font-semibold text-fg">Tier pricing</h3>
+          <h3 className="text-sm font-semibold text-fg">Size &amp; pricing</h3>
+          <label className="my-3 block text-xs text-muted"><span className="mb-1 block">Size (optional)</span><input value={sizeLabel} maxLength={40} onChange={e=>setSizeLabel(e.target.value)} placeholder="e.g. 10 mg or 3 ml" className={field}/><span className="mt-1 block">Add more sizes with their own prices on the next screen.</span></label>
           <p className="mb-4 mt-1 text-xs text-muted">
             Enter the 1-vial price — the 3-pack (10% off) and 6-pack (20% off) fill in
             automatically. Override either if this product prices differently.

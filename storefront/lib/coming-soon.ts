@@ -48,13 +48,13 @@ export async function getComingSoonProducts(): Promise<ComingSoonProduct[]> {
 
   const { data, error } = await db
     .from("products")
-    .select("slug, name, sku, compound, short_description, categories, coming_soon_rank")
+    .select("slug, name, sku, compound, short_description, categories, coming_soon_rank, size_parent_id")
     .eq("status", "coming_soon")
     .order("coming_soon_rank", { ascending: true, nullsFirst: false });
 
   if (error || !data) return [];
 
-  return data.map((p) => ({
+  return data.filter(p=>!p.size_parent_id).map((p) => ({
     slug: p.slug as string,
     name: p.name as string,
     format: formatFromSku(p.sku as string | null),

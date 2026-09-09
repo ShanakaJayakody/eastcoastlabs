@@ -6,6 +6,7 @@ import { formatAud } from "@/lib/format";
 import ProductsTable from "@/components/admin/ProductsTable";
 import ProductSearch from "@/components/admin/ProductSearch";
 import StatCard from "@/components/admin/StatCard";
+import { groupProductSizes } from '@/lib/product-sizes';
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ function matchesSearch(p: ProductListRow, q: string): boolean {
     p.name.toLowerCase().includes(s) ||
     p.slug.includes(s) ||
     (p.sku ?? "").toLowerCase().includes(s) ||
-    p.variants.some((v) => v.sku.toLowerCase().includes(s))
+    p.variants.some((v) => v.sku.toLowerCase().includes(s) || v.label.toLowerCase().includes(s))
   );
 }
 
@@ -51,7 +52,8 @@ export default async function ProductsPage({
 
   // One fetch: the stat strip needs the whole catalogue, the tab counts need
   // the search-filtered set, and the table needs both applied.
-  const all = await listProducts();
+  const raw = await listProducts();
+  const all = groupProductSizes(raw);
   const found = search ? all.filter((p) => matchesSearch(p, search)) : all;
   const visible = found.filter((p) => onTab(p, tab));
 
@@ -62,9 +64,9 @@ export default async function ProductsPage({
   const totalVials = all.reduce((s, p) => s + p.totalOnHand, 0);
   const lowCount = all.filter((p) => p.lowStock).length;
   const activeCount = all.filter((p) => p.status === "active").length;
-  const costed = all.filter((p) => p.unit_cost_cents != null);
+  const costed = raw.filter((p) => p.unit_cost_cents != null);
   const stockValue = costed.reduce((s, p) => s + (p.unit_cost_cents ?? 0) * p.totalOnHand, 0);
-  const uncosted = all.length - costed.length;
+  const uncosted = raw.length - costed.length;
 
   const tabHref = (key: TabKey) => {
     const p = new URLSearchParams();

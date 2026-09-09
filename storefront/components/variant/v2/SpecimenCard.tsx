@@ -4,6 +4,7 @@ import type { WooProduct } from "@/lib/woo";
 import { minorToMajor, formatMinor, formatAud } from "@/lib/format";
 import { type TierCard } from "@/lib/pricing";
 import SquareStars from "./SquareStars";
+import type {ProductSizeOption} from '@/lib/product-sizes';
 
 export type SpecimenProduct = Pick<
   WooProduct,
@@ -13,6 +14,7 @@ export type SpecimenProduct = Pick<
   /** Pack tiers from the DB catalog. Present => the card prices from real
    *  variants; absent => fall back to the static price table. */
   tiers?: TierCard[] | null;
+  sizes?: ProductSizeOption[];
 };
 
 /**
@@ -70,7 +72,7 @@ export default function SpecimenCard({ product }: { product: SpecimenProduct }) 
           </div>
         )}
         <div className="mt-auto pt-3">
-          {perVialLabel ? (
+          {product.sizes?.length ? <div><p className="font-data text-[13px] text-fg">From {formatAud(Math.min(...product.sizes.map(size=>Number(size.priceMinor)/100)))} / vial</p><p className="mt-1 text-xs text-muted">{product.sizes.map(size=>size.label).join(' · ')}</p></div> : perVialLabel ? (
             <p className="font-data text-[13px] text-fg">
               FROM <span className="text-accent">{perVialLabel.replace(/^from\s*/i, "")}</span>
             </p>
@@ -80,7 +82,7 @@ export default function SpecimenCard({ product }: { product: SpecimenProduct }) 
             </p>
           )}
           <p className="mt-1 text-[12px] text-muted-2 underline decoration-line-2 underline-offset-2 group-hover:text-accent group-hover:decoration-accent">
-            View pack options
+            {product.sizes?.length ? 'Choose size' : 'View pack options'}
           </p>
         </div>
       </div>

@@ -128,6 +128,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
 
   const selectedProducts = rows.filter((p) => selected.has(p.id));
   const poolIds = selectedProducts
+    .filter(p=>!p.sizeOptions?.length)
     .map((p) => poolVariant(p)?.id)
     .filter((id): id is string => Boolean(id));
   const variantIds = selectedProducts.flatMap((p) => {
@@ -296,13 +297,13 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
                     <Badge tone={STATUS_TONE[p.status] ?? "neutral"}>{statusLabel(p.status)}</Badge>
                   </td>
                   <td className="hidden px-3 py-2.5 text-muted lg:table-cell">
-                    {p.variants.length || "—"}
+                    {p.sizeOptions?.length ? `${p.sizeOptions.length} sizes` : p.variants.length || "—"}
                   </td>
                   <td className="hidden px-3 py-2.5 text-right text-fg-2 md:table-cell">
                     {priceRange(p)}
                   </td>
                   <td className="px-3 py-2.5 text-right">
-                    {pool ? (
+                    {p.sizeOptions?.length ? <Link href={`/admin/products/${p.slug}#sizes`} className="font-medium text-fg hover:text-accent" title="Manage stock by size">{p.totalOnHand} <span className="text-xs text-muted">· {p.sizeOptions.length} sizes</span></Link> : pool ? (
                       <button
                         onClick={() => openStock(p, pool)}
                         className="inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 font-medium transition hover:bg-surface"
@@ -393,8 +394,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
                           </tbody>
                         </table>
                         <p className="border-t border-line bg-surface px-3 py-1.5 text-[11px] text-muted-2">
-                          {p.totalOnHand} vials — each tier shows how many whole packs they fill, not
-                          separate stock.
+                          {p.sizeOptions?.length ? `${p.totalOnHand} vials across ${p.sizeOptions.length} sizes. Each size has its own stock.` : `${p.totalOnHand} vials — each tier shows how many whole packs they fill.`}
                         </p>
                       </div>
                     </td>
@@ -437,7 +437,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
             ))}
           </select>
           <button
-            disabled={pending || !qty || poolIds.length === 0}
+            disabled={pending || !qty || poolIds.length === 0 || selectedProducts.some(p=>p.sizeOptions?.length)}
             onClick={applyBulkStock}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50"
           >
@@ -460,7 +460,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
           </button>
           {poolIds.length < selected.size && (
             <span className="text-xs text-muted">
-              {selected.size - poolIds.length} without stock
+              {selectedProducts.some(p=>p.sizeOptions?.length) ? 'Manage sized products individually to choose the correct stock.' : `${selected.size - poolIds.length} without stock`}
             </span>
           )}
           <button

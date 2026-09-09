@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import {
   getProductBySlug,
@@ -26,16 +26,24 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     waitlistCount(slug),
     listProducts(),
   ]);
+  if(product.size_parent_id){
+    const parent=all.find(p=>p.id===product.size_parent_id);
+    if(parent)redirect(`/admin/products/${parent.slug}#sizes`);
+    notFound();
+  }
+  const sizes = [product,...all.filter(p=>p.size_parent_id===product.id)];
+  const parents = all.filter(p=>!p.size_parent_id);
 
   // Prev/next follow the same name order as the products list, so stepping
   // through the catalogue matches what the operator just saw.
-  const idx = all.findIndex((p) => p.slug === slug);
+  const idx = parents.findIndex((p) => p.slug === slug);
   const at = (i: number): ProductNeighbour | null =>
-    i >= 0 && i < all.length ? { slug: all[i].slug, name: all[i].name } : null;
+    i >= 0 && i < parents.length ? { slug: parents[i].slug, name: parents[i].name } : null;
 
   return (
     <ProductEditor key={product.id}
       product={product}
+      sizes={sizes}
       movements={movements}
       waitlist={waitlist}
       prev={idx > 0 ? at(idx - 1) : null}

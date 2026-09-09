@@ -4,6 +4,7 @@ import type { WooProduct } from "@/lib/woo";
 import { minorToMajor, formatMinor, formatAud } from "@/lib/format";
 import { type TierCard } from "@/lib/pricing";
 import Stars from "./Stars";
+import type { ProductSizeOption } from '@/lib/product-sizes';
 
 /** The subset of a product a card needs — lets callers pass slim objects. */
 export type CardProduct = Pick<
@@ -15,11 +16,12 @@ export type CardProduct = Pick<
   /** Pack tiers from the DB catalog. Present => the card prices from real
    *  variants; absent => fall back to the static price table. */
   tiers?: TierCard[] | null;
+  sizes?: ProductSizeOption[];
 };
 
 export default function ProductCard({ product }: { product: CardProduct }) {
   const img = product.images?.[0];
-  const single = minorToMajor(product.prices.price, product.prices.currency_minor_unit);
+  const single = product.sizes?.length ? Math.min(...product.sizes.map(size=>Number(size.priceMinor)/100)) : minorToMajor(product.prices.price, product.prices.currency_minor_unit);
   // Prefer the product's own tiers (DB truth); the price table is the fallback
   // for anything the DB hasn't answered for.
   const perVialLabel = product.tiers?.length
@@ -67,14 +69,14 @@ export default function ProductCard({ product }: { product: CardProduct }) {
           <p className="text-[11px] uppercase tracking-wider text-muted-2">{product.sku}</p>
         )}
         <div className="mt-auto pt-3">
-          {perVialLabel ? (
+          {product.sizes?.length ? <div><p className="text-sm font-semibold text-fg">From {formatAud(single)} / vial</p><p className="mt-1 text-xs text-muted">{product.sizes.map(size=>size.label).join(' · ')}</p></div> : perVialLabel ? (
             <div><p className="text-sm font-semibold text-fg">{formatAud(single)} · 1 vial</p><p className="mt-1 text-xs text-accent">{perVialLabel}{product.tiers?.length ? ` with ${product.tiers.reduce((a,b) => a.perVial < b.perVial ? a : b).vials}-vial pack` : ""}</p></div>
           ) : (
             <p className="text-sm font-semibold text-fg">
               {formatMinor(product.prices.price, product.prices)}
             </p>
           )}
-          <p className="mt-1 text-xs text-muted-2 group-hover:text-fg-2">View pack options →</p>
+          <p className="mt-1 text-xs text-muted-2 group-hover:text-fg-2">{product.sizes?.length ? 'Choose size' : 'View pack options'} →</p>
         </div>
       </div>
     </Link>

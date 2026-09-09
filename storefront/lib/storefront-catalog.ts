@@ -62,7 +62,7 @@ export async function getUpsellStock(): Promise<Record<string, number>> {
  * aggregates, in two batched queries. Card components stay dumb and client-safe;
  * all data comes from here (server-only).
  */
-export async function decorateCards<T extends { slug: string; is_in_stock?: boolean }>(
+export async function decorateCards<T extends { slug: string; is_in_stock?: boolean; sizes?: {available:number}[] }>(
   items: T[],
 ): Promise<(T & { is_in_stock: boolean; rating: { rating: number; count: number } | null })[]> {
   const slugs = items.map((i) => i.slug);
@@ -73,7 +73,7 @@ export async function decorateCards<T extends { slug: string; is_in_stock?: bool
   return items.map((item) => ({
     ...item,
     // Only override when the DB actually knows about this product.
-    is_in_stock: item.slug in availability ? availability[item.slug] > 0 : item.is_in_stock !== false,
+    is_in_stock: item.sizes?.length ? item.sizes.some(size=>size.available>0) : item.slug in availability ? availability[item.slug] > 0 : item.is_in_stock !== false,
     rating: ratings[item.slug] ?? null,
   }));
 }
