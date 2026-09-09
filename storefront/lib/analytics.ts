@@ -23,7 +23,7 @@ export const ga4Enabled = () => /^G-[A-Z0-9]+$/i.test(GA4_ID);
 /** Only public catalogue/content paths may be sent; private identifiers are
  * rejected entirely, and query/hash/referrer are never included. */
 export function analyticsAllowed(path: string): boolean {
-  return /^(?:\/|\/1|\/(?:shop|stacks|lab-results|learn|about|checkout)|\/(?:product|collections|learn)\/[a-z0-9-]+)\/?$/.test(path);
+  return /^(?:\/|\/1|\/(?:shop|stacks|lab-results|learn|about|checkout|creators)|\/(?:product|collections|learn)\/[a-z0-9-]+)\/?$/.test(path);
 }
 export function safeAnalyticsLocation(href: string): string | null {
   try {
@@ -90,6 +90,57 @@ export function trackPurchase(transactionId: string, items: GaItem[], value: num
   if (deduped.has(`paid:${transactionId}`)) return;
   deduped.add(`paid:${transactionId}`);
   gtagEvent("purchase", { transaction_id: transactionId, currency: "AUD", value, items });
+}
+
+export type CreatorEvent =
+  | "creator_cta_click"
+  | "creator_application_start"
+  | "creator_application_submit"
+  | "creator_application_error";
+export type CreatorPlacement = "hero" | "editorial" | "sticky" | "footer";
+export type CreatorErrorCode =
+  | "validation"
+  | "rate_limited"
+  | "unavailable"
+  | "invalid_request"
+  | "conflict"
+  | "network";
+
+const creatorEvents: CreatorEvent[] = [
+  "creator_cta_click",
+  "creator_application_start",
+  "creator_application_submit",
+  "creator_application_error",
+];
+const creatorPlacements: CreatorPlacement[] = ["hero", "editorial", "sticky", "footer"];
+const creatorErrorCodes: CreatorErrorCode[] = [
+  "validation",
+  "rate_limited",
+  "unavailable",
+  "invalid_request",
+  "conflict",
+  "network",
+];
+
+export function trackCreatorEvent(
+  event: CreatorEvent,
+  params: { placement?: CreatorPlacement; errorCode?: CreatorErrorCode } = {},
+) {
+  if (!creatorEvents.includes(event)) return;
+  if (typeof window === "undefined") return;
+  try {
+    if (new URL(window.location.href).pathname !== "/creators") return;
+  } catch {
+    return;
+  }
+  const safe: Record<string, unknown> = {};
+  if (params.placement && creatorPlacements.includes(params.placement)) {
+    safe.placement = params.placement;
+  }
+  if (params.errorCode && creatorErrorCodes.includes(params.errorCode)) {
+    safe.error_code = params.errorCode;
+  }
+  gtagEvent(event, safe);
 }
 
 /**

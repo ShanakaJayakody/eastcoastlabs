@@ -17,7 +17,7 @@ const SEEN_KEY = "ecl_exit_intent_seen";
 export default function ExitIntentModal() {
   const pathname = usePathname();
   const { cartOpen } = useUI();
-  const transaction = /^\/(checkout|pay|cart|leave-a-review|subscribe|unsubscribe)(\/|$)/.test(pathname);
+  const transaction = /^\/(checkout|pay|cart|leave-a-review|subscribe|unsubscribe|creators)(\/|$)/.test(pathname);
   const [open, setOpen] = useState(false);
   const [claimed, setClaimed] = useState<string | null>(null);
 

@@ -12,6 +12,7 @@ import {
   Sparkles,
   Mail,
   LifeBuoy,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,6 +44,7 @@ export const NAV: NavItem[] = [
   { label: "Customers", href: "/admin/customers", icon: Users, group: "People" },
   { label: "Recovery", href: "/admin/recovery", icon: LifeBuoy, group: "People" },
   { label: "Reviews", href: "/admin/reviews", icon: Star, group: "People" },
+  { label: "Creators", href: "/admin/creators", icon: Megaphone, group: "People" },
   { label: "Discounts", href: "/admin/discounts", icon: Ticket, group: "Growth" },
   { label: "Emails", href: "/admin/email-templates", icon: Mail, group: "Growth" },
   { label: "Reports", href: "/admin/reports", icon: BarChart3, group: "Growth" },

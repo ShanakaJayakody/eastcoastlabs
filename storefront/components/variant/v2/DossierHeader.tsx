@@ -10,6 +10,7 @@ const NAV = [
   { href: "/shop", label: "Compounds" },
   { href: "/stacks", label: "Protocols" },
   { href: "/lab-results", label: "Lab Results" },
+  { href: "/creators", label: "Creators" },
   { href: "/about", label: "About" },
 ];
 
@@ -40,7 +41,7 @@ export default function DossierHeader() {
           East Coast Labs
         </Link>
 
-        <nav className="ml-auto hidden items-center gap-7 md:flex">
+        <nav className="ml-auto hidden items-center gap-6 lg:flex">
           {NAV.map((item) => (
             <Link
               key={item.href}
@@ -69,7 +70,7 @@ export default function DossierHeader() {
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
-            className="text-[13px] text-fg md:hidden"
+            className="text-[13px] text-fg lg:hidden"
           >
             {menuOpen ? "Close" : "Menu"}
           </button>
@@ -88,7 +89,7 @@ export default function DossierHeader() {
               onClick={() => setMenuOpen(false)}
               className="flex items-baseline gap-3 border-t border-line py-3 first:border-t-0"
             >
-              <span className="font-data text-[11px] text-muted-2">{String(i + 1).padStart(2, "0")}</span>
+              <span aria-hidden="true" className="font-data text-[11px] text-muted-2">{String(i + 1).padStart(2, "0")}</span>
               <span className="font-serif-display text-lg text-fg">{item.label}</span>
             </Link>
           ))}

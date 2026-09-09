@@ -1,0 +1,178 @@
+import { PGlite } from "@electric-sql/pglite";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+let db: PGlite;
+
+const migration = () =>
+  db.exec(readFileSync(resolve("supabase/migrations/20260909140000_creator_applications.sql"), "utf8"));
+
+const rpc = async <T = Record<string, unknown>>(sql: string, args: unknown[] = []) =>
+  (await db.query<{ r: T }>(`select ${sql} r`, args)).rows[0].r;
+
+const input = (overrides: Record<string, unknown> = {}) => ({
+  name: "Taylor Example",
+  email: "taylor@example.test",
+  social_url: "https://instagram.com/taylor.example/",
+  portfolio_url: "",
+  discipline: "video",
+  focus: "fitness",
+  region: "VIC",
+  pitch:
+    "I create thoughtful product stories with natural light, careful pacing and a clear point of view.",
+  audience: "",
+  adult_australia: true,
+  contact_consent: true,
+  privacy_version: "creator-privacy-2026-09-09",
+  ...overrides,
+});
+
+const submit = (key: string, payload = input(), hash = "a".repeat(64), limit = "c".repeat(64)) =>
+  rpc<{ status: string }>(
+    "creator_submit_application($1::jsonb,$2::uuid,$3,$4,$5)",
+    [JSON.stringify(payload), key, hash, "b".repeat(64), limit],
+  );
+
+const hex = (n: number) => n.toString(16).repeat(64).slice(0, 64);
+
+describe("creator intake SQL", () => {
+  beforeAll(async () => {
+    db = new PGlite();
+    await db.exec("create role service_role bypassrls; create role anon; create role authenticated;");
+    await db.exec(
+      "create table admin_audit_log(id uuid primary key default gen_random_uuid(),actor_email text not null,action text not null,entity_type text,entity_id text,diff jsonb,created_at timestamptz not null default now());",
+    );
+    await migration();
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  beforeEach(async () => {
+    await db.exec(
+      "truncate creator_application_requests cascade; truncate creator_applications cascade; truncate creator_application_limits cascade; truncate admin_audit_log cascade;",
+    );
+  });
+
+  it("replays a matching idempotency key and rejects changed payload reuse", async () => {
+    const key = "30000000-0000-0000-0000-000000000001";
+    await expect(submit(key)).resolves.toEqual({ status: "ok" });
+    await expect(submit(key)).resolves.toEqual({ status: "ok" });
+    await expect(submit(key, input(), "d".repeat(64))).resolves.toEqual({ status: "conflict" });
+    expect((await db.query("select count(*)::int n from creator_applications")).rows[0]).toEqual({ n: 1 });
+    expect((await db.query("select focus from creator_applications")).rows[0]).toEqual({ focus: "fitness" });
+  });
+
+  it("deduplicates the same email and social profile on the same UTC day without overwriting", async () => {
+    const first = "30000000-0000-0000-0000-000000000001";
+    const second = "30000000-0000-0000-0000-000000000002";
+    await submit(first, input({ name: "Original Name" }), "1".repeat(64), "1".repeat(64));
+    await submit(second, input({ name: "Later Name", pitch: "P".repeat(100) }), "2".repeat(64), "2".repeat(64));
+    expect((await db.query("select count(*)::int n from creator_applications")).rows[0]).toEqual({ n: 1 });
+    expect((await db.query("select name from creator_applications")).rows[0]).toEqual({
+      name: "Original Name",
+    });
+    expect((await db.query("select count(*)::int n from creator_application_requests")).rows[0]).toEqual({ n: 2 });
+  });
+
+  it("allows ten hourly attempts, records the eleventh as limited, and accepts a different bucket", async () => {
+    for (let i = 1; i <= 10; i++) {
+      await expect(
+        submit(`30000000-0000-0000-0000-${String(i).padStart(12, "0")}`, input({ email: `creator${i}@example.test` }), hex(i), "f".repeat(64)),
+      ).resolves.toEqual({ status: "ok" });
+    }
+    await expect(
+      submit("30000000-0000-0000-0000-000000000011", input({ email: "limited@example.test" }), "e".repeat(64), "f".repeat(64)),
+    ).resolves.toEqual({ status: "limited" });
+    expect((await db.query("select attempt_count from creator_application_limits")).rows[0]).toEqual({
+      attempt_count: 11,
+    });
+    await expect(
+      submit("30000000-0000-0000-0000-000000000012", input({ email: "next@example.test" }), "9".repeat(64), "9".repeat(64)),
+    ).resolves.toEqual({ status: "ok" });
+  });
+
+  it("denies public roles and rejects malformed database input", async () => {
+    await expect(submit("30000000-0000-0000-0000-000000000001", input({ focus: "medical" }))).rejects.toThrow();
+    for (const role of ["anon", "authenticated"]) {
+      expect(
+        await rpc("has_function_privilege($1,$2,$3)", [
+          role,
+          "creator_submit_application(jsonb,uuid,text,text,text)",
+          "execute",
+        ]),
+      ).toBe(false);
+      expect(await rpc("has_table_privilege($1,$2,$3)", [role, "creator_applications", "select"])).toBe(false);
+    }
+    expect(
+      await rpc("has_function_privilege($1,$2,$3)", [
+        "service_role",
+        "creator_submit_application(jsonb,uuid,text,text,text)",
+        "execute",
+      ]),
+    ).toBe(true);
+  });
+
+  it("updates reviews atomically and retains accepted records during retention", async () => {
+    await submit("30000000-0000-0000-0000-000000000001");
+    const id = (await db.query<{ id: string }>("select id from creator_applications")).rows[0].id;
+    await expect(
+      rpc("creator_review_application($1::uuid,$2,$3,$4,$5)", [
+        id,
+        0,
+        "shortlisted",
+        "Strong portfolio.",
+        "operator@example.test",
+      ]),
+    ).resolves.toMatchObject({ status: "ok", revision: 1 });
+    await expect(
+      rpc("creator_review_application($1::uuid,$2,$3,$4,$5)", [
+        id,
+        0,
+        "accepted",
+        "Stale update.",
+        "operator@example.test",
+      ]),
+    ).resolves.toMatchObject({ status: "stale" });
+    await expect(
+      rpc("creator_review_application($1::uuid,$2,$3,$4,$5)", [
+        id,
+        1,
+        "new",
+        "Illegal reversal.",
+        "operator@example.test",
+      ]),
+    ).resolves.toMatchObject({ status: "invalid_transition" });
+    expect((await db.query("select action,diff from admin_audit_log")).rows[0]).toMatchObject({
+      action: "creator.shortlisted",
+    });
+
+    await db.exec("update creator_applications set created_at=now()-interval '181 days'");
+    await expect(rpc("creator_retention_sweep()")).resolves.toMatchObject({ applicationsDeleted: 1 });
+    await submit("30000000-0000-0000-0000-000000000002", input({ email: "accepted@example.test" }), "2".repeat(64), "2".repeat(64));
+    const accepted = (await db.query<{ id: string }>("select id from creator_applications")).rows[0].id;
+    await rpc("creator_review_application($1::uuid,$2,$3,$4,$5)", [
+      accepted,
+      0,
+      "shortlisted",
+      "",
+      "operator@example.test",
+    ]);
+    await rpc("creator_review_application($1::uuid,$2,$3,$4,$5)", [
+      accepted,
+      1,
+      "accepted",
+      "",
+      "operator@example.test",
+    ]);
+    await db.exec(
+      "update creator_applications set created_at=now()-interval '181 days'; update creator_application_limits set window_start=now()-interval '49 hours';",
+    );
+    await expect(rpc("creator_retention_sweep()")).resolves.toMatchObject({
+      applicationsDeleted: 0,
+      throttleBucketsDeleted: 2,
+    });
+  });
+});

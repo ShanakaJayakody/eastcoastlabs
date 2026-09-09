@@ -14,6 +14,7 @@ const COLUMNS = [
     title: "Proof",
     links: [
       { href: "/lab-results", label: "Lab results & COAs" },
+      { href: "/creators", label: "Creators" },
       { href: "/about", label: "About us" },
     ],
   },

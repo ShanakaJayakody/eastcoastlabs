@@ -41,6 +41,7 @@ export default function Footer({ supportEmail = "eclpeptides@gmail.com" }: { sup
               <li><Link href="/stacks" className="text-fg-2 hover:text-accent">Research Stacks</Link></li>
               <li><Link href="/lab-results" className="text-fg-2 hover:text-accent">Lab Results</Link></li>
               <li><Link href="/learn" className="text-fg-2 hover:text-accent">Research Hub</Link></li>
+              <li><Link href="/creators" className="text-fg-2 hover:text-accent">Creators</Link></li>
               <li><Link href="/about" className="text-fg-2 hover:text-accent">About</Link></li>
             </ul>
           </div>

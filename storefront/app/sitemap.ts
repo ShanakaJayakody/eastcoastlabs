@@ -8,7 +8,7 @@ const BASE = "https://www.eastcoastlabs.com.au";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [{ products }, guides] = await Promise.all([getCatalog(), getGuides()]);
 
-  const staticRoutes = ["", "/shop", "/stacks", "/lab-results", "/learn", "/about"].map(
+  const staticRoutes = ["", "/shop", "/stacks", "/lab-results", "/learn", "/creators", "/about"].map(
     (path) => ({
       url: `${BASE}${path}`,
       changeFrequency: "weekly" as const,

@@ -53,7 +53,8 @@ for(const variant of ['store','dossier'] as const){
   expect(await dialog.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe(variant==='dossier'?'rgb(244, 242, 237)':'rgb(8, 11, 16)');
   const close=dialog.getByRole('button',{name:'Close menu',exact:true});
   const links=dialog.getByRole('link');
-  expect(await links.count()).toBe(variant==='dossier'?4:5);
+  expect(await links.count()).toBe(variant==='dossier'?5:6);
+  await expect(dialog.getByRole('link',{name:'Creators',exact:true})).toHaveAttribute('href','/creators');
   for(const control of [close,...await links.all()])await expect(control).toBeInViewport({ratio:1});
   await expect(close).toBeFocused();
   await page.keyboard.press('Shift+Tab');

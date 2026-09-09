@@ -5,6 +5,9 @@ export type QuoteMode='normal'|'failure'|'delayed'|'higher-price';
 let mode:QuoteMode='normal';
 let submission=0;
 export function setQuoteMode(next:QuoteMode){mode=next;}
+export type CreatorMode='success'|'unavailable'|'rate-limited'|'field-error';
+let creatorMode:CreatorMode='success';
+export function setCreatorMode(next:CreatorMode){creatorMode=next;}
 export async function quoteCart(lines:ClientCartLine[],discountCode?:string,shippingMethod:ShippingMethod='standard'):Promise<CartQuote>{
  const requestedMode=mode;
  if(requestedMode==='delayed') await new Promise(resolve=>setTimeout(resolve,20000));
@@ -29,3 +32,9 @@ export async function placeOrder(_input:PlaceOrderInput){
 }
 
 export async function recoverCheckoutAttempt(_id:string,_hash:string){return {ok:false as const,notFound:true as const,error:'Synthetic preview: no previous order exists.'};}
+export async function submitCreatorApplication(){
+ if(creatorMode==='field-error')return {ok:false as const,code:'validation' as const,fieldErrors:{email:'Synthetic creator email needs correction.'}};
+ if(creatorMode==='rate-limited')return {ok:false as const,code:'rate_limited' as const};
+ if(creatorMode==='unavailable')return {ok:false as const,code:'unavailable' as const};
+ return {ok:true as const};
+}
