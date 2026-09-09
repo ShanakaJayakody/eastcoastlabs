@@ -44,7 +44,7 @@ function addressLines(address: Record<string, string | null> | null): string[] {
     line("name"),
     line("line1"),
     line("line2"),
-    line("city", "state", "postcode"),
+    line(address.suburb?.trim() ? "suburb" : "city", "state", "postcode"),
     line("country"),
   ].filter(Boolean);
 }
@@ -199,7 +199,7 @@ export default function PackingMode({
                   </span>
                 </span>
                 <span className="shrink-0 text-sm tabular-nums text-muted">
-                  {cents(item.lineTotalCents)}
+                  Original {cents(item.lineTotalCents)}
                 </span>
               </button>
             );
