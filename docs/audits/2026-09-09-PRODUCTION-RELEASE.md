@@ -1,6 +1,6 @@
 # Production release — 9 September 2026
 
-The owner authorised the coordinated production database/application release, with genuine COA uploads deferred. This record tracks execution; a successful preflight alone does not mean the new site is live.
+The owner authorised the coordinated production database/application release, with genuine COA uploads deferred. The database upgrade and matching application are now live; the evidence and remaining account limitations are recorded below.
 
 ## Verified preflight
 
@@ -37,3 +37,17 @@ Only the stored announcement list was updated through the audited settings trans
 Actual isolated staging acceptance passed admin login, seven admin areas, product draft preservation/save, checkout creation and exact request replay, payment confirmation, a reviewed partial refund with physical restock and remaining packing quantities. It revealed a packing-screen suburb omission and ambiguous original amount label; both received a targeted fix and regression tests. Test mail remained synthetic and no provider messages were sent.
 
 The monitoring workflow now checks public availability and read-only operations health using the existing GitHub Actions account. Its schedule is best effort; separate email/pager notification delivery is not claimed. The account accepted an initial firewall rate-limit configuration but rejected the subsequent update as unavailable on its plan. That rule was removed; only a temporary basic cron-block rule is used during the switch. No plan upgrade was made and edge rate limiting is not claimed as operational.
+
+
+## Live deployment and verification
+
+- Application commit: `58af28c77db6d6556d6420b5877127991aa731bd`.
+- Production deployment: `dpl_GvuG8AKGgjmLmbxYy9kuPtrFeugH` (`eastcoastlabs-g8fot9bss-shanakas-projects-458d9470.vercel.app`). Both `www.eastcoastlabs.com.au` and the default `eastcoastlabs.vercel.app` alias were verified against that deployment.
+- Production home, shop, checkout and admin login return 200; anonymous admin access redirects to login. Synthetic raw-ID payment access returns 404. Private checkout/payment/review/recovery/confirmation pages return no-store, no-referrer and noindex headers. An unsigned Resend webhook is rejected with 400.
+- Anonymous REST access permits public review ratings, denies private review order identity, orders and the outbox, and exposes no unverified COAs.
+- Final regression suite: 405 tests across 81 files passed. GitHub verification for the application commit passed: https://github.com/ShanakaJayakody/eastcoastlabs/actions/runs/34306151758 .
+- The matching production bank settings and all six readable core production environment values were checked; signing and provider secrets were preserved. No real checkout, customer email, transfer or shipment was created as a smoke test.
+- Scheduled GitHub sweeps were reenabled and `CRON_BASE_URL` now points to the canonical custom domain. Temporary maintenance/cron firewall rules were removed. Missing/wrong credentials are denied by all five cron endpoints.
+- Read-only operations health successfully reads the new database. At the first post-release check the email queue had zero dead/overdue entries; the three hourly jobs were marked overdue because their last recorded runs were just over three hours old. Scheduled processing was restored; no manual customer-message catch-up was triggered solely to make this check green.
+
+The main-branch Git deployment hold is removed in the release record commit after live verification. GitHub Actions monitoring is best effort; an independent pager and actual notification delivery remain unverified. Vercel rejected the rate-limit update as unavailable on the current account plan, so no edge rate-limit enforcement is claimed. Existing database/mailbox and application limits remain active. Optional GA4 delivery and recurring checkout remain disabled without their real provider setup. Genuine COA upload/verification remains with the owner.

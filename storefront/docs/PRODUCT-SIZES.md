@@ -10,7 +10,9 @@ Customers see one product in listings and choose size buttons on its product pag
 
 ## Release
 
-This feature is prepared locally; no production migration or deployment was performed.
+The production size migration was applied on 9 September 2026 after the prerequisite audit release. All 34 recorded migration checksums verify, with no pending migrations. Existing products, prices and inventory were retained; no example sizes were added to the live catalogue.
+
+A fresh private backup of the application and migration-history schemas restored successfully, with all 37 table row digests matching. The size migration and size creation/price editing were exercised against that restored copy, including verification that the original size's inventory remains independent. Synthetic size edits were rolled back.
 
 Apply `20260909090000_product_sizes.sql` after the existing migration chain using the [tracked migration procedure](MIGRATIONS.md), then deploy the matching app. The migration adds grouping metadata and guarded RPCs; it does not create example sizes, change current prices or move existing inventory. The original SKU and existing cart identities remain intact. Additional sizes use stable internal slugs; public links redirect to the parent product with the selected size.
 
@@ -22,4 +24,4 @@ Existing product-specific stack definitions continue to use the original size. A
 
 [Customer size selector](product-sizes/storefront-mobile.png) · [Admin size editor](product-sizes/admin-desktop.png). Both screenshots use synthetic data.
 
-Validation: 406 tests, 28 browser checks (2 intentional skips), 22 native PostgreSQL checks, TypeScript, lint, production build and route bundle budgets passed.
+Feature validation: 406 tests, 28 browser checks (2 intentional skips), 22 native PostgreSQL checks, TypeScript, lint, production build and route bundle budgets passed. After integrating the live release's packing and monitoring fixes, 422 tests, TypeScript and lint passed.
