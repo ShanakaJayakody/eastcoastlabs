@@ -9,7 +9,7 @@ Release status: local implementation candidate only. No production migration, de
 
 ## Completed scope
 
-All eight tasks in `docs/superpowers/plans/2026-09-09-creator-collective.md` are implemented in the storefront application.
+Local implementation and verification across the eight tasks in `docs/superpowers/plans/2026-09-09-creator-collective.md` are complete. External staging and release steps remain open and are listed at the end of this report.
 
 | Task | Status | Result |
 | --- | --- | --- |
@@ -20,7 +20,7 @@ All eight tasks in `docs/superpowers/plans/2026-09-09-creator-collective.md` are
 | 5. Accessible application form | Complete | Added real in-memory form, unchecked consent boxes, field-level errors, first-invalid focus, pending fieldset lock, idempotency-key recovery for uncertain failures and success confirmation. Fixture-only fake adapters stay in the browser preview harness. |
 | 6. Protected review operations | Complete | Added admin list/detail/actions, revision-aware review controls, note-only edits, legal status transitions, compact audit payloads and stale-revision handling. Every read/action calls the admin gate. |
 | 7. Discovery, analytics and retention | Complete | Added store and dossier nav/footer links, creator suppression for marketing overlays, `/creators` sitemap entry, path-guarded creator analytics with no applicant fields, and a weekly retention RPC/procedure. |
-| 8. Verification and handoff | Complete | Added creator browser fixture/tests, captured local preview evidence, documented release/rollback steps and kept the 3007 preview available for review. |
+| 8. Verification and handoff | Local checks complete; staging pending | Added creator browser fixture/tests, captured local preview evidence, documented release/rollback steps and kept the 3007 preview available for review. |
 
 ## Material implementation decisions
 
