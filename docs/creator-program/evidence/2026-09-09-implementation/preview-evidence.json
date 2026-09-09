@@ -1,0 +1,82 @@
+{
+  "capturedAt": "2026-09-09T03:58:47.857Z",
+  "previewUrl": "http://localhost:3007/creators",
+  "apiProbe": {
+    "status": 503,
+    "cacheControl": "no-store",
+    "body": {
+      "ok": false,
+      "code": "unavailable"
+    }
+  },
+  "desktop": {
+    "url": "http://127.0.0.1:3007/creators",
+    "title": "Creator Collective — East Coast Labs",
+    "h1Accessible": "Your influence. Our next chapter.",
+    "h1Text": "Your influence.Our next chapter.",
+    "documentWidth": 1440,
+    "viewportWidth": 1440,
+    "creatorImages": [
+      {
+        "alt": "Fictional adult creators celebrating together in an East Coast Labs campaign concept.",
+        "src": "http://127.0.0.1:3007/_next/image?url=%2Fimages%2Fcreators%2Fcover-celebration-1600.webp&w=1200&q=75",
+        "complete": true,
+        "naturalWidth": 1200,
+        "naturalHeight": 600
+      },
+      {
+        "alt": "Fictional fitness creator holding a sealed East Coast Labs vial as a creative prop.",
+        "src": "http://127.0.0.1:3007/_next/image?url=%2Fimages%2Fcreators%2Ffitness-creator-960.webp&w=640&q=75",
+        "complete": true,
+        "naturalWidth": 446,
+        "naturalHeight": 558
+      },
+      {
+        "alt": "Fictional everyday health creator holding a sealed East Coast Labs vial as a creative prop.",
+        "src": "http://127.0.0.1:3007/_next/image?url=%2Fimages%2Fcreators%2Fhealth-creator-960.webp&w=640&q=75",
+        "complete": true,
+        "naturalWidth": 446,
+        "naturalHeight": 558
+      },
+      {
+        "alt": "Fictional biohacking storyteller holding a sealed East Coast Labs vial as a creative prop.",
+        "src": "http://127.0.0.1:3007/_next/image?url=%2Fimages%2Fcreators%2Fbiohacker-creator-960.webp&w=640&q=75",
+        "complete": true,
+        "naturalWidth": 446,
+        "naturalHeight": 558
+      },
+      {
+        "alt": "Fictional creator in a warm editorial studio with a sealed East Coast Labs vial.",
+        "src": "http://127.0.0.1:3007/_next/image?url=%2Fimages%2Fcreators%2Fhero-editorial-960.webp&w=750&q=75",
+        "complete": true,
+        "naturalWidth": 662,
+        "naturalHeight": 441
+      },
+      {
+        "alt": "Fictional creator in a cool studio portrait with a sealed East Coast Labs vial.",
+        "src": "http://127.0.0.1:3007/_next/image?url=%2Fimages%2Fcreators%2Fportrait-studio-640.webp&w=640&q=75",
+        "complete": true,
+        "naturalWidth": 403,
+        "naturalHeight": 504
+      }
+    ]
+  },
+  "mobile": {
+    "documentWidth": 390,
+    "viewportWidth": 390,
+    "stickyButtons": [
+      {
+        "disabled": true,
+        "tabIndex": -1,
+        "ariaHidden": "true"
+      }
+    ]
+  },
+  "privacy": {
+    "title": "Creator Privacy Notice — East Coast Labs",
+    "h1": "How we handle creator applications",
+    "retentionText": "Unselected applications are deleted in a weekly review once they are older than 180 days. Accepted creator records are handled under a separately agreed contractor relationship and retention policy. You can request deletion or ask questions by emailing eclpeptides@gmail.com.",
+    "hasOldRetentionCopy": false,
+    "hasPlanningLanguage": false
+  }
+}
