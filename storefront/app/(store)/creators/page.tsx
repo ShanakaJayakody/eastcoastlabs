@@ -7,7 +7,7 @@ import CreatorApplicationForm from "@/components/creators/CreatorApplicationForm
 export const metadata: Metadata = {
   title: "Creator Collective",
   description:
-    "Apply for paid creative collaborations with East Coast Labs. Open to Australia-based adult creators with a clear point of view.",
+    "Apply to the ECL Creator Collective. Selected creators start with product rewards and three agreed posts, with a path to referral commission and ongoing support.",
   alternates: { canonical: "/creators" },
 };
 

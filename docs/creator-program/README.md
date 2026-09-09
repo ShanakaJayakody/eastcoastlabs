@@ -4,6 +4,8 @@ Prepared 9 September 2026. The page, application intake and admin review have be
 
 ## Start here
 
+- [Current confirmed offer, page messaging and program strategy](OFFER-AND-MESSAGING.md) — supersedes the earlier paid-brief offer.
+
 - [Completed implementation, test results and preview evidence](IMPLEMENTATION.md)
 - [Program, offer, complete page copy and art direction](../superpowers/specs/2026-09-09-creator-collective-design.md)
 - [Approved visual update: celebratory group cover and three creator categories](../superpowers/specs/2026-09-09-creator-visual-update.md)
@@ -16,7 +18,7 @@ Prepared 9 September 2026. The page, application intake and admin review have be
 
 The page is **ECL Creator Collective** at `/creators`, led by **“Your influence. Our next chapter.”** and **“Apply to the collective”**. The revised design combines the store's dark shell with a celebratory 15+ creator cover, three rounded portrait panels, oversized Inter/Newsreader typography and an ivory rewards section. The dedicated category images cover fitness creators, relatable health voices and biohacking storytellers.
 
-The first offer is paid creative briefs from **A$300** for selected creators. The design also specifies a conditional later referral program with **15% base / 20% invited partner commissions**, a **10% eligible-product audience code**, payment/refund rules and unit economics. Those referral terms are not part of the first public release.
+The confirmed offer starts with an application and fit review. Selected creators receive an eligible peptide of their choice valued up to **A$300**, then earn a **second vial after at least three agreed posts**. Successful collaborations can progress to an audience discount, referral commission and ongoing gifts/product supplies. **There is no upfront cash fee.** Rates and partner terms are agreed before activation; the earlier proposed percentages are superseded.
 
 ## Expanded campaign set
 

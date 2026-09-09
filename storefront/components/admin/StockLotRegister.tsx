@@ -17,7 +17,7 @@ export default function StockLotRegister({catalog}:{catalog:LotCatalog}){
    }catch{setError('Connection failed. Check the registered lots before retrying.')}
   })}} className="space-y-3">
    <fieldset disabled={pending} className="grid gap-3 sm:grid-cols-2">
-    <label htmlFor={`${id}-pool`}>Physical stock pool<select id={`${id}-pool`} value={pool} onChange={e=>setPool(e.target.value)} required className={field}><option value="">Choose pool</option>{catalog.pools.map(p=><option key={p.id} value={p.id}>{p.name} · ledger on hand {p.onHand}</option>)}</select></label>
+    <label htmlFor={`${id}-pool`}>Physical stock pool<select id={`${id}-pool`} value={pool} onChange={e=>setPool(e.target.value)} required className={field}><option value="">Choose pool</option>{catalog.pools.map(p=><option key={p.id} value={p.id}>{p.name}{p.sizeLabel ? ` · ${p.sizeLabel}` : ''} · ledger on hand {p.onHand}</option>)}</select></label>
     <label htmlFor={`${id}-code`}>Physical lot code<input id={`${id}-code`} name="code" required maxLength={100} className={field}/></label>
     <label htmlFor={`${id}-units`}>Physical units counted<input id={`${id}-units`} name="units" type="number" min={1} max={1000000} required className={field}/></label>
     <label htmlFor={`${id}-receipt`}>Receipt evidence (optional)<select key={`receipt-${pool}`} id={`${id}-receipt`} name="receipt" className={field}><option value="">Current physical count only</option>{catalog.receipts.filter(r=>r.poolId===pool).map(r=><option key={r.id} value={r.id}>{r.createdAt.slice(0,10)} · {r.units} units · {r.id.slice(0,8)}</option>)}</select></label>

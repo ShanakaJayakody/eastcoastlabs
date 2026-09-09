@@ -1,6 +1,6 @@
 # Creator Collective operations guide
 
-This guide is for the first ECL Creator Collective release. It is not a deployment approval. The repository deployment hold remains in place until the owner runs the separate release procedure.
+This guide is for the first ECL Creator Collective release. The owner has authorised committing the live-ready implementation after verification, while production activation remains a separate operator step. Latest main restores Vercel automatic deployment; do not reintroduce a deployment hold.
 
 ## Required configuration
 
@@ -31,12 +31,12 @@ Read `storefront/docs/MIGRATIONS.md` before any database operation. The runner o
 5. Exercise two concurrent submissions with the same idempotency key and verify only one application/request wins.
 6. Exercise the admin queue as an allow-listed admin: list, open, add notes, shortlist, handle a stale expected revision, then decline or accept through the legal transition path.
 7. Confirm no outbound email, contract, payout, order, product supply or commission action is triggered by acceptance. Acceptance only changes the private application record.
-8. Build and deploy the application code only after the migration has been verified for the same source revision.
+8. Build and deploy the application code only after the migration has been verified for the same source revision. Confirm `storefront/vercel.json` still reflects the restored main auto-deploy configuration.
 9. Verify `/creators` metadata, final image assets and the creator privacy notice on the deployed staging route. Keep `/creators/privacy`, API routes and admin routes out of analytics.
 
 ## Weekly retention procedure
 
-A named authorised operator must own this before public intake is enabled. Do not silently install an automation during implementation.
+The ECL storefront administrator owns this before public intake is enabled. No scheduled automation is installed by this implementation.
 
 Run weekly from a service-only operational context after confirming backups and reviewing recent accepted records:
 

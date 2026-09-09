@@ -236,8 +236,9 @@ export default function CreatorApplicationForm({
       <div role="status" className={styles.successPanel}>
         <h3 ref={successRef} tabIndex={-1}>Your application is in.</h3>
         <p>
-          Thanks for sharing your work. We&apos;ll review your application and contact you by
-          email if there&apos;s a suitable opportunity.
+          Thanks for introducing your community. We&apos;ll review your application and contact
+          you by email if there&apos;s a fit. The next step is to confirm your audience insights
+          and agree your first product and posting brief.
         </p>
       </div>
     );
@@ -389,7 +390,12 @@ export default function CreatorApplicationForm({
           </label>
         </div>
         <label htmlFor="creator-pitch" className={styles.pitchField}>
-        <span id="creator-pitch-label">What would you like to create?</span>
+        <span id="creator-pitch-label">Tell us about your audience and content</span>
+        <small id="creator-pitch-help" className={styles.fieldHelp}>
+          Share who you reach, typical organic views on recent posts, your Australian audience
+          share if known, and an idea for three original posts. We confirm platform insights
+          during the fit review. No media-kit upload needed.
+        </small>
         <textarea
           id="creator-pitch"
           aria-labelledby="creator-pitch-label"
@@ -398,7 +404,7 @@ export default function CreatorApplicationForm({
           onChange={(event) => update("pitch", event.target.value)}
           rows={6}
           aria-invalid={Boolean(errors.pitch)}
-          aria-describedby={described("pitch")}
+          aria-describedby={["creator-pitch-help", described("pitch")].filter(Boolean).join(" ")}
         />
         {errors.pitch && <small id="pitch-error">{errors.pitch}</small>}
         </label>

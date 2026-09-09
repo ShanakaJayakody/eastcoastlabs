@@ -1,18 +1,18 @@
 import type { Audience, Discipline, Focus, Region } from "./types";
 
-export const CREATOR_PRIVACY_VERSION = "creator-privacy-2026-09-09";
+export const CREATOR_PRIVACY_VERSION = "creator-privacy-2026-09-09-v2";
 
 export const creatorCopy = {
   name: "ECL Creator Collective",
   route: "/creators",
   cta: "Apply to the collective",
   applicationAnchor: "#apply",
-  startingFeeCents: 30_000,
+  firstProductValueCapCents: 30_000,
   currency: "AUD",
   heading: ["Your influence.", "Our next chapter."],
   heroBody:
-    "For fitness creators, health storytellers and curious minds. Bring your perspective to paid creative collaborations with East Coast Labs.",
-  practical: "Australia · 18+ · No minimum follower count",
+    "Build a partnership with East Coast Labs, one stage at a time. Start with product rewards, share in your own voice, and grow towards commission and ongoing support.",
+  practical: "Australia · 18+ · By application · Product rewards first",
   supportEmailFallback: "eclpeptides@gmail.com",
 } as const;
 
@@ -41,7 +41,7 @@ export const regionOptions: Array<{ value: Region; label: string }> = [
 ].map((value) => ({ value: value as Region, label: value }));
 
 export const audienceOptions: Array<{ value: Audience | ""; label: string }> = [
-  { value: "", label: "Prefer not to say" },
+  { value: "", label: "Share during fit review" },
   { value: "under-1k", label: "Under 1k" },
   { value: "1k-10k", label: "1k-10k" },
   { value: "10k-50k", label: "10k-50k" },
@@ -140,41 +140,84 @@ export const creatorCategoryPanels = [
   },
 ] as const;
 
+export const creatorStages = [
+  {
+    index: "01",
+    title: "Find our fit.",
+    copy: "Apply with your profile, audience size and recent reach. We review your content, audience relevance and evidence of qualified views. If selected, choose an eligible peptide valued up to A$300. We agree your brief before sending it.",
+  },
+  {
+    index: "02",
+    title: "Create. Share. Be rewarded.",
+    copy: "Once your first product arrives, publish a minimum of three original posts, Reels or TikToks to your audience under the agreed brief. Share the live links and post insights. Complete the agreed deliverables and we send a second vial of your choice from the eligible range.",
+  },
+  {
+    index: "03",
+    title: "Grow with the collective.",
+    copy: "We review your reach, engagement and the interest your content creates. Successful creators are invited to a referral partnership: an audience discount, commission on eligible referred orders, and ongoing gifts and product supplies under an agreed partner plan.",
+  },
+] as const;
+
 export const creatorFaqs = [
   {
     question: "Do I need a large following?",
     answer:
-      "No. For creative briefs, we assess the quality and relevance of your work, rather than setting a minimum follower count.",
+      "Audience size is part of our review, alongside recent organic reach, audience relevance and meaningful engagement. A smaller, engaged community can be a strong fit. We ask for platform insights before confirming selection; follower count alone does not qualify an application.",
   },
   {
-    question: "How are creators paid?",
+    question: "Is there an upfront cash payment?",
     answer:
-      "Selected briefs start at A$300. Deliverables, fees, usage rights and payment dates are agreed before work begins. The fee shown is in AUD, excluding GST where applicable.",
+      "No. The first collaboration is compensated with products: an eligible peptide of your choice valued up to A$300, followed by a second vial after you complete the agreed minimum of three posts. Cash commission becomes available only if you are invited to the referral stage and agree its terms.",
   },
   {
-    question: "Does applying guarantee a paid brief?",
+    question: "Can I choose my products?",
     answer:
-      "No. We review applications and contact creators when there is a suitable opportunity.",
+      "Yes. Selected creators choose their first peptide from the eligible range, up to A$300 in product value. Your second vial is also your choice from the eligible range. We confirm both selections, the second-vial allowance and availability in your brief before you begin. Product rewards are not redeemable for cash.",
   },
   {
-    question: "Do I have to post on my own account?",
+    question: "What counts towards the three posts?",
     answer:
-      "Only if posting is explicitly included in a separate agreed scope. A content-production brief does not automatically require a public endorsement.",
+      "At least three original pieces published to your own audience after your first product arrives. We agree formats, channels, timing, disclosures and content scope in advance. Reposts, duplicate cross-posts and Stories do not automatically count as separate deliverables. Share the live links and available platform insights so we can review the collaboration.",
+  },
+  {
+    question: "Does my second vial depend on sales or views?",
+    answer:
+      "No. Your second vial rewards completion of the agreed posting brief, including its disclosures and reporting. It is not conditional on hitting a sales or views target, or on giving a positive review. Performance is assessed separately when we consider an ongoing referral partnership.",
+  },
+  {
+    question: "What are qualified views?",
+    answer:
+      "We look for real, organic attention from an audience relevant to the agreed brief. We review platform-reported reach or views alongside audience location, age breakdown, watch time where available, and meaningful engagement. Bought engagement, undisclosed paid boosts and a single viral outlier do not demonstrate consistent reach.",
   },
   {
     question: "Do I have to buy or use a product?",
     answer:
-      "No purchase or personal product use is required. The brief specifies any props and what can be shown.",
+      "No purchase or personal use is required. Participation does not require a positive endorsement. Each brief sets out the permitted content and product scope; personal-use demonstrations, dosing advice and health-result claims are not part of this program.",
   },
   {
     question: "Who owns the content?",
     answer:
-      "You retain ownership unless a separate agreement says otherwise. Each brief sets out ECL's agreed usage licence. Additional paid advertising or extended use is negotiated separately.",
+      "You retain ownership. Your brief sets out any agreed ECL reposting licence, channels and duration. Paid advertising, account permissions, exclusivity and extended use require a separate agreement. Product rewards do not give ECL unlimited rights to your content or likeness.",
   },
   {
-    question: "Is this an affiliate program?",
+    question: "How do commission and audience discounts work?",
     answer:
-      "The initial program focuses on paid creative briefs. There is no sales commission offer in this launch.",
+      "After a successful first collaboration and performance review, invited creators receive a referral arrangement with an audience discount and commission on eligible referred orders. Rates, eligible products, attribution, refunds and payment timing are agreed in writing before activation. Applying or completing three posts does not automatically activate commission.",
+  },
+  {
+    question: "Will I keep receiving gifts and supplies?",
+    answer:
+      "Ongoing partners receive gifts and product supplies as part of an agreed partner plan. We review the relationship regularly and agree the product selection, frequency and content commitments together. The first collaboration does not promise unlimited or lifetime supply.",
+  },
+  {
+    question: "Do I need to disclose product rewards?",
+    answer:
+      "Yes. Product rewards and referral commissions are commercial incentives. Each post must clearly disclose the relationship using the agreed advertising disclosure and the platform's partnership tools where available. Your brief explains what is required; you always keep your own honest voice.",
+  },
+  {
+    question: "Does applying guarantee a place?",
+    answer:
+      "No. We review each application for audience fit, demonstrated reach, content quality and program capacity. We confirm selection and agree the brief before supplying any product. Progression to the referral stage is a separate invitation.",
   },
   {
     question: "Can I apply from outside Australia?",

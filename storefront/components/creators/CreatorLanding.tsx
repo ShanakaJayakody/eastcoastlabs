@@ -6,6 +6,7 @@ import {
   creatorCategoryPanels,
   creatorCopy,
   creatorFaqs,
+  creatorStages,
 } from "@/lib/creators/content";
 import CreatorStickyApply from "./CreatorStickyApply";
 import CreatorCtaLink from "./CreatorCtaLink";
@@ -29,7 +30,7 @@ export default function CreatorLanding({
           </h1>
           <p className={styles.heroText}>{creatorCopy.heroBody}</p>
           <div className={styles.heroActions} data-creator-hero-cta>
-            <CreatorCtaLink href="#apply" placement="footer" className={styles.primaryCta}>
+            <CreatorCtaLink href="#apply" placement="hero" className={styles.primaryCta}>
               {creatorCopy.cta}
               <span aria-hidden="true">-&gt;</span>
             </CreatorCtaLink>
@@ -57,9 +58,9 @@ export default function CreatorLanding({
       </section>
 
       <section className={`${styles.opportunity} ${styles.container}`} aria-label="Program structure">
-        <p>Paid creative briefs</p>
-        <p>Your individual perspective</p>
-        <p>Ongoing opportunities</p>
+        <p>Apply for your first product</p>
+        <p>Three posts. A second vial.</p>
+        <p>A path to commission</p>
       </section>
 
       <Reveal className="reveal">
@@ -68,8 +69,8 @@ export default function CreatorLanding({
             <p className={styles.kicker}>Creator focus</p>
             <h2 id="creator-types-title">Different worlds. Shared curiosity.</h2>
             <p>
-              A strong point of view matters more than a follower count. We&apos;re looking for
-              original storytellers with a style of their own.
+              We&apos;re looking for original storytellers with a clear point of view and an
+              engaged community. Show us who you reach and what makes your audience listen.
             </p>
           </div>
           <div className={styles.creatorCards}>
@@ -99,14 +100,14 @@ export default function CreatorLanding({
         <section className={`${styles.editorial} ${styles.container}`} aria-labelledby="creator-standard-title">
           <div className={styles.editorialText}>
             <p className={styles.kicker}>01 / The standard</p>
-            <h2 id="creator-standard-title">An eye for detail. A point of view.</h2>
+            <h2 id="creator-standard-title">Your voice. A community that listens.</h2>
             <p>
-              We&apos;re looking for creators who notice the details and know how to make a story
-              feel considered. Photographers, filmmakers and visual storytellers: show us the work
-              that feels most like you.
+              The strongest partnerships begin with a natural fit. Bring thoughtful content,
+              real audience insight and a style of your own. We bring a clear brief, product
+              rewards and a path to a longer relationship. Every stage is agreed together.
             </p>
             <CreatorCtaLink href="#apply" placement="editorial" className={styles.textLink}>
-              Show us your work -&gt;
+              Tell us about your community -&gt;
             </CreatorCtaLink>
           </div>
           <div className={styles.editorialImages}>
@@ -139,33 +140,35 @@ export default function CreatorLanding({
       <section id="rewards" className={styles.rewards} aria-labelledby="creator-rewards-title">
         <div className={`${styles.rewardsInner} ${styles.container}`}>
           <p className={styles.kicker}>02 / Rewards</p>
-          <h2 id="creator-rewards-title">Good work deserves a clear offer.</h2>
+          <h2 id="creator-rewards-title">Start with product. Build a partnership.</h2>
           <div className={styles.rewardGrid}>
             <div>
+              <p className={styles.rewardLabel}>Your first product · valued up to</p>
               <p className={styles.rewardNumber}>A$300</p>
-              <p className={styles.rewardLabel}>Paid briefs from</p>
               <p className={styles.rewardNote}>
-                For selected creators. We agree the scope, fee and usage rights before you start.
+                Pass the fit review and choose an eligible peptide. We confirm your selection
+                and posting brief before sending it to you.
               </p>
             </div>
             <div className={styles.rewardCopy}>
-              <h3>Create in your own voice</h3>
+              <h3>Three posts. Your next vial.</h3>
               <p>
-                A clear brief and space for your perspective. We agree what you&apos;ll make and
-                how it will be used.
+                After your first product arrives, complete at least three agreed posts to your
+                audience. We then send a second vial of your choice from the eligible range.
               </p>
             </div>
             <div className={styles.rewardCopy}>
-              <h3>Build something ongoing</h3>
+              <h3>Your audience saves. You earn.</h3>
               <p>
-                A first project can become a longer creative relationship, with each collaboration
-                agreed together.
+                Successful creators can progress to an audience discount, referral commission,
+                and regular gifts and product supplies through an agreed ongoing partnership.
               </p>
             </div>
           </div>
           <p className={styles.finePrint}>
-            Fees are in AUD, excluding GST where applicable. Applying does not guarantee selection
-            or paid work.
+            The first collaboration offers product rewards, with no upfront cash fee. A$300 is
+            the first product&apos;s maximum value in Australian dollars. Selection and referral
+            progression are subject to review. Product choices and terms are agreed before you start.
           </p>
         </div>
       </section>
@@ -173,13 +176,9 @@ export default function CreatorLanding({
       <Reveal className="reveal">
         <section className={`${styles.process} ${styles.container}`} aria-labelledby="creator-process-title">
           <p className={styles.kicker}>03 / Process</p>
-          <h2 id="creator-process-title">How it works</h2>
+          <h2 id="creator-process-title">One partnership. Three stages.</h2>
           <div className={styles.processGrid}>
-            {[
-              ["01", "Send your perspective.", "Share your profile, portfolio and the kind of work you love making."],
-              ["02", "Find the right brief.", "If there is a fit, we will agree a concept, deliverables, fee and usage rights."],
-              ["03", "Create. Get paid.", "Deliver the agreed work, collaborate on feedback and receive payment under your brief."],
-            ].map(([index, title, copy]) => (
+            {creatorStages.map(({ index, title, copy }) => (
               <article key={title}>
                 <p>{index}</p>
                 <h3>{title}</h3>
@@ -193,25 +192,25 @@ export default function CreatorLanding({
       <Reveal className="reveal">
         <section className={`${styles.who} ${styles.container}`} aria-labelledby="creator-who-title">
           <p className={styles.kicker}>04 / Who should apply</p>
-          <h2 id="creator-who-title">A strong point of view goes further than a follower count.</h2>
+          <h2 id="creator-who-title">Real reach. Relevant people. Your own voice.</h2>
           <div className={styles.whoRows}>
             <p>
-              <strong>Photographers</strong>
-              <span>Composition, light and product detail</span>
+              <strong>An engaged community</strong>
+              <span>Audience size, relevant interests and a clear Australian audience fit</span>
             </p>
             <p>
-              <strong>Filmmakers</strong>
-              <span>Considered short-form stories</span>
+              <strong>Reach you can show</strong>
+              <span>Recent organic views, platform insights and meaningful engagement</span>
             </p>
             <p>
-              <strong>Content creators</strong>
-              <span>Original ideas and a clear visual identity</span>
+              <strong>A reliable creative partner</strong>
+              <span>Original posts, clear disclosures and follow-through on an agreed brief</span>
             </p>
           </div>
           <p className={styles.whoCopy}>
-            You don&apos;t need a huge audience. You do need original work, reliable communication
-            and an understanding of the brief. Initial applications are open to Australia-based
-            creators aged 18 or over.
+            Audience size matters in context. We look at who you reach, how consistently your
+            content connects and whether the partnership makes sense for both of us. Before
+            selection, we ask for recent platform insights. Open to Australia-based creators aged 18 or over.
           </p>
         </section>
       </Reveal>
@@ -219,10 +218,11 @@ export default function CreatorLanding({
       <section id="apply" aria-labelledby="creator-apply-title" tabIndex={-1} className={`${styles.apply} ${styles.container}`}>
         <div className={styles.applyIntro}>
           <p className={styles.kicker}>05 / Application</p>
-          <h2 id="creator-apply-title" tabIndex={-1}>Let&apos;s make something considered.</h2>
+          <h2 id="creator-apply-title" tabIndex={-1}>Let&apos;s see what we can build together.</h2>
           <p>
-            Tell us a little about yourself and share your best work. We review applications
-            individually and contact creators when there is a suitable opportunity.
+            Tell us about your audience, recent reach and the content you want to create.
+            We review every application individually. If there&apos;s a fit, we&apos;ll contact
+            you to confirm your insights, product choice and three-post brief.
           </p>
         </div>
         {application}
@@ -241,7 +241,7 @@ export default function CreatorLanding({
             ))}
           </div>
           <div className={styles.footerCta}>
-            <CreatorCtaLink href="#apply" placement="hero" className={styles.primaryCta}>
+            <CreatorCtaLink href="#apply" placement="footer" className={styles.primaryCta}>
               {creatorCopy.cta}
               <span aria-hidden="true">-&gt;</span>
             </CreatorCtaLink>

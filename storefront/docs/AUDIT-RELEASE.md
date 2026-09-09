@@ -1,6 +1,8 @@
 # Audit implementation release runbook — 8 September 2026
 
-This branch has not changed production, submitted real orders, sent email/analytics or deployed the application. Read-only deployment metadata, aggregate anomaly counts and a schema-only copy of production were inspected. See [the completion report](../../docs/audits/2026-09-08-COMPLETION.md) for evidence and limits. Local verification is not production approval or a backup of production customer data.
+> Released on 9 September 2026. See [the production release record](../../docs/audits/2026-09-09-PRODUCTION-RELEASE.md) for applied migrations, deployment and verification. The original preparation notes below describe the pre-release state.
+
+This branch had not changed production, submitted real orders, sent email/analytics or deployed the application. Read-only deployment metadata, aggregate anomaly counts and a schema-only copy of production were inspected. See [the completion report](../../docs/audits/2026-09-08-COMPLETION.md) for evidence and limits. Local verification is not production approval or a backup of production customer data.
 
 ## Prepare a disposable staging environment
 
@@ -38,6 +40,8 @@ The user authorised merging and publishing the audit implementation to GitHub `m
 After backup/restore, staging acceptance and the coupled database/application steps below are complete, remove the `main: false` entry in the release commit (or perform a deliberate reviewed manual deployment). Verify the matching application and database before restarting workers. Do not remove this hold merely to make a GitHub deployment check appear green.
 
 ## Coupled release
+
+Operational finding from the actual release: `vercel deploy --prod --skip-domain` leaves custom aliases unchanged but updates Vercel cron targets as soon as the candidate is ready. Pause cron ingress before building a candidate. Native project pause also blocks new builds; prepare the build first, or use a temporary project-wide firewall maintenance rule while building after migration. Remove temporary gates only after matching aliases, database and configuration are verified.
 
 - After the first successful branch CI run, configure the matching `verify` status check as required before merging into `main`, and review direct/force-push permissions. The read-only 8 September check found `main` unprotected and no repository rulesets. The workflow file alone does not enforce a release gate; these account settings have not been changed.
 - Verify `NEXT_PUBLIC_SUPABASE_URL`, anon key and server-only service role; active admin allowlist; stable link-signing configuration; CRON_SECRET; verified Resend sender/webhook configuration; trusted database TLS. Dedicated order-access/unsubscribe secrets are optional: the established service-role/cron fallbacks are supported. Keep the effective signing secrets stable. Use the documented Supabase CA file for verified database TLS. Payment details, expiry, shipping and support email are edited in admin settings.

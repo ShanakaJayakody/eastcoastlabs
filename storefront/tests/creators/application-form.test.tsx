@@ -18,7 +18,7 @@ const valid = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.selectOptions(screen.getByLabelText("Your content focus"), "health");
   await user.selectOptions(screen.getByLabelText("Australian state/territory"), "VIC");
   await user.type(
-    screen.getByLabelText("What would you like to create?"),
+    screen.getByLabelText("Tell us about your audience and content"),
     "I create thoughtful short-form product stories with natural light, careful pacing and a clear point of view.",
   );
   await user.click(screen.getByLabelText("I am 18 or over and based in Australia."));
@@ -93,7 +93,7 @@ describe("CreatorApplicationForm", () => {
     await user.click(screen.getByRole("button", { name: /Send my application/ }));
     await screen.findByRole("alert");
     expect(screen.getByLabelText("Email address")).toHaveValue("taylor@example.test");
-    expect(screen.getByLabelText("What would you like to create?")).toHaveValue(
+    expect(screen.getByLabelText("Tell us about your audience and content")).toHaveValue(
       "I create thoughtful short-form product stories with natural light, careful pacing and a clear point of view.",
     );
     expect(trackCreatorEvent).toHaveBeenCalledWith("creator_application_error", { errorCode: "unavailable" });

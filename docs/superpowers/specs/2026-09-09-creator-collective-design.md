@@ -1,5 +1,7 @@
 # ECL Creator Collective — program and page design
 
+> **Commercial copy superseded, 9 September 2026:** The owner has confirmed a product-reward program with no upfront cash fee. Use [OFFER-AND-MESSAGING.md](../../creator-program/OFFER-AND-MESSAGING.md) for all commercial terms, selection criteria and page copy. The paid-brief packages, previous follower-count messaging and proposed referral percentages below are historical and must not be implemented. Existing visual and technical decisions continue where compatible.
+
 **Prepared:** 9 September 2026\
 **Status:** Approved for implementation with the [user's visual update](2026-09-09-creator-visual-update.md), which takes precedence over earlier visual assumptions. Commercial terms remain proposed pending public launch.\
 **Primary destination:** `/creators`\

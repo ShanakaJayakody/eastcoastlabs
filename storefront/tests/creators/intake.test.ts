@@ -51,7 +51,7 @@ describe("creator application intake adapter", () => {
         audience: "10k-50k",
         adult_australia: true,
         contact_consent: true,
-        privacy_version: "creator-privacy-2026-09-09",
+        privacy_version: "creator-privacy-2026-09-09-v2",
       },
       p_idempotency_key: "30000000-0000-0000-0000-000000000001",
       p_payload_hash: expect.stringMatching(/^[a-f0-9]{64}$/),

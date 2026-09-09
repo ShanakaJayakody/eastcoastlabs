@@ -25,7 +25,7 @@ Local implementation and verification across the eight tasks in `docs/superpower
 ## Material implementation decisions
 
 - Creator images are labelled as fictional AI-generated campaign concepts. Public alt text and captions do not imply actual endorsement, testimonial, income, product use or partner status.
-- The creator program copy keeps the initial paid creative brief offer at A$300 and does not expose an affiliate commission offer in this release.
+- The owner subsequently replaced the paid-brief proposal with the staged product-reward offer in [OFFER-AND-MESSAGING.md](OFFER-AND-MESSAGING.md): up to A$300 first product, second vial on completion of three agreed posts, and an invitation-based referral stage. No upfront cash fee or fixed commission percentage is advertised.
 - `focus` is stored and validated separately from the original `discipline`, with `fitness`, `health`, `biohacking` and `other` as the canonical values.
 - Intake identity uses HMAC-SHA256 over canonical data, dedupe identity and client rate-limit buckets. The code stores no raw client IP address in creator throttle/request tables.
 - Deployed Vercel ingress uses `x-vercel-forwarded-for` only when `VERCEL=1`. Vercel documents that platform request header at <https://vercel.com/docs/headers/request-headers#x-vercel-forwarded-for>. Unsupported configured client-IP headers fail closed.
@@ -110,10 +110,26 @@ The evidence JSON records six loaded creator images through Next image delivery,
 
 Before public launch, an operator still needs to complete these outside this local implementation:
 
-1. Approve the paid creative brief scope, public wording and image publication status for production use.
+1. Confirm product supply/promotion eligibility, the staged product-reward brief, public wording and image publication status for production use.
 2. Generate and configure `CREATOR_APPLICATION_SECRET`, `CREATOR_ALLOWED_ORIGINS`, Supabase service configuration and any reviewed trusted ingress override. Keep all creator secrets server-only and out of `NEXT_PUBLIC_*`.
 3. Read `storefront/docs/MIGRATIONS.md`, run the existing migration runner dry-run, then apply only `storefront/supabase/migrations/20260909140000_creator_applications.sql` in a disposable staging database before production.
 4. In staging, verify actual role grants, Vercel/proxy origin and trusted-address behavior, durable application save, idempotent replay, same-key conflict, rate limit, two-session race behavior, admin list/detail/status changes, stale revision handling and no outbound email/payment/product/commission side effects.
 5. Assign a named operator for the weekly creator retention procedure before intake is publicly enabled.
 6. Release sequence remains migration first, app build second, deployed verification third, then public discovery/indexing only after business and imagery approval.
 7. Rollback should disable discovery/intake with truthful unavailable copy and retain legitimate private application records for review/retention; do not use destructive down-migration as a shortcut.
+
+
+## Owner's offer update — 9 September 2026
+
+The creator page now uses the confirmed staged product-reward offer in [OFFER-AND-MESSAGING.md](OFFER-AND-MESSAGING.md). The hero, reward block, three stages, eligibility, application guidance, confirmation, FAQs, metadata and privacy purpose were aligned. A$300 is a first-product value cap, no upfront cash fee is offered, completion of three agreed posts earns the second vial independently of sales/views, and referral terms remain invitation-based. The recorded privacy version is `creator-privacy-2026-09-09-v2`.
+
+Fresh verification after the offer update:
+
+- `npm run typecheck`: passed.
+- Scoped ESLint covering the changed creator TypeScript and test files: passed.
+- `npx vitest run tests/creators`: 8 files, 37 tests passed.
+- `PREVIEW_PORT=4176 npm run test:browser -- tests/browser/creators.spec.ts`: 21 passed, 3 viewport-specific skips; final repeat passed after helper-text styling. Includes keyboard FAQ, accessible form labels/errors, pending/retry/success behavior, images, responsive overflow and accessibility scans.
+- Actual Next route at `http://127.0.0.1:3007/creators`: HTTP 200; new offer present; old paid-brief offer absent; no horizontal overflow at 390px. Visually reviewed 1440px hero/rewards and 390px rewards/application. Screenshots: [offer-update evidence](evidence/offer-update/). No real application was submitted by these route inspections.
+- `git diff --check`: passed.
+
+Concurrent release integration temporarily restored older creator files during the first verification attempts. The mismatch was identified from the form labels and source diff, the offer and matching test expectations were restored, and the successful results above supersede those interrupted attempts. The release task has been given the stable source paths, strategy, evidence and product-publication caveat. It owns the combined release build, commit, migration and deployment; this copy update does not claim that those steps are complete.

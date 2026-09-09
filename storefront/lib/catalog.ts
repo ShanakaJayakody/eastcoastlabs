@@ -23,6 +23,7 @@ import type { WooProduct } from "./woo";
 import { type TierCard } from "./pricing";
 import { formatAudWhole } from "./format";
 import localCatalog from "@/data/catalog.json";
+import type { ProductSizeOption } from './product-sizes';
 
 export interface CatalogProduct extends WooProduct {
   /** Pack tiers built from this product's own variants. Null = no pack tiers. */
@@ -31,6 +32,8 @@ export interface CatalogProduct extends WooProduct {
   available: number;
   seo_title?: string | null;
   seo_description?: string | null;
+  sizes?: ProductSizeOption[];
+  canonicalSlug?: string;
 }
 
 interface VariantRow {
@@ -55,6 +58,10 @@ interface ProductRow {
   seo_title?: string | null;
   seo_description?: string | null;
   product_variants: VariantRow[] | null;
+  size_label?: string | null;
+  size_parent_id?: string | null;
+  size_enabled?: boolean;
+  size_products?: ProductRow[];
 }
 
 /**
@@ -109,7 +116,7 @@ function tiersFromVariants(variants: VariantRow[], available: number): TierCard[
   const cards: TierCard[] = [
     {
       id: "single",
-      label: single.label || "1 vial",
+      label: single.label?.split(' · ')[0] || "1 vial",
       vials: 1,
       total: singleMajor,
       perVial: singleMajor,
@@ -123,7 +130,7 @@ function tiersFromVariants(variants: VariantRow[], available: number): TierCard[
     const pct = undiscounted > 0 ? Math.round((saving / undiscounted) * 100) : 0;
     cards.push({
       id: idOf(v.pack_size),
-      label: v.label || `${v.pack_size}-pack`,
+      label: v.label?.split(' · ')[0] || `${v.pack_size}-pack`,
       // Badges follow the same convention the price table hard-coded: the
       // smallest pack is the nudge, the largest is the value play.
       badge: v === packs[packs.length - 1] ? `BEST VALUE — save ${pct}%` : "MOST POPULAR",
@@ -139,7 +146,7 @@ function tiersFromVariants(variants: VariantRow[], available: number): TierCard[
   return cards;
 }
 
-function mapRow(row: ProductRow): CatalogProduct | null {
+function mapSingleRow(row: ProductRow): CatalogProduct | null {
   const variants = (row.product_variants ?? []).filter((v) => v.active !== false);
   const single = variants.find((v) => v.pack_size === 1) ?? variants[0];
   // No variant means no price and nothing to sell — a coming-soon product that
@@ -186,13 +193,42 @@ function mapRow(row: ProductRow): CatalogProduct | null {
   };
 }
 
+function mapRow(row: ProductRow): CatalogProduct | null {
+  const base = mapSingleRow(row);
+  if (!row.size_label) return base;
+  const sizes: ProductSizeOption[] = [row, ...(row.size_products ?? [])]
+    .filter(size => size.size_enabled !== false && (size === row || size.status === 'active'))
+    .flatMap(size => {
+      const mapped = mapSingleRow(size);
+      return mapped ? [{ id: mapped.id, slug: size.slug, label: size.size_label ?? '',
+        priceMinor: mapped.prices.price, available: mapped.available, tiers: mapped.tiers }] : [];
+    });
+  // A hidden original size can still own an active public product page.
+  const display = base ?? (row.size_products ?? []).map(mapSingleRow).find(Boolean);
+  if (!display) return null;
+  return { ...display, id: idFor(row.slug), slug: row.slug, name: row.name,
+    sku: row.sku ?? '', permalink: `/product/${row.slug}`, sizes,
+    available: sizes.reduce((sum, size) => sum + size.available, 0),
+    is_in_stock: sizes.some(size => size.available > 0),
+    short_description: row.short_description ?? '', description: row.description ?? '',
+    images: (row.images ?? []).map(img => ({ src: img.src, alt: img.alt })),
+    seo_title: row.seo_title, seo_description: row.seo_description,
+  };
+}
+
+function withSizes(rows: ProductRow[]): ProductRow[] {
+  return rows.filter(row => !row.size_parent_id).map(row => ({ ...row,
+    size_products: row.size_products ?? rows.filter(size => size.size_parent_id === row.id),
+  }));
+}
+
 /**
  * The storefront catalog. Active products only, ordered the way the JSON
  * catalog ordered them with anything newer appended.
  *
  * An empty or unavailable database never enables legacy offers.
  */
-const CARD_COLUMNS = `id, slug, name, sku, short_description, images, status, categories,
+const CARD_COLUMNS = `id, slug, name, sku, short_description, images, status, categories, size_label, size_parent_id, size_enabled,
  product_variants ( pack_size, label, price_cents, compare_at_cents, active, inventory ( on_hand, reserved ) )`;
 const DETAIL_COLUMNS = `description, seo_title, seo_description, ${CARD_COLUMNS}`;
 export const getCatalog = cache(async function getCatalog(limit?: number): Promise<{
@@ -205,7 +241,8 @@ export const getCatalog = cache(async function getCatalog(limit?: number): Promi
   if (db) {
     const rows: ProductRow[] = [];
     let error: { message:string } | null = null;
-    const maximum = limit === undefined ? Infinity : Math.max(1, Math.floor(limit));
+    // A limit counts public products, never the internal size SKU records.
+    const maximum = Infinity;
     for (let start=0; start<maximum; start+=500) {
       const end=Math.min(start+499, maximum-1);
       const result = await db.from("products").select(CARD_COLUMNS)
@@ -219,7 +256,7 @@ export const getCatalog = cache(async function getCatalog(limit?: number): Promi
     if (error) {
       console.warn(`[catalog] DB read failed, catalog unavailable: ${error.message}`);
     } else {
-      products = ((data ?? []) as unknown as ProductRow[])
+      products = withSizes((data ?? []) as unknown as ProductRow[])
         // Accessories (syringes, swabs, starter kit) are DB products too, but
         // they belong to the shop's accessories strip and the cart cross-sells,
         // not the peptide grid — see lib/accessories.ts.
@@ -234,6 +271,7 @@ export const getCatalog = cache(async function getCatalog(limit?: number): Promi
     }
   }
 
+  if (limit !== undefined) products = products.slice(0,Math.max(1,Math.floor(limit)));
   return { products, bySlug: new Map(products.map((p) => [p.slug, p])) };
 });
 
@@ -245,7 +283,20 @@ export const getCatalogProduct = cache(async function getCatalogProduct(slug: st
   const {data,error}=await db.from("products").select(DETAIL_COLUMNS).eq("slug",slug).eq("status","active").maybeSingle();
   if (error) throw new Error("Product details are temporarily unavailable");
   if (!data || (data.categories??[]).includes(ACCESSORY_CATEGORY)) return null;
-  return mapRow(data as unknown as ProductRow);
+  let row = data as unknown as ProductRow;
+  if (row.size_parent_id) {
+    const parent = await db.from('products').select(DETAIL_COLUMNS).eq('id',row.size_parent_id).eq('status','active').maybeSingle();
+    if (parent.error) throw new Error('Product details are temporarily unavailable');
+    if (!parent.data) return null;
+    row = parent.data as unknown as ProductRow;
+  }
+  if (row.size_label) {
+    const children = await db.from('products').select(CARD_COLUMNS).eq('size_parent_id',row.id).eq('status','active').order('created_at');
+    if (children.error) throw new Error('Product sizes are temporarily unavailable');
+    row.size_products = children.data as unknown as ProductRow[];
+  }
+  const mapped = mapRow(row);
+  return mapped && row.slug !== slug ? {...mapped, canonicalSlug: row.slug} : mapped;
 });
 
 /** A bounded set of related products, without reading the whole catalogue. */
@@ -254,6 +305,13 @@ export async function getCatalogProducts(slugs:string[]):Promise<Map<string,Cata
  const db=supabaseAdmin();if(!db||!clean.length)return new Map();
  const {data,error}=await db.from("products").select(CARD_COLUMNS).in("slug",clean).eq("status","active");
  if(error)return new Map();
- const products=((data??[]) as unknown as ProductRow[]).map(mapRow).filter((p):p is CatalogProduct=>p!==null);
+ const rows=(data??[]) as unknown as ProductRow[];
+ const parentIds=rows.filter(row=>row.size_label && !row.size_parent_id).map(row=>row.id);
+ if(parentIds.length){
+   const children=await db.from('products').select(CARD_COLUMNS).in('size_parent_id',parentIds).eq('status','active');
+   if(children.error)return new Map();
+   rows.push(...(children.data??[]) as unknown as ProductRow[]);
+ }
+ const products=withSizes(rows).map(mapRow).filter((p):p is CatalogProduct=>p!==null);
  return new Map(products.map(p=>[p.slug,p]));
 }

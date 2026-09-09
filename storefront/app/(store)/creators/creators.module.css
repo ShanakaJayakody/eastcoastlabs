@@ -342,6 +342,7 @@
 }
 
 .rewardNumber {
+  margin-top: 14px;
   font-size: clamp(4rem, 9vw, 8rem);
   font-weight: 750;
   letter-spacing: -0.055em;
@@ -546,6 +547,12 @@
   font-size: 0.8rem;
   font-weight: 500;
   line-height: 1.4;
+}
+
+.form .fieldHelp {
+  color: var(--creator-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .pitchField,

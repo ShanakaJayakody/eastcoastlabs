@@ -1,5 +1,7 @@
 # ECL Creator Collective Implementation Plan
 
+> **Commercial copy superseded, 9 September 2026:** The owner has confirmed a product-reward program with no upfront cash fee. Use [OFFER-AND-MESSAGING.md](../../creator-program/OFFER-AND-MESSAGING.md) for all commercial terms, selection criteria and page copy. The paid-brief packages, previous follower-count messaging and proposed referral percentages below are historical and must not be implemented. Existing visual and technical decisions continue where compatible.
+
 **Implementation status:** Executed locally using GPT-5.5 on `codex/creator-collective`. See the [implementation report](../../creator-program/IMPLEMENTATION.md) for completed work, verification results and the external staging/release steps that remain. The detailed checklist below is preserved as the implementation specification.
 
 > **For agentic workers:** User has explicitly authorised execution using GPT-5.5. Use GPT-5.5 for implementation and read the [approved visual update](../specs/2026-09-09-creator-visual-update.md) before the original spec; it supersedes conflicting visual assumptions and adds the required content-focus field. Execute all tasks, recording progress and validation evidence. Steps use checkbox syntax for tracking.

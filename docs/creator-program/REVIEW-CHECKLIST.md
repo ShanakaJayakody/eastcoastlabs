@@ -10,7 +10,7 @@ Reviewer scope: the approved creator implementation in this worktree, baseline `
 - Strong visual execution: deliberate typography/spacing, rounded portrait panels, ECL dark/turquoise/silver palette, generous but useful layout, no placeholder content.
 - Application/CTA is reachable early on phones; headings, vials, faces and field controls are not accidentally clipped or obstructed.
 - Original fictional-model disclosure; no fabricated real partners, testimonials, medical credentials, follower/income metrics or efficacy claims.
-- Offer remains paid briefs from A$300; terms are accurate about selection, rights and what is/is not included. Future affiliate proposal is not presented as operational.
+- Offer matches [OFFER-AND-MESSAGING.md](OFFER-AND-MESSAGING.md): selected applicants receive a first product valued up to A$300, earn a second vial after three agreed posts and may be invited to referral commission, an audience discount and ongoing supplies. No upfront cash fee, automatic commission activation or invented percentage. The second vial is earned through completion, independently of sales/views.
 
 ## Functional and data boundaries
 

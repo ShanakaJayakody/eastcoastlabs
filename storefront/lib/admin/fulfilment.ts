@@ -5,7 +5,7 @@ export interface LotAssignment {lotId:string;lotCode:string;units:number;coa:{ba
 export interface FulfilmentLine {itemId:string;productName:string;variantLabel:string;poolId:string;poolName:string;requiredUnits:number;allocatedUnits:number;unallocatedUnits:number;allocations:LotAssignment[]}
 export interface OrderFulfilment {orderId:string;editable:boolean;status:string;lines:FulfilmentLine[]}
 export interface LotCatalog {
- pools:{id:string;name:string;onHand:number}[];
+ pools:{id:string;name:string;sizeLabel?:string|null;onHand:number}[];
  lots:{id:string;poolId:string;code:string;units:number;availableUnits:number;receiptId:string|null;coaId:string|null}[];
  receipts:{id:string;poolId:string;units:number;createdAt:string}[];
  certificates:{id:string;batchId:string;compound:string}[];

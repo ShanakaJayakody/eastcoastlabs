@@ -28,12 +28,13 @@ export default async function CreatorPrivacyPage() {
           <p>
             We collect your name, email address, primary social profile, optional portfolio URL,
             main discipline, content focus, Australian state or territory, optional audience range,
-            application pitch, age/location confirmation, application consent and submission
+            application pitch (including any audience and reach insights you choose to share),
+            age/location confirmation, application consent and submission
             timestamps.
           </p>
           <h2>Why we collect it</h2>
           <p>
-            We use these details to review whether there may be a suitable paid creative brief and
+            We use these details to assess audience fit and suitability for the creator program and
             to contact you about your application. Applying does not subscribe you to marketing,
             create an account, create a contract, trigger product supply or arrange payment.
           </p>
@@ -46,7 +47,7 @@ export default async function CreatorPrivacyPage() {
           <h2>Retention and deletion</h2>
           <p>
             Unselected applications are deleted in a weekly review once they are older than 180
-            days. Accepted creator records are handled under a separately agreed contractor
+            days. Accepted creator records are handled under a separately agreed creator
             relationship and retention policy. You can request deletion or ask questions by
             emailing{" "}
             <a href={`mailto:${settings.supportEmail}`}>{settings.supportEmail}</a>.

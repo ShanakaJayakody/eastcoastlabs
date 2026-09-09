@@ -1,5 +1,7 @@
 # Creator Collective — approved visual update and execution brief
 
+> **Commercial copy superseded, 9 September 2026:** The owner has confirmed a product-reward program with no upfront cash fee. Use [OFFER-AND-MESSAGING.md](../../creator-program/OFFER-AND-MESSAGING.md) for all commercial terms, selection criteria and page copy. The paid-brief packages, previous follower-count messaging and proposed referral percentages below are historical and must not be implemented. Existing visual and technical decisions continue where compatible.
+
 **User direction, 9 September 2026:** Add fitness influencers, relatable health influencers, biohackers and a cover with 15+ attractive influencers in varied poses, expressing celebration, reward and excitement. Incorporate the supplied reference screenshots, personalise the result to ECL and implement the plan using **GPT-5.5 as executor**.
 
 This update takes precedence over conflicting visual/copy assumptions in the original design and implementation plan. The user has approved proceeding with implementation; no further design approval is required. Implement and validate locally in the creator worktree. Preserve the existing repository's production deployment hold and do not apply migrations to production as part of this task.

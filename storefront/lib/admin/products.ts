@@ -23,6 +23,11 @@ export interface VariantRow {
 }
 
 export interface ProductListRow {
+  size_parent_id?: string | null;
+  size_label?: string | null;
+  size_enabled?: boolean;
+  edit_version?: number;
+  sizeOptions?: ProductListRow[];
   id: string;
   slug: string;
   name: string;
@@ -114,7 +119,7 @@ export function vialsOnHand(variants: { pack_size: number; on_hand: number }[]):
 }
 
 const SELECT_PRODUCT = `
-  edit_version,
+  edit_version, size_parent_id, size_label, size_enabled,
   id, slug, name, sku, status, images, short_description, description, seo_title, seo_description, unit_cost_cents,
   product_variants (
     id, sku, pack_size, label, price_cents, compare_at_cents, active, position,
@@ -123,6 +128,9 @@ const SELECT_PRODUCT = `
 `;
 
 interface RawProduct {
+  size_parent_id?: string | null;
+  size_label?: string | null;
+  size_enabled?: boolean;
   edit_version: number;
   id: string;
   slug: string;
@@ -155,6 +163,7 @@ export async function listProducts(opts: { search?: string; lowStockOnly?: boole
       .sort((a, b) => a.pack_size - b.pack_size);
     const totalOnHand = pool.onHand; // vials — summing derived pack counts would double-count
     return {
+      size_parent_id: p.size_parent_id, size_label: p.size_label, size_enabled: p.size_enabled, edit_version: p.edit_version,
       id: p.id,
       slug: p.slug,
       name: p.name,
@@ -201,6 +210,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
   const pool = poolOf(raw);
   const variants = raw.map((v) => mapVariant(v, pool)).sort((a, b) => a.pack_size - b.pack_size);
   return {
+    size_parent_id: p.size_parent_id, size_label: p.size_label, size_enabled: p.size_enabled,
     id: p.id,
     slug: p.slug,
     name: p.name,
@@ -268,6 +278,7 @@ export interface NewVariantInput {
 }
 
 export interface CreateProductInput {
+  sizeLabel?: string;
   name: string;
   slug?: string;
   sku?: string;
@@ -296,7 +307,7 @@ export async function createProduct(
     {pack_size:3,label:"3-pack",price_cents:0},
     {pack_size:6,label:"6-pack",price_cents:0},
   ];
-  const {data,error} = await adminDb().rpc("admin_create_product", {
+  const {data,error} = await adminDb().rpc(input.sizeLabel ? 'admin_create_sized_product' : "admin_create_product", {
     p_input:{...input,slug,sku:(input.sku || `ECL-${slug.toUpperCase().replace(/-/g, "").slice(0,10)}`).toUpperCase(),variants},p_actor:actor,
   });
   if(error)throw new Error(error.message);
@@ -344,6 +355,12 @@ export async function addTiers(
 export async function duplicateProduct(slug: string, actor: string): Promise<{ slug: string }> {
   const source = await getProductBySlug(slug);
   if (!source) throw new Error("Product not found.");
+  if(source.size_label){
+    const {data,error}=await adminDb().rpc('admin_duplicate_product_sizes',{p_slug:slug,p_actor:actor});
+    if(error)throw new Error(error.message);
+    if(!data?.slug)throw new Error('Copy transaction returned no product');
+    return {slug:data.slug};
+  }
 
   const created = await createProduct(
     {

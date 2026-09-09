@@ -17,7 +17,7 @@ async function fillApplication(page: Page) {
  await page.getByLabel('Main discipline',{exact:true}).selectOption('video');
  await page.getByLabel('Your content focus',{exact:true}).selectOption('biohacking');
  await page.getByLabel('Australian state/territory',{exact:true}).selectOption('VIC');
- await page.getByLabel('What would you like to create?',{exact:true}).fill('I create polished short-form creator stories with careful light, product detail and a clear point of view.');
+ await page.getByLabel('Tell us about your audience and content',{exact:true}).fill('I create polished short-form creator stories with careful light, product detail and a clear point of view.');
  await page.getByLabel('I am 18 or over and based in Australia.',{exact:true}).check();
  await page.getByLabel(/I agree that ECL may review my application/).check();
 }
@@ -57,7 +57,7 @@ test('FAQ opens from the keyboard',async({page})=>{
  const summary=page.getByText('Do I need a large following?',{exact:true});
  await summary.focus();
  await page.keyboard.press('Enter');
- await expect(page.getByText(/we assess the quality and relevance of your work/i)).toBeVisible();
+ await expect(page.getByText(/Audience size is part of our review/i)).toBeVisible();
 });
 
 test('form validation focuses the first field and creator focus is submitted through the fixture adapter',async({page})=>{

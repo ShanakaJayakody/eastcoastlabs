@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import { marginOf, tierCostCents } from "@/lib/admin/costs";
-import type { ProductDetail, MovementRow } from "@/lib/admin/products";
+import type { ProductDetail, ProductListRow, MovementRow } from "@/lib/admin/products";
+import ProductSizesEditor from './ProductSizesEditor';
 import {
   saveProductAll,
   duplicateProductAction,
@@ -53,6 +54,7 @@ const SECTIONS = [
   { id: "details", label: "Details" },
   { id: "media", label: "Media" },
   { id: "pricing", label: "Pricing" },
+  { id: "sizes", label: "Sizes" },
   { id: "inventory", label: "Inventory" },
   { id: "seo", label: "SEO" },
 ];
@@ -68,6 +70,7 @@ export default function ProductEditor({
   waitlist,
   prev,
   next,
+  sizes,
 }: {
   product: ProductDetail;
   /** Ledger for the vial pool — the only variant stock actually lives on. */
@@ -75,6 +78,7 @@ export default function ProductEditor({
   waitlist: number;
   prev: ProductNeighbour | null;
   next: ProductNeighbour | null;
+  sizes?: ProductListRow[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -162,7 +166,7 @@ export default function ProductEditor({
           seo_description: form.seoDesc,
           status: form.status,
         },
-        product.variants.map((v) => ({
+        product.size_label ? [] : product.variants.map((v) => ({
           id: v.id,
           priceAud: Number(form.prices[v.id]),
           threshold: Number(form.thresholds[v.id] || 0),
@@ -332,7 +336,7 @@ export default function ProductEditor({
 
           {/* In-page wayfinding — the editor is a long scroll by nature. */}
           <nav className="ml-auto hidden gap-1 md:flex">
-            {SECTIONS.map((s) => (
+            {SECTIONS.filter(s=>s.id!=='pricing' || !product.size_label).map((s) => (
               <a
                 key={s.id}
                 href={`#${s.id}`}
@@ -379,7 +383,8 @@ export default function ProductEditor({
           </div>
 
           {/* ---- Pricing ---- */}
-          <section id="pricing" className={`${card} scroll-mt-40`}>
+          <ProductSizesEditor product={product} sizes={sizes ?? [product]} disabled={dirty || pending}/>
+          {!product.size_label && <section id="pricing" className={`${card} scroll-mt-40`}>
             <div className="border-b border-line px-5 py-3">
               <h3 className="text-sm font-semibold text-fg">Tier pricing</h3>
               <p className="mt-0.5 text-xs text-muted">
@@ -461,7 +466,7 @@ export default function ProductEditor({
                 })}
               </tbody>
             </table>
-          </section>
+          </section>}
 
           {/* ---- Inventory: ledger, NOT part of the save bar ---- */}
           <section id="inventory" className="scroll-mt-40 rounded-xl border border-accent/25 bg-surface">
@@ -469,7 +474,7 @@ export default function ProductEditor({
               <div>
                 <h3 className="text-sm font-semibold text-fg">Inventory</h3>
                 <p className="mt-0.5 text-xs text-muted">
-                  Stock is counted in vials; pack tiers draw from this one pool.
+                  {product.size_label ? `Stock and cost for the original ${product.size_label} size. Manage other sizes in Sizes & pricing.` : 'Stock is counted in vials; pack tiers draw from this one pool.'}
                 </p>
               </div>
               <Badge tone="info">Applies immediately</Badge>
@@ -703,7 +708,7 @@ export default function ProductEditor({
           <p className={`text-sm ${dirty ? "text-fg-2" : "text-muted"}`}>
             {dirty ? "Unsaved changes" : "No changes"}
             <span className="ml-2 text-xs text-muted-2">
-              Stock, cost and images are not part of this — they save on their own.
+              Sizes, stock, cost and images save separately.
             </span>
           </p>
           <div className="flex gap-2">
