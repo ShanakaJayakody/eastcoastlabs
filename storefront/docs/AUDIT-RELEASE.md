@@ -29,6 +29,14 @@ select count(*) as orders_without_lines from orders o
 
 Do not infer a historical physical return from a refund alone. Migration 100000 preserves the legacy flags/quantities as the starting snapshot; reconciliation remains necessary where those old flags are inaccurate. Existing pending orders without expiry need an owner-reviewed payment deadline or cancellation, not an invented retroactive promise.
 
+## GitHub integration — 9 September 2026
+
+The user authorised merging and publishing the audit implementation to GitHub `main`. Vercel's read-only project settings confirmed that `main` automatically creates production deployments and assigns the live domains. The production target was still `72e1bb72f4e54ac7c400bd6f1dcf16819efc8164`.
+
+`storefront/vercel.json` therefore temporarily sets `git.deploymentEnabled.main` to `false`. This lets the reviewed source reach GitHub without automatically deploying an application that requires unapplied database migrations. Other branches keep Vercel's existing default. This is a source-controlled deployment hold, not a production database change or a website shutdown. See [Vercel's branch deployment setting](https://vercel.com/docs/project-configuration/git-configuration#gitdeploymentenabled).
+
+After backup/restore, staging acceptance and the coupled database/application steps below are complete, remove the `main: false` entry in the release commit (or perform a deliberate reviewed manual deployment). Verify the matching application and database before restarting workers. Do not remove this hold merely to make a GitHub deployment check appear green.
+
 ## Coupled release
 
 - After the first successful branch CI run, configure the matching `verify` status check as required before merging into `main`, and review direct/force-push permissions. The read-only 8 September check found `main` unprotected and no repository rulesets. The workflow file alone does not enforce a release gate; these account settings have not been changed.
