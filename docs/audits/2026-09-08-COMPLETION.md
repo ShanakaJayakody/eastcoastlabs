@@ -1,5 +1,7 @@
 # Audit completion — 8 September 2026
 
+> The production release was completed on 9 September 2026; see [release evidence](2026-09-09-PRODUCTION-RELEASE.md). Statements below about production remaining unchanged describe the earlier implementation verification.
+
 This report continues [the initial implementation record](2026-09-08-IMPLEMENTATION.md). Work is isolated on `codex/audit-implementation`. Production remains at its previously deployed commit until the coupled database/application release is approved and performed.
 
 ## Completed workflow extensions

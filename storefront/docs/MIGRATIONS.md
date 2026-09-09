@@ -1,5 +1,7 @@
 # Tracked database migrations
 
+> Production was baselined through `20260904100000_cron_runs.sql` and upgraded through `20260908220000_application_privileges.sql` on 9 September 2026: 19 baseline entries, 14 newly applied files, zero pending at release. Do not baseline that installation again. Future runs verify recorded hashes and apply only later files.
+
 Run migration commands from `storefront/`. The runner reads only `supabase/migrations/*.sql`; it never opens or executes `supabase/seed.sql`. Application code and pending migration SQL must be reviewed together before a release. CI runs against isolated fixtures and never applies SQL to a hosted database.
 
 ## Safety model
