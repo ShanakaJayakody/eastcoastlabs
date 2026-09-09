@@ -3,7 +3,7 @@ import "server-only";
 import { createHmac } from "node:crypto";
 import { CREATOR_PRIVACY_VERSION } from "./content";
 import { canonicalCreatorPayload } from "./validation";
-import type { ApplyResult, CreatorInput } from "./types";
+import type { ApplyResult, Audience, CreatorInput } from "./types";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export interface CreatorSubmitContext {
@@ -28,17 +28,27 @@ function hourlyBucket(date: Date): string {
   return rounded.toISOString();
 }
 
+export function audienceBand(audienceSize: number): Audience {
+  if (audienceSize < 1_000) return "under-1k";
+  if (audienceSize < 10_000) return "1k-10k";
+  if (audienceSize < 50_000) return "10k-50k";
+  return "50k-plus";
+}
+
 function toRpcInput(input: CreatorInput) {
   return {
     name: input.name,
     email: input.email,
+    phone: input.phone,
     social_url: input.socialUrl,
     portfolio_url: input.portfolioUrl,
     discipline: input.discipline,
     focus: input.focus,
+    focus_detail: input.focusDetail,
     region: input.region,
     pitch: input.pitch,
-    audience: input.audience,
+    audience: audienceBand(input.audienceSize),
+    audience_size: input.audienceSize,
     adult_australia: input.adultAustralia,
     contact_consent: input.contactConsent,
     privacy_version: CREATOR_PRIVACY_VERSION,

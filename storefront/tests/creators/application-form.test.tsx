@@ -36,13 +36,14 @@ async function confirmEligibility(user: ReturnType<typeof userEvent.setup>) {
 async function fillRequiredToReview(user: ReturnType<typeof userEvent.setup>) {
   await textStep(user, "Full name", "Taylor Example");
   await textStep(user, "Email address", "taylor@example.test");
+  await textStep(user, "Phone number", "0412 345 678");
   await textStep(user, "Primary social profile", "https://instagram.com/taylor.example/");
   await user.click(screen.getByRole("button", { name: "Skip for now" }));
   await chooseStep(user, "Video");
   await chooseStep(user, "Biohacking");
   await chooseStep(user, "VIC");
   await textStep(user, "Tell us about your audience and content", pitch);
-  await user.click(screen.getByRole("button", { name: "Skip for now" }));
+  await textStep(user, "Audience size", "1200");
   await confirmEligibility(user);
   await screen.findByRole("heading", { name: "Review your application" });
 }
@@ -50,13 +51,14 @@ async function fillRequiredToReview(user: ReturnType<typeof userEvent.setup>) {
 async function fillToEligibility(user: ReturnType<typeof userEvent.setup>) {
   await textStep(user, "Full name", "Taylor Example");
   await textStep(user, "Email address", "taylor@example.test");
+  await textStep(user, "Phone number", "0412 345 678");
   await textStep(user, "Primary social profile", "https://instagram.com/taylor.example/");
   await user.click(screen.getByRole("button", { name: "Skip for now" }));
   await chooseStep(user, "Video");
   await chooseStep(user, "Biohacking");
   await chooseStep(user, "VIC");
   await textStep(user, "Tell us about your audience and content", pitch);
-  await user.click(screen.getByRole("button", { name: "Skip for now" }));
+  await textStep(user, "Audience size", "1200");
 }
 
 describe("CreatorApplicationForm", () => {
@@ -102,7 +104,7 @@ describe("CreatorApplicationForm", () => {
     expect(screen.getByLabelText("Full name", { exact: true })).toHaveValue("Taylor Example");
   });
 
-  it("lets optional portfolio and audience steps be skipped", async () => {
+  it("lets the optional portfolio step be skipped while requiring audience size", async () => {
     const user = userEvent.setup();
     render(<CreatorApplicationForm submit={vi.fn()} />);
 
@@ -111,7 +113,30 @@ describe("CreatorApplicationForm", () => {
     expect(screen.getByText("Portfolio")).toBeInTheDocument();
     expect(screen.getByText("Not shared")).toBeInTheDocument();
     expect(screen.getByText("Audience size")).toBeInTheDocument();
-    expect(screen.getByText("Share during fit review")).toBeInTheDocument();
+    expect(screen.getByText("1200")).toBeInTheDocument();
+  });
+
+  it("requires a valid phone number before the social profile step", async () => {
+    const user = userEvent.setup();
+    render(<CreatorApplicationForm submit={vi.fn()} />);
+
+    await textStep(user, "Full name", "Taylor Example");
+    await textStep(user, "Email address", "taylor@example.test");
+    await user.click(continueButton());
+
+    const phone = screen.getByRole("textbox", { name: "Phone number" });
+    await waitFor(() => expect(phone).toHaveFocus());
+    expect(phone).toHaveAttribute("aria-invalid", "true");
+
+    await user.type(phone, "abc");
+    await user.click(continueButton());
+    await waitFor(() => expect(phone).toHaveFocus());
+    expect(phone).toHaveAttribute("aria-invalid", "true");
+
+    await user.clear(phone);
+    await user.type(phone, "0412 345 678");
+    await user.click(continueButton());
+    expect(screen.getByLabelText("Primary social profile", { exact: true })).toBeInTheDocument();
   });
 
   it("keeps choice questions native and waits for Continue after keyboard changes", async () => {
@@ -120,6 +145,7 @@ describe("CreatorApplicationForm", () => {
 
     await textStep(user, "Full name", "Taylor Example");
     await textStep(user, "Email address", "taylor@example.test");
+    await textStep(user, "Phone number", "0412 345 678");
     await textStep(user, "Primary social profile", "https://instagram.com/taylor.example/");
     await user.click(screen.getByRole("button", { name: "Skip for now" }));
 
@@ -140,6 +166,7 @@ describe("CreatorApplicationForm", () => {
 
     await textStep(user, "Full name", "Taylor Example");
     await textStep(user, "Email address", "taylor@example.test");
+    await textStep(user, "Phone number", "0412 345 678");
     await textStep(user, "Primary social profile", "https://instagram.com/taylor.example/");
     await user.click(screen.getByRole("button", { name: "Skip for now" }));
     await chooseStep(user, "Video");
@@ -154,7 +181,86 @@ describe("CreatorApplicationForm", () => {
     expect(screen.getByLabelText("Tell us about your audience and content", { exact: true })).toHaveValue(
       "Line one\nLine two with enough creator detail to pass later.",
     );
-    expect(screen.queryByText("Audience size")).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Audience size" })).toBeNull();
+  });
+
+  it("requires Other focus detail and clears it when a different focus is selected", async () => {
+    const user = userEvent.setup();
+    const submit = vi.fn().mockResolvedValue({ ok: true });
+    render(<CreatorApplicationForm submit={submit} />);
+
+    await textStep(user, "Full name", "Taylor Example");
+    await textStep(user, "Email address", "taylor@example.test");
+    await textStep(user, "Phone number", "0412 345 678");
+    await textStep(user, "Primary social profile", "https://instagram.com/taylor.example/");
+    await user.click(screen.getByRole("button", { name: "Skip for now" }));
+    await chooseStep(user, "Video");
+
+    await user.click(screen.getByRole("radio", { name: "Other" }));
+    const detail = screen.getByRole("textbox", { name: "Tell us what you love talking about" });
+    expect(detail).toBeInTheDocument();
+    await user.click(continueButton());
+    await waitFor(() => expect(detail).toHaveFocus());
+    expect(detail).toHaveAttribute("aria-invalid", "true");
+
+    await user.type(detail, "Recovery routines");
+    await user.click(continueButton());
+    await chooseStep(user, "VIC");
+    await textStep(user, "Tell us about your audience and content", pitch);
+    await textStep(user, "Audience size", "1200");
+    await confirmEligibility(user);
+    await screen.findByRole("heading", { name: "Review your application" });
+    expect(screen.getByText("Other: Recovery routines")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Edit Content focus" }));
+    await user.click(screen.getByRole("radio", { name: "Fitness" }));
+    expect(screen.queryByRole("textbox", { name: "Tell us what you love talking about" })).toBeNull();
+    await user.click(continueButton());
+    await screen.findByRole("heading", { name: "Review your application" });
+    expect(screen.queryByText(/Recovery routines/)).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /Send my application/ }));
+    await screen.findByRole("status");
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({ focus: "fitness", focusDetail: "" }),
+      "30000000-0000-0000-0000-000000000001",
+    );
+  });
+
+  it("requires an exact whole-number audience size and accepts zero", async () => {
+    const user = userEvent.setup();
+    render(<CreatorApplicationForm submit={vi.fn()} />);
+
+    await textStep(user, "Full name", "Taylor Example");
+    await textStep(user, "Email address", "taylor@example.test");
+    await textStep(user, "Phone number", "0412 345 678");
+    await textStep(user, "Primary social profile", "https://instagram.com/taylor.example/");
+    await user.click(screen.getByRole("button", { name: "Skip for now" }));
+    await chooseStep(user, "Video");
+    await chooseStep(user, "Biohacking");
+    await chooseStep(user, "VIC");
+    await textStep(user, "Tell us about your audience and content", pitch);
+
+    await user.click(continueButton());
+    const audience = screen.getByRole("textbox", { name: "Audience size" });
+    await waitFor(() => expect(audience).toHaveFocus());
+    expect(audience).toHaveAttribute("aria-invalid", "true");
+
+    await user.type(audience, "-1");
+    await user.click(continueButton());
+    expect(audience).toHaveAttribute("aria-invalid", "true");
+
+    await user.clear(audience);
+    await user.type(audience, "1.5");
+    await user.click(continueButton());
+    expect(audience).toHaveAttribute("aria-invalid", "true");
+
+    await user.clear(audience);
+    await user.type(audience, "0");
+    await user.click(continueButton());
+    await confirmEligibility(user);
+    await screen.findByRole("heading", { name: "Review your application" });
+    expect(screen.getByText("0")).toBeInTheDocument();
   });
 
   it("does not advance when WebKit reports a composing Enter key", () => {
@@ -187,17 +293,24 @@ describe("CreatorApplicationForm", () => {
     await fillRequiredToReview(user);
     expect(submit).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Edit Email address" }));
-    const email = screen.getByLabelText("Email address", { exact: true });
-    await user.clear(email);
-    await user.type(email, "casey@example.test");
+    await user.click(screen.getByRole("button", { name: "Edit Phone number" }));
+    const phone = screen.getByLabelText("Phone number", { exact: true });
+    await user.clear(phone);
+    await user.type(phone, "+61 499 111 222");
+    await user.click(continueButton());
+    await screen.findByRole("heading", { name: "Review your application" });
+
+    await user.click(screen.getByRole("button", { name: "Edit Audience size" }));
+    const audience = screen.getByLabelText("Audience size", { exact: true });
+    await user.clear(audience);
+    await user.type(audience, "2500");
     await user.click(continueButton());
     await screen.findByRole("heading", { name: "Review your application" });
     await user.click(screen.getByRole("button", { name: /Send my application/ }));
 
     await screen.findByRole("status");
     expect(submit).toHaveBeenCalledWith(
-      expect.objectContaining({ email: "casey@example.test" }),
+      expect.objectContaining({ phone: "+61499111222", audienceSize: 2500 }),
       "30000000-0000-0000-0000-000000000001",
     );
   });
@@ -292,16 +405,16 @@ describe("CreatorApplicationForm", () => {
     const submit = vi.fn().mockResolvedValue({
       ok: false,
       code: "validation",
-      fieldErrors: { email: "Synthetic creator email needs correction." },
+      fieldErrors: { phone: "Synthetic creator phone needs correction." },
     });
     render(<CreatorApplicationForm submit={submit} />);
     await fillRequiredToReview(user);
 
     await user.click(screen.getByRole("button", { name: /Send my application/ }));
 
-    const email = await screen.findByLabelText("Email address", { exact: true });
-    await waitFor(() => expect(email).toHaveFocus());
-    expect(email).toHaveAccessibleDescription("Synthetic creator email needs correction.");
+    const phone = await screen.findByLabelText("Phone number", { exact: true });
+    await waitFor(() => expect(phone).toHaveFocus());
+    expect(phone).toHaveAccessibleDescription(/Synthetic creator phone needs correction\./);
   });
 
   it("replaces the form with a focusable confirmation after success", async () => {

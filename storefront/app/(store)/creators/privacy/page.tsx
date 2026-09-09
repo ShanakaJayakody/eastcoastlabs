@@ -26,17 +26,18 @@ export default async function CreatorPrivacyPage() {
           </p>
           <h2>What we collect</h2>
           <p>
-            We collect your name, email address, primary social profile, optional portfolio URL,
-            main discipline, content focus, Australian state or territory, optional audience range,
-            application pitch (including any audience and reach insights you choose to share),
-            age/location confirmation, application consent and submission
+            We collect your name, email address, phone number, primary social profile, optional
+            portfolio URL, main discipline, content focus, any typed &quot;Other&quot; focus detail,
+            Australian state or territory, exact audience count for your primary profile,
+            application pitch, age/location confirmation, application consent and submission
             timestamps.
           </p>
           <h2>Why we collect it</h2>
           <p>
             We use these details to assess audience fit and suitability for the creator program and
-            to contact you about your application. Applying does not subscribe you to marketing,
-            create an account, create a contract, trigger product supply or arrange payment.
+            to contact you about your application only. Applying does not subscribe you to SMS
+            marketing or other marketing, create an account, create a contract, trigger product
+            supply or arrange payment.
           </p>
           <h2>Who can access it</h2>
           <p>

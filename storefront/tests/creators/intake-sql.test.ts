@@ -6,25 +6,31 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 let db: PGlite;
 
 const migration = () =>
-  db.exec(readFileSync(resolve("supabase/migrations/20260909140000_creator_applications.sql"), "utf8"));
+  db.exec([
+    readFileSync(resolve("supabase/migrations/20260909140000_creator_applications.sql"), "utf8"),
+    readFileSync(resolve("supabase/migrations/20260909170000_creator_application_details.sql"), "utf8"),
+  ].join("\n"));
 
 const rpc = async <T = Record<string, unknown>>(sql: string, args: unknown[] = []) =>
   (await db.query<{ r: T }>(`select ${sql} r`, args)).rows[0].r;
 
-const input = (overrides: Record<string, unknown> = {}) => ({
+const input = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   name: "Taylor Example",
   email: "taylor@example.test",
   social_url: "https://instagram.com/taylor.example/",
   portfolio_url: "",
   discipline: "video",
   focus: "fitness",
+  focus_detail: "",
   region: "VIC",
   pitch:
     "I create thoughtful product stories with natural light, careful pacing and a clear point of view.",
-  audience: "",
+  audience: "10k-50k",
+  audience_size: 12500,
+  phone: "+61400123456",
   adult_australia: true,
   contact_consent: true,
-  privacy_version: "creator-privacy-2026-09-09",
+  privacy_version: "creator-privacy-2026-09-09-v3",
   ...overrides,
 });
 
@@ -63,6 +69,119 @@ describe("creator intake SQL", () => {
     await expect(submit(key, input(), "d".repeat(64))).resolves.toEqual({ status: "conflict" });
     expect((await db.query("select count(*)::int n from creator_applications")).rows[0]).toEqual({ n: 1 });
     expect((await db.query("select focus from creator_applications")).rows[0]).toEqual({ focus: "fitness" });
+  });
+
+  it("stores new application details and preserves idempotent mismatch protection", async () => {
+    const key = "30000000-0000-0000-0000-000000000001";
+    const payload = input({
+      focus: "other",
+      focus_detail: "Outdoor endurance",
+      audience: "",
+      audience_size: 0,
+      phone: "+64211234567",
+    });
+    await expect(submit(key, payload, "a".repeat(64))).resolves.toEqual({ status: "ok" });
+    expect(
+      (await db.query("select phone,focus,focus_detail,audience,audience_size from creator_applications")).rows[0],
+    ).toEqual({
+      phone: "+64211234567",
+      focus: "other",
+      focus_detail: "Outdoor endurance",
+      audience: "under-1k",
+      audience_size: 0,
+    });
+    await expect(submit(key, { ...payload, audience_size: 1 }, "d".repeat(64))).resolves.toEqual({
+      status: "conflict",
+    });
+  });
+
+  it("requires new details for v3 submissions while accepting old rollout payloads", async () => {
+    await expect(
+      submit("30000000-0000-0000-0000-000000000001", input({ phone: null })),
+    ).rejects.toThrow(/phone/i);
+    await expect(
+      submit("30000000-0000-0000-0000-000000000002", input({ audience_size: null })),
+    ).rejects.toThrow(/audience/i);
+    await expect(
+      submit("30000000-0000-0000-0000-000000000003", input({ focus: "other", focus_detail: "" })),
+    ).rejects.toThrow(/focus detail/i);
+    await expect(
+      submit("30000000-0000-0000-0000-000000000004", input({ audience_size: 2_147_483_648 })),
+    ).rejects.toThrow(/audience/i);
+    await expect(
+      submit("30000000-0000-0000-0000-000000000005", {
+        name: "Partial Legacy Creator",
+        email: "partial-legacy@example.test",
+        social_url: "https://instagram.com/partial.legacy/",
+        portfolio_url: "",
+        discipline: "content",
+        focus: "health",
+        region: "NSW",
+        pitch: "I create health stories with careful context and a steady point of view.",
+        audience: "1k-10k",
+        audience_size: 1200,
+        adult_australia: true,
+        contact_consent: true,
+        privacy_version: "creator-privacy-2026-09-09-v2",
+      }),
+    ).rejects.toThrow(/phone/i);
+
+    const oldPayload = {
+      name: "Legacy Creator",
+      email: "legacy@example.test",
+      social_url: "https://instagram.com/legacy.creator/",
+      portfolio_url: "",
+      discipline: "content",
+      focus: "health",
+      region: "NSW",
+      pitch: "I create practical health stories with steady product context and clear audience education.",
+      audience: "1k-10k",
+      adult_australia: true,
+      contact_consent: true,
+      privacy_version: "creator-privacy-2026-09-09-v2",
+    };
+    await expect(
+      submit("30000000-0000-0000-0000-000000000006", oldPayload, "4".repeat(64), "4".repeat(64)),
+    ).resolves.toEqual({ status: "ok" });
+    expect(
+      (await db.query("select phone,focus_detail,audience,audience_size from creator_applications where email='legacy@example.test'")).rows[0],
+    ).toEqual({
+      phone: null,
+      focus_detail: null,
+      audience: "1k-10k",
+      audience_size: null,
+    });
+  });
+
+  it("requires Other focus detail to be typed text trimmed like the JS validator", async () => {
+    const invalidDetails = [
+      { suffix: "array", focus_detail: [] },
+      { suffix: "boolean", focus_detail: true },
+      { suffix: "blank", focus_detail: "\t\n " },
+      { suffix: "nbsp-bom", focus_detail: "\u00a0\ufeff" },
+    ];
+    for (const { suffix, focus_detail } of invalidDetails) {
+      await expect(
+        submit(
+          `30000000-0000-0000-0000-${String(100 + invalidDetails.findIndex((entry) => entry.suffix === suffix) + 1).padStart(12, "0")}`,
+          input({ focus: "other", focus_detail, email: `detail-${suffix}@example.test` }),
+          "5".repeat(64),
+          "5".repeat(64),
+        ),
+      ).rejects.toThrow(/focus detail/i);
+    }
+
+    await expect(
+      submit(
+        "30000000-0000-0000-0000-000000000104",
+        input({ focus: "other", focus_detail: "\t\u00a0\ufeff Outdoor endurance \u202f\n" }),
+        "6".repeat(64),
+        "6".repeat(64),
+      ),
+    ).resolves.toEqual({ status: "ok" });
+    expect((await db.query("select focus_detail from creator_applications")).rows[0]).toEqual({
+      focus_detail: "Outdoor endurance",
+    });
   });
 
   it("deduplicates the same email and social profile on the same UTC day without overwriting", async () => {

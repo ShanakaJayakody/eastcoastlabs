@@ -28,13 +28,16 @@ const app: CreatorApplicationRow = {
   updated_at: "2026-09-09T01:10:00.000Z",
   name: "Taylor <script>alert(1)</script>",
   email: "taylor@example.test",
+  phone: "+61400123456",
   social_url: "https://instagram.com/taylor.example/",
   portfolio_url: "https://example.com/portfolio",
   discipline: "video",
   focus: "biohacking",
+  focus_detail: "",
   region: "VIC",
   pitch: "I make detailed creator stories with a clear point of view for careful audiences.",
   audience: "1k-10k",
+  audience_size: 12500,
   adult_australia: true,
   contact_consent: true,
   privacy_version: "creator-privacy-2026-09-09",
@@ -92,6 +95,20 @@ describe("creator admin operations", () => {
       status: "accepted",
       notes: "x".repeat(5001),
     })).resolves.toMatchObject({ ok: false, error: "Notes must be 5000 characters or fewer." });
+  });
+
+  it("selects nullable detail fields for historical and current application records", async () => {
+    const q = query([{ ...app, phone: null, focus_detail: null, audience_size: null }]);
+    m.from.mockReturnValue(q);
+    await expect(getCreatorApplication(app.id)).resolves.toMatchObject({
+      id: app.id,
+      phone: null,
+      focus_detail: null,
+      audience_size: null,
+    });
+    expect(q.select).toHaveBeenCalledWith(expect.stringContaining("phone"));
+    expect(q.select).toHaveBeenCalledWith(expect.stringContaining("focus_detail"));
+    expect(q.select).toHaveBeenCalledWith(expect.stringContaining("audience_size"));
   });
 
   it("reviews through the RPC with the authenticated actor and handles stale revisions", async () => {

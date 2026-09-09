@@ -12,12 +12,15 @@ const input = {
   portfolio_url: "",
   discipline: "video",
   focus: "health",
+  focus_detail: "",
   region: "VIC",
   pitch: "I create practical health stories with polished vertical video and clear product framing.",
-  audience: "",
+  audience: "10k-50k",
+  audience_size: 12500,
+  phone: "+61400123456",
   adult_australia: true,
   contact_consent: true,
-  privacy_version: "creator-privacy-2026-09-09",
+  privacy_version: "creator-privacy-2026-09-09-v3",
 };
 
 const rpc = async <T = Record<string, unknown>>(sql: string, args: unknown[] = []) =>
@@ -50,7 +53,10 @@ describe("creator admin SQL review workflow", () => {
     await db.exec(
       "create table admin_audit_log(id uuid primary key default gen_random_uuid(),actor_email text not null,action text not null,entity_type text,entity_id text,diff jsonb,created_at timestamptz not null default now());",
     );
-    await db.exec(readFileSync(resolve("supabase/migrations/20260909140000_creator_applications.sql"), "utf8"));
+    await db.exec([
+      readFileSync(resolve("supabase/migrations/20260909140000_creator_applications.sql"), "utf8"),
+      readFileSync(resolve("supabase/migrations/20260909170000_creator_application_details.sql"), "utf8"),
+    ].join("\n"));
   });
 
   afterAll(async () => {

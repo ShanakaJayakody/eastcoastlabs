@@ -41,6 +41,20 @@ function allowedFrom(status: ApplicationStatus): ApplicationStatus[] {
   return [status];
 }
 
+function provided(value: string | null | undefined) {
+  return value?.trim() || "Not provided";
+}
+
+function focusSummary(application: CreatorApplicationRow) {
+  const detail = application.focus_detail?.trim();
+  return application.focus === "other" && detail ? `${application.focus}: ${detail}` : application.focus;
+}
+
+function audienceSummary(application: CreatorApplicationRow) {
+  if (typeof application.audience_size === "number") return String(application.audience_size);
+  return application.audience || "Not provided";
+}
+
 export default function CreatorApplicationDetail({
   application,
   review,
@@ -108,6 +122,10 @@ export default function CreatorApplicationDetail({
           <p className="mt-1 break-all text-sm text-fg">{application.email}</p>
         </div>
         <div>
+          <p className="text-xs uppercase tracking-wide text-muted">Phone</p>
+          <p className="mt-1 break-all text-sm text-fg">{provided(application.phone)}</p>
+        </div>
+        <div>
           <p className="text-xs uppercase tracking-wide text-muted">Profile</p>
           <p className="mt-1 text-sm">{external(application.social_url, "Open social profile")}</p>
         </div>
@@ -118,12 +136,12 @@ export default function CreatorApplicationDetail({
         <div>
           <p className="text-xs uppercase tracking-wide text-muted">Focus</p>
           <p className="mt-1 text-sm text-fg">
-            {application.focus} · {application.discipline} · {application.region}
+            {focusSummary(application)} · {application.discipline} · {application.region}
           </p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide text-muted">Audience</p>
-          <p className="mt-1 text-sm text-fg">{application.audience || "Prefer not to say"}</p>
+          <p className="mt-1 text-sm text-fg">{audienceSummary(application)}</p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide text-muted">Consent</p>

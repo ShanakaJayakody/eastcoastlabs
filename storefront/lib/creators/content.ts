@@ -1,6 +1,6 @@
 import type { Audience, Discipline, Focus, Region } from "./types";
 
-export const CREATOR_PRIVACY_VERSION = "creator-privacy-2026-09-09-v2";
+export const CREATOR_PRIVACY_VERSION = "creator-privacy-2026-09-09-v3";
 
 export const creatorCopy = {
   name: "ECL Creator Collective",

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import {
-  audienceOptions,
   disciplineOptions,
   focusOptions,
   regionOptions,
@@ -12,7 +11,6 @@ import { trackCreatorEvent, type CreatorErrorCode } from "@/lib/analytics";
 import { canonicalCreatorPayload, validateCreatorInput } from "@/lib/creators/validation";
 import type {
   ApplyResult,
-  Audience,
   CreatorInput,
   Discipline,
   FieldErrors,
@@ -25,29 +23,32 @@ const SESSION_KEY = "ecl_creator_application_request";
 const fieldOrder: Array<keyof CreatorInput> = [
   "name",
   "email",
+  "phone",
   "socialUrl",
   "portfolioUrl",
   "discipline",
   "focus",
+  "focusDetail",
   "region",
   "pitch",
-  "audience",
+  "audienceSize",
   "adultAustralia",
   "contactConsent",
   "website",
 ];
 
-type FormState = Omit<CreatorInput, "discipline" | "focus" | "region" | "audience"> & {
+type FormState = Omit<CreatorInput, "discipline" | "focus" | "region" | "audienceSize"> & {
   discipline: Discipline | "";
   focus: Focus | "";
   region: Region | "";
-  audience: Audience | "";
+  audienceSize: string;
 };
 
-type ChoiceField = "discipline" | "focus" | "region" | "audience";
+type ChoiceField = "discipline" | "focus" | "region";
 type StepId =
   | "name"
   | "email"
+  | "phone"
   | "socialUrl"
   | "portfolioUrl"
   | "discipline"
@@ -70,13 +71,15 @@ type Step = {
 const initialForm: FormState = {
   name: "",
   email: "",
+  phone: "",
   socialUrl: "",
   portfolioUrl: "",
   discipline: "",
   focus: "",
+  focusDetail: "",
   region: "",
   pitch: "",
-  audience: "",
+  audienceSize: "",
   adultAustralia: false,
   contactConsent: false,
   website: "",
@@ -94,6 +97,13 @@ const steps: Step[] = [
     eyebrow: "Best contact",
     title: "Where can we reach you?",
     fields: ["email"],
+  },
+  {
+    id: "phone",
+    eyebrow: "Direct follow-up",
+    title: "What's the best phone number for your application?",
+    help: "Use an Australian mobile number or include your country code.",
+    fields: ["phone"],
   },
   {
     id: "socialUrl",
@@ -120,7 +130,7 @@ const steps: Step[] = [
     id: "focus",
     eyebrow: "Audience fit",
     title: "What do you love talking about?",
-    fields: ["focus"],
+    fields: ["focus", "focusDetail"],
   },
   {
     id: "region",
@@ -138,11 +148,10 @@ const steps: Step[] = [
   },
   {
     id: "audience",
-    eyebrow: "Optional audience range",
-    title: "Roughly how large is your audience?",
-    help: "You can share exact platform insights later if the application is a fit.",
-    fields: ["audience"],
-    optional: true,
+    eyebrow: "Audience size",
+    title: "How large is your audience?",
+    help: "Enter the number of followers or subscribers for your primary profile. Use 0 if you do not have an audience yet.",
+    fields: ["audienceSize"],
   },
   {
     id: "eligibility",
@@ -188,7 +197,7 @@ function parseResult(value: unknown): ApplyResult {
     if (result.ok === true) return { ok: true };
     if (result.ok === false) {
       if (result.code === "validation" && "fieldErrors" in result) {
-        return { ok: false, code: "validation", fieldErrors: result.fieldErrors };
+        return { ok: false, code: "validation", fieldErrors: result.fieldErrors as FieldErrors };
       }
       if (
         result.code === "rate_limited" ||
@@ -269,7 +278,7 @@ function fieldDescription(...ids: Array<string | undefined>) {
 }
 
 function isChoiceField(field: keyof CreatorInput): field is ChoiceField {
-  return field === "discipline" || field === "focus" || field === "region" || field === "audience";
+  return field === "discipline" || field === "focus" || field === "region";
 }
 
 export default function CreatorApplicationForm({
@@ -301,8 +310,10 @@ export default function CreatorApplicationForm({
   const hasEnterHint =
     step.id === "name" ||
     step.id === "email" ||
+    step.id === "phone" ||
     step.id === "socialUrl" ||
-    step.id === "portfolioUrl";
+    step.id === "portfolioUrl" ||
+    step.id === "audience";
 
   useEffect(() => {
     return () => {
@@ -327,9 +338,16 @@ export default function CreatorApplicationForm({
 
   const updateChoice = (field: ChoiceField, value: string) => {
     if (field === "discipline") update("discipline", value as Discipline);
-    else if (field === "focus") update("focus", value as Focus);
+    else if (field === "focus") {
+      setForm((current) => ({
+        ...current,
+        focus: value as Focus,
+        focusDetail: value === "other" ? current.focusDetail : "",
+      }));
+      setErrors((current) => ({ ...current, focus: undefined, focusDetail: undefined }));
+      setGlobalError("");
+    }
     else if (field === "region") update("region", value as Region);
-    else update("audience", value as Audience | "");
   };
 
   const trackError = (code: CreatorErrorCode) => {
@@ -415,7 +433,6 @@ export default function CreatorApplicationForm({
   const skipStep = () => {
     if (pending) return;
     if (step.id === "portfolioUrl") update("portfolioUrl", "");
-    if (step.id === "audience") update("audience", "");
     setErrors({});
     setGlobalError("");
     const nextIndex = returnToReviewRef.current ? reviewIndex : Math.min(stepIndex + 1, reviewIndex);
@@ -508,16 +525,17 @@ export default function CreatorApplicationForm({
     fieldDescription(helpId, errors[field] ? `${field}-error` : undefined);
 
   const renderTextStep = (
-    field: "name" | "email" | "socialUrl" | "portfolioUrl",
+    field: "name" | "email" | "phone" | "socialUrl" | "portfolioUrl" | "audienceSize",
     details: {
       id: string;
       labelId: string;
       label: string;
       type?: string;
-      inputMode?: "email" | "url";
+      inputMode?: "email" | "url" | "tel" | "numeric";
       autoComplete?: string;
       placeholder?: string;
       helpId?: string;
+      pattern?: string;
     },
   ) => (
     <label htmlFor={details.id} className={styles.wizardField}>
@@ -533,6 +551,7 @@ export default function CreatorApplicationForm({
         autoComplete={details.autoComplete}
         inputMode={details.inputMode}
         type={details.type}
+        pattern={details.pattern}
         placeholder={details.placeholder}
         aria-invalid={Boolean(errors[field])}
         aria-describedby={described(field, details.helpId)}
@@ -556,9 +575,7 @@ export default function CreatorApplicationForm({
           ? "Main discipline"
           : field === "focus"
             ? "Your content focus"
-            : field === "region"
-              ? "Australian state/territory"
-              : "Audience size"}
+            : "Australian state/territory"}
       </legend>
       <div className={styles.choiceList}>
         {options.map((option, index) => {
@@ -583,6 +600,26 @@ export default function CreatorApplicationForm({
           );
         })}
       </div>
+      {field === "focus" && form.focus === "other" && (
+        <label htmlFor="creator-focus-detail" className={`${styles.wizardField} ${styles.nestedField}`}>
+          <span id="creator-focus-detail-label">Tell us what you love talking about</span>
+          <small id="creator-focus-detail-help" className={styles.fieldHelp}>
+            A short phrase is enough.
+          </small>
+          <input
+            id="creator-focus-detail"
+            aria-labelledby="creator-focus-detail-label"
+            ref={(node) => { refs.current.focusDetail = node; }}
+            value={form.focusDetail}
+            maxLength={160}
+            onChange={(event) => update("focusDetail", event.target.value)}
+            onKeyDown={onSingleLineKeyDown}
+            aria-invalid={Boolean(errors.focusDetail)}
+            aria-describedby={described("focusDetail", "creator-focus-detail-help")}
+          />
+          {errors.focusDetail && <small id="focusDetail-error">{errors.focusDetail}</small>}
+        </label>
+      )}
       {errors[field] && <small id={`${field}-error`}>{errors[field]}</small>}
     </fieldset>
   );
@@ -646,6 +683,7 @@ export default function CreatorApplicationForm({
     const rows: Array<{ label: string; value: string; field: keyof CreatorInput }> = [
       { label: "Full name", value: form.name || "Missing", field: "name" },
       { label: "Email address", value: form.email || "Missing", field: "email" },
+      { label: "Phone number", value: form.phone || "Missing", field: "phone" },
       { label: "Primary social profile", value: form.socialUrl || "Missing", field: "socialUrl" },
       { label: "Portfolio", value: form.portfolioUrl || "Not shared", field: "portfolioUrl" },
       {
@@ -655,7 +693,10 @@ export default function CreatorApplicationForm({
       },
       {
         label: "Content focus",
-        value: optionLabel(focusOptions, form.focus, "Missing"),
+        value:
+          form.focus === "other" && form.focusDetail.trim()
+            ? `Other: ${form.focusDetail.trim()}`
+            : optionLabel(focusOptions, form.focus, "Missing"),
         field: "focus",
       },
       {
@@ -666,8 +707,8 @@ export default function CreatorApplicationForm({
       { label: "Pitch", value: form.pitch || "Missing", field: "pitch" },
       {
         label: "Audience size",
-        value: optionLabel(audienceOptions, form.audience, "Share during fit review"),
-        field: "audience",
+        value: form.audienceSize.trim() || "Missing",
+        field: "audienceSize",
       },
     ];
 
@@ -717,6 +758,18 @@ export default function CreatorApplicationForm({
         type: "email",
       });
     }
+    if (step.id === "phone") {
+      return renderTextStep("phone", {
+        id: "creator-phone",
+        labelId: "creator-phone-label",
+        label: "Phone number",
+        autoComplete: "tel",
+        inputMode: "tel",
+        type: "tel",
+        placeholder: "0412 345 678",
+        helpId: "creator-phone-help",
+      });
+    }
     if (step.id === "socialUrl") {
       return renderTextStep("socialUrl", {
         id: "creator-social",
@@ -743,7 +796,16 @@ export default function CreatorApplicationForm({
     if (step.id === "focus") return renderChoices("focus", focusOptions);
     if (step.id === "region") return renderChoices("region", regionOptions, true);
     if (step.id === "pitch") return renderPitch();
-    if (step.id === "audience") return renderChoices("audience", audienceOptions);
+    if (step.id === "audience") {
+      return renderTextStep("audienceSize", {
+        id: "creator-audience-size",
+        labelId: "creator-audience-size-label",
+        label: "Audience size",
+        inputMode: "numeric",
+        pattern: "[0-9]*",
+        helpId: "creator-audience-size-help",
+      });
+    }
     if (step.id === "eligibility") return renderEligibility();
     return renderReview();
   };

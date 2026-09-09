@@ -33,13 +33,14 @@ async function fillApplication(page:Page){
 
 async function fillApplicationFromEmail(page:Page){
  await textStep(page,'Email address','taylor@example.test');
+ await textStep(page,'Phone number','0412 345 678');
  await textStep(page,'Primary social profile','https://instagram.com/taylor.creator/');
  await page.getByRole('button',{name:'Skip for now'}).click();
  await choiceStep(page,'Video');
  await choiceStep(page,'Biohacking');
  await choiceStep(page,'VIC');
  await textStep(page,'Tell us about your audience and content',pitch);
- await page.getByRole('button',{name:'Skip for now'}).click();
+ await textStep(page,'Audience size','1200');
  await page.getByLabel('I am 18 or over and based in Australia.',{exact:true}).check();
  await page.getByLabel(/I agree that ECL may review my application/).check();
  await continueStep(page);
@@ -49,6 +50,7 @@ async function fillApplicationFromEmail(page:Page){
 async function reachDiscipline(page:Page){
  await textStep(page,'Full name','Taylor Creator');
  await textStep(page,'Email address','taylor@example.test');
+ await textStep(page,'Phone number','0412 345 678');
  await textStep(page,'Primary social profile','https://instagram.com/taylor.creator/');
  await page.getByRole('button',{name:'Skip for now'}).click();
 }
@@ -136,7 +138,37 @@ test('textarea Enter inserts a newline and keeps the pitch step active',async({p
  await field.type('Line two with enough creator detail to pass later.');
  await expect(field).toHaveValue('Line one\nLine two with enough creator detail to pass later.');
  await expect(page.getByRole('button',{name:'Continue'})).toBeVisible();
- await expect(page.getByRole('radio',{name:'Share during fit review'})).toHaveCount(0);
+ await expect(page.getByRole('textbox',{name:'Audience size'})).toHaveCount(0);
+});
+
+test('Other focus requires a typed answer and audience size requires an exact count',async({page})=>{
+ await reachDiscipline(page);
+ await choiceStep(page,'Video');
+ await page.getByRole('radio',{name:'Other'}).check();
+ const other=page.getByRole('textbox',{name:'Tell us what you love talking about'});
+ await expect(other).toBeVisible();
+ await continueStep(page);
+ await expect(other).toBeFocused();
+ await expect(other).toHaveAccessibleDescription(/required|too short/i);
+ await other.fill('Recovery routines');
+ await continueStep(page);
+ await choiceStep(page,'VIC');
+ await textStep(page,'Tell us about your audience and content',pitch);
+ await continueStep(page);
+ const audience=page.getByRole('textbox',{name:'Audience size'});
+ await expect(audience).toBeFocused();
+ await audience.fill('1.5');
+ await continueStep(page);
+ await expect(audience).toHaveAccessibleDescription(/primary profile.*0 if you do not have an audience yet.*Enter an exact audience number\./);
+ await audience.fill('0');
+ await continueStep(page);
+ await page.getByLabel('I am 18 or over and based in Australia.',{exact:true}).check();
+ await page.getByLabel(/I agree that ECL may review my application/).check();
+ await continueStep(page);
+ await expect(page.getByRole('heading',{name:'Review your application'})).toBeVisible();
+ await expect(page.getByText('Other: Recovery routines')).toBeVisible();
+ const summary=page.getByRole('region',{name:'Application summary'});
+ await expect(summary.getByText('0',{exact:true})).toBeVisible();
 });
 
 test('mobile wizard steps fit 320px and 390px without horizontal overflow',async({page},testInfo)=>{

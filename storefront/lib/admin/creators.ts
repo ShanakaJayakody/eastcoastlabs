@@ -12,11 +12,15 @@ export type CreatorApplicationListRow = Pick<
   | "created_at"
   | "name"
   | "email"
+  | "phone"
   | "social_url"
   | "portfolio_url"
   | "discipline"
   | "focus"
+  | "focus_detail"
   | "region"
+  | "audience"
+  | "audience_size"
   | "status"
   | "revision"
 >;
@@ -38,11 +42,15 @@ const LIST_FIELDS = [
   "created_at",
   "name",
   "email",
+  "phone",
   "social_url",
   "portfolio_url",
   "discipline",
   "focus",
+  "focus_detail",
   "region",
+  "audience",
+  "audience_size",
   "status",
   "revision",
 ].join(",");
@@ -53,13 +61,16 @@ const DETAIL_FIELDS = [
   "updated_at",
   "name",
   "email",
+  "phone",
   "social_url",
   "portfolio_url",
   "discipline",
   "focus",
+  "focus_detail",
   "region",
   "pitch",
   "audience",
+  "audience_size",
   "adult_australia",
   "contact_consent",
   "privacy_version",

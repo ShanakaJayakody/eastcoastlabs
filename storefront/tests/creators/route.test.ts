@@ -6,14 +6,16 @@ vi.mock("@/lib/creators/applications", () => ({ submitCreatorApplication }));
 const body = {
   name: "Taylor Example",
   email: "taylor@example.test",
+  phone: "0400 123 456",
   socialUrl: "https://instagram.com/taylor.example/",
   portfolioUrl: "",
   discipline: "video",
   focus: "other",
+  focusDetail: "Outdoor endurance",
   region: "VIC",
   pitch:
     "I create considered short-form stories with controlled lighting and careful product framing.",
-  audience: "",
+  audienceSize: 12500,
   adultAustralia: true,
   contactConsent: true,
   website: "",
@@ -57,7 +59,13 @@ describe("creator application route", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toEqual({ ok: true });
     expect(submitCreatorApplication).toHaveBeenCalledWith(
-      expect.objectContaining({ email: "taylor@example.test", focus: "other" }),
+      expect.objectContaining({
+        email: "taylor@example.test",
+        phone: "+61400123456",
+        focus: "other",
+        focusDetail: "Outdoor endurance",
+        audienceSize: 12500,
+      }),
       {
         idempotencyKey: "30000000-0000-0000-0000-000000000001",
         clientAddress: "203.0.113.44",
@@ -75,6 +83,27 @@ describe("creator application route", () => {
       const response = await post(options);
       expect(response.status).toBe(400);
     }
+    expect(submitCreatorApplication).not.toHaveBeenCalled();
+  });
+
+  it("rejects stale legacy wizard payloads with a readable refresh error", async () => {
+    const response = await post({
+      body: {
+        ...body,
+        phone: undefined,
+        focusDetail: undefined,
+        audienceSize: undefined,
+        audience: "10k-50k",
+      },
+    });
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toEqual({
+      ok: false,
+      code: "validation",
+      fieldErrors: {
+        name: "This application form has changed. Refresh the page and try again.",
+      },
+    });
     expect(submitCreatorApplication).not.toHaveBeenCalled();
   });
 

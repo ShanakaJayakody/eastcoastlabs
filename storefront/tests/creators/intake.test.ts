@@ -7,14 +7,16 @@ vi.mock("@/lib/supabase", () => ({ supabaseAdmin: () => ({ rpc }) }));
 const input: CreatorInput = {
   name: "Taylor Example",
   email: "taylor@example.test",
+  phone: "+61400123456",
   socialUrl: "https://instagram.com/taylor.example/",
   portfolioUrl: "https://portfolio.example.test/work",
   discipline: "video",
   focus: "health",
+  focusDetail: "",
   region: "NSW",
   pitch:
     "I create short-form visual stories for curious audiences and want to build a precise ECL concept.",
-  audience: "10k-50k",
+  audienceSize: 12500,
   adultAustralia: true,
   contactConsent: true,
   website: "",
@@ -41,17 +43,20 @@ describe("creator application intake adapter", () => {
       p_input: {
         name: "Taylor Example",
         email: "taylor@example.test",
+        phone: "+61400123456",
         social_url: "https://instagram.com/taylor.example/",
         portfolio_url: "https://portfolio.example.test/work",
         discipline: "video",
         focus: "health",
+        focus_detail: "",
         region: "NSW",
         pitch:
           "I create short-form visual stories for curious audiences and want to build a precise ECL concept.",
         audience: "10k-50k",
+        audience_size: 12500,
         adult_australia: true,
         contact_consent: true,
-        privacy_version: "creator-privacy-2026-09-09-v2",
+        privacy_version: "creator-privacy-2026-09-09-v3",
       },
       p_idempotency_key: "30000000-0000-0000-0000-000000000001",
       p_payload_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
@@ -60,6 +65,25 @@ describe("creator application intake adapter", () => {
     });
     expect(JSON.stringify(rpc.mock.calls)).not.toContain("203.0.113.10");
     expect(JSON.stringify(rpc.mock.calls)).not.toContain("website");
+  });
+
+  it("includes new required details in the canonical payload hash", async () => {
+    const { creatorApplicationHashes } = await import("@/lib/creators/applications");
+    const context = {
+      idempotencyKey: "30000000-0000-0000-0000-000000000001",
+      clientAddress: "203.0.113.10",
+    };
+    const key = "test-secret-with-enough-length";
+    const base = creatorApplicationHashes(input, context, key, new Date("2026-09-09T12:30:00Z"));
+    const changedPhone = creatorApplicationHashes({ ...input, phone: "+61400999888" }, context, key, new Date("2026-09-09T12:30:00Z"));
+    const changedDetail = creatorApplicationHashes({ ...input, focus: "other", focusDetail: "Strength coaching" }, context, key, new Date("2026-09-09T12:30:00Z"));
+    const changedAudience = creatorApplicationHashes({ ...input, audienceSize: 12501 }, context, key, new Date("2026-09-09T12:30:00Z"));
+
+    expect(changedPhone.payloadHash).not.toBe(base.payloadHash);
+    expect(changedDetail.payloadHash).not.toBe(base.payloadHash);
+    expect(changedAudience.payloadHash).not.toBe(base.payloadHash);
+    expect(changedPhone.dedupeKey).toBe(base.dedupeKey);
+    expect(changedAudience.limitKey).toBe(base.limitKey);
   });
 
   it("maps explicit RPC outcomes and rejects missing service configuration as unavailable", async () => {

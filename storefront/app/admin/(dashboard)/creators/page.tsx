@@ -33,6 +33,11 @@ function pageHref(page: number, status?: ApplicationStatus) {
   return `/admin/creators?${params.toString()}`;
 }
 
+function focusSummary(row: CreatorApplicationListRow) {
+  const detail = row.focus_detail?.trim();
+  return row.focus === "other" && detail ? `${row.focus}: ${detail}` : row.focus;
+}
+
 function ApplicationRow({ row }: { row: CreatorApplicationListRow }) {
   return (
     <tr className="border-b border-line last:border-0">
@@ -43,7 +48,7 @@ function ApplicationRow({ row }: { row: CreatorApplicationListRow }) {
         <p className="mt-0.5 break-all text-xs text-muted">{row.email}</p>
       </td>
       <td className="px-4 py-3 text-sm text-fg-2">
-        <span className="capitalize">{row.focus}</span>
+        <span className="capitalize">{focusSummary(row)}</span>
         <p className="mt-0.5 text-xs text-muted">{row.discipline} · {row.region}</p>
       </td>
       <td className="px-4 py-3">

@@ -755,6 +755,10 @@
   box-shadow: 0 0 0 4px rgba(47, 212, 200, 0.13);
 }
 
+.nestedField {
+  margin-top: 16px;
+}
+
 .checks {
   display: grid;
   max-width: 760px;

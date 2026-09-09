@@ -20,13 +20,16 @@ const application = (overrides: Partial<CreatorApplicationRow> = {}): CreatorApp
   updated_at: "2026-09-09T01:00:00.000Z",
   name: "Taylor Example",
   email: "taylor@example.test",
+  phone: "+61412345678",
   social_url: "https://instagram.com/taylor.example/",
   portfolio_url: "",
   discipline: "video",
   focus: "health",
+  focus_detail: null,
   region: "VIC",
   pitch: "I create practical health stories with polished vertical video and clear product framing.",
   audience: "",
+  audience_size: 1200,
   adult_australia: true,
   contact_consent: true,
   privacy_version: "creator-privacy-2026-09-09",
@@ -39,6 +42,31 @@ const application = (overrides: Partial<CreatorApplicationRow> = {}): CreatorApp
 });
 
 describe("CreatorApplicationDetail", () => {
+  it("shows phone, exact audience count and custom Other focus details", () => {
+    render(<CreatorApplicationDetail application={application({
+      focus: "other",
+      focus_detail: "Recovery routines",
+      audience_size: 0,
+      audience: "10k-50k",
+    } as Partial<CreatorApplicationRow>)} review={vi.fn()} />);
+
+    expect(screen.getByText("+61412345678")).toBeInTheDocument();
+    expect(screen.getByText(/other: Recovery routines/)).toBeInTheDocument();
+    expect(screen.getByText("0")).toBeInTheDocument();
+  });
+
+  it("marks missing new fields as not provided and falls back to legacy audience ranges", () => {
+    render(<CreatorApplicationDetail application={application({
+      phone: null,
+      focus_detail: null,
+      audience_size: null,
+      audience: "10k-50k",
+    } as Partial<CreatorApplicationRow>)} review={vi.fn()} />);
+
+    expect(screen.getByText("Not provided")).toBeInTheDocument();
+    expect(screen.getByText("10k-50k")).toBeInTheDocument();
+  });
+
   it("blocks stale resubmission until the refreshed record resets local review state", async () => {
     const user = userEvent.setup();
     const review = vi.fn()
