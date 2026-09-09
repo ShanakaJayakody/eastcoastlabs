@@ -27,3 +27,13 @@ The GitHub main auto-deployment hold remains until the coupled switch is complet
 COA verification remains empty until genuine documents are supplied and checked. Optional third-party analytics and recurring purchasing remain disabled without their real provider configuration. No business/legal identity, certificate evidence or recurring provider is invented during release.
 
 References: [release runbook](../../storefront/docs/AUDIT-RELEASE.md), [migration procedure](../../storefront/docs/MIGRATIONS.md), [Vercel project pause](https://vercel.com/docs/rest-api/projects/pause-a-project), [Vercel production candidate deployment](https://vercel.com/docs/cli/deploying-from-cli).
+
+## Production database upgraded
+
+The final backup was taken after production entry points were paused and in-flight database activity was empty. Its 53 public/auth/storage tables, ownership and permissions restored and matched. Production then recorded the verified 19-file historical baseline and applied all 14 forward migrations. A final read-only migration check reported zero pending files and valid recorded hashes. Core record counts were preserved; anonymous access to private review identity is now denied. Service-role REST access to the new settings snapshot succeeds and the existing bank-transfer configuration remains populated.
+
+Only the stored announcement list was updated through the audited settings transaction: research use only, the existing free standard shipping, payment confirmation before preparation, and batch documents when available. No payment account, price, stock or order values were edited as part of that copy change.
+
+Actual isolated staging acceptance passed admin login, seven admin areas, product draft preservation/save, checkout creation and exact request replay, payment confirmation, a reviewed partial refund with physical restock and remaining packing quantities. It revealed a packing-screen suburb omission and ambiguous original amount label; both received a targeted fix and regression tests. Test mail remained synthetic and no provider messages were sent.
+
+The monitoring workflow now checks public availability and read-only operations health using the existing GitHub Actions account. Its schedule is best effort; separate email/pager notification delivery is not claimed. The account accepted an initial firewall rate-limit configuration but rejected the subsequent update as unavailable on its plan. That rule was removed; only a temporary basic cron-block rule is used during the switch. No plan upgrade was made and edge rate limiting is not claimed as operational.
