@@ -9,7 +9,7 @@ vi.mock("@/lib/analytics", () => ({ trackCreatorEvent }));
 vi.mock("@/components/Reveal", () => ({ default: ({ children }: { children: ReactNode }) => <>{children}</> }));
 vi.mock("@/components/creators/CreatorStickyApply", () => ({ default: () => null }));
 vi.mock("next/image", () => ({
-  default: ({ alt, priority: _priority, fill: _fill, ...props }: ComponentProps<"img"> & { priority?: boolean; fill?: boolean }) => (
+  default: ({ alt, priority: _priority, fill: _fill, unoptimized: _unoptimized, ...props }: ComponentProps<"img"> & { priority?: boolean; fill?: boolean; unoptimized?: boolean }) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img alt={typeof alt === "string" ? alt : ""} {...props} />
   ),

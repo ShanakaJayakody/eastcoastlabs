@@ -19,6 +19,12 @@ The ECL storefront administrator owns the weekly service-only retention review d
 
 ## Application release
 
-Application integration, final copy verification and deployment are in progress. Deployment identifiers and live verification will be recorded after publication. The database migration is additive and the previous application remains compatible during the release.
+The creator route and intake were published at **https://www.eastcoastlabs.com.au/creators** after required GitHub verification passed. The first production deployment was `dpl_4wM1Yxu8J7u3FqiMoUubbBT9hsGo`, from `e9309eca38e7d64b9f3e1bd0446ca51430a24ed2`. The deployment's canonical and default Vercel aliases were confirmed.
+
+Local combined verification passed 469 tests in 93 files, 49 browser checks (five intentional viewport skips), TypeScript, lint, the production build and bundle budgets. CI exposed a refund-test transition race and lint scanning generated Playwright trace assets; both were corrected before the required `verify` check passed in run `34312282936`.
+
+Seven live checks passed: current public offer, campaign asset/privacy availability, unauthenticated admin denial, origin/input validation, one durable application for three concurrent retries, changed-payload conflict, and no email or order side effects. The unique synthetic application and its request record were removed afterward. No real applicant was contacted or modified.
+
+The final visual check found that Vercel's image transformation endpoint returned `402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED`, while the prepared WebP files returned `200`. The final image-delivery patch serves the creator page's precompressed WebP assets directly. It preserves the six campaign visuals and avoids requiring an image-optimization billing change. The follow-up deployment and rendered-image verification are tracked in the release task and Vercel deployment history.
 
 The existing production operations-health endpoint returned `503` before the creator application deployment, with one failed and two overdue scheduled jobs; the delivery queue reported zero dead and zero overdue entries. This predates the creator app release and is recorded separately from creator acceptance. No customer-message sweep was triggered solely to change the monitoring status.

@@ -50,6 +50,7 @@ export default function CreatorLanding({
               height={creatorAssets.cover.height}
               sizes="(max-width: 767px) calc(100vw - 40px), min(1200px, calc(100vw - 64px))"
               priority
+              unoptimized
               className={styles.heroImage}
             />
           </div>
@@ -83,6 +84,7 @@ export default function CreatorLanding({
                     width={item.asset.width}
                     height={item.asset.height}
                     sizes="(max-width: 767px) calc(100vw - 40px), 31vw"
+                    unoptimized
                     className={styles.creatorImage}
                     style={{ objectPosition: item.asset.objectPosition }}
                   />
@@ -118,6 +120,7 @@ export default function CreatorLanding({
                 width={creatorAssets.editorial.width}
                 height={creatorAssets.editorial.height}
                 sizes="(max-width: 767px) calc(100vw - 40px), 46vw"
+                unoptimized
                 className={styles.editorialImage}
               />
               <figcaption>01 / Natural light</figcaption>
@@ -129,6 +132,7 @@ export default function CreatorLanding({
                 width={creatorAssets.studio.width}
                 height={creatorAssets.studio.height}
                 sizes="(max-width: 767px) calc(100vw - 40px), 28vw"
+                unoptimized
                 className={styles.editorialImage}
               />
               <figcaption>02 / Studio perspective</figcaption>
