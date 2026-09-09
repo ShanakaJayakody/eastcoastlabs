@@ -222,11 +222,10 @@ export default function CreatorLanding({
       <section id="apply" aria-labelledby="creator-apply-title" tabIndex={-1} className={`${styles.apply} ${styles.container}`}>
         <div className={styles.applyIntro}>
           <p className={styles.kicker}>05 / Application</p>
-          <h2 id="creator-apply-title" tabIndex={-1}>Let&apos;s see what we can build together.</h2>
+          <h2 id="creator-apply-title" tabIndex={-1}>Let&apos;s get to know you.</h2>
           <p>
-            Tell us about your audience, recent reach and the content you want to create.
-            We review every application individually. If there&apos;s a fit, we&apos;ll contact
-            you to confirm your insights, product choice and three-post brief.
+            Tell us who you reach and what you would make with ECL. We review every application
+            individually before confirming any product choice or three-post brief.
           </p>
         </div>
         {application}
