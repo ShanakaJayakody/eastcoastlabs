@@ -1,16 +1,14 @@
 # ECL Creator Collective — offer and messaging
 
-Updated 9 September 2026 to reflect the owner's confirmed commercial offer. This is the current source of truth for the creator proposition and supersedes the earlier paid-brief proposal, fee packages and suggested commission percentages. The existing celebratory imagery and editorial design remain applicable. The page has been updated locally; this document does not establish public advertising or product-supply eligibility.
+Updated 9 September 2026 to reflect the owner's confirmed commercial offer. This is the current source of truth for the creator proposition and supersedes the earlier paid-brief proposal, fee packages and suggested commission percentages. The current visual and copy direction is recorded in [EDITORIAL-REFRESH.md](EDITORIAL-REFRESH.md). The page has been updated locally; this document does not establish public advertising or product-supply eligibility.
 
 ## Positioning
 
-**Your influence. Our next chapter.**
+**Show us what you’re making.**
 
-Build a partnership with East Coast Labs, one stage at a time. Start with product rewards, share in your own voice, and grow towards commission and ongoing support.
+A direct invitation to Australian creators working in fitness, everyday health and biohacking. Explain the work and the exchange in ordinary language. Use one coherent explanation of the arrangement, candid imagery and varied section layouts. Avoid paired slogans, numbered marketing sections and repeated headline/subline structures.
 
-The program is a selective relationship with a clear progression. Lead with belonging and creative independence, then explain the exchange plainly. A$300 is the maximum value of the first product, never a cash fee, joining bonus or earnings claim. Use “product rewards” because posting is part of the exchange; calling the first vial an unconditional gift would hide that commitment.
-
-Keep **ECL Creator Collective** as the program name and **Apply to the collective** as the main CTA. “Creator” is the preferred public term; it respects the participant's craft while audience reach remains a selection factor. Preserve ECL's precise, considered voice: no income hype, manufactured scarcity, invented partner endorsements or promises of unlimited supply.
+Keep **ECL Creator Collective** as the program name and **Apply to the collective** as the main CTA. A$300 is the maximum value of the first product, never a cash fee, joining bonus or earnings claim. Use “product rewards” because posting is part of the exchange. No income hype, manufactured scarcity, invented partner endorsements or promises of unlimited supply.
 
 ## The confirmed offer
 
@@ -26,15 +24,12 @@ The second vial is an earned completion reward, not a discretionary prize for hi
 
 ## Page narrative
 
-1. **Hero:** “Your influence. Our next chapter.” The short body explains product rewards first and the path to commission. Practical line: “Australia · 18+ · By application · Product rewards first”.
-2. **At-a-glance offer:** “Apply for your first product” / “Three posts. A second vial.” / “A path to commission”.
-3. **Creator categories:** Fitness, everyday health and biohacking storytelling, presented through the established visual direction. Relevant audience and content quality matter together. No implication that the pictured people's physiques or health result from products.
-4. **Relationship:** “Your voice. A community that listens.” Explain mutual fit, an agreed brief and room for an original point of view.
-5. **Rewards:** “Start with product. Build a partnership.” Display “Your first product · valued up to” immediately alongside A$300. Follow with the second-vial milestone and the conditional referral opportunity.
-6. **Process:** Show all three stages in order, including receipt before posting and review before referral activation.
-7. **Selection:** “Real reach. Relevant people. Your own voice.” Explain audience fit, demonstrated reach and reliability.
-8. **Application:** “Let's see what we can build together.” Ask about audience, recent reach and ideas for three posts. Confirm evidence during fit review.
-9. **FAQ:** Address cash, product choice, deliverables, second-vial entitlement, qualified views, content rights, product use, disclosures, referral terms, ongoing supplies and selection.
+1. **Invitation:** “Show us what you’re making.” A single flowing headline alongside a candid group scene in a sculpted frame. Apply and arrangement links are visible early.
+2. **Creator focus:** A staggered portrait sequence for fitness, everyday health and biohacking; adjacent interests are welcome to apply.
+3. **Arrangement:** One section explains product value, selection, receipt before the minimum three posts, the earned second vial and review before any referral invitation.
+4. **Selection and ownership:** Ordinary prose explains recent work, relevant Australian reach, insights, reliable delivery and agreed rights.
+5. **Application:** “Send something our way.” The existing guided application retains its functionality with simpler prompts.
+6. **FAQ:** Direct answers preserve the full commercial detail, content scope and disclosure requirements.
 
 The implementation contains the complete current copy in `storefront/lib/creators/content.ts` and `storefront/components/creators/CreatorLanding.tsx`. Metadata, form guidance, confirmation and privacy purpose match this offer. The existing form stores audience range and a free-text pitch; it does not independently verify metrics or automatically decide eligibility. Audience range can be supplied at review, but selection requires it and evidence of reach. No new analytics-upload service or database fields were introduced for this copy update.
 

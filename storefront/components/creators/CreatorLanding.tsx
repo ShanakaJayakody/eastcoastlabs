@@ -23,21 +23,14 @@ export default function CreatorLanding({
     <div className={styles.root}>
       <section className={`${styles.hero} ${styles.container}`} aria-labelledby="creator-title">
         <div className={styles.heroCopy}>
-          <p className={styles.kicker}>ECL / Creator Collective</p>
-          <h1 id="creator-title" className={styles.headline}>
-            <span>{creatorCopy.heading[0]}</span>
-            <em>{creatorCopy.heading[1]}</em>
-          </h1>
+          <p className={styles.kicker}>East Coast Labs / Creator Collective</p>
+          <h1 id="creator-title" className={styles.headline}>{creatorCopy.heading}</h1>
           <p className={styles.heroText}>{creatorCopy.heroBody}</p>
           <div className={styles.heroActions} data-creator-hero-cta>
             <CreatorCtaLink href="#apply" placement="hero" className={styles.primaryCta}>
-              {creatorCopy.cta}
-              <span aria-hidden="true">-&gt;</span>
+              {creatorCopy.cta}<span aria-hidden="true">↗</span>
             </CreatorCtaLink>
-            <a href="#rewards" className={styles.secondaryCta}>
-              Explore the rewards
-              <span aria-hidden="true">v</span>
-            </a>
+            <a href="#rewards" className={styles.secondaryCta}>What&apos;s involved <span aria-hidden="true">↓</span></a>
           </div>
           <p className={styles.practical}>{creatorCopy.practical}</p>
         </div>
@@ -48,48 +41,46 @@ export default function CreatorLanding({
               alt={creatorAssets.cover.alt}
               width={creatorAssets.cover.width}
               height={creatorAssets.cover.height}
-              sizes="(max-width: 767px) calc(100vw - 40px), min(1200px, calc(100vw - 64px))"
+              sizes="(max-width: 767px) calc(100vw - 40px), (max-width: 1239px) 48vw, 560px"
               priority
               unoptimized
               className={styles.heroImage}
             />
           </div>
-          <figcaption>{creatorAssets.cover.caption}</figcaption>
+          <span className={styles.marginNote} aria-hidden="true">Between takes</span>
         </figure>
       </section>
 
-      <section className={`${styles.opportunity} ${styles.container}`} aria-label="Program structure">
-        <p>Apply for your first product</p>
-        <p>Three posts. A second vial.</p>
-        <p>A path to commission</p>
-      </section>
+      <aside className={`${styles.openingNote} ${styles.container}`} aria-label="About the collaboration">
+        <span className={styles.noteMark} aria-hidden="true">↳</span>
+        <p>
+          You know what works on your account. We&apos;ll agree a brief with you and leave room
+          for how you&apos;d tell it. The first collaboration is paid in products; the details are below.
+        </p>
+        <a href="#rewards" className={styles.noteLink}>Read the arrangement <span aria-hidden="true">↓</span></a>
+      </aside>
 
       <Reveal className="reveal">
         <section className={`${styles.creatorTypes} ${styles.container}`} aria-labelledby="creator-types-title">
           <div className={styles.sectionIntro}>
-            <p className={styles.kicker}>Creator focus</p>
-            <h2 id="creator-types-title">Different worlds. Shared curiosity.</h2>
-            <p>
-              We&apos;re looking for original storytellers with a clear point of view and an
-              engaged community. Show us who you reach and what makes your audience listen.
-            </p>
+            <h2 id="creator-types-title">From your corner of the internet</h2>
+            <p>These are a few of the worlds we&apos;re interested in. If your work sits somewhere between them, tell us about it.</p>
           </div>
           <div className={styles.creatorCards}>
             {creatorCategoryPanels.map((item) => (
-              <article key={item.title} className={styles.creatorCard}>
+              <article key={item.title} className={`${styles.creatorCard} ${styles[item.shape]}`}>
                 <div className={styles.creatorImageWrap}>
                   <Image
                     src={item.asset.src}
                     alt={item.asset.alt}
                     width={item.asset.width}
                     height={item.asset.height}
-                    sizes="(max-width: 767px) calc(100vw - 40px), 31vw"
+                    sizes="(max-width: 767px) calc(100vw - 72px), (max-width: 1239px) 29vw, 340px"
                     unoptimized
                     className={styles.creatorImage}
                     style={{ objectPosition: item.asset.objectPosition }}
                   />
                 </div>
-                <p className={styles.cardIndex}>{item.index}</p>
                 <h3>{item.title}</h3>
                 <p>{item.copy}</p>
               </article>
@@ -98,143 +89,83 @@ export default function CreatorLanding({
         </section>
       </Reveal>
 
-      <Reveal className="reveal">
-        <section className={`${styles.editorial} ${styles.container}`} aria-labelledby="creator-standard-title">
-          <div className={styles.editorialText}>
-            <p className={styles.kicker}>01 / The standard</p>
-            <h2 id="creator-standard-title">Your voice. A community that listens.</h2>
-            <p>
-              The strongest partnerships begin with a natural fit. Bring thoughtful content,
-              real audience insight and a style of your own. We bring a clear brief, product
-              rewards and a path to a longer relationship. Every stage is agreed together.
-            </p>
-            <CreatorCtaLink href="#apply" placement="editorial" className={styles.textLink}>
-              Tell us about your community -&gt;
-            </CreatorCtaLink>
-          </div>
-          <div className={styles.editorialImages}>
-            <figure className={styles.editorialLandscape}>
-              <Image
-                src={creatorAssets.editorial.src}
-                alt={creatorAssets.editorial.alt}
-                width={creatorAssets.editorial.width}
-                height={creatorAssets.editorial.height}
-                sizes="(max-width: 767px) calc(100vw - 40px), 46vw"
-                unoptimized
-                className={styles.editorialImage}
-              />
-              <figcaption>01 / Natural light</figcaption>
-            </figure>
-            <figure className={styles.editorialPortrait}>
-              <Image
-                src={creatorAssets.studio.src}
-                alt={creatorAssets.studio.alt}
-                width={creatorAssets.studio.width}
-                height={creatorAssets.studio.height}
-                sizes="(max-width: 767px) calc(100vw - 40px), 28vw"
-                unoptimized
-                className={styles.editorialImage}
-              />
-              <figcaption>02 / Studio perspective</figcaption>
-            </figure>
-          </div>
-        </section>
-      </Reveal>
-
       <section id="rewards" className={styles.rewards} aria-labelledby="creator-rewards-title">
         <div className={`${styles.rewardsInner} ${styles.container}`}>
-          <p className={styles.kicker}>02 / Rewards</p>
-          <h2 id="creator-rewards-title">Start with product. Build a partnership.</h2>
-          <div className={styles.rewardGrid}>
-            <div>
-              <p className={styles.rewardLabel}>Your first product · valued up to</p>
+          <div className={styles.rewardOverview}>
+            <h2 id="creator-rewards-title">Here&apos;s the arrangement.</h2>
+            <div className={styles.rewardStamp}>
+              <p className={styles.rewardLabel}>Your first product, worth up to</p>
               <p className={styles.rewardNumber}>A$300</p>
-              <p className={styles.rewardNote}>
-                Pass the fit review and choose an eligible peptide. We confirm your selection
-                and posting brief before sending it to you.
-              </p>
+              <p className={styles.rewardUnit}>In product. No upfront cash fee.</p>
             </div>
-            <div className={styles.rewardCopy}>
-              <h3>Three posts. Your next vial.</h3>
-              <p>
-                After your first product arrives, complete at least three agreed posts to your
-                audience. We then send a second vial of your choice from the eligible range.
-              </p>
-            </div>
-            <div className={styles.rewardCopy}>
-              <h3>Your audience saves. You earn.</h3>
-              <p>
-                Successful creators can progress to an audience discount, referral commission,
-                and regular gifts and product supplies through an agreed ongoing partnership.
-              </p>
-            </div>
+            <p className={styles.rewardNote}>
+              Selected creators choose an eligible peptide. We confirm availability and both
+              product choices, including any allowance for the second vial, before you commit.
+            </p>
           </div>
-          <p className={styles.finePrint}>
-            The first collaboration offers product rewards, with no upfront cash fee. A$300 is
-            the first product&apos;s maximum value in Australian dollars. Selection and referral
-            progression are subject to review. Product choices and terms are agreed before you start.
-          </p>
+          <div className={styles.arrangement}>
+            {creatorStages.map(({ title, copy }) => (
+              <article key={title}>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </article>
+            ))}
+            <p className={styles.finePrint}>
+              A$300 is the maximum value of the first product in Australian dollars, not a cash payment.
+              Product rewards can&apos;t be exchanged for cash. Selection and referral invitations are subject to review.
+            </p>
+          </div>
         </div>
       </section>
 
       <Reveal className="reveal">
-        <section className={`${styles.process} ${styles.container}`} aria-labelledby="creator-process-title">
-          <p className={styles.kicker}>03 / Process</p>
-          <h2 id="creator-process-title">One partnership. Three stages.</h2>
-          <div className={styles.processGrid}>
-            {creatorStages.map(({ index, title, copy }) => (
-              <article key={title}>
-                <p>{index}</p>
-                <h3>{title}</h3>
-                <span>{copy}</span>
-              </article>
-            ))}
+        <section className={`${styles.editorial} ${styles.container}`} aria-labelledby="creator-standard-title">
+          <div className={styles.editorialText}>
+            <h2 id="creator-standard-title">We&apos;ll spend more time on your posts than your follower count.</h2>
+            <CreatorCtaLink href="#apply" placement="editorial" className={styles.textLink}>
+              Tell us about your work <span aria-hidden="true">↗</span>
+            </CreatorCtaLink>
           </div>
-        </section>
-      </Reveal>
-
-      <Reveal className="reveal">
-        <section className={`${styles.who} ${styles.container}`} aria-labelledby="creator-who-title">
-          <p className={styles.kicker}>04 / Who should apply</p>
-          <h2 id="creator-who-title">Real reach. Relevant people. Your own voice.</h2>
-          <div className={styles.whoRows}>
+          <div className={styles.selectionCopy}>
             <p>
-              <strong>An engaged community</strong>
-              <span>Audience size, relevant interests and a clear Australian audience fit</span>
+              We&apos;ll look through your recent work to get a feel for what you make and who it reaches.
+              Your Australian audience and usual organic views matter. We&apos;ll ask for platform
+              insights before offering a place.
             </p>
             <p>
-              <strong>Reach you can show</strong>
-              <span>Recent organic views, platform insights and meaningful engagement</span>
+              It helps to tell us what you&apos;d make for ECL, even if the idea is still rough.
+              We also need to know you can follow an agreed brief and clearly disclose the collaboration.
             </p>
-            <p>
-              <strong>A reliable creative partner</strong>
-              <span>Original posts, clear disclosures and follow-through on an agreed brief</span>
-            </p>
+            <div className={styles.ownershipNote}>
+              <h3>The work stays yours.</h3>
+              <p>
+                Any reposting rights go in the brief. Paid ads, exclusivity or use of your
+                likeness beyond that need a separate agreement.
+              </p>
+            </div>
           </div>
-          <p className={styles.whoCopy}>
-            Audience size matters in context. We look at who you reach, how consistently your
-            content connects and whether the partnership makes sense for both of us. Before
-            selection, we ask for recent platform insights. Open to Australia-based creators aged 18 or over.
-          </p>
         </section>
       </Reveal>
 
       <section id="apply" aria-labelledby="creator-apply-title" tabIndex={-1} className={`${styles.apply} ${styles.container}`}>
         <div className={styles.applyIntro}>
-          <p className={styles.kicker}>05 / Application</p>
-          <h2 id="creator-apply-title" tabIndex={-1}>Let&apos;s get to know you.</h2>
+          <p className={styles.kicker}>Your application</p>
+          <h2 id="creator-apply-title" tabIndex={-1}>Send something our way.</h2>
           <p>
-            Tell us who you reach and what you would make with ECL. We review every application
-            individually before confirming any product choice or three-post brief.
+            A link to your work and a few details about your audience will get us started.
+            There&apos;s space for an idea, too. A few sentences are enough.
           </p>
+          <p className={styles.applicationNote}>We read each application and get in touch by email if there&apos;s a fit.</p>
         </div>
         {application}
       </section>
 
       <Reveal className="reveal">
         <section className={`${styles.faq} ${styles.container}`} aria-labelledby="creator-faq-title">
-          <p className={styles.kicker}>06 / FAQ</p>
-          <h2 id="creator-faq-title">Questions before you apply</h2>
+          <div className={styles.faqHeader}>
+            <h2 id="creator-faq-title">A few things you might be wondering</h2>
+            <p>Anything else? <a href={`mailto:${supportEmail}`}>Email us.</a></p>
+          </div>
           <div className={styles.faqList}>
             {creatorFaqs.map((item) => (
               <details key={item.question}>
@@ -245,22 +176,16 @@ export default function CreatorLanding({
           </div>
           <div className={styles.footerCta}>
             <CreatorCtaLink href="#apply" placement="footer" className={styles.primaryCta}>
-              {creatorCopy.cta}
-              <span aria-hidden="true">-&gt;</span>
+              {creatorCopy.cta}<span aria-hidden="true">↗</span>
             </CreatorCtaLink>
-            <p>
-              Need help with the application? Email{" "}
-              <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
-            </p>
+            <p>We&apos;d like to see what you have in mind.</p>
           </div>
           <ResearchDisclaimer />
           <p className={styles.conceptNote}>
-            Concept imagery uses fictional adult models and does not represent actual ECL partners,
-            customers, endorsers or product users.
+            Images are AI-created scenes with fictional adults, not photographs of ECL partners or product users.
           </p>
         </section>
       </Reveal>
-
       <CreatorStickyApply />
     </div>
   );

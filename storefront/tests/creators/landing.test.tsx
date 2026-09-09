@@ -28,7 +28,7 @@ describe("CreatorLanding", () => {
 
     const applyLinks = screen.getAllByRole("link", { name: /Apply to the collective/ });
     fireEvent.click(applyLinks[0]);
-    fireEvent.click(screen.getByRole("link", { name: /Tell us about your community/ }));
+    fireEvent.click(screen.getByRole("link", { name: /Tell us about your work/ }));
     fireEvent.click(applyLinks[1]);
 
     expect(trackCreatorEvent).toHaveBeenNthCalledWith(1, "creator_cta_click", { placement: "hero" });

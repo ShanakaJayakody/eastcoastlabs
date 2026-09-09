@@ -9,7 +9,7 @@ async function creatorFixture(page:Page){
   return url.hostname==='127.0.0.1'||url.protocol==='data:'?route.continue():route.abort();
  });
  await page.goto('/frame.html?page=creators');
- await expect(page.getByRole('heading',{name:/Your influence\./})).toBeVisible();
+ await expect(page.getByRole('heading',{name:/Show us what you’re making/})).toBeVisible();
 }
 
 async function continueStep(page:Page){
@@ -77,14 +77,14 @@ test.beforeEach(async({page})=>{await creatorFixture(page);});
 
 test('creator page fits every configured viewport, renders final imagery and has no serious accessibility violations',async({page})=>{
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
- const cover=page.getByAltText(/Fictional adult creators celebrating/);
+ const cover=page.getByAltText(/Fictional adult creators taking a break/);
  await expect(cover).toBeVisible();
  const creatorImages=page.locator('img[alt^=\"Fictional\"]');
- await expect(creatorImages).toHaveCount(6);
+ await expect(creatorImages).toHaveCount(4);
  await expect.poll(async()=>creatorImages.evaluateAll(images=>images.every(image=>{const img=image as HTMLImageElement;return img.complete&&img.naturalWidth>0&&img.naturalHeight>0;})),{message:'all fictional creator images should decode'}).toBe(true);
  const coverBox=await cover.boundingBox();
- expect(coverBox?.width).toBeGreaterThan(260);
- expect((coverBox?.width??0)/(coverBox?.height??1)).toBeGreaterThan(1.6);
+ expect(coverBox?.width).toBeGreaterThan(240);
+ expect((coverBox?.width??0)/(coverBox?.height??1)).toBeGreaterThan(0.9);
  expect(await seriousAxeViolations(page)).toEqual([]);
 });
 
@@ -92,7 +92,7 @@ test('application and rewards CTAs navigate to the right page sections',async({p
  await page.getByRole('link',{name:/Apply to the collective/}).first().click();
  await expect.poll(()=>page.evaluate(()=>window.location.hash)).toBe('#apply');
  await expect(page.locator('#apply')).toBeInViewport();
- await page.getByRole('link',{name:/Explore the rewards/}).click();
+ await page.getByRole('link',{name:/What.s involved/}).click();
  await expect.poll(()=>page.evaluate(()=>window.location.hash)).toBe('#rewards');
  await expect(page.locator('#rewards')).toBeInViewport();
 });
@@ -101,7 +101,7 @@ test('FAQ opens from the keyboard',async({page})=>{
  const summary=page.getByText('Do I need a large following?',{exact:true});
  await summary.focus();
  await page.keyboard.press('Enter');
- await expect(page.getByText(/Audience size is part of our review/i)).toBeVisible();
+ await expect(page.getByText(/We look at who follows you/i)).toBeVisible();
 });
 
 test('wizard validation focuses the active question and submits after review',async({page})=>{
@@ -223,9 +223,9 @@ test('desktop visual pass covers the 1440px hero composition',async({page},testI
  test.skip(testInfo.project.name!=='desktop','One explicit 1440px pass is enough.');
  await page.setViewportSize({width:1440,height:900});
  await page.goto('/frame.html?page=creators&bare=1');
- await expect(page.getByRole('heading',{name:/Your influence\./})).toBeVisible();
+ await expect(page.getByRole('heading',{name:/Show us what you’re making/})).toBeVisible();
  await expect(page.getByRole('link',{name:/Apply to the collective/}).first()).toBeInViewport();
- const cover=page.getByAltText(/Fictional adult creators celebrating/);
+ const cover=page.getByAltText(/Fictional adult creators taking a break/);
  await expect(cover).toBeInViewport({ratio:0.45});
  expect(await page.screenshot({fullPage:false})).toBeTruthy();
 });

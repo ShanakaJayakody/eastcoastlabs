@@ -116,20 +116,20 @@ const steps: Step[] = [
     id: "portfolioUrl",
     eyebrow: "Optional context",
     title: "Anything else you'd like us to see?",
-    help: "Skip this if your social profile carries the story.",
+    help: "A portfolio or another profile is useful if you have one. Otherwise, you can skip this.",
     fields: ["portfolioUrl"],
     optional: true,
   },
   {
     id: "discipline",
-    eyebrow: "Creative lane",
-    title: "What kind of work feels most like yours?",
+    eyebrow: "Format",
+    title: "What do you usually make?",
     fields: ["discipline"],
   },
   {
     id: "focus",
-    eyebrow: "Audience fit",
-    title: "What do you love talking about?",
+    eyebrow: "Content",
+    title: "What do you usually cover?",
     fields: ["focus", "focusDetail"],
   },
   {
@@ -140,10 +140,10 @@ const steps: Step[] = [
   },
   {
     id: "pitch",
-    eyebrow: "Your point of view",
-    title: "What's your creative idea?",
+    eyebrow: "Your idea",
+    title: "What would you make for ECL?",
     help:
-      "Include who you reach, recent organic views, Australian audience share if known, and the content idea. We confirm platform insights during the fit review.",
+      "Tell us a little about your audience and an idea for the posts. Include recent organic views and your Australian audience share if you know them. We’ll ask for platform insights later.",
     fields: ["pitch"],
   },
   {
@@ -513,9 +513,9 @@ export default function CreatorApplicationForm({
       <div role="status" className={styles.successPanel}>
         <h3 ref={successRef} tabIndex={-1}>Your application is in.</h3>
         <p>
-          Thanks for introducing your community. We&apos;ll review your application and contact
-          you by email if there&apos;s a fit. The next step is to confirm your audience insights
-          and agree your first product and posting brief.
+          Thanks for sending it through. We&apos;ll read your application and email you if
+          there&apos;s a fit. We&apos;ll then check your audience insights and agree the products
+          and posting brief with you.
         </p>
       </div>
     );
