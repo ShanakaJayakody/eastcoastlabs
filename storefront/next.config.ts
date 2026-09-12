@@ -34,12 +34,12 @@ const nextConfig: NextConfig = {
     }));
   },
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "eastcoastlabs.com.au" },
-      { protocol: "https", hostname: "**.eastcoastlabs.com.au" },
-      // Product images uploaded to the `product-images` Supabase Storage bucket.
-      { protocol: "https", hostname: "**.supabase.co" },
-    ],
+    // Bypass Vercel's quota-limited optimizer (it returns 402 once the plan's
+    // allowance is spent). Supabase Storage images are resized by Supabase's
+    // own transform endpoint; everything else is served untouched.
+    // See lib/image-loader.ts.
+    loader: "custom",
+    loaderFile: "./lib/image-loader.ts",
   },
 };
 
