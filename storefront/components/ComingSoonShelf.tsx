@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import EmailCapture from "./EmailCapture";
 import type { ComingSoonProduct } from "@/lib/coming-soon";
 
@@ -46,9 +47,22 @@ export default function ComingSoonShelf({ products }: { products: ComingSoonProd
           return (
             <li
               key={p.slug}
-              className="flex flex-col rounded-xl border border-line bg-surface/60 p-4 transition-colors hover:border-line-2"
+              className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface/60 transition-colors hover:border-line-2"
             >
-              <div className="flex items-start justify-between gap-3">
+              {p.images[0] && (
+                <div className="relative aspect-[4/3] overflow-hidden bg-ink-2">
+                  <Image
+                    src={p.images[0].src}
+                    alt={p.images[0].alt || p.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-contain p-3"
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-1 flex-col p-4">
+                <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-semibold text-fg">{p.name}</h3>
                   {p.format && (
@@ -58,35 +72,36 @@ export default function ComingSoonShelf({ products }: { products: ComingSoonProd
                 <span className="shrink-0 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
                   Coming soon
                 </span>
-              </div>
+                </div>
 
-              {p.shortDescription && (
-                <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">
-                  {p.shortDescription}
-                </p>
-              )}
-
-              <div className="mt-3 border-t border-line pt-3">
-                {hasJoined ? (
-                  <p className="text-xs font-medium text-success">
-                    ✓ We&apos;ll email you when {p.name} lands.
+                {p.shortDescription && (
+                  <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">
+                    {p.shortDescription}
                   </p>
-                ) : isOpen ? (
-                  <EmailCapture
-                    source={`back_in_stock:${p.slug}`}
-                    cta="Notify me"
-                    successMsg={`✓ We'll email you when ${p.name} lands.`}
-                    onDone={() => setJoined((s) => new Set(s).add(p.slug))}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setOpenSlug(p.slug)}
-                    className="btn-press w-full rounded-lg border border-accent/50 px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent hover:text-accent-ink"
-                  >
-                    Notify me when it lands
-                  </button>
                 )}
+
+                <div className="mt-auto border-t border-line pt-3">
+                  {hasJoined ? (
+                    <p className="text-xs font-medium text-success">
+                      ✓ We&apos;ll email you when {p.name} lands.
+                    </p>
+                  ) : isOpen ? (
+                    <EmailCapture
+                      source={`back_in_stock:${p.slug}`}
+                      cta="Notify me"
+                      successMsg={`✓ We'll email you when ${p.name} lands.`}
+                      onDone={() => setJoined((s) => new Set(s).add(p.slug))}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setOpenSlug(p.slug)}
+                      className="btn-press w-full rounded-lg border border-accent/50 px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent hover:text-accent-ink"
+                    >
+                      Notify me when it lands
+                    </button>
+                  )}
+                </div>
               </div>
             </li>
           );

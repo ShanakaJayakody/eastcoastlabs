@@ -24,6 +24,7 @@ import { supabaseAdmin } from "./supabase";
 export interface ComingSoonProduct {
   slug: string;
   name: string;
+  images: { src: string; alt?: string }[];
   /** Intended vial format, carried on the SKU (e.g. ECL-NAD-500 → "500mg"). */
   format: string | null;
   compound: string | null;
@@ -48,7 +49,7 @@ export async function getComingSoonProducts(): Promise<ComingSoonProduct[]> {
 
   const { data, error } = await db
     .from("products")
-    .select("slug, name, sku, compound, short_description, categories, coming_soon_rank, size_parent_id")
+    .select("slug, name, sku, compound, short_description, categories, coming_soon_rank, size_parent_id, images")
     .eq("status", "coming_soon")
     .order("coming_soon_rank", { ascending: true, nullsFirst: false });
 
@@ -57,6 +58,9 @@ export async function getComingSoonProducts(): Promise<ComingSoonProduct[]> {
   return data.filter(p=>!p.size_parent_id).map((p) => ({
     slug: p.slug as string,
     name: p.name as string,
+    images: Array.isArray(p.images)
+      ? (p.images as { src: string; alt?: string }[]).filter((image) => Boolean(image?.src))
+      : [],
     format: formatFromSku(p.sku as string | null),
     compound: (p.compound as string | null) ?? null,
     shortDescription: (p.short_description as string | null) ?? null,
