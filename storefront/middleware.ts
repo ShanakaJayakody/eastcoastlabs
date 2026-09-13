@@ -39,9 +39,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isLogin = pathname === "/admin/login";
+  const isAuthCallback = pathname === "/admin/auth/callback";
 
   // Unauthenticated hitting a protected admin route → login.
-  if (!user && !isLogin) {
+  if (!user && !isLogin && !isAuthCallback) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("next", pathname);

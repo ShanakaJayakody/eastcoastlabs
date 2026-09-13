@@ -9,6 +9,12 @@ export interface ActionResult {
   error?: string;
 }
 
+const adminCallbackUrl = () =>
+  new URL(
+    "/admin/auth/callback",
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.eastcoastlabs.com.au",
+  ).toString();
+
 async function isAllowListed(email: string): Promise<boolean> {
   const admin = supabaseAdmin();
   if (!admin) return false;
@@ -33,7 +39,10 @@ export async function sendOtp(email: string): Promise<ActionResult> {
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithOtp({
     email: clean,
-    options: { shouldCreateUser: true },
+    options: {
+      emailRedirectTo: adminCallbackUrl(),
+      shouldCreateUser: true,
+    },
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true };
@@ -56,5 +65,19 @@ export async function verifyOtp(email: string, token: string): Promise<ActionRes
   });
   if (error) return { ok: false, error: error.message };
   await logAudit({ actor: clean, action: "login" });
+  return { ok: true };
+}
+
+/** Complete the PKCE flow after the operator clicks the emailed magic link. */
+export async function exchangeMagicLinkCode(code: string): Promise<ActionResult> {
+  const clean = code.trim();
+  if (!clean) return { ok: false, error: "The sign-in link is invalid or incomplete." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.exchangeCodeForSession(clean);
+  if (error) return { ok: false, error: error.message };
+
+  const email = data.user?.email?.toLowerCase();
+  if (email) await logAudit({ actor: email, action: "login" });
   return { ok: true };
 }
