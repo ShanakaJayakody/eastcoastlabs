@@ -71,7 +71,7 @@ export default async function HomePage() {
       <section className="ecl-hero ecl-hero-five" aria-labelledby="hero-title">
         <div className="ecl-hero-art">
           <Image
-            src="/images/editorial/five-vial-campaign.webp"
+            src="/images/editorial/five-vial-campaign-blue.webp"
             alt="Five East Coast Labs vials — BPC-157, GHK-Cu, Retatrutide, Tesamorelin and KLOW — arranged on sea-glass plinths"
             fill
             priority
