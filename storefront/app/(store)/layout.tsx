@@ -10,7 +10,7 @@ import {
   getCartPrices,
   getCartVariants,
 } from "@/lib/storefront-catalog";
-import { editorialSans, editorialSerif } from "@/lib/editorial-fonts";
+import { brandBody, brandDisplay } from "@/lib/editorial-fonts";
 import "./editorial.css";
 
 // The storefront shell: everything a shopper sees. Admin routes deliberately do
@@ -58,7 +58,7 @@ export default async function StoreLayout({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd).replace(/</g,'\\u003c') }}
       />
       <div
-        className={`ecl-store ${editorialSans.variable} ${editorialSerif.variable} flex min-h-screen flex-col`}
+        className={`ecl-store ${brandBody.variable} ${brandDisplay.variable} flex min-h-screen flex-col`}
       >
         <AnnouncementBar />
         <Header />

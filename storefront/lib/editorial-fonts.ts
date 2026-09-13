@@ -1,16 +1,16 @@
 import localFont from "next/font/local";
 
-export const editorialSans = localFont({
-  src: "../public/fonts/inter-latin.woff2",
-  weight: "400 600",
-  variable: "--font-grotesk",
+export const brandBody = localFont({
+  src: "../public/fonts/commissioner-latin.woff2",
+  weight: "400 700",
+  variable: "--font-brand-body",
   display: "swap",
 });
 
-export const editorialSerif = localFont({
-  src: "../public/fonts/newsreader-italic-latin.woff2",
+export const brandDisplay = localFont({
+  src: "../public/fonts/tenor-sans-latin.woff2",
   weight: "400",
-  style: "italic",
-  variable: "--font-serif",
+  style: "normal",
+  variable: "--font-brand-display",
   display: "swap",
 });
