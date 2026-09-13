@@ -7,6 +7,8 @@
       "slug": "insulin-syringes",
       "price": 8.99,
       "icon": "💉",
+      "image": "/images/products/generated/insulin-syringes.png",
+      "imageAlt": "Insulin Syringes — 0.5ml – East Coast Labs Australia",
       "blurb": "29G ultra-fine · box of 10",
       "unit": "box of 10"
     },
@@ -16,6 +18,8 @@
       "slug": "alcohol-swabs",
       "price": 9.99,
       "icon": "🧴",
+      "image": "/images/products/generated/alcohol-swabs.png",
+      "imageAlt": "Alcohol Prep Swabs – East Coast Labs Australia",
       "blurb": "Sterile 70% IPA · 100 pack",
       "unit": "100 pack"
     },
@@ -25,6 +29,8 @@
       "slug": "reconstitution-kit",
       "price": 39.99,
       "icon": "🧰",
+      "image": "/images/products/generated/reconstitution-kit.png",
+      "imageAlt": "Reconstitution Starter Kit – East Coast Labs Australia",
       "blurb": "Bac water + syringes + swabs",
       "unit": "kit"
     }

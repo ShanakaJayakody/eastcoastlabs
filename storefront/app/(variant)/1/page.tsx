@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getCatalog } from "@/lib/catalog";
+import { getCatalog, rankProductsByPopularity } from "@/lib/catalog";
 import { getAllCoa } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import { getStacks } from "@/lib/stacks";
@@ -37,8 +37,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-const BESTSELLER_SLUGS = ["tesamorelin", "mots-c", "semax", "selank", "bpc-157", "tb-500", "glow", "ghk-cu"];
-
 function formatProofDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -61,8 +59,7 @@ export default async function VariantHomePage() {
 
 
   const { products, bySlug } = catalog;
-  const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
-  const grid = await decorateCards(bestsellers.length >= 4 ? bestsellers : products.slice(0, 8));
+  const grid = await decorateCards(rankProductsByPopularity(products).slice(0, 8));
 
   const heroProduct = bySlug.get("bpc-157") ?? products[0];
   const heroImage = heroProduct?.images?.[0]?.src;

@@ -84,6 +84,43 @@ const LEGACY_ORDER = new Map<string, number>(
   (localCatalog as { slug: string }[]).map((p, i) => [p.slug, i]),
 );
 
+/**
+ * Customer-facing merchandising order, based on paid-order performance for the
+ * 90 days ending 13 September 2026. Keep this explicit: public pages should not
+ * run an expensive orders report just to arrange product cards.
+ */
+const POPULARITY_ORDER = new Map<string, number>(
+  [
+    "retatrutide",
+    "ghk-cu",
+    "tesamorelin",
+    "klow",
+    "bpc-157",
+    "tirzepatide",
+    "mots-c",
+    "semax",
+    "mt2",
+    "tb-500",
+    "selank",
+    "igf",
+    "nad-plus",
+    "semaglutide",
+    "glow",
+  ].map((slug, index) => [slug, index]),
+);
+
+/** Rank known products by popularity without disturbing new/unranked products. */
+export function rankProductsByPopularity<T extends { slug: string }>(products: readonly T[]): T[] {
+  return products
+    .map((product, index) => ({ product, index }))
+    .sort((a, b) => {
+      const rankA = POPULARITY_ORDER.get(a.product.slug) ?? Number.MAX_SAFE_INTEGER;
+      const rankB = POPULARITY_ORDER.get(b.product.slug) ?? Number.MAX_SAFE_INTEGER;
+      return rankA - rankB || a.index - b.index;
+    })
+    .map(({ product }) => product);
+}
+
 /** Deterministic positive id for a slug the JSON catalog never knew about. */
 function derivedId(slug: string): number {
   let h = 0;

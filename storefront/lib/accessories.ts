@@ -12,6 +12,8 @@ export interface Accessory {
   slug: string;
   price: number; // AUD major units
   icon: string;
+  image: string;
+  imageAlt: string;
   blurb: string;
   unit: string;
 }

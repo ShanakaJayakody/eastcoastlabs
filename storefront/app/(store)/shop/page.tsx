@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCatalog } from "@/lib/catalog";
+import { getCatalog, rankProductsByPopularity } from "@/lib/catalog";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import AccessoryGrid from "@/components/AccessoryGrid";
 import ShopFilterGrid from "@/components/ShopFilterGrid";
@@ -23,7 +23,7 @@ export default async function ShopPage() {
   const [{ products }, comingSoon] = await Promise.all([getCatalog(), getComingSoonProducts()]);
   const collections = getCollections();
   // Slim card data — avoids shipping heavy description HTML to the client filter.
-  const rawCards: CardProduct[] = products.map((p) => ({
+  const rawCards: CardProduct[] = rankProductsByPopularity(products).map((p) => ({
     id: p.id,
     name: p.name,
     slug: p.slug,
