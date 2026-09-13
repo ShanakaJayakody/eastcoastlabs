@@ -16,7 +16,7 @@
   --color-success: #b5d6be;
   background: var(--color-ink);
   color: var(--color-fg);
-  font-family: var(--font-grotesk), Arial, sans-serif;
+  font-family: var(--font-brand-body), Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 .ecl-store :is(a, button, input, select):focus-visible {
@@ -26,8 +26,16 @@
 .ecl-store :is(a, button) {
   -webkit-tap-highlight-color: transparent;
 }
+.ecl-store :is(h1, h2),
+.ecl-store .ecl-newsletter-title,
+.ecl-store .ecl-footer-wordmark {
+  font-family: var(--font-brand-display), Arial, sans-serif;
+  font-weight: 400;
+  font-synthesis: none;
+}
 .ecl-store em {
-  font-family: var(--font-serif), Georgia, serif;
+  font-family: inherit;
+  font-style: normal;
   font-weight: 400;
 }
 .ecl-container {
@@ -47,13 +55,13 @@
 .ecl-home h2 {
   font-size: clamp(36px, 4.1vw, 58px);
   font-weight: 400;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.025em;
   line-height: 1.06;
   margin-top: 19px;
 }
 .ecl-home h2 em {
-  font-size: 1.13em;
-  letter-spacing: -0.035em;
+  font-size: 1em;
+  letter-spacing: inherit;
 }
 .ecl-section-heading {
   display: flex;
@@ -271,16 +279,16 @@
 }
 .ecl-hero h1 {
   font-size: clamp(60px, 6.4vw, 94px);
-  letter-spacing: -0.055em;
+  letter-spacing: -0.035em;
   font-weight: 400;
-  line-height: 0.99;
+  line-height: 1.08;
   margin: 24px 0 22px;
 }
 .ecl-hero h1 em {
   color: #d0e2cf;
-  font-size: 1.16em;
-  line-height: 0.88;
-  letter-spacing: -0.045em;
+  font-size: 1em;
+  line-height: inherit;
+  letter-spacing: inherit;
 }
 .ecl-hero-description {
   font-size: 14px;
@@ -1957,8 +1965,8 @@
     max-width: none;
   }
   .ecl-hero.ecl-hero-five h1 {
-    font-size: clamp(38px, 10.7vw, 68px);
-    line-height: 1.04;
+    font-size: clamp(28px, 9.1vw, 62px);
+    line-height: 1.12;
   }
   .ecl-hero-five h1 br:nth-of-type(2) {
     display: block;
