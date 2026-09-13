@@ -35,7 +35,8 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
   const giftLine = lines.find((l) => l.key === GIFT_KEY);
   const hasGift = !!giftLine;
   const bacStock = stockFor("bacteriostatic-water");
-  const giftEligible = subtotal >= giftThreshold && (bacStock === null || bacStock > 0);
+  // A zero threshold can reward any paid order, but must never create a gift-only cart.
+  const giftEligible = subtotal > 0 && subtotal >= giftThreshold && (bacStock === null || bacStock > 0);
   useEffect(() => {
     // The gift is always exactly one unit — clamp if a stale line drifted.
     if (giftLine && giftLine.quantity !== 1) {

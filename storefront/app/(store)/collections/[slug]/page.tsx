@@ -29,27 +29,37 @@ export async function generateMetadata({
   };
 }
 
-export default async function CollectionPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CollectionPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const collection = getCollection(slug);
   if (!collection) notFound();
 
   const { products } = await getCatalog();
   const bySlug = new Map(products.map((p) => [p.slug, p]));
-  const items = await decorateCards(collection.products.map((s) => bySlug.get(s)).filter((p) => p != null));
+  const items = await decorateCards(
+    collection.products.map((s) => bySlug.get(s)).filter((p) => p != null),
+  );
   const others = getCollections().filter((c) => c.slug !== collection.slug);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
+    <div className="ecl-interior-page mx-auto max-w-6xl px-4 py-12">
       <nav className="mb-6 text-xs text-muted-2">
-        <Link href="/shop" className="hover:text-accent">Shop</Link> <span className="mx-1">/</span>
+        <Link href="/shop" className="hover:text-accent">
+          Shop
+        </Link>{" "}
+        <span className="mx-1">/</span>
         <span className="text-fg-2">{collection.name}</span>
       </nav>
 
-      <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Collection</p>
+      <div className="ecl-interior-intro max-w-2xl">
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+          Collection
+        </p>
         <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold text-fg sm:text-4xl">
-          <span aria-hidden>{collection.icon}</span>
           {collection.name}
         </h1>
         <p className="mt-3 text-muted">{collection.description}</p>
@@ -64,7 +74,9 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
 
       {/* Other collections */}
       <div className="mt-16 border-t border-line pt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">Other research goals</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-2">
+          Other research goals
+        </h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {others.map((c) => (
             <Link
@@ -72,7 +84,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ slu
               href={`/collections/${c.slug}`}
               className="btn-press rounded-full border border-line bg-surface px-4 py-2 text-sm text-fg-2 transition-colors hover:border-accent/50 hover:text-fg"
             >
-              {c.icon} {c.name}
+              {c.name}
             </Link>
           ))}
         </div>

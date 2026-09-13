@@ -7,6 +7,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
+import { Search } from "lucide-react";
 
 const NAV = [
   { href: "/shop", label: "Shop" },
@@ -31,9 +32,9 @@ export default function Header() {
   }, [pathname]);
 
   return (<>
-    <header className="sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur supports-[backdrop-filter]:bg-ink/70">
+    <header className="ecl-header sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur supports-[backdrop-filter]:bg-ink/70">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-[80] focus:rounded focus:bg-accent focus:p-3 focus:text-accent-ink">Skip to main content</a>
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
+      <div className="ecl-header-inner mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
         <Link href="/" className="group flex items-center gap-2.5" aria-label="East Coast Labs home">
           <Image
             src="/logo.png"
@@ -41,6 +42,7 @@ export default function Header() {
             width={38}
             height={40}
             priority
+            unoptimized
             className="h-8 w-auto sm:h-9 transition-transform duration-300 group-hover:scale-105"
           />
           <span className="flex flex-col leading-none">
@@ -70,6 +72,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link href="/shop#catalog-search" aria-label="Search the collection" className="ecl-header-search"><Search size={19} strokeWidth={1.5} /></Link>
           <button
             type="button"
             onClick={() => {setMenuOpen(false);openCart();}}
@@ -85,7 +88,7 @@ export default function Header() {
                 strokeLinejoin="round"
               />
             </svg>
-            <span className="hidden sm:inline">Cart</span>
+            <span className="hidden sm:inline">Bag</span>
             {ready && itemCount > 0 && (
               <span
                 key={itemCount}
@@ -117,8 +120,9 @@ export default function Header() {
 
     </header>
       {/* Keep the fixed dialog outside the header's backdrop-filter containing block. */}
-      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} label="Navigation menu" className="w-full max-w-md rounded-xl border border-line bg-ink p-3">
+      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} label="Navigation menu" className="ecl-mobile-menu w-full max-w-md rounded-xl border border-line bg-ink p-3">
         <button type="button" onClick={() => setMenuOpen(false)} className="ml-auto block p-3 text-fg" aria-label="Close menu">✕</button>
+        <p className="ecl-mobile-menu-label">EXPLORE EAST COAST LABS</p>
         <nav className="mx-auto flex max-w-6xl flex-col px-4 py-2">
           {NAV.map((item) => (
             <Link

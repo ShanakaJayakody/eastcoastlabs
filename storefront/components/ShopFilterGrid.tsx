@@ -69,7 +69,7 @@ export default function ShopFilterGrid({
     }`;
 
   return (
-    <div>
+    <div className="ecl-shop-filters">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           <button type="button" aria-pressed={active === "all"} className={pill(active === "all")} onClick={() => setActive("all")}>
@@ -82,12 +82,13 @@ export default function ShopFilterGrid({
               aria-pressed={active === c.slug} className={pill(active === c.slug)}
               onClick={() => setActive(c.slug)}
             >
-              {c.icon} {c.name}
+              {c.name}
             </button>
           ))}
         </div>
         <input
           type="search"
+          id="catalog-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search compounds…"

@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { getCatalogProduct, getCatalogProducts, type CatalogProduct } from "@/lib/catalog";
 import { getCrossSellSlugs } from "@/lib/crosssells";
 import { getCoaForProduct } from "@/lib/coa";
+import { labReports } from "@/lib/lab-reports";
+import SupplierReportLinks from "@/components/SupplierReportLinks";
 import { getProductCopy, getHomeCopy } from "@/lib/content";
 import { minorToMajor } from "@/lib/format";
 import ProductGallery from "@/components/ProductGallery";
@@ -125,7 +127,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="ecl-product-page mx-auto max-w-6xl px-4 py-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <ViewItemTracker id={product.id} name={product.name} price={singleMajor} />
 
@@ -216,7 +218,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
       {/* COA verification module */}
       <div className="mt-8">
-        <CoaModule record={coa} />
+        {coa || !labReports.some((report) => report.productSlug === product.slug) ? (
+          <CoaModule record={coa} />
+        ) : (
+          <SupplierReportLinks reports={labReports.filter((report) => report.productSlug === product.slug)} />
+        )}
       </div>
 
       {/* Description */}

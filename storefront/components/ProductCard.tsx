@@ -33,9 +33,9 @@ export default function ProductCard({ product }: { product: CardProduct }) {
   return (
     <Link
       href={`/product/${product.slug}`}
-      className="card-hover group flex flex-col overflow-hidden rounded-xl border border-line bg-surface hover:border-accent/50"
+      className="ecl-product-card card-hover group flex flex-col overflow-hidden rounded-xl border border-line bg-surface hover:border-accent/50"
     >
-      <div className="relative aspect-square overflow-hidden bg-ink-2">
+      <div className="ecl-product-image relative aspect-square overflow-hidden bg-ink-2">
         {img ? (
           <Image
             src={img.src}
@@ -48,7 +48,7 @@ export default function ProductCard({ product }: { product: CardProduct }) {
           <div className="grid h-full w-full place-items-center text-4xl text-muted-2">🧪</div>
         )}
         <span
-          className={`absolute left-3 top-3 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+          className={`ecl-stock-label absolute left-3 top-3 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
             inStock ? "bg-success/15 text-success" : "bg-warn/15 text-warn"
           }`}
         >
@@ -56,7 +56,7 @@ export default function ProductCard({ product }: { product: CardProduct }) {
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 p-4">
+      <div className="ecl-product-details flex flex-1 flex-col gap-1 p-4">
         <h3 className="text-sm font-semibold text-fg">{product.name}</h3>
         {rating ? (
           <div className="flex items-center gap-1.5">
