@@ -4,6 +4,7 @@ import { getAccessories } from "@/lib/accessories";
 import { useCart } from "@/lib/cart-context";
 import { formatAud } from "@/lib/format";
 import { trackAddToCart } from "@/lib/analytics";
+import { accessoryAlreadyIncluded } from "@/lib/cart-offers";
 
 /**
  * In-cart cross-sell. Surfaces the research accessories a peptide buyer almost
@@ -13,20 +14,19 @@ import { trackAddToCart } from "@/lib/analytics";
 export default function CartUpsell() {
   const { lines, addLine, stockFor, priceFor } = useCart();
 
-  const inCart = new Set(lines.map((l) => l.key));
   const suggestions = getAccessories()
-    .filter((a) => !inCart.has(`acc:${a.slug}`))
+    .filter((a) => !accessoryAlreadyIncluded(lines,a.slug))
     // Out-of-stock accessories are never suggested; slugs the ledger doesn't
     // track yet (stockFor → null) stay offered.
     .filter((a) => (stockFor(a.slug) ?? 0) > 0)
-    .slice(0, 3).map(a => ({...a, price:priceFor(a.slug) ?? a.price}));
+    .slice(0, 1).map(a => ({...a, price:priceFor(a.slug) ?? a.price}));
 
   if (suggestions.length === 0) return null;
 
   return (
     <div className="rounded-lg border border-line bg-surface/40 p-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-2">
-        Add research essentials
+        Optional accessory
       </p>
       <ul className="space-y-2">
         {suggestions.map((a) => (
@@ -51,7 +51,7 @@ export default function CartUpsell() {
                   unitPrice: a.price,
                 });
                 trackAddToCart(
-                  { item_id: a.id, item_name: a.name, item_variant: "accessory", price: a.price, quantity: 1 },
+                  { item_id: a.slug, item_name: a.name, item_variant: "accessory", price: a.price, quantity: 1 },
                   a.price,
                 );
               }}

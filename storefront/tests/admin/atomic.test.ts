@@ -23,7 +23,10 @@ beforeAll(async () => {
  insert into inventory(variant_id,low_stock_threshold) values('00000000-0000-0000-0000-000000000002',5);`);
  const path = 'supabase/migrations/20260908110000_admin_integrity.sql';
  try { await db.exec(readFileSync(path,'utf8')); } catch(e) { if (!(e instanceof Error && e.message.includes('ENOENT'))) throw e; }
+ await db.exec(readFileSync('supabase/migrations/20260913130000_public_business_settings.sql','utf8'));
 });
+
+
 afterAll(async()=>{await db.close();});
 describe('atomic admin writes',()=>{
  it('a bad middle variant rolls back product and earlier prices',async()=>{
@@ -73,4 +76,17 @@ it('People counts actual paid orders and nets partial/full refunds without treat
  expect(result.rows.find(r=>r.email==='pending@test.local')).toMatchObject({orders_count:0,ltv_cents:0,last_order_at:null});
  expect(result.rows.find(r=>r.email==='partial@test.local')).toMatchObject({orders_count:1,ltv_cents:750});
  expect(result.rows.find(r=>r.email==='full@test.local')).toMatchObject({orders_count:1,ltv_cents:0});
+});
+
+it('saves public business facts atomically and rejects invalid profile fields and stale revisions',async()=>{
+ const revision=(await db.query<{version:number}>('select version from settings_revision')).rows[0].version;
+ await db.query('select admin_save_settings($1::jsonb,$2,$3)',[JSON.stringify({legal_name:'Example Pty Ltd',abn:'51824753556',public_address:''}),revision,'operator']);
+ expect((await db.query<{value:string}>("select value from settings where key='legal_name'")).rows[0].value).toBe('Example Pty Ltd');
+ await expect(db.query('select admin_save_settings($1::jsonb,$2,$3)',[JSON.stringify({abn:'invalid'}),Number(revision)+1,'operator'])).rejects.toThrow(/ABN/i);
+ await expect(db.query('select admin_save_settings($1::jsonb,$2,$3)',[JSON.stringify({abn:'00000000000'}),Number(revision)+1,'operator'])).rejects.toThrow(/ABN/i);
+ await expect(db.query('select admin_save_settings($1::jsonb,$2,$3)',[JSON.stringify({abn:'51824753557'}),Number(revision)+1,'operator'])).rejects.toThrow(/ABN/i);
+ expect((await db.query<{value:string}>("select value from settings where key='abn'")).rows[0].value).toBe('51824753556');
+ expect((await db.query<{version:number}>('select version from settings_revision')).rows[0].version).toBe(Number(revision)+1);
+ await expect(db.query('select admin_save_settings($1::jsonb,$2,$3)',[JSON.stringify({legal_name:'Stale'}),revision,'operator'])).rejects.toThrow(/changed/i);
+ expect((await db.query<{allowed:boolean}>("select has_function_privilege('authenticated','admin_save_settings(jsonb,bigint,text)','execute') allowed")).rows[0].allowed).toBe(false);
 });

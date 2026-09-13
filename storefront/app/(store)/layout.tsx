@@ -3,8 +3,7 @@ import AnnouncementBar from "@/components/AnnouncementBar";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
-import ExitIntentModal from "@/components/ExitIntentModal";
-import Analytics from "@/components/Analytics";
+import StoreEnhancements from "@/components/StoreEnhancements";
 import { getSettings } from "@/lib/settings";
 import { getUpsellStock, getCartPrices, getCartVariants } from "@/lib/storefront-catalog";
 
@@ -20,6 +19,8 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "East Coast Labs",
+    ...(settings.legalName ? {legalName:settings.legalName} : {}),
+    ...(settings.abn ? {taxID:settings.abn} : {}),
     url: "https://www.eastcoastlabs.com.au",
     description:
       "Australian-owned supplier of research-use-only peptides. Browse products and available batch documentation.",
@@ -38,17 +39,16 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd).replace(/</g,'\\u003c') }}
       />
       <div className="flex min-h-screen flex-col">
         <AnnouncementBar />
         <Header />
         <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">{children}</main>
-        <Footer supportEmail={settings.supportEmail} />
+        <Footer supportEmail={settings.supportEmail} legalName={settings.legalName} abn={settings.abn} supportHours={settings.supportHours} />
         <CartDrawer />
-        <ExitIntentModal />
       </div>
-      <Analytics />
+      <StoreEnhancements />
     </Providers>
   );
 }

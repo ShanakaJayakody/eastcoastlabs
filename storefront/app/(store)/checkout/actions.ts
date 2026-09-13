@@ -5,7 +5,7 @@ import { verifiedRecoveryEpisode } from "@/lib/recovery-consent";
 import { validCheckoutLines as validateLines, normalizeCheckoutLines } from "@/lib/checkout-lines";
 import { after } from "next/server";
 import { createHash } from "node:crypto";
-import { resolveCart, type ClientCartLine, type ResolvedCartLine } from "@/lib/checkout";
+import { applyGiftThreshold, resolveCart, type ClientCartLine, type ResolvedCartLine } from "@/lib/checkout";
 import { createOrder, findCheckoutReplay, type CreatedOrder } from "@/lib/admin/orders";
 import { validateDiscount } from "@/lib/admin/discounts";
 import { markCartRecovered } from "@/lib/admin/cart-recovery";
@@ -13,6 +13,7 @@ import { getSettings } from "@/lib/settings";
 import { quoteShipping, shippingCentsFor, isShippingMethod, type ShippingMethod, type ShippingQuote } from "@/lib/shipping";
 import { availablePaymentOptions, isPaymentMethod, type PaymentMethod, type PaymentOption } from "@/lib/payments";
 import { paymentPath, createOrderAccessToken } from "@/lib/order-access";
+import { ANALYTICS_CONSENT_COOKIE, MEASUREMENT_COOKIE, parseOrderAttribution, type OrderAttribution } from "@/lib/attribution";
 
 export interface CheckoutAddress {
   line1: string; line2?: string; suburb: string; state: string; postcode: string; country?: string; phone?: string;
@@ -47,10 +48,11 @@ function validate(input: PlaceOrderInput): string | null {
 async function resolveQuote(lines: ClientCartLine[], discountCode?: string, shippingMethod?: ShippingMethod) {
   if (!validateLines(lines)) throw new Error("Your cart contains invalid items or quantities.");
   if (discountCode !== undefined && !bounded(discountCode, 50, false)) throw new Error("Invalid discount code.");
-  const [resolved, settings] = await Promise.all([resolveCart(lines), getSettings()]);
-  const discount = discountCode?.trim() ? await validateDiscount(discountCode, resolved.subtotalCents) : null;
+  const [resolvedCart, settings] = await Promise.all([resolveCart(lines), getSettings()]);
+  const discount = discountCode?.trim() ? await validateDiscount(discountCode, resolvedCart.subtotalCents) : null;
   const discountCents = discount?.ok ? discount.discountCents : 0;
-  const afterDiscount = resolved.subtotalCents - discountCents;
+  const afterDiscount = resolvedCart.subtotalCents - discountCents;
+  const resolved = applyGiftThreshold(resolvedCart, afterDiscount, Math.round(settings.giftThreshold * 100));
   const shipping = shippingCentsFor(afterDiscount, isShippingMethod(shippingMethod) ? shippingMethod : "standard", settings);
   const value = {
     lines: resolved.lines, subtotalCents: resolved.subtotalCents, discountCents, shippingCents: shipping.cents,
@@ -115,17 +117,22 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       return { ok: false, error: "Select an available payment method.", fieldErrors:{payment:"Select an available payment method."}, quote };
     }
     if (input.shippingMethod && input.shippingMethod !== quote.shippingMethod) return { ok: false, error: "Select an available shipping method.", fieldErrors:{shipping:"Select an available shipping method."}, quote };
-    let analyticsClientId: string | undefined;
-    if (process.env.GA4_API_SECRET && /^G-[A-Z0-9]+$/.test(process.env.NEXT_PUBLIC_GA4_ID ?? "")) {
-      const { cookies } = await import("next/headers");
-      const cookie = (await cookies()).get("_ga")?.value;
+    let analyticsClientId: string | undefined, orderAttribution: OrderAttribution | undefined;
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const analyticsConsent = cookieStore.get(ANALYTICS_CONSENT_COOKIE)?.value;
+    if (analyticsConsent === "granted") {
+      orderAttribution = parseOrderAttribution(cookieStore.get(MEASUREMENT_COOKIE)?.value, analyticsConsent) ?? undefined;
+    }
+    if (analyticsConsent === "granted" && process.env.GA4_API_SECRET && /^G-[A-Z0-9]+$/.test(process.env.NEXT_PUBLIC_GA4_ID ?? "")) {
+      const cookie = cookieStore.get("_ga")?.value;
       const match = cookie?.match(/^GA\d+\.\d+\.(\d{1,20}\.\d{1,20})$/);
       analyticsClientId = match?.[1];
     }
     const recoveryEpisodeId = await verifiedRecoveryEpisode(email,input.lines).catch(()=>undefined);
     const order = await createOrder({ email, name, shippingAddress, items: resolved.items, extraItems: resolved.extraItems,
       discountCode, shippingCents: quote.shippingCents, paymentMethod: input.paymentMethod, actor: email,
-      idempotencyKey: input.idempotencyKey, requestFingerprint, analyticsClientId, purchasedLines: resolved.lines, paymentExpiryHours: settings.paymentExpiryHours, expectedTotalCents: quote.totalCents });
+      idempotencyKey: input.idempotencyKey, requestFingerprint, analyticsClientId, orderAttribution, purchasedLines: resolved.lines, paymentExpiryHours: settings.paymentExpiryHours, expectedTotalCents: quote.totalCents });
     // Email intent is inserted by the commerce transaction. Provider delivery
     // belongs to the outbox worker and cannot turn a committed order into a failure.
     await markCartRecovered(email, order.orderId, recoveryEpisodeId).catch(() => console.error("Checkout recovery attribution awaits investigation"));

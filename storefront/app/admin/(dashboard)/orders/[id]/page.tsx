@@ -1,3 +1,5 @@
+import OrderCosts from "@/components/admin/OrderCosts";
+import { variableCosts } from "@/lib/admin/reports";
 import LotPacking from "@/components/admin/LotPacking";
 import { getOrderFulfilment, getLotCatalog } from "@/lib/admin/fulfilment";
 import RefundSettlements from "@/components/admin/RefundSettlements";
@@ -18,7 +20,7 @@ import OrderItemsPanel from "@/components/admin/OrderItemsPanel";
 
 export const dynamic = "force-dynamic";
 
-const cents = (c: number) => formatAud(c / 100);
+const cents = (c: number | null) => c==null?"Unknown":formatAud(c / 100);
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
@@ -26,7 +28,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const order = await getOrder(id);
   if (!order) notFound();
 
-  const [profit, settlements, fulfilment, lotCatalog] = await Promise.all([profitForOrders([id]), getRefundSettlements(id), getOrderFulfilment(id), getLotCatalog()]);
+  const [profit, settlements, fulfilment, lotCatalog, costs] = await Promise.all([profitForOrders([id]), getRefundSettlements(id), getOrderFulfilment(id), getLotCatalog(), variableCosts([id])]);
   // Only a cancelled order can be reinstated, so only it pays for the check.
   const stockCheck =
     order.status === "cancelled" ? await reinstateStockCheck(id) : undefined;
@@ -79,15 +81,15 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <RefundSettlements orderId={id} refundedCents={order.refunded_cents} settlements={settlements} />
 
           {/* Profit — admin-only, from the COGS frozen at payment */}
-          {profit.cogsCents > 0 && (
+          {order.paid_at && (
             <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted">Cost of goods</span>
+                <span className="text-muted">Known cost of goods</span>
                 <span className="text-fg-2">{cents(profit.cogsCents)}</span>
               </div>
               <div className="mt-1 flex items-center justify-between font-medium">
                 <span className="text-fg">Gross profit</span>
-                <span className={profit.profitCents < 0 ? "text-warn" : "text-success"}>
+                <span className={profit.profitCents==null?"text-muted":profit.profitCents < 0 ? "text-warn" : "text-success"}>
                   {cents(profit.profitCents)}
                   {profit.marginPct != null && (
                     <span className="ml-1 text-xs opacity-80">({profit.marginPct}%)</span>
@@ -96,12 +98,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </div>
               {profit.uncostedLines > 0 && (
                 <p className="mt-1.5 text-xs text-muted-2">
-                  {profit.uncostedLines} line(s) have no recorded cost — profit is overstated until
-                  those products get a cost per vial.
+                  {profit.uncostedLines} line(s) have no frozen cost. Gross profit is unknown; changing today’s product cost does not repair historical snapshots.
                 </p>
               )}
             </div>
           )}
+
+          {order.paid_at && <OrderCosts orderId={id} initial={costs.get(id)??null} />}
 
           {/* Timeline */}
           <section className="rounded-xl border border-line bg-surface">

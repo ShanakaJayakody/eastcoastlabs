@@ -87,6 +87,7 @@ test('uncertain submission retains recovery identity but no customer fields afte
 test('cart recovery is an explicit purpose request and restore leaves no browser contact or bearer data',async({page})=>{
  await page.getByLabel('Email address',{exact:true}).fill('synthetic@example.test');
  await page.getByLabel('Full name',{exact:true}).focus();
+ await page.getByRole('button',{name:'Save this cart for later (optional)',exact:true}).click();
  const choice=page.getByRole('checkbox',{name:'Email me a cart link and reminders for this cart.'});
  await expect(choice).not.toBeChecked();await expect(page.getByRole('button',{name:'Email my cart link',exact:true})).toBeDisabled();
  await choice.check();await page.getByRole('button',{name:'Email my cart link',exact:true}).click();
@@ -100,6 +101,17 @@ test('cart recovery is an explicit purpose request and restore leaves no browser
  expect(stored).toContain('Synthetic restored cart');expect(stored).not.toContain('synthetic@example.test');expect(stored).not.toContain('a'.repeat(43));
  const result=await new AxeBuilder({page}).include('#main-content').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
  expect(result.violations.filter(v=>['serious','critical'].includes(v.impact??''))).toEqual([]);
+});
+test('mobile summary expands on demand and recovery stays optional',async({page},testInfo)=>{
+ test.skip(testInfo.project.name==='desktop','The compact summary is mobile only.');
+ const recovery=page.getByRole('button',{name:'Save this cart for later (optional)',exact:true});
+ await expect(recovery).toHaveAttribute('aria-expanded','false');
+ await expect(page.getByRole('checkbox',{name:/cart link/})).toHaveCount(0);
+ const summary=page.locator('summary').filter({hasText:/Review .* items?/});
+ await expect(summary).toBeVisible();
+ await summary.click();
+ await expect(page.getByRole('link',{name:'Review charges and place order',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
 test('server field errors are described by controls and focus the first failing input',async({page})=>{
  for(const [label,value] of [['Email address','field-error@example.test'],['Full name','Synthetic Buyer'],['Street address','1 Test Street'],['Suburb','Testville'],['Postcode','3000']])await page.getByLabel(label,{exact:true}).fill(value);

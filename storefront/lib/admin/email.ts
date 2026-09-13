@@ -1,6 +1,7 @@
 import "server-only";
 import { after } from "next/server";
 import { adminDb } from "./db";
+import { retentionAssignment } from "./retention-policy";
 
 // The outbox is durable before any delivery is scheduled. Duplicate enqueue is
 // harmless; the sender still needs a database lease before it can contact Resend.
@@ -38,13 +39,17 @@ export async function queueEmail(opts: {
   relatedId?: string;
 }): Promise<boolean> {
   const db = adminDb();
+  const payload={...(opts.payload??{})};
+  delete payload.retention_experiment;
+  const assignment=retentionAssignment(opts.to,opts.template);
+  if(assignment)payload.retention_experiment=assignment;
   const { data, error } = await db
     .from("email_outbox")
     .upsert(
       {
         to_email: opts.to.trim().toLowerCase(),
         template: opts.template,
-        payload: opts.payload ?? {},
+        payload,
         related_type: opts.relatedType ?? null,
         related_id: opts.relatedId ?? null,
       },

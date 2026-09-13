@@ -1,5 +1,8 @@
 /** Read-side queries for the orders module. Mutations live in orders.ts. */
 import { adminDb } from "./db";
+import { fetchAll } from "./paging";
+import { economicLines } from "./costs";
+import { summarizeLines, type EconomicLine } from "./economics";
 import { csvRow } from "@/lib/csv";
 import type { OrderStatus } from "./orders";
 
@@ -217,41 +220,25 @@ export async function orderMetrics(): Promise<{
   pendingPayment: number;
 }> {
   const db = adminDb();
-  const PAID: OrderStatus[] = ["paid", "processing", "shipped", "completed"];
-  const since = (days: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() - days);
-    return d.toISOString();
-  };
-  const startOfToday = () => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString();
-  };
-
-  const sum = async (fromIso: string): Promise<number> => {
-    const { data } = await db
-      .from("orders")
-      .select("total_cents")
-      .in("status", PAID)
-      .gte("created_at", fromIso);
-    return (data ?? []).reduce((s, r) => s + (r.total_cents as number), 0);
-  };
-
-  const [revenueToday, revenue7d, revenue30d] = await Promise.all([
-    sum(startOfToday()),
-    sum(since(7)),
-    sum(since(30)),
+  const now = new Date();
+  const today = windowMeta('day').startIso;
+  const since = (days: number) => new Date(now.getTime() - days * 86400000).toISOString();
+  // Revenue follows actual payment time regardless of current status. Refunds
+  // update that payment cohort; these cards are not a refund-date cash ledger.
+  const paid = await fetchAll<{id:string;paid_at:string;status:string;total_cents:number;refunded_cents:number|null}>(
+    (from,to) => db.from('orders').select('id,paid_at,status,total_cents,refunded_cents')
+      .not('paid_at','is',null).gte('paid_at',since(30)).lt('paid_at',now.toISOString())
+      .order('id',{ascending:true}).range(from,to), 'orderMetrics revenue');
+  const sum = (fromIso: string) => paid.filter(order => Date.parse(order.paid_at) >= Date.parse(fromIso))
+    .reduce((total,order) => total + (order.status === 'refunded' ? 0 : order.total_cents - (order.refunded_cents ?? 0)),0);
+  const revenueToday = sum(today), revenue7d = sum(since(7)), revenue30d = sum(since(30));
+  // Operational queues deliberately remain current-state counts.
+  const [{count:toFulfil,error:fulfilError},{count:pendingPayment,error:pendingError}] = await Promise.all([
+    db.from('orders').select('*',{count:'exact',head:true}).in('status',['paid','processing']),
+    db.from('orders').select('*',{count:'exact',head:true}).eq('status','pending'),
   ]);
-
-  const { count: toFulfil } = await db
-    .from("orders")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["paid", "processing"]);
-  const { count: pendingPayment } = await db
-    .from("orders")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "pending");
+  if (fulfilError) throw new Error(`orderMetrics fulfilment: ${fulfilError.message}`);
+  if (pendingError) throw new Error(`orderMetrics pending payment: ${pendingError.message}`);
 
   return {
     revenueToday,
@@ -270,24 +257,24 @@ export interface RevenueBucket {
   label: string;
   cents: number;
   /** Net revenue minus COGS for the same bucket. Can be negative. */
-  profitCents: number;
+  profitCents: number | null;
 }
 
 /**
  * Money for one window. Revenue is gross takings on paid orders; profit is
  * net-of-refunds revenue minus the COGS snapshot frozen at payment. Shipping
- * cost and payment fees are not tracked anywhere, so they are not deducted —
- * this is gross profit, and `uncostedLines` says how much of it is guesswork.
+ * and variable expenses are excluded from merchandise gross profit. Missing
+ * frozen costs make gross profit unknown; contribution is a separate report.
  */
 export interface RevenueTotals {
   revenueCents: number;
   refundedCents: number;
   cogsCents: number;
-  profitCents: number;
+  profitCents: number | null;
   /** Unpaid orders raised in the window — takings not yet in the bank. */
   pendingCents: number;
   pendingCount: number;
-  /** Sold lines with no cost snapshot. Profit is overstated by their cost. */
+  /** Sold lines with no cost snapshot. Profit is unknown until reconciled. */
   uncostedLines: number;
 }
 
@@ -500,9 +487,8 @@ export function windowMeta(scale: RevenueScale, anchorInput?: string | null): Wi
  * the ids that came back — covering both windows at once. Bucketing is pure JS
  * on the Sydney calendar so the chart and the comparison never disagree.
  *
- * Refunds are attributed to the day the order was raised, not the day the money
- * went back. Revenue and its refund therefore always sit in the same bucket,
- * which is what makes a closed month's figures stable.
+ * Paid orders are grouped by actual payment date. Refunds update that paid
+ * cohort as known now; this is not a refund-date cash ledger or closed-period snapshot.
  */
 export async function revenueWindow(input: {
   scale: RevenueScale;
@@ -523,48 +509,17 @@ export async function revenueWindow(input: {
   const fromIso = new Date(proxy(prevStart) - DAY_MS).toISOString();
   const toIsoBound = new Date(proxy(end) + DAY_MS).toISOString();
 
-  // "refunded" belongs here: a fully-refunded order is still a sale that
-  // happened, and dropping it would make a closed month's revenue shrink
-  // retroactively with nothing in the Refunds cell to explain the gap.
-  const PAID: OrderStatus[] = ["paid", "processing", "shipped", "completed", "refunded"];
   const db = adminDb();
-  const { data, error } = await db
-    .from("orders")
-    .select("id, created_at, total_cents, refunded_cents, status")
-    .in("status", [...PAID, "pending"])
-    .gte("created_at", fromIso)
-    .lt("created_at", toIsoBound);
-  if (error) throw new Error(`revenueWindow: ${error.message}`);
-  const orders = (data ?? []) as unknown as {
-    id: string;
-    created_at: string;
-    total_cents: number;
-    refunded_cents: number | null;
-    status: OrderStatus;
-  }[];
-
-  // Second and last query: the COGS snapshot for every order in range. Cost is
-  // frozen per line at payment, so historical profit never moves when a
-  // supplier reprices — see costs.ts.
-  const cogsByOrder = new Map<string, number>();
-  const uncostedByOrder = new Map<string, number>();
-  const paidIds = orders.filter((o) => o.status !== "pending").map((o) => o.id);
-  if (paidIds.length) {
-    const { data: lines, error: lineError } = await db
-      .from("order_items")
-      .select("order_id, qty, refunded_qty, unit_cost_cents")
-      .in("order_id", paidIds);
-    if (lineError) throw new Error(`revenueWindow lines: ${lineError.message}`);
-    for (const line of lines ?? []) {
-      const orderId = line.order_id as string;
-      const netQty = Math.max(0, (line.qty as number) - ((line.refunded_qty as number) ?? 0));
-      if (line.unit_cost_cents == null) {
-        if (netQty > 0) uncostedByOrder.set(orderId, (uncostedByOrder.get(orderId) ?? 0) + 1);
-        continue;
-      }
-      cogsByOrder.set(orderId, (cogsByOrder.get(orderId) ?? 0) + (line.unit_cost_cents as number) * netQty);
-    }
-  }
+  type ChartOrder={id:string;created_at:string;paid_at:string|null;total_cents:number;refunded_cents:number|null;status:OrderStatus};
+  const columns="id, created_at, paid_at, total_cents, refunded_cents, status";
+  const [paid,pending]=await Promise.all([
+    fetchAll<ChartOrder>((from,to)=>db.from("orders").select(columns).not("paid_at","is",null).gte("paid_at",fromIso).lt("paid_at",toIsoBound).order("id",{ascending:true}).range(from,to),"revenueWindow paid"),
+    fetchAll<ChartOrder>((from,to)=>db.from("orders").select(columns).eq("status","pending").gte("created_at",fromIso).lt("created_at",toIsoBound).order("id",{ascending:true}).range(from,to),"revenueWindow pending"),
+  ]);
+  const orders=[...paid,...pending.filter(o=>!o.paid_at)];
+  const lines=await economicLines(paid.map(o=>o.id));
+  const linesByOrder=new Map<string,EconomicLine[]>();
+  for(const line of lines){const group=linesByOrder.get(line.order_id)??[];group.push(line);linesByOrder.set(line.order_id,group);}
 
   // Empty scaffolds first, so zero-revenue periods still chart cleanly. The
   // current window only shows elapsed buckets — future days would be noise.
@@ -611,7 +566,7 @@ export async function revenueWindow(input: {
   const prevStartMs = proxy(prevStart);
 
   for (const row of orders) {
-    const p = sydneyParts(new Date(row.created_at));
+    const p = sydneyParts(new Date(row.paid_at??row.created_at));
     const dayMs = proxy(p);
     const inWindow = dayMs >= startMs && dayMs < endMs;
     const inPrevious = !inWindow && dayMs >= prevStartMs && dayMs < startMs;
@@ -620,7 +575,7 @@ export async function revenueWindow(input: {
 
     // Unpaid orders are money owed, never revenue — they must not reach the
     // chart or the profit line until the transfer lands.
-    if (row.status === "pending") {
+    if (!row.paid_at) {
       bucket.pendingCents += row.total_cents ?? 0;
       bucket.pendingCount += 1;
       continue;
@@ -628,20 +583,23 @@ export async function revenueWindow(input: {
 
     const cents = row.total_cents ?? 0;
     const refunded = row.refunded_cents ?? 0;
-    const cogs = cogsByOrder.get(row.id) ?? 0;
-    const profit = cents - refunded - cogs;
+    const orderLines=linesByOrder.get(row.id)??[];
+    const summary=summarizeLines(orderLines);
+    const cogs=summary.cogsCents;
+    const profit=orderLines.length?summary.profitCents:null;
 
     bucket.revenueCents += cents;
     bucket.refundedCents += refunded;
     bucket.cogsCents += cogs;
-    bucket.profitCents += profit;
-    bucket.uncostedLines += uncostedByOrder.get(row.id) ?? 0;
+    bucket.profitCents = bucket.profitCents==null||profit==null?null:bucket.profitCents+profit;
+    bucket.uncostedLines += orderLines.length?summary.uncostedLines:1;
 
     if (inWindow) {
       const i = bucketIndex(p);
       if (i >= 0 && i < buckets.length) {
         buckets[i].cents += cents;
-        buckets[i].profitCents += profit;
+        const previousProfit=buckets[i].profitCents;
+        buckets[i].profitCents = previousProfit==null||profit==null?null:previousProfit+profit;
       }
     }
   }

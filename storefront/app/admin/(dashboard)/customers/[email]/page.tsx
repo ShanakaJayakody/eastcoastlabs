@@ -63,6 +63,7 @@ export default async function CustomerDetailPage({
       label: s.label,
       active: s.active,
       paused: s.paused,
+      disabled:s.disabled,
       context: s.context,
       steps,
       nextStage: next?.stage ?? null,

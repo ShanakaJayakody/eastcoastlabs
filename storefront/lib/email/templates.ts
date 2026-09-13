@@ -423,11 +423,10 @@ export async function renderTemplate(
       return {
         subject: `Did ${orderNumber} arrive OK?`,
         html: shell(
-          "Quick check that your order landed as it should have.",
+          "Checking in after dispatch — let us know if you need help.",
           `<h1 style="font-size:20px;margin:0 0 8px;">Did everything arrive OK?</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Order <strong style="font-family:monospace;">${orderNumber}</strong> shipped a few days ago, so it
-             should be with you by now. This is a real check-in, not a sales email — if anything is
+             Order <strong style="font-family:monospace;">${orderNumber}</strong> shipped recently. If anything is
              missing, damaged, or still hasn't turned up, tell us and we'll sort it out.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
@@ -453,7 +452,7 @@ export async function renderTemplate(
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Your order <strong style="font-family:monospace;">${orderNumber}</strong>${
                bought ? ` — ${bought} —` : ""
-             } was delivered about two weeks ago. We'd value your honest review. We're specifically interested in:
+             } shipped recently. If you have received it, we'd value your honest review. We're specifically interested in:
            </p>
            <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
              <li>Dispatch speed — did your order arrive when expected?</li>
@@ -513,25 +512,19 @@ export async function renderTemplate(
       };
     }
     case "replenishment": {
-      const packSize = Number(payload.pack_size ?? 1);
-      const items = Array.isArray(payload.items) ? (payload.items as { name?: string; qty?: number }[]) : [];
-      const lines = items
-        .map((l) => `<li style="margin:4px 0;">${l.name ?? "Item"} × ${l.qty ?? 1}</li>`)
-        .join("");
-      const weeks = packSize >= 6 ? "22 weeks" : packSize >= 3 ? "10 weeks" : "3 weeks";
+      const items = Array.isArray(payload.items) ? (payload.items as { name?: string; qty?: number; url?:string }[]) : [];
+      const lines = items.map(item => {
+        const url=typeof item.url==='string'&&/^\/product\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.url)?`${SITE}${item.url}`:null;
+        return `<li style="margin:8px 0;">${esc(String(item.name??"Item"))} × ${Number.isInteger(item.qty)?item.qty:1}${url?` — <a href="${url}" style="color:${ACCENT};">View this product</a>`:''}</li>`;
+      }).join('');
       return {
-        subject: "Time to restock? 10% off your next order",
+        subject: "Your reorder reminder",
         html: shell(
-          `It's been about ${weeks} since your last order. Quick restock inside.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Running low on lab supplies?</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             It's been about ${weeks} since your last order. If your supply is getting low, restocking is quick.
-           </p>
-           ${lines ? `<p style="color:#c3ccd9;font-size:14px;">Your last order:</p><ul style="color:#c3ccd9;font-size:14px;padding-left:20px;">${lines}</ul>` : ""}
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Restock with code <strong style="font-family:monospace;">RESTOCK10</strong> for 10% off.
-           </p>
-           ${payButton(`${SITE}/shop`, "Reorder now")}`,
+          "A reminder to review your research supply needs.",
+          `<h1 style="font-size:20px;margin:0 0 8px;">Planning another research order?</h1>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">Here are the items from your previous order. Choose what your research requires; this reminder does not assume how much you have used.</p>
+           ${lines ? `<ul style="color:#c3ccd9;font-size:14px;padding-left:20px;">${lines}</ul>` : ""}
+           ${payButton(`${SITE}/shop`, "Browse current availability")}`,
           unsubOf(payload),
         ),
       };

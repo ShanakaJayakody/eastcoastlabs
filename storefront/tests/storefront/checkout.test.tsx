@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import {webcrypto} from "node:crypto";
 import {afterEach} from "vitest";
 import {cleanup} from "@testing-library/react";
-afterEach(cleanup);
+afterEach(()=>{cleanup();vi.useRealTimers();});
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({quote:vi.fn(),place:vi.fn(),recover:vi.fn(),request:vi.fn(),push:vi.fn(),clear:vi.fn(),lines:[{key:'a',slug:'a',name:'Local name',variantLabel:'1 vial',quantity:1,unitPrice:12}]}));
@@ -15,6 +15,26 @@ import CheckoutForm from '@/components/CheckoutForm';
 const quote={version:'v1',lines:[{key:'a',slug:'a',name:'Authoritative name',variantLabel:'1 vial',quantity:1,unitPriceCents:1200,lineTotalCents:1200,isGift:false}],subtotalCents:1200,totalCents:1200,shippingCents:0,shippingMethod:'standard',discountCents:0,paymentOptions:[{method:'bank_transfer',label:'Bank transfer',badges:[],blurb:'Transfer'}],shippingOptions:[],warnings:[]};
 beforeEach(()=>{sessionStorage.clear();m.lines=[{key:'a',slug:'a',name:'Local name',variantLabel:'1 vial',quantity:1,unitPrice:12}];vi.stubGlobal("crypto",webcrypto);m.quote.mockReset();m.place.mockReset();m.recover.mockReset();m.push.mockReset();m.clear.mockReset();});
 it('shows a failed quote with an actionable retry',async()=>{m.quote.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(quote);render(<CheckoutForm/>);fireEvent.click(await screen.findByRole('button',{name:/retry/i}));expect(await screen.findByText('Authoritative name')).toBeTruthy();expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled();});
+it('times out a hanging quote and ignores its late response while allowing a fresh retry',async()=>{
+ vi.useFakeTimers();let late!:(value:typeof quote)=>void;
+ m.quote.mockImplementationOnce(()=>new Promise(resolve=>{late=resolve;})).mockResolvedValueOnce(quote);
+ render(<CheckoutForm/>);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(15000);});
+ expect(screen.getByRole('button',{name:'Retry total'})).toBeEnabled();
+ expect(screen.getByRole('button',{name:'Place order'})).toBeDisabled();
+ await act(async()=>late({...quote,totalCents:9900}));
+ expect(screen.queryByText('$99.00')).not.toBeInTheDocument();
+ await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Retry total'})));
+ expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled();
+});
+it('keeps optional cart recovery collapsed after the core contact details',async()=>{
+ m.quote.mockResolvedValue(quote);render(<CheckoutForm/>);await act(async()=>{});
+ expect(screen.queryByRole('checkbox',{name:/cart link/i})).not.toBeInTheDocument();
+ const disclosure=screen.getByText('Save this cart for later (optional)');
+ expect(screen.getByLabelText('Full name').compareDocumentPosition(disclosure)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ fireEvent.click(disclosure);
+ expect(screen.getByRole('checkbox',{name:/cart link/i})).not.toBeChecked();
+});
 it('disables submission immediately while a changed cart is repriced',async()=>{m.quote.mockResolvedValueOnce(quote);const ui=render(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());m.quote.mockImplementationOnce(()=>new Promise(()=>{}));m.lines=[{...m.lines[0],quantity:2}];ui.rerender(<CheckoutForm/>);expect(screen.getByRole('button',{name:'Place order'})).toBeDisabled();});
 it('gives every checkout field a persistent accessible label',async()=>{m.quote.mockResolvedValue(quote);render(<CheckoutForm/>);await act(async()=>{});for(const name of ['Email address','Full name','Street address','Suburb','State','Postcode','Phone (optional)','Discount code','Delivery instructions (optional)'])expect(screen.getByLabelText(name)).toBeTruthy();});
 function submitForm(){fireEvent.submit(screen.getByRole('button',{name:'Place order'}).closest('form')!);}
@@ -103,7 +123,7 @@ it('links server errors to fields and focuses the first invalid control while ke
 it('requests cart mail only after an unchecked purpose choice and explicit button, never on email blur',async()=>{
  m.quote.mockResolvedValue(quote);m.request.mockResolvedValue({ok:true,message:'Check your email to confirm.'});render(<CheckoutForm/>);
  const email=screen.getByLabelText('Email address');fireEvent.change(email,{target:{value:'person@test.local'}});fireEvent.blur(email);
- expect(m.request).not.toHaveBeenCalled();const choice=screen.getByRole('checkbox',{name:/cart link/i});expect(choice).not.toBeChecked();
+ expect(m.request).not.toHaveBeenCalled();fireEvent.click(screen.getByText('Save this cart for later (optional)'));const choice=screen.getByRole('checkbox',{name:/cart link/i});expect(choice).not.toBeChecked();
  expect(screen.getByRole('button',{name:'Email my cart link'})).toBeDisabled();fireEvent.click(choice);fireEvent.click(screen.getByRole('button',{name:'Email my cart link'}));
  expect(await screen.findByText('Check your email to confirm.')).toBeVisible();expect(m.request).toHaveBeenCalledTimes(1);
  expect(localStorage.getItem('ecl_cart_v1')??'').not.toContain('person@test.local');

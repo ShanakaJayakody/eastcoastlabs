@@ -32,20 +32,21 @@ export default async function ShopPage() {
     images: p.images,
     prices: p.prices,
     tiers: p.tiers,
+    sizes: p.sizes,
   }));
   // Live stock + published ratings, batched (server-only).
   const cards = await decorateCards(rawCards);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="mx-auto max-w-6xl px-4 py-7 sm:py-10">
       <div className="max-w-2xl">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Catalog</p>
         <h1 className="mt-2 text-3xl font-bold text-fg">Research peptides</h1>
-        <p className="mt-3 text-sm text-muted">
-          Every compound is available in 1-vial, 3-pack, and 6-pack options. The more you buy, the
-          less you pay per vial. Check certificate availability for each compound.
+        <p className="mt-2 text-sm text-muted">
+          Compare current sizes, pack prices and availability. Pack options vary by product and live stock.
+          Check certificate availability on each product page before ordering.
         </p>
-        <ResearchDisclaimer variant="badge" className="mt-4" />
+        <ResearchDisclaimer variant="badge" className="mt-3" />
       </div>
 
       {products.length === 0 ? (
@@ -53,7 +54,7 @@ export default async function ShopPage() {
           Catalog is temporarily unavailable. Please try again shortly.
         </div>
       ) : (
-        <div className="mt-8">
+        <div className="mt-5 sm:mt-8">
           <ShopFilterGrid products={cards} collections={collections} />
         </div>
       )}

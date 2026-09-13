@@ -15,6 +15,7 @@ import { getSettings } from "./settings";
 import { getStackBySlug } from "./stacks";
 import { BAC_WATER_SLUG } from "./bumps";
 import type { NewOrderItem, ExtraOrderItem } from "./admin/orders";
+import { isGiftEligible } from "./cart-offers";
 
 
 /** What the client is allowed to send us per line. Note: no prices. */
@@ -38,6 +39,18 @@ export interface ResolvedCart {
   subtotalCents: number;
   giftApplied: boolean;
   warnings: string[];
+}
+
+/** Recheck the spend reward against the discounted goods total, retaining
+ * contractual bundle inclusions. Only resolveCart creates this exact suffix. */
+export function applyGiftThreshold(cart:ResolvedCart,qualifyingSubtotalCents:number,thresholdCents:number):ResolvedCart {
+  if (!cart.giftApplied || isGiftEligible({subtotalCents:qualifyingSubtotalCents,thresholdCents,available:1,
+    hasPaidItems:cart.lines.some(line=>!line.isGift && line.lineTotalCents>0)})) return cart;
+  return {...cart,giftApplied:false,
+    lines:cart.lines.filter(line=>!line.isGift),
+    items:cart.items.filter(item=>item.labelSuffix!==' · Free gift'),
+    warnings:[...cart.warnings,'Free gift removed — the discounted order no longer meets the threshold.'],
+  };
 }
 
 /** Parse the pack size out of a cart label ("3-pack · Subscribe (…)" → 3). */
@@ -138,10 +151,15 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
   const wantsFreeBac =
     clean.some((l) => isGiftKey(l.key)) || resolvedStacks.some(({ stack }) => stack?.freeBacWater);
   let freeBacBudget = 0;
+  let giftVariantId: string | null = null;
+  let bacBudgetLoaded = false;
   // Kits fail closed when their required water variant cannot be resolved.
   let kitBacCovered = kitLines.length === 0;
-  if (wantsFreeBac || kitLines.length) {
+  async function loadBacBudget() {
+    if (bacBudgetLoaded) return;
+    bacBudgetLoaded = true;
     const bacPoolId = byKey.get(variantKey(BAC_WATER_SLUG, 1))?.id ?? (await findGiftVariant());
+    giftVariantId = bacPoolId;
     if (bacPoolId) {
       const paidBacVials = paidLines
         .filter((l) => !isStackKey(l.key) && l.slug === BAC_WATER_SLUG)
@@ -156,6 +174,7 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
       freeBacBudget = kitBacCovered ? net - kitVials : net;
     }
   }
+  if (wantsFreeBac || kitLines.length) await loadBacBudget();
 
   // ---- Stack (bundle) lines --------------------------------------------
   // A stack is priced as a set: bundlePrice is below the sum of its parts. To
@@ -261,19 +280,23 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
       return sum + Math.round(v.price_cents * (1 - pct / 100)) * i.qty;
     }, 0) + extraItems.reduce((sum, e) => sum + e.unitPriceCents * e.qty, 0);
 
-  // Gift: only if the SERVER's subtotal clears the threshold. A forged gift line
-  // on a small cart is dropped here. The gift is a real vial, so it resolves to a
+  // Derive the automatic reward from the SERVER's subtotal, even when a
+  // restored/direct-checkout cart has never mounted the cart drawer. A forged
+  // gift claim never grants eligibility. The gift is a real vial, so it resolves to a
   // stocked variant at $0 — it reserves and decrements inventory like any sale,
   // and is therefore only granted while the free-bac budget covers it.
   const { giftThreshold } = await getSettings();
   let giftApplied = false;
-  if (giftClaimed) {
-    if (subtotalCents < giftThreshold * 100) {
+  const qualifies = isGiftEligible({subtotalCents,thresholdCents:Math.round(giftThreshold*100),available:1,
+    hasPaidItems:resolvedLines.some(line=>!line.isGift && line.lineTotalCents>0)});
+  if (qualifies) await loadBacBudget();
+  if (giftClaimed || qualifies) {
+    if (!qualifies) {
       warnings.push("Free gift removed — order no longer meets the threshold.");
     } else if (freeBacBudget < 1) {
       warnings.push("Free gift unavailable — bacteriostatic water is currently out of stock.");
     } else {
-      const giftVariant = await findGiftVariant();
+      const giftVariant = giftVariantId;
       if (giftVariant) {
         freeBacBudget -= 1;
         items.push({
@@ -283,7 +306,7 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
           labelSuffix: " · Free gift",
         });
         giftApplied = true;
-        resolvedLines.push({ key: clean.find((l) => isGiftKey(l.key))!.key, slug: BAC_WATER_SLUG, name: "Bacteriostatic Water", variantLabel: "Free gift", quantity: 1, unitPriceCents: 0, lineTotalCents: 0, isGift: true });
+        resolvedLines.push({ key: 'gift:bac-water', slug: BAC_WATER_SLUG, name: "Bacteriostatic Water", variantLabel: "Free gift", quantity: 1, unitPriceCents: 0, lineTotalCents: 0, isGift: true });
       }
     }
   }

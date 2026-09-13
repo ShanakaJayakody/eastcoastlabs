@@ -15,6 +15,7 @@ import "server-only";
  *     subscription changes and admin actions.
  */
 import { adminDb } from "./db";
+import { reorderReminderDays, retentionAssignment } from "./retention-policy";
 import {
   CART_STAGES,
   PAYMENT_STAGES,
@@ -60,6 +61,7 @@ export interface SequenceState {
   /** Still has an unsent, still-eligible touch ahead of it. */
   active: boolean;
   paused: boolean;
+  disabled?: boolean;
   /** Timestamp the windows are measured from. */
   anchorAt: string | null;
   /** One-line operator context, e.g. "Cart captured 3h ago · $263.99". */
@@ -99,11 +101,6 @@ interface OrderRow {
   payment_reminders_sent: number | null;
   payment_expires_at: string | null;
 }
-
-const packSizeFromLabel = (label: string): number => {
-  const m = /(\d+)\s*-?\s*pack/i.exec(label ?? "");
-  return m ? parseInt(m[1], 10) : 1;
-};
 
 const FULFILLED = ["shipped", "completed"];
 
@@ -253,7 +250,7 @@ export async function deriveSequenceState(person: LoadedPerson): Promise<Sequenc
       active: stages.some((s) => s.state === "next"),
       paused: paused(id),
       anchorAt,
-      context,
+      context: (()=>{const assignment=retentionAssignment(summary.email,stages[0].template);return assignment?`${context??""} · ${assignment.id}: ${assignment.arm} (${assignment.percent}% holdout)`:context;})(),
       stages,
       nextEtaMs: nextEta(stages),
       orderId: extra?.orderId ?? null,
@@ -312,7 +309,7 @@ export async function deriveSequenceState(person: LoadedPerson): Promise<Sequenc
   // ---- Post-purchase + replenishment (latest fulfilled order) ---------------
   const latestFulfilled = orders
     .filter((o) => FULFILLED.includes(o.status) && o.shipped_at)
-    .sort((a, b) => (b.shipped_at ?? "").localeCompare(a.shipped_at ?? ""))[0];
+    .sort((a, b) => b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id))[0];
 
   if (latestFulfilled?.shipped_at) {
     const reviewStages = deriveStages(
@@ -329,30 +326,14 @@ export async function deriveSequenceState(person: LoadedPerson): Promise<Sequenc
       { orderId: latestFulfilled.id },
     );
 
-    // Pack size drives the replenishment threshold, so it needs the line items.
-    const { data: items } = await adminDb()
-      .from("order_items")
-      .select("variant_label, product_variants(pack_size)")
-      .eq("order_id", latestFulfilled.id);
-    const packSize = Math.max(
-      1,
-      ...((items ?? []) as unknown as { variant_label: string; product_variants: { pack_size: number } | null }[]).map(
-        (i) => i.product_variants?.pack_size ?? packSizeFromLabel(i.variant_label),
-      ),
-    );
-    const replStages = deriveStages(
-      replenishmentStages(packSize),
-      latestFulfilled.shipped_at,
-      () => replenishmentRelatedId(latestFulfilled.id),
-      outbox,
-    );
-    push(
-      "replenishment",
-      latestFulfilled.shipped_at,
-      replStages,
-      `Largest pack: ${packSize} · from ${latestFulfilled.order_number}`,
-      { orderId: latestFulfilled.id },
-    );
+    const days=reorderReminderDays();
+    const newer=orders.some(o=>o.status!=="cancelled"&&o.created_at>latestFulfilled.created_at);
+    if(days==null) {
+      states.push({id:"replenishment",label:SEQUENCE_LABELS.replenishment,active:false,paused:false,disabled:true,anchorAt:latestFulfilled.shipped_at,context:"Disabled: REORDER_REMINDER_DAYS is not configured with 1–365 days. No pack-size timing is inferred.",stages:[],nextEtaMs:null,orderId:latestFulfilled.id});
+    } else if (!newer) {
+      const stages=deriveStages(replenishmentStages(days),latestFulfilled.shipped_at,()=>replenishmentRelatedId(latestFulfilled.id),outbox);
+      push("replenishment",latestFulfilled.shipped_at,stages,`Operator configured: ${days} days after dispatch · ${latestFulfilled.order_number}`,{orderId:latestFulfilled.id});
+    }
   }
 
   // ---- Review thank-you (anchored on the review, not the order) -------------

@@ -41,3 +41,4 @@ it('admin suppression and purpose stop use revoking RPCs',async()=>{
 it.each(['cart_recovery_confirmation','abandoned_cart','abandoned_cart_2','abandoned_cart_3'] as const)('provides an opaque-link identity in the %s preview',template=>{
  expect(samplePayload(template).recovery_request_id).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
 });
+it('cannot manually send a disabled reorder reminder',async()=>{vi.stubEnv('REORDER_REMINDER_DAYS','');expect(await sendStageNow('buyer@example.test','replenishment',1)).toMatchObject({ok:false,message:expect.stringMatching(/disabled/)});expect(m.queue).not.toHaveBeenCalled();vi.unstubAllEnvs();});

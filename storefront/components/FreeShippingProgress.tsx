@@ -18,6 +18,7 @@ export default function FreeShippingProgress({
   giftThreshold?: number;
 }) {
   const hasGiftTier = typeof giftThreshold === "number" && giftThreshold > threshold;
+  if (threshold <= 0 && !hasGiftTier) return <p className="rounded-lg border border-line bg-surface/60 p-3 text-sm text-success">Standard shipping included. Final eligibility is confirmed at checkout.</p>;
   const max = hasGiftTier ? giftThreshold! : threshold;
   const pct = Math.min(100, Math.round((subtotal / max) * 100));
   const shipMarkerPct = hasGiftTier ? Math.round((threshold / max) * 100) : 100;
@@ -66,7 +67,7 @@ export default function FreeShippingProgress({
         )}
       </div>
       <div className="mt-1 flex items-center justify-between text-[11px] text-muted-2">
-        <span>🚚 Free shipping {formatAud(threshold, 0)}</span>
+        <span>{threshold<=0 ? 'Standard shipping included' : `Free shipping ${formatAud(threshold, 0)}`}</span>
         {hasGiftTier && <span>🎁 Free gift {formatAud(giftThreshold!, 0)}</span>}
       </div>
     </div>

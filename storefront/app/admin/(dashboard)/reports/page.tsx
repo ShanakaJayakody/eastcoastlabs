@@ -9,7 +9,7 @@ import {
   type RevenueScale,
   type WindowMeta,
 } from "@/lib/admin/order-queries";
-import { productPerformance, fulfilmentFunnel, emailPerformance, cohorts } from "@/lib/admin/reports";
+import { productPerformance, fulfilmentFunnel, emailPerformance, cohorts, contributionReport } from "@/lib/admin/reports";
 import { formatAud } from "@/lib/format";
 import PeriodNav from "@/components/admin/PeriodNav";
 import Badge from "@/components/admin/Badge";
@@ -18,11 +18,12 @@ import { Bar } from "@/components/admin/Skeleton";
 export const metadata: Metadata = { title: "Reports — ECL Admin" };
 export const dynamic = "force-dynamic";
 
-const cents = (c: number) => formatAud(c / 100);
+const cents = (c: number | null) => c==null?"Unknown":formatAud(c / 100);
 const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 1000) / 10}%` : "—");
 
 const TABS = [
   { id: "products", label: "Products" },
+  { id: "contribution", label: "Contribution" },
   { id: "funnel", label: "Funnel" },
   { id: "email", label: "Email" },
   { id: "cohorts", label: "Cohorts" },
@@ -82,6 +83,7 @@ export default async function ReportsPage({
 
       <Suspense key={`${tab}:${meta.scale}:${meta.anchor}`} fallback={<ReportSkeleton />}>
         {tab === "products" && <ProductsReport meta={meta} />}
+        {tab === "contribution" && <ContributionReport meta={meta} />}
         {tab === "funnel" && <FunnelReport meta={meta} />}
         {tab === "email" && <EmailReport meta={meta} />}
         {tab === "cohorts" && <CohortsReport />}
@@ -108,11 +110,11 @@ async function ProductsReport({ meta }: { meta: WindowMeta }) {
         />
       </div>
 
+      {totals.missingOrders>0&&<Caveat>{totals.missingOrders} paid orders lack line snapshots. Merchandise totals are incomplete and gross profit is unknown.</Caveat>}
       {totals.uncostedLines > 0 && (
         <Caveat>
           {totals.uncostedLines} sold line{totals.uncostedLines === 1 ? "" : "s"} in this period have
-          no cost recorded, so their cost of goods counts as zero and every margin below is higher
-          than it really is. Set a cost per vial on the product to fix it.
+          no frozen cost recorded. Their gross profit and margin remain unknown. Current product costs do not repair historical snapshots.
         </Caveat>
       )}
 
@@ -175,8 +177,7 @@ async function ProductsReport({ meta }: { meta: WindowMeta }) {
       </div>
 
       <p className="text-xs text-muted-2">
-        Revenue here is line revenue — shipping and order-level discounts are not attributed to a
-        product, so these totals run slightly below the dashboard&apos;s.
+        Net merchandise revenue deducts allocated discounts and merchandise refunds; shipping is excluded. Orders belong to their actual payment date. Gross profit deducts frozen product and gift COGS, recovering cost only for confirmed physical restocks. Historical inferred returns remain consumed. Recorded amounts have no inferred GST adjustment; this is not contribution or a refund-date cash ledger.
       </p>
     </div>
   );
@@ -364,63 +365,24 @@ async function EmailReport({ meta }: { meta: WindowMeta }) {
 /* --------------------------------- cohorts -------------------------------- */
 
 async function CohortsReport() {
-  const rows = await cohorts();
+  const rows=await cohorts();
+  return <div className="space-y-3">
+    <p className="text-xs text-muted">First paid month, identified by normalized checkout email. Each 60/90-day denominator includes only customers with that much follow-up. A paid order later refunded still counts as a purchase. Revenue and contribution are cumulative through that horizon, adjusted for refunds and costs known now; they are not historical as-of snapshots or forecast lifetime value.</p>
+    {[60,90].map(days=><section key={days} className="admin-card overflow-x-auto rounded-xl p-4"><h3 className="mb-3 font-semibold">{days}-day second purchase and value</h3><table className="w-full text-sm"><thead><tr>{['First paid','Mature / total','Second purchase','Net revenue','Contribution after acquisition','Cost coverage'].map(label=><th key={label} className="p-2 text-left text-xs text-muted">{label}</th>)}</tr></thead><tbody>{rows.map(row=>{const h=days===60?row.day60:row.day90;return <tr key={row.month} className="border-t border-line"><td className="p-2">{row.month}</td><td className="p-2">{h.eligible} / {row.customers}</td><td className="p-2">{h.repeat} ({pct(h.repeat,h.eligible)})</td><td className="p-2">{h.eligible?cents(h.revenueCents):'—'}</td><td className="p-2">{h.eligible?cents(h.contributionCents):'—'}</td><td className="p-2">{h.coveredOrders} / {h.orders} orders</td></tr>})}</tbody></table>{!rows.length&&<p className="text-muted">No dated paid orders.</p>}</section>)}
+    <p className="text-xs text-muted">Contribution requires frozen COGS, all actual variable expenses, an explicit reconciled tax adjustment and confirmation of the resulting net-of-applicable-tax basis. Blank costs or tax adjustment remain unknown. Email changes and guest aliases can split a customer; orders missing a paid date are excluded. No session or advertising denominator is inferred.</p>
+  </div>;
+}
 
-  return (
-    <div className="space-y-3">
-      <div className="admin-card overflow-hidden rounded-xl">
-        {rows.length === 0 ? (
-          <p className="p-10 text-center text-sm text-muted">Nobody has ordered yet.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-line bg-ink-2 text-left text-xs uppercase tracking-wide text-muted">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">First ordered</th>
-                <th className="px-4 py-2.5 text-right font-medium">Customers</th>
-                <th className="px-4 py-2.5 text-right font-medium">Came back</th>
-                <th className="hidden px-4 py-2.5 text-right font-medium sm:table-cell">Average LTV</th>
-                <th className="hidden px-4 py-2.5 text-right font-medium md:table-cell">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {rows.map((row, i) => (
-                <tr key={row.month} className="transition hover:bg-surface-2/50">
-                  <td className="px-4 py-3 text-fg-2">
-                    {new Date(`${row.month}-01T12:00:00Z`).toLocaleDateString("en-AU", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                    {i === 0 && (
-                      <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-2">
-                        still young
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-fg">{row.customers}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-fg-2">
-                    {row.repeatCustomers}
-                    <span className="ml-2 text-xs text-muted">{row.repeatPct}%</span>
-                  </td>
-                  <td className="hidden px-4 py-3 text-right tabular-nums text-fg-2 sm:table-cell">
-                    {cents(row.averageLtvCents)}
-                  </td>
-                  <td className="hidden px-4 py-3 text-right tabular-nums text-muted md:table-cell">
-                    {cents(row.totalLtvCents)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <p className="text-xs text-muted-2">
-        Grouped by the month someone first ordered. The newest row always looks worst — its
-        customers have had the least time to come back — so read it as incomplete rather than as a
-        decline.
-      </p>
-    </div>
-  );
+async function ContributionReport({meta}:{meta:WindowMeta}) {
+ const r=await contributionReport(meta);
+ return <div className="space-y-3">
+  <div className="grid grid-cols-2 gap-3"><Figure label="Net order revenue" value={cents(r.netRevenueCents)} sub="Includes shipping; net of recorded refunds"/><Figure label="Merchandise gross profit" value={cents(r.grossProfitCents)} sub="Net merchandise revenue less consumed COGS"/><Figure label="Contribution before acquisition" value={cents(r.beforeAcquisitionCents)}/><Figure label="Contribution after acquisition" value={cents(r.afterAcquisitionCents)}/></div>
+  <p className="text-xs text-muted">Paid-date cohort, updated for refunds and costs known now. Revenue uses recorded AUD amounts; no GST is inferred. Contribution subtracts frozen COGS, actual carrier, packaging/fulfilment, payment, replacement and service expenses, then the signed accountant-reconciled tax adjustment. It stays unknown until that adjustment is entered and the resulting net-of-applicable-tax basis is confirmed. Acquisition and creator commissions are entered on that resulting basis and subtracted once. This is not net profit after fixed overhead.</p>
+  <div className="grid grid-cols-2 gap-3"><Figure label="Frozen COGS coverage" value={`${r.costedOrders} / ${r.orders} orders`}/><Figure label="Contribution coverage" value={`${r.contributionCoveredOrders} / ${r.orders} orders`}/></div>
+  <section className="admin-card rounded-xl p-4"><h3 className="font-semibold">Created-to-paid within {r.conversion.days} days</h3><p className="mt-2">{r.conversion.paid} / {r.conversion.eligible} mature orders ({r.conversion.pct==null?'—':`${r.conversion.pct}%`})</p><p className="mt-1 text-xs text-muted">Orders created in this period, with seven complete days to pay. {r.conversion.immature} recent orders are still maturing. Later refunds do not erase payment. This operational seven-day window is not a session conversion rate or an experiment result.</p></section>
+  {r.missingPaidDates>0&&<Caveat>{r.missingPaidDates} historical orders have a paid status but no payment timestamp and are excluded from paid-date reporting. Reconcile source payment records before assigning dates.</Caveat>}
+  {r.incompleteOrders.length>0&&<section className="admin-card rounded-xl p-4"><h3 className="font-semibold">Complete actual costs</h3><p className="my-2 text-xs text-muted">Open an order to record expenses; do not fill missing entries with estimates or zero.</p><div className="flex flex-wrap gap-3">{r.incompleteOrders.slice(0,20).map(id=><Link key={id} href={`/admin/orders/${id}`} className="text-xs text-accent underline">Order {id.slice(0,8)}</Link>)}</div>{r.incompleteOrders.length>20&&<p className="mt-2 text-xs text-muted">Showing 20 of {r.incompleteOrders.length} incomplete orders.</p>}</section>}
+ </div>;
 }
 
 /* -------------------------------- fragments ------------------------------- */
