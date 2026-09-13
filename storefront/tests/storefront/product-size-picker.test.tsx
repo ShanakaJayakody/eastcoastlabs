@@ -4,6 +4,8 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import ProductPurchase from '@/components/ProductPurchase';
 import SizedProductExperience from '@/components/SizedProductExperience';
+import SupplierReportLinks from '@/components/SupplierReportLinks';
+import { labReports } from '@/lib/lab-reports';
 import { setAnalyticsConsent } from '@/lib/attribution';
 const m=vi.hoisted(()=>({add:vi.fn(),selectSize:vi.fn(),view:vi.fn(),lines:[] as unknown[]}));
 vi.mock('@/lib/cart-context',()=>({useCart:()=>({addLine:m.add,stockFor:()=>null,lines:m.lines})}));
@@ -11,6 +13,13 @@ vi.mock('@/lib/ui-context',()=>({useUI:()=>({openCart:vi.fn()})}));
 vi.mock('@/lib/analytics',async(importOriginal)=>({...await importOriginal<typeof import('@/lib/analytics')>(),trackAddToCart:vi.fn(),trackSelectSize:m.selectSize,trackViewItem:m.view}));
 afterEach(()=>{cleanup();m.add.mockClear();m.selectSize.mockClear();m.view.mockClear();m.lines=[];document.cookie='ecl_analytics_consent=; Max-Age=0; Path=/';});
 const product={id:1,name:'Sample',slug:'sample',sku:'SAMPLE'};
+it('keeps historical sample evidence accessible without presenting it as selected-size certification',()=>{
+ render(<SizedProductExperience product={product} sizes={sizes} minorUnit={2} coa={null} supplierEvidence={<SupplierReportLinks reports={labReports.filter(report=>report.productSlug==='ghk-cu')}/>}/>);
+ expect(screen.getByRole('link',{name:/GHK.*View report/i})).toHaveAttribute('href','/lab-results#report-51162');
+ fireEvent.click(screen.getByRole('radio',{name:'20 mg'}));
+ expect(screen.getByRole('link',{name:/GHK.*View report/i})).toHaveAttribute('href','/lab-results#report-51162');
+ expect(screen.getByText(/No verified certificate is currently published for the selected 20 mg supply/)).toBeInTheDocument();
+});
 const sizes=[{id:1,slug:'sample',sku:'SAMPLE-10',label:'10 mg',priceMinor:'1000',available:4,images:[],tiers:[{id:'single' as const,label:'1 vial',vials:1,total:10,perVial:10}]},
  {id:2,slug:'sample-size-20',sku:'SAMPLE-20',label:'20 mg',priceMinor:'1800',available:6,images:[],tiers:[{id:'single' as const,label:'1 vial',vials:1,total:18,perVial:18},{id:'pack3' as const,label:'3-pack',vials:3,total:48,perVial:16,preselected:true}]}];
 it('captures the currently selected size when analytics is allowed after changing sizes',()=>{

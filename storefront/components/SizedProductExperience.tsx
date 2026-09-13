@@ -21,6 +21,7 @@ interface SizedProductExperienceProps {
   initialSize?: string;
   bacWater?: BacWaterOption | null;
   coa: CoaRecord | null;
+  supplierEvidence?: ReactNode;
   copyHtml?: string;
   descriptorFallback?: string;
   guideSlug?: string;
@@ -34,7 +35,7 @@ const textOnly = (value: string) => decodeProductEntities(value
 
 export default function SizedProductExperience({
   product, sizes, minorUnit, initialSize, bacWater, coa, copyHtml, descriptorFallback,
-  guideSlug, ratingSummary, supportEmail,
+  guideSlug, ratingSummary, supportEmail, supplierEvidence,
 }: SizedProductExperienceProps) {
   const initial = sizes.some((size) => size.slug === initialSize)
     ? initialSize
@@ -85,7 +86,7 @@ export default function SizedProductExperience({
     </div>
 
     <div className="mt-10"><TrustRow /></div>
-    <div className="mt-6"><CoaModule record={coa} /></div>
+    <div className="mt-6">{coa || !supplierEvidence ? <CoaModule record={coa} /> : supplierEvidence}</div>
 
     <section className="mt-10 grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-2">

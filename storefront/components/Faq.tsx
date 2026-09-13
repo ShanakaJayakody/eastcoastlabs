@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 export interface FaqItem {
   q: string;
@@ -9,6 +9,7 @@ export interface FaqItem {
 
 export default function Faq({ items }: { items: FaqItem[] }) {
   const [open, setOpen] = useState<number | null>(0);
+  const id = useId();
   if (items.length === 0) return null;
 
   return (
@@ -22,15 +23,22 @@ export default function Faq({ items }: { items: FaqItem[] }) {
               onClick={() => setOpen(isOpen ? null : i)}
               className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left"
               aria-expanded={isOpen}
+              aria-controls={`${id}-${i}`}
             >
               <span className="text-sm font-medium text-fg">{item.q}</span>
-              <span className={`text-accent transition-transform ${isOpen ? "rotate-45" : ""}`}>+</span>
+              <span
+                className={`text-accent transition-transform ${isOpen ? "rotate-45" : ""}`}
+              >
+                +
+              </span>
             </button>
-            {isOpen && (
-              <div className="px-4 pb-4">
-                <p className="text-sm leading-relaxed text-muted">{item.a}</p>
-              </div>
-            )}
+            <div
+              id={`${id}-${i}`}
+              hidden={!isOpen}
+              className="ecl-faq-answer px-4 pb-4"
+            >
+              <p className="text-sm leading-relaxed text-muted">{item.a}</p>
+            </div>
           </div>
         );
       })}

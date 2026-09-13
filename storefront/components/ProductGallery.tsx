@@ -10,8 +10,8 @@ export default function ProductGallery({ images, name }: { images: WooImage[]; n
   const current = hasImages ? images[Math.min(active, images.length - 1)] : null;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="relative h-56 overflow-hidden sm:h-72 lg:aspect-square lg:h-auto rounded-xl border border-line bg-ink-2">
+    <div className="ecl-gallery flex flex-col gap-3">
+      <div className="ecl-gallery-main relative h-56 overflow-hidden sm:h-72 lg:aspect-square lg:h-auto rounded-xl border border-line bg-ink-2">
         {current ? (
           <Image
             src={current.src}

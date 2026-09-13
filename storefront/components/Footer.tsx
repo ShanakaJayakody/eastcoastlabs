@@ -8,12 +8,13 @@ import { getCollections } from "@/lib/collections";
 export default function Footer({ supportEmail = "eclpeptides@gmail.com",legalName,abn,supportHours="Mon–Fri, 9am–5pm AEST" }: { supportEmail?: string;legalName?:string;abn?:string;supportHours?:string }) {
   const collections = getCollections();
   return (
-    <footer className="mt-20 border-t border-line bg-ink-2">
-      <div className="mx-auto max-w-6xl px-4 py-12">
+    <footer className="ecl-footer mt-20 border-t border-line bg-ink-2">
+      <div className="ecl-container mx-auto max-w-6xl px-4 py-12">
         {/* Newsletter */}
-        <MarketingOnly><div className="mb-10 grid gap-5 rounded-2xl border border-line bg-surface/40 p-6 sm:grid-cols-2 sm:items-center sm:p-8">
+        <MarketingOnly><div className="ecl-newsletter mb-10 grid gap-5 rounded-2xl border border-line bg-surface/40 p-6 sm:grid-cols-2 sm:items-center sm:p-8">
           <div>
-            <p className="text-lg font-semibold text-fg">Restock alerts &amp; new compounds</p>
+            <p className="ecl-eyebrow">THE NEXT CHAPTER</p>
+            <p className="ecl-newsletter-title text-lg font-semibold text-fg">Stay curious. <em>Stay informed.</em></p>
             <p className="mt-1 text-sm text-muted">
               Be first to know when a batch is back in stock or a new research compound drops.
             </p>
@@ -25,7 +26,7 @@ export default function Footer({ supportEmail = "eclpeptides@gmail.com",legalNam
         <div className="grid gap-10 md:grid-cols-4 lg:grid-cols-5">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5">
-              <Image src="/logo.png" alt="East Coast Labs" width={34} height={36} className="h-8 w-auto" />
+              <Image src="/logo.png" alt="East Coast Labs" width={34} height={36} unoptimized className="h-8 w-auto" />
               <p className="text-sm font-semibold tracking-[0.18em] text-fg">EAST COAST LABS</p>
             </div>
             <p className="mt-3 max-w-sm text-sm text-muted">
@@ -79,6 +80,7 @@ export default function Footer({ supportEmail = "eclpeptides@gmail.com",legalNam
           </div>
         </div>
 
+        <p className="ecl-footer-wordmark" aria-hidden="true">EAST COAST LABS</p>
         <div className="mt-10 border-t border-line pt-6">
           <ResearchDisclaimer variant="badge" />
           <p className="mt-4 text-xs text-muted-2">

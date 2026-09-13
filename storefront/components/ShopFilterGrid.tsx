@@ -91,10 +91,11 @@ export default function ShopFilterGrid({
   const reset = () => { setActive('all'); setQuery(''); setInStock(false); setSort('featured'); };
 
   return (
-    <div>
+    <div className="ecl-shop-filters">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <input
           type="search"
+          id="catalog-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search name, size or SKU…"
@@ -116,7 +117,7 @@ export default function ShopFilterGrid({
               aria-pressed={active === c.slug} className={pill(active === c.slug)}
               onClick={() => setActive(c.slug)}
             >
-              {c.icon} {c.name}
+              {c.name}
             </button>
           ))}
           </div>

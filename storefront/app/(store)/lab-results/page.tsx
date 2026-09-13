@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { getAllCoa } from "@/lib/coa";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
 import CoaVerify from "@/components/CoaVerify";
+import LabReportLibrary from "@/components/LabReportLibrary";
+import { labReports } from "@/lib/lab-reports";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/lab-results" },
   title: "Lab Results",
   description:
-    "Browse available verified Certificates of Analysis for research products.",
+    "Explore original Janoshik supplier test reports, sample details and laboratory verification links.",
 };
 
 export const revalidate = 300;
@@ -16,14 +18,20 @@ export default async function LabResultsPage() {
   const records = await getAllCoa();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Transparency</p>
+    <div className="ecl-interior-page ecl-lab-page mx-auto max-w-5xl px-4 py-10">
+      <div className="ecl-interior-intro max-w-2xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+          Transparency
+        </p>
         <h1 className="mt-2 text-3xl font-bold text-fg">
-          Batch Certificates of Analysis
+          The details
+          <br />
+          <em>behind the compound.</em>
         </h1>
         <p className="mt-3 text-sm text-muted">
-          Only documents whose publication has been verified are shown here. Match the compound and batch identifier to your product.
+          Original reports. Clear sample details. Direct links to the lab.
+          Explore the documents behind the collection, with their dates and
+          source information preserved.
         </p>
       </div>
 
@@ -33,96 +41,124 @@ export default async function LabResultsPage() {
         </div>
       )}
 
-      {records.length === 0 ? (
+      {records.length === 0 && labReports.length === 0 ? (
         <div className="mt-10 rounded-lg border border-line bg-surface p-8 text-center text-muted">
-          Verified batch documents are currently unavailable. Please contact support for the relevant certificate before ordering.
+          Verified batch documents are currently unavailable. Please contact
+          support for the relevant certificate before ordering.
         </div>
-      ) : (
+      ) : records.length > 0 ? (
         <>
-        {/* Mobile: stacked cards (no horizontal scroll) */}
-        <ul className="mt-8 grid gap-3 sm:hidden">
-          {records.map((r) => (
-            <li key={r.batch_id} className="rounded-xl border border-line bg-surface p-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-fg">{r.compound}</span>
-                <span className="rounded bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
-                  {r.purity_pct.toFixed(2)}%
-                </span>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
-                <span className="font-mono">#{r.batch_id}</span>
-                <span>{r.lab}</span>
-                <span>{r.test_date}</span>
-              </div>
-              {(r.coa_url || r.lab_verify_url) && (
-                <div className="mt-3 flex gap-4 text-sm">
-                  {r.coa_url && (
-                    <a href={r.coa_url} target="_blank" rel="noopener noreferrer" className="font-medium text-accent hover:underline">
-                      View COA →
-                    </a>
-                  )}
-                  {r.lab_verify_url && (
-                    <a href={r.lab_verify_url} target="_blank" rel="noopener noreferrer" className="text-fg-2 hover:text-accent hover:underline">
-                      Verify at lab →
-                    </a>
-                  )}
+          {/* Mobile: stacked cards (no horizontal scroll) */}
+          <ul className="mt-8 grid gap-3 sm:hidden">
+            {records.map((r) => (
+              <li
+                key={r.batch_id}
+                className="rounded-xl border border-line bg-surface p-4"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-fg">{r.compound}</span>
+                  <span className="rounded bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                    {r.purity_pct.toFixed(2)}%
+                  </span>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
+                  <span className="font-mono">#{r.batch_id}</span>
+                  <span>{r.lab}</span>
+                  <span>{r.test_date}</span>
+                </div>
+                {(r.coa_url || r.lab_verify_url) && (
+                  <div className="mt-3 flex gap-4 text-sm">
+                    {r.coa_url && (
+                      <a
+                        href={r.coa_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-accent hover:underline"
+                      >
+                        View COA →
+                      </a>
+                    )}
+                    {r.lab_verify_url && (
+                      <a
+                        href={r.lab_verify_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-fg-2 hover:text-accent hover:underline"
+                      >
+                        Verify at lab →
+                      </a>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
 
-        {/* Desktop: table */}
-        <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-line sm:block">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
-            <thead>
-              <tr className="bg-surface-2 text-left text-xs uppercase tracking-wider text-muted-2">
-                <th className="px-4 py-3 font-semibold">Compound</th>
-                <th className="px-4 py-3 font-semibold">Batch ID</th>
-                <th className="px-4 py-3 font-semibold">Purity</th>
-                <th className="px-4 py-3 font-semibold">Lab</th>
-                <th className="px-4 py-3 font-semibold">Test date</th>
-                <th className="px-4 py-3 font-semibold">COA</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {records.map((r) => (
-                <tr key={r.batch_id} className="bg-surface/40 hover:bg-surface">
-                  <td className="px-4 py-3 font-semibold text-fg">{r.compound}</td>
-                  <td className="px-4 py-3 font-mono text-muted">#{r.batch_id}</td>
-                  <td className="px-4 py-3">
-                    <span className="rounded bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
-                      {r.purity_pct.toFixed(2)}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-fg-2">{r.lab}</td>
-                  <td className="px-4 py-3 text-muted">{r.test_date}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-3">
-                      {r.coa_url && (
-                        <a href={r.coa_url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
-                          View
-                        </a>
-                      )}
-                      {r.lab_verify_url && (
-                        <a
-                          href={r.lab_verify_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-fg-2 hover:text-accent hover:underline"
-                        >
-                          Verify
-                        </a>
-                      )}
-                    </div>
-                  </td>
+          {/* Desktop: table */}
+          <div className="mt-8 hidden overflow-x-auto rounded-2xl border border-line sm:block">
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-surface-2 text-left text-xs uppercase tracking-wider text-muted-2">
+                  <th className="px-4 py-3 font-semibold">Compound</th>
+                  <th className="px-4 py-3 font-semibold">Batch ID</th>
+                  <th className="px-4 py-3 font-semibold">Purity</th>
+                  <th className="px-4 py-3 font-semibold">Lab</th>
+                  <th className="px-4 py-3 font-semibold">Test date</th>
+                  <th className="px-4 py-3 font-semibold">COA</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {records.map((r) => (
+                  <tr
+                    key={r.batch_id}
+                    className="bg-surface/40 hover:bg-surface"
+                  >
+                    <td className="px-4 py-3 font-semibold text-fg">
+                      {r.compound}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-muted">
+                      #{r.batch_id}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded bg-success/15 px-2 py-0.5 text-xs font-semibold text-success">
+                        {r.purity_pct.toFixed(2)}%
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-fg-2">{r.lab}</td>
+                    <td className="px-4 py-3 text-muted">{r.test_date}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-3">
+                        {r.coa_url && (
+                          <a
+                            href={r.coa_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent hover:underline"
+                          >
+                            View
+                          </a>
+                        )}
+                        {r.lab_verify_url && (
+                          <a
+                            href={r.lab_verify_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-fg-2 hover:text-accent hover:underline"
+                          >
+                            Verify
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
-      )}
+      ) : null}
+
+      <LabReportLibrary reports={labReports} />
 
       <ResearchDisclaimer variant="badge" className="mt-8" />
     </div>

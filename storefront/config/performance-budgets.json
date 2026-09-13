@@ -3,7 +3,7 @@
   "routeGzipKB": {
     "/(store)/page": 138,
     "/(store)/shop/page": 140,
-    "/(store)/product/[slug]/page": 140,
+    "/(store)/product/[slug]/page": 142,
     "/(store)/checkout/page": 145,
     "/admin/(dashboard)/products/[slug]/page": 170,
     "/admin/(dashboard)/orders/[id]/page": 175

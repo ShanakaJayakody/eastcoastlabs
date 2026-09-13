@@ -18,15 +18,20 @@ export default async function StacksPage() {
   const stacks = await getStacks();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Research stacks</p>
+    <div className="ecl-interior-page ecl-stacks-page mx-auto max-w-6xl px-4 py-12">
+      <div className="ecl-interior-intro max-w-2xl">
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+          Research stacks
+        </p>
         <h1 className="mt-2 text-3xl font-bold text-fg sm:text-4xl">
-          The combinations researchers reach for — priced as a set
+          Complementary compounds.
+          <br />
+          <em>Considered as a set.</em>
         </h1>
         <p className="mt-3 text-muted">
-          Each stack groups peptides that are studied together and prices them below the cost of
-          the single vials. Same independent testing, same 1-business-day dispatch, one shipment.
+          Each stack groups peptides that are studied together and prices them
+          below the cost of the single vials. Compare the compounds, review
+          available documentation, and order them together.
         </p>
         <ResearchDisclaimer className="mt-5" />
       </div>
