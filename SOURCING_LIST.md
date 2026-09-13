@@ -68,7 +68,7 @@ against SKUs you already sell**, because there is no white space to capture.
 
 | # | Compound | Format | Evidence | Why it's here |
 |---|---|---|---|---|
-| 1 | **SS-31** | **10mg** | #2 by community volume (35 of 962) — more than TB-500, which you stock | **49% of SS-31 discussion also mentions MOTS-C, which you sell.** Three separate threads ask what pairs with MOTS-C; the answer is a compound you don't carry. The strongest basket-completion play on the list. |
+| 1 | **SS-31** | **50mg** | #2 by community volume (35 of 962) — more than TB-500, which you stock | **49% of SS-31 discussion also mentions MOTS-C, which you sell.** Three separate threads ask what pairs with MOTS-C; the answer is a compound you don't carry. The strongest basket-completion play on the list. |
 | 2 | **BPC-157 + TB-500 blend** | **10mg** (20mg premium) | #1 bestseller at PepC.Labs; outranks standalone TB-500 at every AU vendor | Both inputs already in your warehouse. Zero new suppliers. Blends consistently outsell their own components. |
 | 3 | **Ipamorelin** | **10mg** | **#1 by community volume** (40 of 962) | Unlocks the GH cluster. Supply is visibly tight — secure it before listing. |
 | 4 | **CJC-1295 no-DAC** | **10mg** | #3 community; maximum AU autocomplete breadth | no-DAC clearly outsells DAC. Also sold as "Mod GRF 1-29". |
