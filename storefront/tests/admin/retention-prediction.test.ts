@@ -1,0 +1,7 @@
+import {afterEach,expect,it,vi} from 'vitest';
+vi.mock('@/lib/admin/db',()=>({adminDb:()=>{throw new Error('Prediction must not read pack size');}}));
+import {deriveSequenceState,type LoadedPerson} from '@/lib/admin/customer-360';
+afterEach(()=>vi.unstubAllEnvs());
+const person={summary:{email:'buyer@example.test',hasOrders:true,lastOrderAt:null},orders:[{id:'order',status:'completed',order_number:'ECL-1',created_at:'2026-09-01T00:00:00Z',shipped_at:'2026-09-02T00:00:00Z'}],cart:null,outbox:[],pausedSequences:new Set(),subscriberRows:[],reviews:[]} as unknown as LoadedPerson;
+it('explicitly predicts disabled reorder timing without creating a send-now stage',async()=>{vi.stubEnv('REORDER_REMINDER_DAYS','');const row=(await deriveSequenceState(person)).find(s=>s.id==='replenishment');expect(row).toMatchObject({active:false,disabled:true,paused:false,stages:[],nextEtaMs:null});expect(row?.context).toContain('REORDER_REMINDER_DAYS');});
+it('uses the same configured timing and suppresses an older order once a newer order exists',async()=>{vi.stubEnv('REORDER_REMINDER_DAYS','45');const row=(await deriveSequenceState(person)).find(s=>s.id==='replenishment');expect(row?.stages[0].label).toBe('Reorder reminder (45 days after dispatch)');expect((await deriveSequenceState({...person,orders:[...person.orders,{...person.orders[0],id:'new',status:'pending',created_at:'2026-09-10T00:00:00Z',shipped_at:null}]})).some(s=>s.id==='replenishment')).toBe(false);});

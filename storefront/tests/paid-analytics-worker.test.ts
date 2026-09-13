@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 const m=vi.hoisted(()=>({rpc:vi.fn(),fetch:vi.fn()}));
 vi.mock('@/lib/admin/db',()=>({adminDb:()=>({rpc:m.rpc})}));
 import { drainPaidAnalytics } from '@/lib/paid-analytics';
-function payload(){return {client_id:'123456.789012',timestamp_micros:Date.now()*1000,events:[{name:'purchase',params:{transaction_id:'ECL-1001',currency:'AUD',value:27,shipping:5,items:[{item_id:'SAMPLE',item_name:'Sample',quantity:3,price:9,discount:1}]}}]}}
+function payload(){return {client_id:'123456.789012',timestamp_micros:Date.now()*1000,events:[{name:'purchase',params:{transaction_id:'ECL-1001',currency:'AUD',value:27,shipping:5,acquisition_source:'google',acquisition_medium:'cpc',acquisition_campaign:'launch_2026',acquisition_landing_page:'/product/sample',experiment_id:'offer-holdout',experiment_variant:'holdout',items:[{item_id:'sample',item_name:'Sample',item_variant:'5 mg · 3 vials',quantity:3,price:9,discount:1}]}}]}}
 let row:{id:string;lease_token:string;payload:ReturnType<typeof payload>};
 beforeEach(()=>{
  vi.clearAllMocks();vi.stubEnv('GA4_API_SECRET','test-only-secret');vi.stubEnv('NEXT_PUBLIC_GA4_ID','G-TEST123');vi.stubGlobal('fetch',m.fetch);
@@ -29,6 +29,11 @@ it('only sends allowlisted analytics fields even if queue JSON contains personal
  const body=m.fetch.mock.calls[0][1].body;expect(body).not.toMatch(/private|secret|email|address|token|user_id|page_location/i);
  expect(m.fetch.mock.calls[0][0]).toBe('https://www.google-analytics.com/mp/collect?measurement_id=G-TEST123&api_secret=test-only-secret');
  expect(m.fetch.mock.calls[0][1]).toMatchObject({method:'POST',redirect:'error'});
+});
+it('forwards only validated acquisition, experiment and canonical item dimensions from the frozen snapshot',async()=>{
+ await drainPaidAnalytics(1);const body=JSON.parse(m.fetch.mock.calls[0][1].body);
+ expect(body.events[0].params).toEqual({transaction_id:'ECL-1001',currency:'AUD',value:27,shipping:5,acquisition_source:'google',acquisition_medium:'cpc',acquisition_campaign:'launch_2026',acquisition_landing_page:'/product/sample',experiment_id:'offer-holdout',experiment_variant:'holdout',items:[{item_id:'sample',item_name:'Sample',item_variant:'5 mg · 3 vials',quantity:3,price:9,discount:1}]});
+ Object.assign(row.payload.events[0].params,{acquisition_campaign:'private@example.test'});m.fetch.mockClear();expect(await drainPaidAnalytics(1)).toMatchObject({dead:1});expect(m.fetch).not.toHaveBeenCalled();
 });
 it('retires invalid amounts and expired timestamps without provider requests',async()=>{
  row.payload.events[0].params.value=28;expect(await drainPaidAnalytics(1)).toMatchObject({dead:1});expect(m.fetch).not.toHaveBeenCalled();

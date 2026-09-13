@@ -9,7 +9,7 @@ vi.mock('@/lib/admin/email',()=>({queueEmail:m.queue}));
 vi.mock('@/lib/email/unsubscribe',()=>({unsubscribeUrl:m.unsubscribe}));
 import {sweepWelcomeSeries,sweepPostPurchase,sweepReviewThankYou,sweepReplenishment,sweepWinback,sweepSecondPurchaseNudge} from '@/lib/admin/lifecycle';
 const subscribers=['new@example.test','duplicate@example.test'].map(email=>({email,source:'footer',created_at:new Date(Date.now()-5*86400000).toISOString()}));
-beforeEach(()=>{
+beforeEach(()=>{vi.stubEnv("REORDER_REMINDER_DAYS","21");
  vi.clearAllMocks();m.unsubscribe.mockReturnValue('https://example.test/unsubscribe');
  m.read.mockImplementation((table:string,columns:string)=>({data:table==='subscribers'&&columns.includes('source')?subscribers:[],error:null}));
  m.queue.mockResolvedValue(null);
@@ -31,3 +31,4 @@ it('reports missing unsubscribe signing configuration as a failed job',async()=>
  m.unsubscribe.mockReturnValue(null);
  await expect(sweepWelcomeSeries()).rejects.toThrow(/unsubscribe/i);
 });
+it('does not inspect recipients or infer pack depletion when reorder timing is disabled',async()=>{vi.stubEnv('REORDER_REMINDER_DAYS','');expect(await sweepReplenishment()).toEqual({queued:0});expect(m.read).not.toHaveBeenCalled();vi.unstubAllEnvs();});

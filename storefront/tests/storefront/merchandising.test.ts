@@ -14,6 +14,12 @@ const rankProducts = (products: readonly Product[]) => {
   return rank?.(products) ?? [];
 };
 
+const rankAvailable = (products: readonly (Product & { is_in_stock: boolean })[]) => {
+  const rank = (catalog as typeof catalog & { rankAvailableProductsByPopularity?: (rows: typeof products) => typeof products })
+    .rankAvailableProductsByPopularity;
+  return rank?.(products) ?? [];
+};
+
 it("puts the approved sales leaders first in the customer-facing featured order", () => {
   const products = [
     "glow",
@@ -49,5 +55,20 @@ it("keeps unranked products in their existing relative order", () => {
     "bpc-157",
     "new-zeta",
     "new-alpha",
+  ]);
+});
+
+it("keeps sold-out products out of the primary featured positions", () => {
+  const products = [
+    { slug: "retatrutide", is_in_stock: false },
+    { slug: "ghk-cu", is_in_stock: true },
+    { slug: "tesamorelin", is_in_stock: false },
+    { slug: "bpc-157", is_in_stock: true },
+  ];
+  expect(rankAvailable(products).map((product) => product.slug)).toEqual([
+    "ghk-cu",
+    "bpc-157",
+    "retatrutide",
+    "tesamorelin",
   ]);
 });

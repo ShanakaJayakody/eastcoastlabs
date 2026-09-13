@@ -54,7 +54,7 @@ export default function AccessoryGrid() {
                     unitPrice: price,
                   });
                   trackAddToCart(
-                    { item_id: a.id, item_name: a.name, item_variant: "accessory", price, quantity: 1 },
+                    { item_id: a.slug, item_name: a.name, item_variant: "accessory", price, quantity: 1 },
                     price,
                   );
                   openCart();

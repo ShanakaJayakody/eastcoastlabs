@@ -26,7 +26,6 @@ import { readAll } from "./read-all";
 import { queueEmail, type EmailTemplate } from "./email";
 import {
   isTransactional,
-  replenishmentDays,
   replenishmentRelatedId,
   reviewRelatedId,
   reviewThanksRelatedId,
@@ -35,6 +34,8 @@ import {
   winbackRelatedId,
   type SequenceId,
 } from "./sequences";
+import { reorderReminderDays } from "./retention-policy";
+import { reorderItems, type ReorderItem } from "./reorder";
 import { pausedEmailsFor } from "./overrides";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
@@ -232,6 +233,7 @@ export async function sweepPostPurchase(): Promise<{ queued: number }> {
       "id, order_number, customer_email, created_at, shipped_at, order_items(product_slug, product_name)",
     )
     .in("status", ["shipped", "completed"])
+    .eq("refunded_cents", 0)
     .not("shipped_at", "is", null)
     .gte("shipped_at", since)
     .order("shipped_at").order("id").range(start,end));
@@ -249,7 +251,7 @@ export async function sweepPostPurchase(): Promise<{ queued: number }> {
     (order.order_items ?? []).filter((i) => !accessories.has(i.product_slug));
 
   // The reminder is the one touch at real risk of colliding with another
-  // sequence (a 1-vial buyer's replenishment lands at shipped+21d), so it yields
+  // sequence, so it yields
   // to any marketing email this person received in the last three days.
   const reminderCandidates = orders.filter((o) => {
     const age = daysSince(o.shipped_at);
@@ -269,7 +271,7 @@ export async function sweepPostPurchase(): Promise<{ queued: number }> {
       sends.push({
         to: order.customer_email,
         template: "arrival_checkin",
-        payload: { order_number: order.order_number },
+        payload: { order_number: order.order_number, order_id:order.id, shipped_at:order.shipped_at },
         relatedType: "order",
         relatedId,
       });
@@ -280,6 +282,7 @@ export async function sweepPostPurchase(): Promise<{ queued: number }> {
     if (!items.length || reviewed.has(order.id)) continue;
     const payload = {
       order_number: order.order_number,
+      shipped_at:order.shipped_at,
       review_url: reviewUrlFor(order),
       order_id: order.id,
       products: [...new Set(items.map((i) => i.product_name))],
@@ -350,34 +353,21 @@ export async function sweepReviewThankYou(): Promise<{ queued: number }> {
   return { queued: await queueMarketing(sends, "review_thank_you") };
 }
 
-interface ReplenishmentOrderRow extends FulfilledOrderRow {
-  order_items: {
-    product_name: string;
-    qty: number;
-    variant_label: string;
-    product_variants: { pack_size: number } | null;
-  }[];
-}
+interface ReplenishmentOrderRow extends FulfilledOrderRow { order_items: ReorderItem[]; }
 
-const packSizeFromLabel = (label: string): number => {
-  const m = /(\d+)\s*-?\s*pack/i.exec(label);
-  return m ? parseInt(m[1], 10) : 1;
-};
-
-/**
- * Replenishment: nudge each customer's LATEST fulfilled order once its
- * pack-size-scaled consumption window has passed — unless they've ordered
- * again since.
- */
+/** Latest fulfilled order at explicitly configured days after dispatch; no usage inference. */
 export async function sweepReplenishment(): Promise<{ queued: number }> {
+  const dueDays=reorderReminderDays();
+  if(dueDays==null)return {queued:0};
   const db = adminDb();
-  const since=isoDaysAgo(200);
+  const since=isoDaysAgo(dueDays+42);
   const data = await readAll((start,end)=>db
     .from("orders")
     .select(
-      "id, order_number, customer_email, created_at, shipped_at, order_items(product_name, qty, variant_label, product_variants(pack_size))",
+      "id, order_number, customer_email, created_at, shipped_at, order_items(product_name, product_slug, variant_id, qty)",
     )
     .in("status", ["shipped", "completed"])
+    .eq("refunded_cents", 0)
     .not("shipped_at", "is", null)
     .gte("shipped_at", since)
     .order("shipped_at").order("id").range(start,end));
@@ -388,7 +378,7 @@ export async function sweepReplenishment(): Promise<{ queued: number }> {
   const latestByEmail = new Map<string, ReplenishmentOrderRow>();
   for (const order of orders) {
     const prev = latestByEmail.get(order.customer_email);
-    if (!prev || order.created_at > prev.created_at) latestByEmail.set(order.customer_email, order);
+    if (!prev || order.created_at > prev.created_at || (order.created_at===prev.created_at&&order.id>prev.id)) latestByEmail.set(order.customer_email, order);
   }
 
   // "Reordered since" includes pending/unpaid orders — any newer order means
@@ -409,11 +399,6 @@ export async function sweepReplenishment(): Promise<{ queued: number }> {
     const newest = newestByEmail.get(email);
     if (newest && newest > order.created_at) continue;
 
-    const packSize = Math.max(
-      1,
-      ...order.order_items.map((i) => i.product_variants?.pack_size ?? packSizeFromLabel(i.variant_label ?? "")),
-    );
-    const dueDays = replenishmentDays(packSize);
     const age = daysSince(order.shipped_at);
     if (age < dueDays || age >= dueDays + 42) continue;
 
@@ -421,8 +406,11 @@ export async function sweepReplenishment(): Promise<{ queued: number }> {
       to: email,
       template: "replenishment",
       payload: {
-        pack_size: packSize,
-        items: order.order_items.map((i) => ({ name: i.product_name, qty: i.qty })),
+        order_id:order.id,
+        order_number:order.order_number,
+        shipped_at:order.shipped_at,
+        reminder_days:dueDays,
+        items: await reorderItems(order.order_items),
       },
       relatedType: "order",
       relatedId: replenishmentRelatedId(order.id),
@@ -473,8 +461,7 @@ export async function sweepWinback(): Promise<{ queued: number }> {
 
 /**
  * Day-30 second-purchase nudge — the 1st→2nd order conversion. Skips anyone
- * who got a replenishment email recently (a 1-vial buyer's replenishment lands
- * at day 21; stacking a near-identical nudge 9 days later reads as spam).
+ * who received a reorder reminder recently, avoiding overlapping purchase asks.
  */
 export async function sweepSecondPurchaseNudge(): Promise<{ queued: number }> {
   const db = adminDb();

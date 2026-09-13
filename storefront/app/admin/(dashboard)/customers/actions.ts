@@ -17,6 +17,8 @@ import { queueEmail } from "@/lib/admin/email";
 import { sendImmediately } from "@/lib/email/sender";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 import { loadPerson, deriveSequenceState } from "@/lib/admin/customer-360";
+import { reorderReminderDays } from "@/lib/admin/retention-policy";
+import { reorderItems, type ReorderItem } from "@/lib/admin/reorder";
 import { isTransactional, SEQUENCE_LABELS, type SequenceId } from "@/lib/admin/sequences";
 import { referenceForOrderNumber } from "@/lib/payments";
 import { getSettings } from "@/lib/settings";
@@ -101,6 +103,7 @@ export async function skipStage(
 ): Promise<ActionResult> {
   const session = await requireAdmin();
   const to = clean(email);
+  if(sequence==="replenishment"&&reorderReminderDays()==null)return {ok:false,message:"Reorder reminders are disabled until timing is configured."};
   const target = await findStage(to, sequence, stage);
   if (!target) return { ok: false, message: "That touch is no longer pending." };
 
@@ -144,6 +147,7 @@ export async function sendStageNow(
 ): Promise<ActionResult> {
   const session = await requireAdmin();
   const to = clean(email);
+  if(sequence==="replenishment"&&reorderReminderDays()==null)return {ok:false,message:"Reorder reminders are disabled until timing is configured."};
   const target = await findStage(to, sequence, stage);
   if (!target) return { ok: false, message: "That touch is no longer pending." };
 
@@ -410,20 +414,12 @@ async function buildPayload(
       return review ? { rating: review.rating } : null;
     }
     case "replenishment": {
-      const order = person.orders.find((o) => o.id === state.orderId);
-      if (!order) return null;
-      const { data } = await adminDb()
-        .from("order_items")
-        .select("product_name, qty, variant_label, product_variants(pack_size)")
-        .eq("order_id", order.id);
-      const items = (data ?? []) as unknown as {
-        product_name: string;
-        qty: number;
-        variant_label: string;
-        product_variants: { pack_size: number } | null;
-      }[];
-      const packSize = Math.max(1, ...items.map((i) => i.product_variants?.pack_size ?? 1));
-      return { pack_size: packSize, items: items.map((i) => ({ name: i.product_name, qty: i.qty })) };
+      const days=reorderReminderDays();
+      const order=person.orders.find(o=>o.id===state.orderId);
+      if(days==null||!order||!order.shipped_at||!['shipped','completed'].includes(order.status)||person.orders.some(o=>o.status!=='cancelled'&&o.created_at>order.created_at))return null;
+      const {data,error}=await adminDb().from('order_items').select('product_name, product_slug, variant_id, qty').eq('order_id',order.id);
+      if(error)throw new Error(`Cannot read reorder items: ${error.message}`);
+      return {order_id:order.id,order_number:order.order_number,shipped_at:order.shipped_at,reminder_days:days,items:await reorderItems((data??[]) as ReorderItem[])};
     }
     // Welcome, winback and the second-purchase nudge render entirely from the
     // template's own copy — no per-recipient data beyond the unsubscribe link.

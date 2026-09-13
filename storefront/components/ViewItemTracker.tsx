@@ -1,23 +1,33 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { trackViewItem } from "@/lib/analytics";
+import { commerceItem, trackViewItem } from "@/lib/analytics";
+import { ANALYTICS_CONSENT_EVENT, analyticsConsent } from "@/lib/attribution";
 
 /** Fires GA4 view_item once when a PDP mounts. Safe no-op without GA4 configured. */
 export default function ViewItemTracker({
-  id,
+  slug,
   name,
   price,
+  size,
+  pack,
 }: {
-  id: number;
+  slug: string;
   name: string;
   price: number;
+  size?: string;
+  pack?: string;
 }) {
   const fired = useRef(false);
   useEffect(() => {
-    if (fired.current) return;
-    fired.current = true;
-    trackViewItem({ item_id: id, item_name: name, price }, price);
-  }, [id, name, price]);
+    const track = () => {
+      if (fired.current || analyticsConsent() !== "granted") return;
+      trackViewItem(commerceItem({ slug, name, price, size, pack }), price);
+      fired.current = true;
+    };
+    track();
+    window.addEventListener(ANALYTICS_CONSENT_EVENT, track);
+    return () => window.removeEventListener(ANALYTICS_CONSENT_EVENT, track);
+  }, [slug, name, price, size, pack]);
   return null;
 }

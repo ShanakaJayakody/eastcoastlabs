@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
 import { putSettings, SETTING_KEYS } from "@/lib/settings";
+import { isValidAbn, normalizeAbn } from '@/lib/abn';
 
 export interface ActionResult {
   ok: boolean;
@@ -17,6 +18,12 @@ export interface SettingsInput {
   freeShippingThreshold: number;
   giftThreshold: number;
   supportEmail: string;
+  legalName?: string;
+  abn?: string;
+  publicAddress?: string;
+  supportHours?: string;
+  dispatchNotes?: string;
+  returnsNotes?: string;
   // Payment
   payidEnabled: boolean;
   payidIdentifier: string;
@@ -54,6 +61,22 @@ export async function saveSettings(input: SettingsInput): Promise<ActionResult> 
   if (!bounded(input.giftThreshold))
     return { ok: false, error: "Gift threshold must be a positive number." };
   if (!/^\S+@\S+\.\S+$/.test(input.supportEmail.trim())) return { ok: false, error: "Enter a valid support email." };
+  const profileFields = [
+    ['legalName','legal name',160],['publicAddress','public address',500],
+    ['supportHours','support hours',160],['dispatchNotes','dispatch notes',2000],['returnsNotes','returns notes',2000],
+  ] as const;
+  const profile:Record<string,string>={};
+  for(const [key,label,max] of profileFields){
+    const value=input[key];
+    if(value===undefined)continue;
+    if(typeof value!=='string'||value.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value)) return {ok:false,error:`Enter ${label} using at most ${max} characters.`};
+    profile[key]=value.trim();
+  }
+  if(input.abn!==undefined){
+    if(typeof input.abn!=='string'||input.abn.length>20||!/^\d[\d ]*$|^$/.test(input.abn.trim()))return {ok:false,error:'Enter an 11-digit ABN, or leave it blank.'};
+    profile.abn=normalizeAbn(input.abn);
+    if(profile.abn && !isValidAbn(profile.abn))return {ok:false,error:'Enter a valid 11-digit ABN, or leave it blank.'};
+  }
 
   // A method can only be switched on if it has the details a customer needs to
   // actually pay — enabling PayID with a blank identifier would render an empty
@@ -81,8 +104,8 @@ export async function saveSettings(input: SettingsInput): Promise<ActionResult> 
     };
 
   try {
-    const normalised = {...input, announcementItems:items,supportEmail:input.supportEmail.trim(),payidIdentifier:payid,payidName:input.payidName.trim(),bankBsb:bsb,bankAccountNumber:acct.replace(/\s/g,""),bankAccountName:input.bankAccountName.trim()};
-    const values = Object.fromEntries(Object.entries(SETTING_KEYS).map(([field,key]) => [key,normalised[field as keyof typeof SETTING_KEYS]]));
+    const normalised = {...input,...profile, announcementItems:items,supportEmail:input.supportEmail.trim(),payidIdentifier:payid,payidName:input.payidName.trim(),bankBsb:bsb,bankAccountNumber:acct.replace(/\s/g,""),bankAccountName:input.bankAccountName.trim()};
+    const values = Object.fromEntries(Object.entries(SETTING_KEYS).map(([field,key]) => [key,normalised[field as keyof typeof SETTING_KEYS]]).filter(([,value])=>value!==undefined));
     const version = await putSettings(values,input.version,session.email);
 
     // Every storefront surface that renders these values.

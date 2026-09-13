@@ -30,7 +30,7 @@ The last command runs a loopback-only component fixture on port 4174 with synthe
 - Cart storage is validated and synchronised between tabs. Prices and sale eligibility are re-resolved on the server. Checkout reviews a versioned quote, commits atomically and reuses a private attempt identity when results are uncertain.
 - Order creation, transitions, refunds, stock claims, operation history and notification intent use service-only transactional RPCs. Refund amounts include allocated discounts and remaining shipping. Physical returns are explicit; financial refund recording never implies a bank transfer was sent.
 - Payment and review links require scoped expiring signatures. Display order numbers or raw primary keys alone disclose no receipt. Public review columns exclude private order IDs.
-- Admin product/settings saves use revisions and atomic writes. Product drafts survive related media/stock refresh. Packing quantities exclude refunded units. Certificates on slips are general verified documents; parcel lot allocation is not implemented.
+- Admin product/settings saves use revisions and atomic writes. Product drafts survive related media/stock refresh. Packing quantities exclude refunded units. Physical lot allocations use supplied inventory evidence; a general product certificate alone does not prove shipment-lot linkage.
 - Queued email is leased, rechecked for eligibility and retried with a stable provider key. Confirmation of subscription requires mailbox access. Later unsubscribe invalidates older pending opt-in links. Cron credentials fail closed.
 - Browser analytics excludes private pages and removes query/referrer data. `order_created` is distinct from optional server-side paid `purchase`. The database remains the financial authority.
 
@@ -43,3 +43,5 @@ Read [migration procedures](docs/MIGRATIONS.md) before any application/database 
 The audit changes are staged for review, not deployed. The [implementation report](../docs/audits/2026-09-08-IMPLEMENTATION.md) maps findings to code and remaining work. The [release runbook](docs/AUDIT-RELEASE.md) contains required staging checks, data reconciliation and operational configuration.
 
 Additional guides: [checkout abuse limits](docs/CHECKOUT-ABUSE.md), [paid analytics](docs/PAID-ANALYTICS.md).
+
+The September 13 conversion implementation adds synchronized product sizes, simpler mobile purchasing, consented attribution, contribution reporting and configurable retention. Its [release record](../docs/operations/2026-09-13-CONVERSION-RELEASE.md) maps the approved audit to code, verification and business inputs. See the revised [baseline contract](../BASELINE.md) before interpreting conversion or lifetime-value results.

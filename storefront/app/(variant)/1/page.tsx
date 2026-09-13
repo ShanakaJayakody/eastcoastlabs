@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { getCatalog, rankProductsByPopularity } from "@/lib/catalog";
+import { getCatalog, rankAvailableProductsByPopularity } from "@/lib/catalog";
 import { getAllCoa } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import { getStacks } from "@/lib/stacks";
@@ -59,7 +59,7 @@ export default async function VariantHomePage() {
 
 
   const { products, bySlug } = catalog;
-  const grid = await decorateCards(rankProductsByPopularity(products).slice(0, 8));
+  const grid = await decorateCards(rankAvailableProductsByPopularity(products).slice(0, 8));
 
   const heroProduct = bySlug.get("bpc-157") ?? products[0];
   const heroImage = heroProduct?.images?.[0]?.src;

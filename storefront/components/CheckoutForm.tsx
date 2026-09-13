@@ -6,7 +6,7 @@ import { CHECKOUT_FIELDS, type CheckoutField, type CheckoutFieldErrors } from "@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { trackOrderCreated } from "@/lib/analytics";
+import { commerceItem,trackOrderCreated,trackQuoteRequested,trackQuoteReady,trackQuoteError,trackPaymentStep } from "@/lib/analytics";
 import { formatAud } from "@/lib/format";
 import {
   placeOrder,
@@ -20,6 +20,7 @@ import {readCheckoutAttempt,saveCheckoutAttempt,clearCheckoutAttempt,checkoutReq
 import type { PaymentMethod } from "@/lib/payments";
 import type { ShippingMethod } from "@/lib/shipping";
 import CheckoutBump, { type BumpProduct } from "./CheckoutBump";
+import CheckoutQuickSummary from "./CheckoutQuickSummary";
 
 const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
 
@@ -40,6 +41,8 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     phone: "",
   });
   const [code, setCode] = useState("");
+  const [discountOpen,setDiscountOpen] = useState(false);
+  const [recoveryOpen,setRecoveryOpen] = useState(false);
   const [appliedCode, setAppliedCode] = useState("");
   const [quote, setQuote] = useState<CartQuote | null>(null);
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
@@ -79,11 +82,21 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   useEffect(() => {
     if (!ready || lines.length === 0) return;
     let cancelled = false;
+    const started=Date.now();
+    const requestId=globalThis.crypto?.randomUUID?.();
+    if(requestId)trackQuoteRequested(requestId);
     setQuotedKey("");
     setQuoteError(null);
+    const timeout = setTimeout(()=>{
+      cancelled = true;
+      if(requestId)trackQuoteError(requestId,Date.now()-started,'timeout');
+      setQuoteError("Confirming your total is taking longer than expected. Please retry.");
+    },15_000);
     quoteCart(payload, appliedCode || undefined, shippingMethod)
       .then(q => {
         if (cancelled) return;
+        clearTimeout(timeout);
+        if(requestId)trackQuoteReady(requestId,Date.now()-started);
         setQuote(q);
         setQuotedKey(requestKey);
         // A disabled service may have been replaced by the authoritative quote.
@@ -92,9 +105,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
         setShippingMethod(q.shippingMethod);
         reconcilePayment(q);
       }).catch(() => {
-        if (!cancelled) setQuoteError("We couldn’t confirm your order total. Please retry.");
+        if (!cancelled) {clearTimeout(timeout);if(requestId)trackQuoteError(requestId,Date.now()-started,'network');setQuoteError("We couldn’t confirm your order total. Please retry.");}
       });
-    return () => { cancelled = true; };
+    return () => { cancelled = true;clearTimeout(timeout); };
     // requestKey contains every price-relevant input; payload is reconstructed per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey, ready, retry]);
@@ -138,6 +151,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
         submittedAttempt.unconfirmed=true;
         const idempotencyKey = attempt.current.id;
         if(hash){const saved={id:idempotencyKey,hash};saveCheckoutAttempt(saved);setPreviousAttempt(saved);}
+        trackPaymentStep('order_submitted',paymentMethod);
         const res = await placeOrder({email,name,address,discountCode:appliedCode || undefined,
           paymentMethod,shippingMethod,deliveryInstructions:deliveryInstructions || undefined,
           lines:payload,idempotencyKey,quoteVersion:quote!.version});
@@ -163,8 +177,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   }
 
   function finishOrder(res:Extract<PlaceOrderResult,{ok:true}>) {
+    if(!res.replayed)trackPaymentStep('order_created',paymentMethod??undefined);
     if(res.purchasedLines){
-      if(!res.replayed) trackOrderCreated(res.orderNumber,res.purchasedLines.map(l=>({item_id:l.slug,item_name:l.name,item_variant:l.variantLabel,price:l.unitPriceCents/100,quantity:l.quantity})),res.totalCents/100);
+      if(!res.replayed) trackOrderCreated(res.orderNumber,res.purchasedLines.map(l=>commerceItem({slug:l.slug,name:l.name,pack:l.variantLabel,price:l.unitPriceCents/100,quantity:l.quantity})),res.totalCents/100);
       completeOrder(res.purchasedLines);
     }
     attempt.current=null;clearCheckoutAttempt();setPreviousAttempt(null);
@@ -210,6 +225,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       <legend className="sr-only">Checkout details</legend>
       {/* ---- Details ---- */}
       <div className="min-w-0 space-y-6">
+        <CheckoutQuickSummary quote={quote} ready={quoteReady}/>
         <section className="rounded-xl border border-line bg-surface p-5">
           <h2 className="mb-4 text-sm font-semibold text-fg">Contact</h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -222,7 +238,6 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
               onChange={(e) => setEmail(e.target.value)}
               className={`${field} `}
             /></span></label>{fieldError("email")}
-            <div className="sm:col-span-2"><CartRecoveryRequest email={email} lines={payload}/></div>
             <label htmlFor="checkout-name" className="min-w-0 block text-xs text-fg-2 sm:col-span-2">Full name<span className="mt-1 block"><input {...invalid("name")}
               required
               placeholder="Full name"
@@ -231,6 +246,10 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
               onChange={(e) => setName(e.target.value)}
               className={`${field} `}
             /></span></label>{fieldError("name")}
+            <div className="sm:col-span-2 text-xs text-muted">
+              <button type="button" aria-expanded={recoveryOpen} aria-controls="checkout-recovery" onClick={()=>setRecoveryOpen(value=>!value)} className="py-2 text-left text-fg-2 underline">Save this cart for later (optional)</button>
+              <div id="checkout-recovery">{recoveryOpen && <CartRecoveryRequest email={email} lines={payload}/>}</div>
+            </div>
           </div>
         </section>
 
@@ -309,9 +328,6 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
           </div>
         </section>
 
-        {/* ---- Order bump: the accessory every peptide order needs ---- */}
-        {bumps.length > 0 && <CheckoutBump products={bumps} />}
-
         {/* ---- Shipping method ---- */}
         {quote && quote.shippingOptions.length > 1 && (
           <section className="rounded-xl border border-line bg-surface p-5">
@@ -380,6 +396,11 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             Nothing is charged on this page. You&apos;ll get the transfer details — with a reference
             and the exact amount — the moment you place the order.
           </p>
+          <ol className="mb-4 grid gap-1 text-xs text-fg-2">
+            <li>1. Place your order and receive payment instructions.</li>
+            <li>2. Transfer the exact amount using your order reference.</li>
+            <li>3. We confirm receipt of payment, then prepare your order.</li>
+          </ol>
 
           {quote && quote.paymentOptions.length === 0 ? (
             <p className="rounded-lg border border-warn/40 bg-warn/5 p-3 text-sm text-warn">
@@ -400,7 +421,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
                       type="radio"
                       name="payment"
                       checked={isSel}
-                      onChange={() => setPaymentSelection({method:opt.method,automatic:false})}
+                      onChange={() => {setPaymentSelection({method:opt.method,automatic:false});trackPaymentStep('method_selected',opt.method);}}
                       className="sr-only"
                     />
                     <span
@@ -436,7 +457,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
 
       {/* ---- Summary ---- */}
       <aside className="min-w-0 space-y-4">
-        <div className="rounded-xl border border-line bg-surface p-5">
+        <div id="order-summary" className="scroll-mt-24 rounded-xl border border-line bg-surface p-5">
           <h2 className="mb-4 text-sm font-semibold text-fg">Order summary</h2>
           {recoveryButton}
           <button type="button" disabled={pending} onClick={() => setRetry(v => v+1)} className="mb-3 text-xs text-accent underline">Refresh order total</button>
@@ -454,7 +475,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             ))}
           </ul>
 
-          <div className="mt-4 flex gap-2 border-t border-line pt-4">
+          <details className="mt-4 border-t border-line pt-4" open={discountOpen || !!fieldErrors.discount || !!quote?.discountError} onToggle={e=>setDiscountOpen(e.currentTarget.open)}>
+          <summary className="cursor-pointer text-sm text-fg-2">{appliedCode ? `Discount code: ${appliedCode}` : 'Have a discount code?'}</summary>
+          <div className="mt-3 flex items-end gap-2">
             <label htmlFor="checkout-discount" className="min-w-0 block text-xs text-fg-2 ">Discount code<span className="mt-1 block"><input {...invalid("discount")} aria-invalid={!!fieldErrors.discount || !!quote?.discountError} aria-describedby={fieldErrors.discount ? "checkout-discount-error" : quote?.discountError ? "discount-error" : undefined}
               placeholder="Discount code"
               value={code}
@@ -473,6 +496,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
           {quote?.discountError && (
             <p id="discount-error" role="alert" className="mt-2 text-xs text-warn">{quote.discountError}</p>
           )}
+          </details>
 
           <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
             <div className="flex justify-between">
@@ -535,6 +559,14 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
         <p className="px-1 text-xs text-muted-2">
           Research use only. Check available batch documentation before ordering.
         </p>
+        <nav aria-label="Purchase information" className="flex flex-wrap gap-x-4 gap-y-2 px-1 text-xs text-fg-2">
+          <Link className="underline hover:text-accent" href="/shipping">Shipping</Link>
+          <Link className="underline hover:text-accent" href="/returns">Returns</Link>
+          <Link className="underline hover:text-accent" href="/privacy">Privacy</Link>
+          <Link className="underline hover:text-accent" href="/terms">Terms</Link>
+          <Link className="underline hover:text-accent" href="/contact">Contact</Link>
+        </nav>
+        {bumps.length > 0 && <CheckoutBump products={bumps} />}
       </aside>
       </fieldset>
     </form>

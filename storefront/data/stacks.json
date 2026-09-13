@@ -6,27 +6,27 @@
       "slug": "recovery-repair-stack",
       "name": "Recovery & Repair Stack",
       "tagline": "The most-researched combination for connective-tissue studies",
-      "blurb": "BPC-157 and TB-500 are the two compounds most frequently paired in tissue-repair and angiogenesis research. Buy them together as a matched, independently tested set.",
+      "blurb": "BPC-157 and TB-500 supplied together. Review each component's specifications and available batch documentation before ordering.",
       "components": ["bpc-157", "tb-500"],
       "discountPct": 20,
-      "badge": "MOST POPULAR",
+      "badge": "TWO COMPOUNDS",
       "freeBacWater": true
     },
     {
       "slug": "metabolic-research-stack",
       "name": "Metabolic Research Stack",
       "tagline": "Pairing a GLP-1 analogue with a mitochondrial-derived peptide",
-      "blurb": "Tirzepatide and MOTS-C are studied side by side in metabolic and energy-regulation research models. Documented batches, shipped together.",
+      "blurb": "Tirzepatide and MOTS-C supplied in one order. Review each component's specifications and available documentation.",
       "components": ["tirzepatide", "mots-c"],
       "discountPct": 15,
-      "badge": "BEST VALUE",
+      "badge": "TWO COMPOUNDS",
       "freeBacWater": true
     },
     {
       "slug": "skin-aesthetics-stack",
       "name": "Skin & Aesthetics Stack",
       "tagline": "Copper peptide research, paired",
-      "blurb": "GHK-Cu and the GLOW blend are commonly combined in dermal and extracellular-matrix research. Both arrive with matching published COAs.",
+      "blurb": "GHK-Cu and the GLOW blend supplied together. Certificate availability and scope are shown separately for each component.",
       "components": ["ghk-cu", "glow"],
       "discountPct": 18,
       "freeBacWater": true

@@ -63,7 +63,8 @@ const TOTAL_STAGGER_MS = 260;     // capped so 31 bars animate as fast as 7
 const TOOLTIP_EDGE_MARGIN = 72;
 
 /** Full AUD amount, e.g. 123456 -> "$1,234.56". */
-function formatAud(formatter: Intl.NumberFormat, cents: number): string {
+function formatAud(formatter: Intl.NumberFormat, cents: number | null): string {
+  if(cents==null)return "Unknown";
   return formatter.format(cents / 100);
 }
 
@@ -104,8 +105,8 @@ function urlFor(win: RevenueWindow): string {
 }
 
 /** Percent change, or null when the prior period has nothing to divide by. */
-function ratio(current: number, previous: number): number | null {
-  if (previous === 0) return null;
+function ratio(current: number | null, previous: number | null): number | null {
+  if (current==null || previous==null || previous === 0) return null;
   return (current - previous) / Math.abs(previous);
 }
 
@@ -223,9 +224,10 @@ export default function RevenueChart({ initial }: { initial: RevenueWindow }): R
 
   const buckets = win.buckets;
   const isProfit = metric === "profit";
+  const unknownProfit=isProfit&&win.totals.profitCents==null;
   const values = useMemo(
-    () => buckets.map((b) => (isProfit ? b.profitCents : b.cents)).map((v) => (Number.isFinite(v) ? v : 0)),
-    [buckets, isProfit],
+    () => unknownProfit?[]:buckets.map((b) => (isProfit ? b.profitCents : b.cents)).map((v) => (v!=null&&Number.isFinite(v) ? v : 0)),
+    [buckets, isProfit, unknownProfit],
   );
 
   // Profit can be negative, so the baseline is wherever zero falls rather than
@@ -281,10 +283,10 @@ export default function RevenueChart({ initial }: { initial: RevenueWindow }): R
           fraction,
           y: CHART_HEIGHT - fraction * PLOT_HEIGHT,
           // With nothing at all, only the baseline gets a label.
-          label: allZero ? (fraction === 0 ? "$0" : "") : formatAudCompact(value),
+          label: unknownProfit?"":allZero ? (fraction === 0 ? "$0" : "") : formatAudCompact(value),
         };
       }),
-    [minValue, maxValue, allZero],
+    [minValue, maxValue, allZero, unknownProfit],
   );
 
   const stride = labelStrideFor(win.scale, buckets.length);
@@ -298,7 +300,7 @@ export default function RevenueChart({ initial }: { initial: RevenueWindow }): R
   const deltaTone = delta === null ? "text-muted-2" : delta >= 0 ? "text-success" : "text-red-400";
   const deltaText =
     delta === null
-      ? `Nothing ${win.scale === "month" ? "in " : ""}${win.previousLabel} to compare`
+      ? headlineCents==null||previousHeadline==null?"Cost coverage incomplete":`Nothing ${win.scale === "month" ? "in " : ""}${win.previousLabel} to compare`
       : `${delta >= 0 ? "▲" : "▼"} ${Math.abs(delta * 100).toFixed(Math.abs(delta) >= 1 ? 0 : 1)}% vs ${win.previousLabel}`;
 
   const tooltipLeft = hover
@@ -448,6 +450,7 @@ export default function RevenueChart({ initial }: { initial: RevenueWindow }): R
 
           <div className="min-w-0 flex-1">
             <div ref={plotRef} className="relative" style={{ height: CHART_HEIGHT }}>
+              {unknownProfit&&<p className="absolute inset-0 flex items-center justify-center text-sm text-muted">Gross profit unavailable: frozen cost data is incomplete.</p>}
               <svg
                 width="100%"
                 height={CHART_HEIGHT}
@@ -605,6 +608,7 @@ export default function RevenueChart({ initial }: { initial: RevenueWindow }): R
         </div>
       </div>
 
+      <p className="px-4 pb-3 text-xs text-muted">Paid-date reporting in recorded AUD; no GST adjustment inferred. Merchandise gross profit excludes shipping and variable expenses. Refunds update the original paid cohort. See Reports → Contribution for actual expense coverage.</p>
       {/* Money strip — the same window as the chart above it, so stepping back
           a month moves all four figures together. */}
       <div className="grid grid-cols-2 divide-line border-t border-line bg-ink-2/40 text-center sm:grid-cols-4 sm:divide-x">
@@ -617,7 +621,7 @@ export default function RevenueChart({ initial }: { initial: RevenueWindow }): R
           label="Gross profit"
           value={formatAud(currencyFormatter, t.profitCents)}
           delta={ratio(t.profitCents, p.profitCents)}
-          hint={netCents > 0 ? "no prior period" : "nothing sold"}
+          hint={t.profitCents==null?"costs incomplete":netCents > 0 ? "no prior period" : "nothing sold"}
         />
         <MoneyCell
           label="Refunds"
@@ -638,9 +642,8 @@ export default function RevenueChart({ initial }: { initial: RevenueWindow }): R
         <div className="flex items-start gap-2 border-t border-line bg-warn/5 px-4 py-2.5 text-xs text-muted">
           <AlertTriangle size={13} className="mt-0.5 shrink-0 text-warn" />
           <span>
-            Profit is overstated: {t.uncostedLines} sold line{t.uncostedLines === 1 ? "" : "s"} in this
-            period {t.uncostedLines === 1 ? "has" : "have"} no cost recorded, so their cost of goods
-            counts as zero. Set a cost per vial on the product to fix it.
+            Gross profit is unknown: {t.uncostedLines} sold line{t.uncostedLines === 1 ? "" : "s"} in this
+            period {t.uncostedLines === 1 ? "has" : "have"} no frozen cost recorded. Reconcile historical costs; current product costs do not repair past snapshots.
           </span>
         </div>
       )}

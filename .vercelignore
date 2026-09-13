@@ -7,6 +7,7 @@
 # Build output + caches (regenerated on Vercel)
 **/.next
 **/.next-verify
+**/.next-redesign-build
 **/node_modules
 **/*.tsbuildinfo
 

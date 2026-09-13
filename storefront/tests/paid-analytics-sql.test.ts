@@ -3,17 +3,26 @@ import { existsSync, readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, expect, it } from 'vitest';
 let db:PGlite;
 const order='10000000-0000-0000-0000-000000000001';
+const parent='20000000-0000-0000-0000-000000000001',child='20000000-0000-0000-0000-000000000002',sizeVariant='30000000-0000-0000-0000-000000000001';
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role;
  create table orders(id uuid primary key,order_number text,checkout_request jsonb,paid_at timestamptz,subtotal_cents int,discount_cents int,shipping_cents int,currency text);
- create table order_items(id uuid default gen_random_uuid(),order_id uuid references orders(id),sku text,product_slug text,product_name text,variant_label text,qty int,line_total_cents int,discount_allocated_cents int);
- create table commerce_events(id uuid default gen_random_uuid(),order_id uuid references orders(id),kind text,payload jsonb default '{}');`);
+ create table products(id uuid primary key,slug text,size_parent_id uuid references products(id));
+ create table product_variants(id uuid primary key,product_id uuid references products(id));
+ create table order_items(id uuid default gen_random_uuid(),order_id uuid references orders(id),variant_id uuid references product_variants(id),sku text,product_slug text,product_name text,variant_label text,qty int,line_total_cents int,discount_allocated_cents int);
+ create table commerce_events(id uuid primary key default gen_random_uuid(),order_id uuid references orders(id),kind text,payload jsonb default '{}');`);
+ await db.exec(`insert into products values('${parent}','sample',null),('${child}','sample-size-private','${parent}');insert into product_variants values('${sizeVariant}','${child}');`);
  const file='supabase/migrations/20260908160000_paid_analytics.sql';if(existsSync(file))await db.exec(readFileSync(file,'utf8'));
+ await db.exec(`alter table paid_analytics_outbox drop constraint paid_analytics_outbox_order_id_key;
+  alter table paid_analytics_outbox add column event_kind text not null default 'purchase' check(event_kind in ('purchase','refund')),add column commerce_event_id uuid unique references commerce_events(id);
+  create unique index paid_analytics_purchase_order on paid_analytics_outbox(order_id) where event_kind='purchase';`);
+ await db.exec(readFileSync('supabase/migrations/20260913120000_order_attribution.sql','utf8'));
+ await db.exec(`insert into measurement_campaigns(id,active) values('launch_2026',true);insert into measurement_experiments(id,variants,active) values('offer-holdout',array['control','holdout'],true);`);
 });
 afterAll(async()=>{await db.close()});
 beforeEach(async()=>{await db.exec(`truncate orders cascade;
- insert into orders values('${order}','ECL-1001','{"analyticsClientId":"123456.789012","email":"private@example.test","name":"Private Buyer","token":"secret"}',now()-interval '1 hour',3001,301,500,'AUD');
- insert into order_items(order_id,sku,product_name,qty,line_total_cents,discount_allocated_cents) values('${order}','SAMPLE','Sample',3,3001,301);`)});
+ insert into orders(id,order_number,checkout_request,paid_at,subtotal_cents,discount_cents,shipping_cents,currency) values('${order}','ECL-1001','{"analyticsClientId":"123456.789012","email":"private@example.test","name":"Private Buyer","token":"secret","orderAttribution":{"acquisition":{"source":"google","medium":"cpc","campaign":"launch_2026","landingPath":"/product/sample"},"experiments":[{"experimentId":"offer-holdout","variant":"holdout"}]}}',now()-interval '1 hour',3001,301,500,'AUD');
+ insert into order_items(order_id,variant_id,sku,product_slug,product_name,variant_label,qty,line_total_cents,discount_allocated_cents) values('${order}','${sizeVariant}','SAMPLE-SKU','sample-size-private','Sample','5 mg · 3 vials',3,3001,301);`)});
 async function paid(){await db.exec(`insert into commerce_events(order_id,kind) values('${order}','paid')`)}
 async function row(){return (await db.query<Record<string,unknown>>('select * from paid_analytics_outbox')).rows[0]}
 it('durably snapshots one privacy-safe net purchase at the first payment time',async()=>{
@@ -21,9 +30,19 @@ it('durably snapshots one privacy-safe net purchase at the first payment time',a
  expect((await db.query("select to_regclass('paid_analytics_outbox')::text name")).rows[0]).toEqual({name:'paid_analytics_outbox'});
  const first=await row();const payload=first.payload as {client_id:string;timestamp_micros:number;events:{params:{value:number;shipping:number;items:{price:number;quantity:number}[]}}[]};
  expect(payload.client_id).toBe('123456.789012');expect(payload.events[0].params.value).toBe(27);expect(payload.events[0].params.shipping).toBe(5);
- expect(payload.events[0].params.items[0]).toMatchObject({price:9,quantity:3});
+ expect(payload.events[0].params).toEqual({transaction_id:'ECL-1001',currency:'AUD',value:27,shipping:5,acquisition_source:'google',acquisition_medium:'cpc',acquisition_campaign:'launch_2026',acquisition_landing_page:'/product/sample',experiment_id:'offer-holdout',experiment_variant:'holdout',items:[{item_id:'sample',item_name:'Sample',item_variant:'5 mg · 3 vials',quantity:3,price:9,discount:1.0033333333333333}]});
+ expect((await db.query('select attribution from orders')).rows[0]).toEqual({attribution:{acquisition:{source:'google',medium:'cpc',campaign:'launch_2026',landingPath:'/product/sample'},experiments:[{experimentId:'offer-holdout',variant:'holdout'}]}});
  expect(JSON.stringify(payload)).not.toMatch(/private|secret|email|address|token|user_id|page_location/i);
  await db.exec("update orders set paid_at=now(),subtotal_cents=9000");await paid();expect(await row()).toEqual(first);
+});
+it('rejects order attribution containing unknown or personal fields before an order can retain it',async()=>{
+ await expect(db.exec(`update orders set checkout_request=jsonb_set(checkout_request,'{orderAttribution}', '{"acquisition":{"source":"google","landingPath":"/shop","email":"private@example.test"},"experiments":[]}'::jsonb)`)).rejects.toThrow(/attribution/i);
+});
+it('scrubs structurally valid inactive campaign and experiment dimensions instead of blocking commerce',async()=>{
+ await db.exec(`update orders set checkout_request=jsonb_set(checkout_request,'{orderAttribution}', '{"acquisition":{"source":"google","medium":"cpc","campaign":"unknown","landingPath":"/shop"},"experiments":[]}'::jsonb)`);
+ expect((await db.query('select attribution,checkout_request->\'orderAttribution\' copied from orders')).rows[0]).toEqual({attribution:{acquisition:{source:'google',medium:'cpc',landingPath:'/shop'},experiments:[]},copied:{acquisition:{source:'google',medium:'cpc',landingPath:'/shop'},experiments:[]}});
+ await db.exec(`update orders set checkout_request=jsonb_set(checkout_request,'{orderAttribution}', '{"acquisition":{"source":"google","medium":"cpc","campaign":"launch_2026","landingPath":"/shop"},"experiments":[{"experimentId":"offer-holdout","variant":"invented"}]}'::jsonb)`);
+ expect((await db.query('select attribution from orders')).rows[0]).toEqual({attribution:{acquisition:{source:'google',medium:'cpc',campaign:'launch_2026',landingPath:'/shop'},experiments:[]}});
 });
 it('does not create events without an authentic-shaped analytics client ID or for unpaid events',async()=>{
  await db.exec(`update orders set checkout_request='{}';insert into commerce_events(order_id,kind) values('${order}','created')`);await paid();

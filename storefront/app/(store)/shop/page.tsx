@@ -54,7 +54,7 @@ export default async function ShopPage() {
           single-vial and available pack prices, and check batch documentation
           before you order.
         </p>
-        <ResearchDisclaimer variant="badge" className="mt-4" />
+        <ResearchDisclaimer variant="badge" className="mt-3" />
       </div>
 
       {products.length === 0 ? (
@@ -62,7 +62,7 @@ export default async function ShopPage() {
           Catalog is temporarily unavailable. Please try again shortly.
         </div>
       ) : (
-        <div className="mt-8">
+        <div className="mt-5 sm:mt-8">
           <ShopFilterGrid products={cards} collections={collections} />
         </div>
       )}

@@ -16,7 +16,7 @@ vi.mock('@/lib/order-access',()=>({createOrderAccessToken:()=> 'test-only'}));
 import {sweepWelcomeSeries,sweepPostPurchase,sweepReviewThankYou,sweepReplenishment,sweepWinback,sweepSecondPurchaseNudge} from '@/lib/admin/lifecycle';
 const iso=(days:number)=>new Date(Date.now()-days*86400000).toISOString();
 const last='buyer500@example.test';
-beforeEach(()=>{vi.clearAllMocks();m.queries.length=0;m.queue.mockImplementation(async(s:{to:string})=>s.to===last?'new-outbox-id':null)});
+beforeEach(()=>{vi.stubEnv("REORDER_REMINDER_DAYS","21");vi.clearAllMocks();m.queries.length=0;m.queue.mockImplementation(async(s:{to:string})=>s.to===last?'new-outbox-id':null)});
 it.each([
  ['welcome',sweepWelcomeSeries,'subscribers',5],['post-purchase',sweepPostPurchase,'orders',6],['review thanks',sweepReviewThankYou,'reviews',2],
  ['replenishment',sweepReplenishment,'orders',22],['winback',sweepWinback,'customers',65],['second purchase',sweepSecondPurchaseNudge,'customers',32],

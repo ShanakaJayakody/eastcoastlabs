@@ -5,7 +5,7 @@ import ResearchDisclaimer from "./ResearchDisclaimer";
 import EmailCapture from "./EmailCapture";
 import { getCollections } from "@/lib/collections";
 
-export default function Footer({ supportEmail = "eclpeptides@gmail.com" }: { supportEmail?: string }) {
+export default function Footer({ supportEmail = "eclpeptides@gmail.com",legalName,abn,supportHours="Mon–Fri, 9am–5pm AEST" }: { supportEmail?: string;legalName?:string;abn?:string;supportHours?:string }) {
   const collections = getCollections();
   return (
     <footer className="ecl-footer mt-20 border-t border-line bg-ink-2">
@@ -33,6 +33,8 @@ export default function Footer({ supportEmail = "eclpeptides@gmail.com" }: { sup
               Australian supplier of research-use-only peptides. Browse available batch documentation on our Lab Results page.
             </p>
             <p className="mt-4 text-sm text-fg-2">Australian owned &amp; operated</p>
+            {legalName&&<p className="mt-2 text-xs text-muted">{legalName}</p>}
+            {abn&&<p className="mt-1 text-xs text-muted">ABN {abn}</p>}
           </div>
 
           <div>
@@ -68,7 +70,12 @@ export default function Footer({ supportEmail = "eclpeptides@gmail.com" }: { sup
                   {supportEmail}
                 </a>
               </li>
-              <li className="text-muted">Mon–Fri, 9am–5pm AEST</li>
+              {supportHours&&<li className="text-muted">{supportHours}</li>}
+              <li><Link href="/contact" className="text-fg-2 hover:text-accent">Contact and business details</Link></li>
+              <li><Link href="/shipping" className="text-fg-2 hover:text-accent">Shipping and payment</Link></li>
+              <li><Link href="/returns" className="text-fg-2 hover:text-accent">Returns and order problems</Link></li>
+              <li><Link href="/privacy" className="text-fg-2 hover:text-accent">Privacy</Link></li>
+              <li><Link href="/terms" className="text-fg-2 hover:text-accent">Purchase terms</Link></li>
             </ul>
           </div>
         </div>

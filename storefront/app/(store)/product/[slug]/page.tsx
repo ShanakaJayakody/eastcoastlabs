@@ -9,7 +9,7 @@ import { getProductCopy, getHomeCopy } from "@/lib/content";
 import { minorToMajor } from "@/lib/format";
 import ProductGallery from "@/components/ProductGallery";
 import BuyBox from "@/components/BuyBox";
-import ProductPurchase from '@/components/ProductPurchase';
+import SizedProductExperience from '@/components/SizedProductExperience';
 import CoaModule from "@/components/CoaModule";
 import TrustRow from "@/components/TrustRow";
 import Faq from "@/components/Faq";
@@ -22,10 +22,12 @@ import EmailCapture from "@/components/EmailCapture";
 import { getAggregate } from "@/lib/reviews";
 import { getSettings } from "@/lib/settings";
 import { getGuideForCompound } from "@/lib/guides";
+import ProductDescription, { decodeProductEntities } from '@/components/ProductDescription';
+import { buildProductJsonLd, serializeProductJsonLd } from '@/lib/product-jsonld';
 
 export const revalidate = 300;
 
-const stripHtml = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+const stripHtml = (html: string) => decodeProductEntities(html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
 
 
 
@@ -41,7 +43,7 @@ export async function generateMetadata({
   return {
     title: product.seo_title || product.name,
     alternates: { canonical: `/product/${product.slug}` },
-    description: product.seo_description || desc || `${product.name} — research-use-only peptide, independently tested.`,
+    description: product.seo_description || desc || `${product.name} — research-use-only product. Check available batch documentation before ordering.`,
     openGraph: {
       title: `${product.name} — East Coast Labs`,
       description: product.seo_description || desc,
@@ -58,7 +60,10 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const initialSize = (await searchParams)?.size;
 
   const minorUnit = product.prices.currency_minor_unit;
-  const singleMajor = minorToMajor(product.prices.price, minorUnit);
+  const selectedSize = product.sizes?.find((size) => size.slug === initialSize)
+    ?? product.sizes?.find((size) => size.available > 0)
+    ?? product.sizes?.[0];
+  const singleMajor = minorToMajor(selectedSize?.priceMinor ?? product.prices.price, minorUnit);
   // Tiers come straight off the product's own variants, so what the page shows
   // and what checkout charges cannot drift apart.
   const tiers = product.tiers;
@@ -90,46 +95,17 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const settings = await getSettings();
   const rating = await getAggregate(product.slug);
 
-  // Product JSON-LD
-  const jsonLd = {
-    "@context": "https://schema.org/",
-    "@type": "Product",
-    name: product.name,
-    sku: product.sku,
-    image: (product.images ?? []).map((i) => i.src),
+  const jsonLd = buildProductJsonLd({
+    name: product.name, slug: product.slug, sku: product.sku,
     description: stripHtml(product.short_description || product.description).slice(0, 500),
-    brand: { "@type": "Brand", name: "East Coast Labs" },
-    ...(rating
-      ? {
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: rating.rating.toFixed(1),
-            reviewCount: rating.count,
-            bestRating: "5",
-            worstRating: "1",
-          },
-        }
-      : {}),
-    offers: product.sizes?.length ? {
-      '@type': 'AggregateOffer', priceCurrency: 'AUD',
-      lowPrice: Math.min(...product.sizes.map(size=>Number(size.priceMinor)/100)).toFixed(2),
-      highPrice: Math.max(...product.sizes.map(size=>Number(size.priceMinor)/100)).toFixed(2),
-      offerCount: product.sizes.length,
-      availability: product.is_in_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: `https://www.eastcoastlabs.com.au/product/${product.slug}`,
-    } : {
-      "@type": "Offer",
-      priceCurrency: product.prices.currency_code || "AUD",
-      price: singleMajor.toFixed(2),
-      availability: product.is_in_stock !== false ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      url: `https://www.eastcoastlabs.com.au/product/${product.slug}`,
-    },
-  };
+    currency: product.prices.currency_code || 'AUD', images: (product.images ?? []).map((image) => image.src),
+    sizes: product.sizes, price: singleMajor, available: product.is_in_stock, rating,
+  });
 
   return (
     <div className="ecl-product-page mx-auto max-w-6xl px-4 py-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <ViewItemTracker id={product.id} name={product.name} price={singleMajor} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeProductJsonLd(jsonLd) }} />
+      {!product.sizes?.length && <ViewItemTracker key={product.slug} slug={product.slug} name={product.name} price={singleMajor} />}
 
       {/* Breadcrumb */}
       <nav className="mb-6 text-xs text-muted-2">
@@ -137,6 +113,17 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         <span className="text-fg-2">{product.name}</span>
       </nav>
 
+      {product.sizes?.length ? (
+        <SizedProductExperience
+          key={`${product.slug}:${selectedSize?.slug ?? ''}`}
+          product={{id:product.id,name:product.name,slug:product.slug,sku:product.sku,image:product.images?.[0]?.src,shortDescription:product.short_description,description:product.description}}
+          sizes={product.sizes} minorUnit={minorUnit} initialSize={selectedSize?.slug} bacWater={bacWater}
+          coa={coa} copyHtml={copy?.html} descriptorFallback={copy?.descriptor} guideSlug={guide?.slug}
+          ratingSummary={rating ? <ReviewSummary rating={rating.rating} count={rating.count} showSampleTag /> : null}
+          supportEmail={settings.supportEmail}
+          supplierEvidence={labReports.some(report => report.productSlug === product.slug) ? <SupplierReportLinks reports={labReports.filter(report => report.productSlug === product.slug)} /> : undefined}
+        />
+      ) : <>
       <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Gallery */}
         <div className="order-2 lg:col-start-1 lg:row-start-1 lg:row-span-2"><ProductGallery images={product.images ?? []} name={product.name} /></div>
@@ -168,19 +155,16 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               📖 Read the {product.name} research overview →
             </a>
           )}
-          <ResearchDisclaimer variant="badge" className="mt-4" />
-          {!product.sizes?.length && <p className="mt-3 text-sm font-semibold text-accent">Single vial: {new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(singleMajor)}</p>}
-          <a href="#pack-options" className="mt-2 inline-block text-sm text-accent underline">{product.sizes?.length ? 'View sizes, prices and availability' : 'View pack prices and availability'}</a>
+          <ResearchDisclaimer variant="badge" className="mt-3" />
+          <p className="mt-3 text-sm font-semibold text-accent">Single vial: {new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(singleMajor)}</p>
+          <a href="#pack-options" className="mt-2 inline-block text-sm text-accent underline">View pack prices and availability</a>
         </div>
         <div id="pack-options" className="order-3 min-w-0 scroll-mt-24 lg:col-start-2">
-          {product.sizes?.length ? <ProductPurchase key={`${product.slug}:${initialSize ?? ''}`}
-            product={{id:product.id,name:product.name,slug:product.slug,sku:product.sku,image:product.images?.[0]?.src}}
-            sizes={product.sizes} minorUnit={minorUnit} bacWater={bacWater} initialSize={initialSize}/>
-          : product.is_in_stock === false ? (
+          {product.is_in_stock === false ? (
             <div className="mt-6 rounded-xl border border-line bg-surface p-5">
               <p className="text-sm font-semibold text-fg">Out of stock — get notified</p>
               <p className="mt-1 text-xs text-muted">
-                We&apos;ll email you the moment the next tested batch is listed.
+                We&apos;ll email you when this product is listed as available again.
               </p>
               <div className="mt-3">
                 <EmailCapture
@@ -230,25 +214,24 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         <section className="mt-12 grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-lg font-semibold text-fg">Product details</h2>
-            {product.description ? <div className="prose-ecl whitespace-pre-line">{stripHtml(product.description.replace(/<\/(?:p|div|li|h[1-6])>/gi, "\n"))}</div> : <div className="prose-ecl" dangerouslySetInnerHTML={{ __html: copy!.html }} />}
+            <ProductDescription html={product.description || copy!.html} />
           </div>
 
-          {/* Guarantee block */}
+          {/* Purchase information */}
           <aside className="h-fit rounded-2xl border border-line bg-surface p-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-fg">Our guarantee</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-fg">Purchase information</h3>
             <ul className="mt-3 space-y-3 text-sm text-muted">
               <li className="flex gap-2">
                 <span className="text-accent">✓</span>
-                Purity guaranteed — if an independent lab tests your batch below our guarantee, we
-                refund or replace it and cover the cost of the test.
-              </li>
-              <li className="flex gap-2">
-                <span className="text-accent">✓</span>
-                Check the certificate availability above and confirm batch documentation before ordering.
+                Check certificate availability and confirm that any published record applies to the product and batch you intend to order.
               </li>
               <li className="flex gap-2">
                 <span className="text-accent">✓</span>
                 Orders are prepared after payment confirmation. Shipping options appear at checkout.
+              </li>
+              <li className="flex gap-2">
+                <span className="text-accent">✓</span>
+                <a href="/returns" className="text-accent hover:underline">Read returns and consumer guarantee information.</a>
               </li>
             </ul>
             <p className="mt-4 text-xs text-muted-2">
@@ -257,6 +240,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           </aside>
         </section>
       )}
+      </>}
 
       {/* FAQ */}
       {homeCopy.faq.length > 0 && (

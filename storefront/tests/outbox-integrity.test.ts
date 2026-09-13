@@ -77,3 +77,12 @@ it('reconciles exact provider events received before and after completion, never
  await db.query(`insert into email_events(to_email,detail,provider_event_id) values('buyer@example.test','{"message_id":"early-provider"}','late')`);
  expect((await db.query<{outbox_id:string}>(`select outbox_id from email_events where provider_event_id='late'`)).rows[0].outbox_id).toBe(rowId);
 });
+it('supports an eligible holdout cancellation from the claimed composite row without a provider-attempt marker',async()=>{
+ const email='control@example.test';await db.query("insert into subscribers values($1,'newsletter',null)",[email]);
+ const rowId=await insert('winback_60',email);
+ const claimed=(await db.query<{lease_token:string}>('select * from claim_email_outbox(1,$1)',[rowId])).rows[0];
+ const result=await db.query<{reason:string|null}>('select email_delivery_ineligible(json_populate_record(null::email_outbox,$1::json)) reason',[JSON.stringify(claimed)]);
+ expect(result.rows[0].reason).toBeNull();
+ await db.query("select finish_email_outbox($1,$2,'cancelled','Retention holdout: test-only',null)",[rowId,claimed.lease_token]);
+ expect((await db.query('select status,provider_attempted_at,provider_message_id from email_outbox where id=$1',[rowId])).rows[0]).toEqual({status:'cancelled',provider_attempted_at:null,provider_message_id:null});
+});

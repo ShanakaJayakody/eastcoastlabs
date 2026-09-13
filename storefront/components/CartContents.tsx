@@ -9,6 +9,7 @@ import { formatAud } from "@/lib/format";
 import FreeShippingProgress from "./FreeShippingProgress";
 import CartUpsell from "./CartUpsell";
 import ResearchDisclaimer from "./ResearchDisclaimer";
+import { isGiftEligible } from "@/lib/cart-offers";
 
 const GIFT_KEY = "gift:bac-water";
 
@@ -35,9 +36,10 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
   const giftLine = lines.find((l) => l.key === GIFT_KEY);
   const hasGift = !!giftLine;
   const bacStock = stockFor("bacteriostatic-water");
-  // A zero threshold can reward any paid order, but must never create a gift-only cart.
-  const giftEligible = subtotal > 0 && subtotal >= giftThreshold && (bacStock === null || bacStock > 0);
+  const hasPaidItems = lines.some(line=>!line.key.startsWith('gift:') && line.unitPrice>0 && line.quantity>0);
+  const giftEligible = ready && isGiftEligible({subtotalCents:Math.round(subtotal*100),thresholdCents:Math.round(giftThreshold*100),available:bacStock,hasPaidItems});
   useEffect(() => {
+    if (!ready) return;
     // The gift is always exactly one unit — clamp if a stale line drifted.
     if (giftLine && giftLine.quantity !== 1) {
       updateQty(GIFT_KEY, 1);
@@ -55,7 +57,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
     } else if (!giftEligible && hasGift) {
       removeLine(GIFT_KEY);
     }
-  }, [giftEligible, hasGift, giftLine, addLine, removeLine, updateQty]);
+  }, [ready, giftEligible, hasGift, giftLine, addLine, removeLine, updateQty]);
 
   if (ready && lines.length === 0) {
     return (
@@ -83,7 +85,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
           threshold={freeShippingThreshold}
           // No gift tier advertised while its bac-water vial is out of stock —
           // the progress bar must not promise a reward checkout won't grant.
-          giftThreshold={bacStock === null || bacStock > 0 ? giftThreshold : undefined}
+          giftThreshold={bacStock !== null && bacStock > 0 ? giftThreshold : undefined}
         />
 
         <ul className="space-y-3">
@@ -108,14 +110,14 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
                     </Link>
                     <p className="text-xs text-muted">{line.variantLabel}</p>
                   </div>
-                  <button
+                  {line.key !== GIFT_KEY && <button
                     type="button"
                     onClick={() => removeLine(line.key)}
                     className="-m-2 p-2 text-xs text-muted-2 hover:text-warn"
                     aria-label={`Remove ${line.name}`}
                   >
                     Remove
-                  </button>
+                  </button>}
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   {line.key === GIFT_KEY ? (
@@ -165,7 +167,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
         <button
           type="button"
           onClick={goToCheckout}
-          disabled={lines.length === 0}
+          disabled={!hasPaidItems}
           className="w-full rounded-md bg-accent px-4 py-3 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-50"
         >
           Checkout →

@@ -73,7 +73,7 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
         trigger: "Shipped +24 days, no review yet",
       },
       { id: "review_thank_you", name: "Review thank-you", trigger: "Review submitted +1 day" },
-      { id: "replenishment", name: "Replenishment", trigger: "Shipped +3/10/22wk by pack size" },
+      { id: "replenishment", name: "Replenishment", trigger: "Configured dispatch reminder; disabled by default" },
       { id: "second_purchase_nudge", name: "Second-purchase nudge", trigger: "1 order, +30 days" },
       { id: "winback_60", name: "Winback 60d", trigger: "60 days since last order" },
       { id: "winback_90", name: "Winback 90d", trigger: "90 days since last order" },
@@ -147,8 +147,8 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
     case "replenishment":
       return {
         ...base,
-        pack_size: 3,
-        items: [{ name: "BPC-157 10mg", qty: 3 }],
+        reminder_days: 45,
+        items: [{ name: "BPC-157 10mg", qty: 3, url:"/product/bpc-157" }],
       };
     case "back_in_stock":
       return {

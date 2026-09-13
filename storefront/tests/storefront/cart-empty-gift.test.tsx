@@ -5,7 +5,6 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { CartProvider } from "@/lib/cart-context";
 import CartContents from "@/components/CartContents";
 
-vi.mock("@/lib/analytics", () => ({ trackBeginCheckout: vi.fn() }));
 vi.mock("@/components/CartUpsell", () => ({ default: () => null }));
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
@@ -27,7 +26,7 @@ it("removes a persisted gift with no paid items", () => {
 
 it("preserves eligible gifts but removes them when the last paid item is removed", () => {
   localStorage.setItem("ecl_cart_v1", JSON.stringify([paid]));
-  render(<CartProvider thresholds={{ freeShipping: 0, gift: 0 }}><CartContents /></CartProvider>);
+  render(<CartProvider thresholds={{ freeShipping: 0, gift: 0 }} stock={{ "bacteriostatic-water": 5 }}><CartContents /></CartProvider>);
   expect(screen.getByRole("link", { name: "Bacteriostatic Water" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Remove Test compound" }));
   expect(screen.getByText("Your cart is empty.")).toBeInTheDocument();

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import { MAX_CART_QUANTITY, cartLineVials } from "./cart-line";
 import { checkoutUrl, FREE_SHIPPING_THRESHOLD, GIFT_THRESHOLD } from "./env";
-import { trackBeginCheckout, type GaItem } from "./analytics";
+import { commerceItem, trackBeginCheckout, trackRemoveFromCart, type GaItem } from "./analytics";
 
 export interface CartLine {
   key: string; // stable per product+variant
@@ -144,15 +144,19 @@ export function CartProvider({
   const updateQty = useCallback((key: string, quantity: number) => {
     if (!Number.isFinite(quantity)) return;
     if (Math.floor(quantity) <= 0) {
+      const removed=lines.find((line)=>line.key===key);
+      if(removed)trackRemoveFromCart(commerceItem({slug:removed.slug,name:removed.name,pack:removed.variantLabel,price:removed.unitPrice,quantity:removed.quantity}),removed.unitPrice*removed.quantity);
       setLines((prev) => prev.filter((l) => l.key !== key));
       return;
     }
     setLines((prev) => prev.map((l) => (l.key === key ? { ...l, quantity: Math.min(MAX_CART_QUANTITY, Math.floor(quantity)) } : l)));
-  }, []);
+  }, [lines]);
 
   const removeLine = useCallback((key: string) => {
+    const removed=lines.find((line)=>line.key===key);
+    if(removed)trackRemoveFromCart(commerceItem({slug:removed.slug,name:removed.name,pack:removed.variantLabel,price:removed.unitPrice,quantity:removed.quantity}),removed.unitPrice*removed.quantity);
     setLines((prev) => prev.filter((l) => l.key !== key));
-  }, []);
+  }, [lines]);
 
   const replaceLines = useCallback((restored:CartLine[])=>setLines(decodeLines(JSON.stringify(restored))),[]);
   const clear = useCallback(() => setLines([]), []);
@@ -177,13 +181,7 @@ export function CartProvider({
   const amountToFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
 
   const goToCheckout = useCallback(() => {
-    const gaItems: GaItem[] = lines.map((l) => ({
-      item_id: l.productId,
-      item_name: l.name,
-      item_variant: l.variantLabel,
-      price: l.unitPrice,
-      quantity: l.quantity,
-    }));
+    const gaItems: GaItem[] = lines.map((l) => commerceItem({slug:l.slug,name:l.name,pack:l.variantLabel,price:l.unitPrice,quantity:l.quantity}));
     trackBeginCheckout(gaItems, subtotal);
 
     // ---- Native checkout -------------------------------------------------

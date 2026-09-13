@@ -9,7 +9,7 @@ import {
   MapPin,
   Plus,
 } from "lucide-react";
-import { getCatalog, rankProductsByPopularity } from "@/lib/catalog";
+import { getCatalog, rankAvailableProductsByPopularity } from "@/lib/catalog";
 import { getLatestCoa } from "@/lib/coa";
 import { labReports } from "@/lib/lab-reports";
 import { getHomeCopy } from "@/lib/content";
@@ -32,7 +32,7 @@ export default async function HomePage() {
     getHomeCopy(),
   ]);
   const products = await decorateCards(
-    rankProductsByPopularity(catalog.products),
+    rankAvailableProductsByPopularity(catalog.products),
   );
   const collections = getCollections();
   const previews = collections.map((collection) => {
