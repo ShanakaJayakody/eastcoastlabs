@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { getCatalog, rankProductsByPopularity } from "@/lib/catalog";
+import { getCatalog, rankAvailableProductsByPopularity } from "@/lib/catalog";
 import { getLatestCoa, getCoaForProduct } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import ProductCard from "@/components/ProductCard";
@@ -34,7 +34,7 @@ export default async function HomePage() {
   const collections = getCollections();
 
   const { products, bySlug } = catalog;
-  const grid = await decorateCards(rankProductsByPopularity(products).slice(0, 8));
+  const grid = await decorateCards(rankAvailableProductsByPopularity(products).slice(0, 8));
 
   // Hero visual: a featured vial (the teal BPC-157 render matches the accent).
   const heroProduct = bySlug.get("bpc-157") ?? grid[0] ?? products[0];

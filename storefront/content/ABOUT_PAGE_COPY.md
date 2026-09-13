@@ -2,7 +2,7 @@
 
 ## Who We Are
 
-East Coast Labs is an Australian-owned and operated supplier of research-use-only peptides. We provide peptide vials in 1, 3, and 6-vial pack configurations for laboratory and research purposes.
+East Coast Labs is an Australian-owned and operated supplier of research-use-only peptides. Available sizes and pack configurations are shown for each product.
 
 ## How We Operate
 
@@ -16,17 +16,17 @@ East Coast Labs is an Australian-owned and operated supplier of research-use-onl
 ### Packaging
 
 - **Plain packaging**: Orders are shipped in discreet packaging
-- **Temperature considerations**: Peptides are packaged to maintain stability during transit
+- **Storage requirements**: Check the supplied product's specifications and contact us about any transit or storage concern
 - **Vial protection**: Multiple vial packs are secured to prevent breakage
 
 ### Returns
 
-If you receive a product that arrives damaged, incorrect, or otherwise doesn't match your order, contact us within 7 days of delivery with:
+If you receive a product that arrives damaged, incorrect, or otherwise doesn't match your order, contact us promptly with:
 
 - Your order number
 - Photos of the received product
 
-We will work with you to resolve the issue.
+We will work with you to resolve the issue. This reporting request does not limit applicable consumer guarantees. See our [returns information](/returns) for the process.
 
 ## Research Use Only
 

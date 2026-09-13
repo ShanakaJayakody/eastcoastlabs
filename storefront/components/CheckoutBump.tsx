@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useCart } from "@/lib/cart-context";
 import { formatAud } from "@/lib/format";
 import { isPeptideSlug } from "@/lib/bumps";
+import { accessoryAlreadyIncluded } from "@/lib/cart-offers";
 
 export interface BumpProduct {
   id: number;
@@ -29,22 +30,20 @@ export interface BumpProduct {
  * abandonment than it earns in attach rate.
  */
 export default function CheckoutBump({ products }: { products: BumpProduct[] }) {
-  const { lines, addLine, priceFor } = useCart();
-
-  const inCart = useMemo(() => new Set(lines.map((l) => l.slug)), [lines]);
+  const { lines, addLine, priceFor, stockFor } = useCart();
   // Accessories are only relevant next to a compound. An accessories-only
   // basket gets no bump at all.
   const hasPeptide = useMemo(() => lines.some((l) => isPeptideSlug(l.slug)), [lines]);
   // Never suggest something already in the basket — a bump for an item the
   // shopper just added reads as broken.
-  const suggestions = products.filter((p) => !inCart.has(p.slug)).slice(0, 2).map(p => ({...p, price:priceFor(p.slug) ?? p.price}));
+  const suggestions = products.filter((p) => !accessoryAlreadyIncluded(lines,p.slug) && (stockFor(p.slug) ?? 0)>0).slice(0, 1).map(p => ({...p, price:priceFor(p.slug) ?? p.price}));
   if (!hasPeptide || suggestions.length === 0) return null;
 
   return (
     <section className="rounded-xl border border-dashed border-accent/40 bg-accent/[0.03] p-5">
-      <h2 className="text-sm font-semibold text-fg">Add research essentials</h2>
+      <h2 className="text-sm font-semibold text-fg">Optional accessory</h2>
       <p className="mt-1 text-xs text-muted">
-        Ships in the same parcel — no extra postage.
+        Review the updated total after adding an item.
       </p>
 
       <ul className="mt-3 space-y-2">
@@ -59,11 +58,6 @@ export default function CheckoutBump({ products }: { products: BumpProduct[] }) 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-semibold text-fg">{p.name}</span>
-                {p.essential && (
-                  <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
-                    Required for reconstitution
-                  </span>
-                )}
               </div>
               {p.blurb && <p className="truncate text-xs text-muted">{p.blurb}</p>}
             </div>

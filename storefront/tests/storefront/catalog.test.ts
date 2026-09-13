@@ -13,6 +13,15 @@ it('only offers packs that fit available vials', async () => {
  rows.value=[{slug:'test',name:'Test',product_variants:[1,3,6].map(pack_size => ({pack_size,active:true,price_cents:100*pack_size,inventory:pack_size===1?{on_hand:2,reserved:1}:null}))}];
  const p=(await getCatalog()).products[0]; expect(p.available).toBe(1); expect(p.tiers?.map(t=>t.vials)).toEqual([1]);
 });
+it('labels every multi-vial tier with its factual pack count', async () => {
+ rows.value=[{slug:'test',name:'Test',product_variants:[
+  {pack_size:1,label:'1 vial',active:true,price_cents:2000,inventory:{on_hand:20,reserved:0}},
+  {pack_size:3,label:'3 vials',active:true,price_cents:4500},
+  {pack_size:6,label:'6 vials',active:true,price_cents:10000},
+ ]}];
+ const tiers=(await getCatalog()).products[0].tiers;
+ expect(tiers?.map(tier=>tier.badge ?? null)).toEqual([null,'3 VIALS','6 VIALS']);
+});
 it('groups sizes into one product and preserves each size price, stock and checkout identity', async () => {
  const variant=(price:number,stock:number)=>({pack_size:1,label:'1 vial',active:true,price_cents:price,inventory:{on_hand:stock,reserved:0}});
  rows.value=[{id:'parent',slug:'test',name:'Test',size_label:'10 mg',product_variants:[variant(1000,0)],size_products:[

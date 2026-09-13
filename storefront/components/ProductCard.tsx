@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import type { WooProduct } from "@/lib/woo";
 import { minorToMajor, formatMinor, formatAud } from "@/lib/format";
 import { type TierCard } from "@/lib/pricing";
 import Stars from "./Stars";
-import type { ProductSizeOption } from '@/lib/product-sizes';
+import { normalizeProductSizeLabel, purchasableStartingPriceMinor, type ProductSizeOption } from '@/lib/product-sizes';
+import { commerceItem, trackSelectItem } from '@/lib/analytics';
 
 /** The subset of a product a card needs — lets callers pass slim objects. */
 export type CardProduct = Pick<
@@ -19,9 +22,11 @@ export type CardProduct = Pick<
   sizes?: ProductSizeOption[];
 };
 
-export default function ProductCard({ product }: { product: CardProduct }) {
+export default function ProductCard({ product, listId, listName }: { product: CardProduct; listId?: string; listName?: string }) {
   const img = product.images?.[0];
-  const single = product.sizes?.length ? Math.min(...product.sizes.map(size=>Number(size.priceMinor)/100)) : minorToMajor(product.prices.price, product.prices.currency_minor_unit);
+  const single = product.sizes?.length
+    ? minorToMajor(String(purchasableStartingPriceMinor(product.sizes, product.prices.price)), product.prices.currency_minor_unit)
+    : minorToMajor(product.prices.price, product.prices.currency_minor_unit);
   // Prefer the product's own tiers (DB truth); the price table is the fallback
   // for anything the DB hasn't answered for.
   const perVialLabel = product.tiers?.length
@@ -29,13 +34,19 @@ export default function ProductCard({ product }: { product: CardProduct }) {
     : `${formatAud(single)}/vial`;
   const inStock = product.is_in_stock !== false;
   const rating = product.rating ?? null;
+  const trackSelection = (size?: ProductSizeOption) => {
+    if (!listId) return;
+    trackSelectItem(commerceItem({
+      slug: product.slug,
+      name: product.name,
+      size: size ? normalizeProductSizeLabel(size.label) : undefined,
+      price: size ? minorToMajor(size.priceMinor, product.prices.currency_minor_unit) : single,
+    }), listId, listName);
+  };
 
   return (
-    <Link
-      href={`/product/${product.slug}`}
-      className="card-hover group flex flex-col overflow-hidden rounded-xl border border-line bg-surface hover:border-accent/50"
-    >
-      <div className="relative aspect-square overflow-hidden bg-ink-2">
+    <article className="card-hover group flex flex-col overflow-hidden rounded-xl border border-line bg-surface hover:border-accent/50">
+      <Link href={`/product/${product.slug}`} onClick={() => trackSelection()} className="relative block aspect-square overflow-hidden bg-ink-2">
         {img ? (
           <Image
             src={img.src}
@@ -54,10 +65,10 @@ export default function ProductCard({ product }: { product: CardProduct }) {
         >
           {inStock ? "In stock" : "Out of stock"}
         </span>
-      </div>
+      </Link>
 
       <div className="flex flex-1 flex-col gap-1 p-4">
-        <h3 className="text-sm font-semibold text-fg">{product.name}</h3>
+        <h3 className="text-sm font-semibold text-fg"><Link href={`/product/${product.slug}`} onClick={() => trackSelection()}>{product.name}</Link></h3>
         {rating ? (
           <div className="flex items-center gap-1.5">
             <Stars rating={rating.rating} size={12} />
@@ -69,16 +80,16 @@ export default function ProductCard({ product }: { product: CardProduct }) {
           <p className="text-[11px] uppercase tracking-wider text-muted-2">{product.sku}</p>
         )}
         <div className="mt-auto pt-3">
-          {product.sizes?.length ? <div><p className="text-sm font-semibold text-fg">From {formatAud(single)} / vial</p><p className="mt-1 text-xs text-muted">{product.sizes.map(size=>size.label).join(' · ')}</p></div> : perVialLabel ? (
+          {product.sizes?.length ? <div><p className="text-sm font-semibold text-fg">From {formatAud(single)} / vial</p><div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">{product.sizes.map(size=><Link key={size.slug} href={`/product/${product.slug}?size=${encodeURIComponent(size.slug)}`} onClick={() => trackSelection(size)} className={size.available > 0 ? 'text-accent hover:underline' : 'text-muted-2 line-through'}>{normalizeProductSizeLabel(size.label)}</Link>)}</div></div> : perVialLabel ? (
             <div><p className="text-sm font-semibold text-fg">{formatAud(single)} · 1 vial</p><p className="mt-1 text-xs text-accent">{perVialLabel}{product.tiers?.length ? ` with ${product.tiers.reduce((a,b) => a.perVial < b.perVial ? a : b).vials}-vial pack` : ""}</p></div>
           ) : (
             <p className="text-sm font-semibold text-fg">
               {formatMinor(product.prices.price, product.prices)}
             </p>
           )}
-          <p className="mt-1 text-xs text-muted-2 group-hover:text-fg-2">{product.sizes?.length ? 'Choose size' : 'View pack options'} →</p>
+          <Link href={`/product/${product.slug}`} onClick={() => trackSelection()} className="mt-1 block text-xs text-muted-2 group-hover:text-fg-2">{product.sizes?.length ? 'Choose size' : 'View pack options'} →</Link>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

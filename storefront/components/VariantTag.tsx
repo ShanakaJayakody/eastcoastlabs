@@ -2,10 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { trackExperimentImpression } from "@/lib/analytics";
-import { ensureVariant, type Variant } from "@/lib/variant";
-
-/** The split test this component attributes traffic to. */
-const EXPERIMENT_ID = "homepage_2026q3";
+import { ANALYTICS_CONSENT_EVENT, analyticsConsent } from "@/lib/attribution";
+import { HOMEPAGE_EXPERIMENT, recordExperimentAssignment, type Variant } from "@/lib/variant";
 
 /**
  * Stamps the first-touch variant cookie and reports one GA4 impression when a
@@ -19,13 +17,19 @@ const EXPERIMENT_ID = "homepage_2026q3";
 export default function VariantTag({ variant }: { variant: Variant }) {
   const fired = useRef(false);
   useEffect(() => {
-    if (fired.current) return;
-    fired.current = true;
-    // Resolve before reporting: an earlier first touch outranks this page's own
-    // arm, so the impression must report where the visitor is actually
-    // attributed, not which page they happen to be looking at.
-    const resolved = ensureVariant(variant);
-    trackExperimentImpression(EXPERIMENT_ID, resolved);
+    const track = () => {
+      if (fired.current || analyticsConsent() !== "granted") return;
+      // `/` and `/1` are route choices, not random allocation. They are only
+      // measured as an experiment after an operator explicitly activates the
+      // predeclared eligible-traffic plan.
+      const assignment = recordExperimentAssignment(HOMEPAGE_EXPERIMENT, variant);
+      if (!assignment) return;
+      trackExperimentImpression(assignment.experimentId, assignment.variant as Variant);
+      fired.current = true;
+    };
+    track();
+    window.addEventListener(ANALYTICS_CONSENT_EVENT, track);
+    return () => window.removeEventListener(ANALYTICS_CONSENT_EVENT, track);
   }, [variant]);
   return null;
 }

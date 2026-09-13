@@ -13,6 +13,11 @@ test('size buttons update offers and keep two strengths separate through a cart 
   await expect(page.getByTestId('size-price')).toContainText('$45.00');
   await page.getByRole('radio',{name:'20 mg',exact:true}).locator('..').click();
   await expect(page.getByTestId('size-price')).toContainText('$75.00');
+  await expect(page.getByText('20 mg fixture supply summary')).toBeVisible();
+  await expect(page.getByText('20 mg fixture product details.')).toBeVisible();
+  await expect(page.getByRole('img',{name:'Research compound 20 mg vial'})).toBeVisible();
+  await expect(page.getByText('10 mg fixture supply summary')).toHaveCount(0);
+  await expect(page.getByRole('img',{name:'Research compound 10 mg vial'})).toHaveCount(0);
   await page.getByRole('radio',{name:/1 vial/}).locator('..').click();
   await page.getByRole('button',{name:/Add to Cart ·/}).click();
   const cart=page.getByRole('dialog',{name:'Shopping cart'});

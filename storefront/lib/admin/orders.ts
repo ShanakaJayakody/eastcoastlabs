@@ -15,6 +15,7 @@
 import { adminDb } from "./db";
 import { getSettings } from "@/lib/settings";
 import type { ResolvedCartLine } from "@/lib/checkout";
+import type { OrderAttribution } from "@/lib/attribution";
 
 export type OrderStatus =
   | "pending"
@@ -82,6 +83,8 @@ export interface CreateOrderInput {
   requestFingerprint?: string;
   /** Optional GA client ID read from the real first-party _ga cookie on the server. */
   analyticsClientId?: string;
+  /** Validated consented first-party acquisition/experiment snapshot. */
+  orderAttribution?: OrderAttribution;
   /** Trusted server resolver snapshot; never copy browser-supplied priced lines. */
   purchasedLines?: ResolvedCartLine[];
 }

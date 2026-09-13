@@ -3,6 +3,8 @@ import { Resend } from "resend";
 import { adminDb } from "@/lib/admin/db";
 import { renderTemplate } from "./templates";
 import { unsubscribeUrl } from "./unsubscribe";
+import { retentionDeliveryReason } from "@/lib/admin/retention-delivery";
+import { reorderReminderDays, RETENTION_TEMPLATES } from "@/lib/admin/retention-policy";
 import { isTransactional } from "@/lib/admin/sequences";
 import type { EmailTemplate } from "@/lib/admin/email";
 
@@ -30,6 +32,19 @@ async function sendOne(row: OutboxRow): Promise<DeliveryResult> {
     });
     if (prepareError || !message?.subject || !message?.html || !message?.from || !message?.tag) return { ok: false, error: `Cannot freeze email body: ${prepareError?.message ?? "missing message"}` };
     const { subject, html, from, tag } = message as { subject: string; html: string; from:string; tag:string };
+    const experiment=payload.retention_experiment as {id?:string;arm?:string}|undefined;
+    const configuredDays=reorderReminderDays();
+    const timingReason=row.template==='replenishment'&&(configuredDays==null||payload.reminder_days!==configuredDays)?'Reorder timing is disabled or changed':null;
+    const sourceReason=timingReason??await retentionDeliveryReason(row.to_email,row.template,payload);
+    const policyReason=sourceReason??(RETENTION_TEMPLATES.includes(row.template)&&experiment?.arm==='holdout'?`Retention holdout: ${experiment.id}`:null);
+    if(policyReason) {
+      // Read current consent/state without setting provider_attempted_at for a no-send decision.
+      const {data:ineligible,error:checkError}=await adminDb().rpc('email_delivery_ineligible',{r:row});
+      if(checkError)throw new Error(`Cannot verify retention eligibility: ${checkError.message}`);
+      const {error}=await adminDb().rpc('finish_email_outbox',{p_id:row.id,p_lease:row.lease_token,p_status:'cancelled',p_error:ineligible??policyReason,p_provider_id:null});
+      if(error)throw new Error(`Cannot persist retention decision: ${error.message}`);
+      return {ok:false,cancelled:true};
+    }
     const { data: allowed, error: eligibilityError } = await adminDb().rpc("authorize_email_delivery", { p_id: row.id, p_lease: row.lease_token });
     if (eligibilityError) return { ok: false, error: `Eligibility check failed: ${eligibilityError.message}` };
     if (!allowed) return { ok: false, cancelled: true };

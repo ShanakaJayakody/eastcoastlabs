@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Daily lifecycle sweep: the marketing series, plus closing out orders that
- * shipped long enough ago to count as delivered. Every sweep is idempotent
+ * shipped long enough ago for administrative completion (not delivery evidence). Every sweep is idempotent
  * (outbox dedupe + eligibility windows, and a status transition that can only
  * fire once), so re-runs and overlaps are harmless. Protected by CRON_SECRET
  * like the other cron routes.

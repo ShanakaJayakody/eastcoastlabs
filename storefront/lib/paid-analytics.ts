@@ -15,6 +15,18 @@ function label(value:unknown):string {
   if (typeof value!=='string' || !value.length || value.length>100) throw new Error('Invalid analytics label');
   return value;
 }
+function identifier(value:unknown):string {
+  const valueLabel=label(value);if(!/^[a-z0-9][a-z0-9._~-]{0,63}$/.test(valueLabel))throw new Error('Invalid analytics dimension');return valueLabel;
+}
+function dimensions(params:Record<string,unknown>):Record<string,string> {
+  const safe:Record<string,string>={};
+  if(params.acquisition_source!==undefined){const source=identifier(params.acquisition_source);if(!['google','bing','newsletter','creator','affiliate','instagram','facebook'].includes(source))throw new Error('Invalid analytics dimension');safe.acquisition_source=source;}
+  if(params.acquisition_medium!==undefined){const medium=identifier(params.acquisition_medium);if(!['cpc','paid-search','email','social','affiliate','organic'].includes(medium))throw new Error('Invalid analytics dimension');safe.acquisition_medium=medium;}
+  for(const key of ['acquisition_campaign','experiment_id','experiment_variant'] as const){if(params[key]!==undefined)safe[key]=identifier(params[key]);}
+  if(params.acquisition_landing_page!==undefined){const path=label(params.acquisition_landing_page);if(!/^(?:\/|\/1|\/(?:shop|stacks|lab-results|learn|about|checkout|creators)|\/(?:product|collections|learn)\/[a-z0-9-]+)\/?$/.test(path))throw new Error('Invalid analytics dimension');safe.acquisition_landing_page=path;}
+  if((safe.experiment_id===undefined)!==(safe.experiment_variant===undefined))throw new Error('Invalid analytics dimension');
+  return safe;
+}
 /** Reconstruct rather than forward JSON: customer, URL and arbitrary event
  * fields can never hitch a ride in a queue payload. */
 function commerceBody(input:unknown) {
@@ -34,12 +46,12 @@ function commerceBody(input:unknown) {
   const items=params.items.map(inputItem=>{
     const item=record(inputItem);const quantity=amount(item.quantity);
     if(!Number.isSafeInteger(quantity)||quantity<1)throw new Error('Invalid analytics quantity');
-    return {item_id:label(item.item_id),item_name:label(item.item_name),quantity,price:amount(item.price),discount:amount(item.discount)};
+    return {item_id:label(item.item_id),item_name:label(item.item_name),...(item.item_variant===undefined?{}:{item_variant:label(item.item_variant)}),quantity,price:amount(item.price),discount:amount(item.discount)};
   });
   const value=amount(params.value);
   if(Math.abs(items.reduce((sum,item)=>sum+item.price*item.quantity,0)-value)>0.000001)throw new Error('Invalid analytics total');
   return {client_id:snapshot.client_id,timestamp_micros:micros,validation_behavior:'ENFORCE_RECOMMENDATIONS',
-    events:[{name:'purchase',params:{transaction_id:transaction,currency,value,shipping:amount(params.shipping),items}}]};
+    events:[{name:'purchase',params:{transaction_id:transaction,currency,value,shipping:amount(params.shipping),...dimensions(params),items}}]};
 }
 async function deliver(row:ClaimedAnalytics,endpoint:string):Promise<DeliveryResult> {
   let body:string;let refund=false;

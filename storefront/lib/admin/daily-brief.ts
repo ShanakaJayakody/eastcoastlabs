@@ -30,8 +30,8 @@ export interface DailyBrief {
   nudges: Nudge[];
 }
 
-const aud = (cents: number): string =>
-  new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(cents / 100);
+const aud = (cents: number | null): string =>
+  cents==null?"Unknown":new Intl.NumberFormat("en-AU", { style: "currency", currency: "AUD" }).format(cents / 100);
 
 function shiftSydneyDay(key: string, days: number): string {
   const [y, m, d] = key.split("-").map((n) => parseInt(n, 10));
@@ -57,12 +57,11 @@ export async function buildDailyBrief(): Promise<DailyBrief> {
   let countQuery = adminDb()
     .from("orders")
     .select("*", { count: "exact", head: true })
-    // Same status set revenueWindow uses, "refunded" included — otherwise the
-    // brief can read "0 orders · $450.00" for a day whose one sale was refunded.
-    .in("status", ["paid", "processing", "shipped", "completed", "refunded"]);
-  if (dayStart) countQuery = countQuery.gte("created_at", dayStart);
-  if (dayEnd) countQuery = countQuery.lt("created_at", dayEnd);
-  const { count } = await countQuery;
+    .not("paid_at", "is", null);
+  if (dayStart) countQuery = countQuery.gte("paid_at", dayStart);
+  if (dayEnd) countQuery = countQuery.lt("paid_at", dayEnd);
+  const { count, error } = await countQuery;
+  if(error)throw new Error(`Daily brief orders: ${error.message}`);
 
   return {
     date,
@@ -127,7 +126,7 @@ export function renderDailyBrief(brief: DailyBrief): { subject: string; html: st
   <p style="margin:0 0 16px;color:#666;font-size:13px">
     Gross profit ${aud(yesterday.profitCents)}${
       yesterday.uncostedLines > 0
-        ? ` <span style="color:#a60">(overstated — ${yesterday.uncostedLines} line${yesterday.uncostedLines === 1 ? "" : "s"} without a recorded cost)</span>`
+        ? ` <span style="color:#a60">(unknown — ${yesterday.uncostedLines} line${yesterday.uncostedLines === 1 ? "" : "s"} without a recorded cost)</span>`
         : ""
     }${yesterday.refundedCents > 0 ? ` · ${aud(yesterday.refundedCents)} refunded` : ""}
   </p>

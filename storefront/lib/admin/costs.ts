@@ -11,6 +11,9 @@
  *      when a supplier changes their price next month.
  */
 import { adminDb } from "./db";
+import { fetchAll } from "./paging";
+import { summarizeLines, type EconomicLine, type ProfitSummary } from "./economics";
+export type { ProfitSummary } from "./economics";
 
 export interface Margin {
   costCents: number | null;
@@ -121,60 +124,31 @@ export async function snapshotOrderCosts(orderId: string): Promise<void> {
   }
 }
 
-export interface ProfitSummary {
-  revenueCents: number;
-  cogsCents: number;
-  profitCents: number;
-  marginPct: number | null;
-  /** Lines still missing a cost — profit is understated until they're costed. */
-  uncostedLines: number;
-}
-
-/** Revenue − COGS for a set of orders, net of refunded quantities. */
-export async function profitForOrders(orderIds: string[]): Promise<ProfitSummary> {
-  const empty = { revenueCents: 0, cogsCents: 0, profitCents: 0, marginPct: null, uncostedLines: 0 };
-  if (!orderIds.length) return empty;
-
-  const { data } = await adminDb()
-    .from("order_items")
-    .select("qty, refunded_qty, unit_price_cents, unit_cost_cents, line_total_cents, refunded_cents")
-    .in("order_id", orderIds);
-  if (!data?.length) return empty;
-
-  let revenueCents = 0;
-  let cogsCents = 0;
-  let uncostedLines = 0;
-
-  for (const r of data) {
-    const netQty = Math.max(0, (r.qty as number) - ((r.refunded_qty as number) ?? 0));
-    revenueCents += (r.line_total_cents as number) - (((r.refunded_cents as number) ?? 0));
-    if (r.unit_cost_cents == null) {
-      if (netQty > 0) uncostedLines += 1;
-      continue;
-    }
-    cogsCents += (r.unit_cost_cents as number) * netQty;
+/** Shared paid-line source includes only evidenced physical returns. */
+export async function economicLines(orderIds:string[]):Promise<EconomicLine[]> {
+  const rows:EconomicLine[]=[];
+  const ids=[...new Set(orderIds)];
+  for(let i=0;i<ids.length;i+=200) {
+    rows.push(...await fetchAll<EconomicLine>((from,to)=>adminDb().from("admin_order_item_economics").select("*").in("order_id",ids.slice(i,i+200)).order("id",{ascending:true}).range(from,to),"Order economics"));
   }
-
-  const profitCents = revenueCents - cogsCents;
-  return {
-    revenueCents,
-    cogsCents,
-    profitCents,
-    marginPct: revenueCents > 0 ? Math.round((profitCents / revenueCents) * 1000) / 10 : null,
-    uncostedLines,
-  };
+  return rows;
 }
-
-/** Profit across a rolling window of paid orders — dashboard tiles. */
-export async function profitSince(days: number | null): Promise<ProfitSummary> {
-  const db = adminDb();
-  let q = db.from("orders").select("id").in("status", ["paid", "processing", "shipped", "completed"]);
-  if (days != null) {
-    const since = new Date();
-    if (days === 0) since.setHours(0, 0, 0, 0);
-    else since.setDate(since.getDate() - days);
-    q = q.gte("created_at", since.toISOString());
-  }
-  const { data } = await q;
-  return profitForOrders((data ?? []).map((o) => o.id as string));
+export async function profitForOrders(orderIds:string[]):Promise<ProfitSummary> {
+  const lines=await economicLines(orderIds);
+  const summary=summarizeLines(lines);
+  const found=new Set(lines.map(line=>line.order_id));
+  const missing=[...new Set(orderIds)].filter(id=>!found.has(id)).length;
+  if(missing){summary.profitCents=null;summary.marginPct=null;summary.uncostedLines+=missing;}
+  return summary;
+}
+/** Paid timestamp, including later refunds; no invented payment date for legacy rows. */
+export async function profitSince(days:number|null):Promise<ProfitSummary> {
+  const since=new Date();
+  if(days===0)since.setHours(0,0,0,0);else if(days!=null)since.setDate(since.getDate()-days);
+  const ids=await fetchAll<{id:string}>((from,to)=>{
+    let q=adminDb().from("orders").select("id").not("paid_at","is",null);
+    if(days!=null)q=q.gte("paid_at",since.toISOString());
+    return q.order("id",{ascending:true}).range(from,to);
+  },"Paid profit orders");
+  return profitForOrders(ids.map(o=>o.id));
 }

@@ -14,6 +14,13 @@ export interface StoreSettings {
   freeShippingThreshold: number;
   giftThreshold: number;
   supportEmail: string;
+  /** Verified public business facts. Blank means not supplied, never invented. */
+  legalName?: string;
+  abn?: string;
+  publicAddress?: string;
+  supportHours?: string;
+  dispatchNotes?: string;
+  returnsNotes?: string;
   /** Payment — PayID. Blank identifier means "not configured": the method is
    *  hidden at checkout rather than shown with empty details. */
   payidEnabled: boolean;
@@ -45,6 +52,12 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   freeShippingThreshold: 150,
   giftThreshold: 250,
   supportEmail: "eclpeptides@gmail.com",
+  legalName: "",
+  abn: "",
+  publicAddress: "",
+  supportHours: "Mon–Fri, 9am–5pm AEST",
+  dispatchNotes: "",
+  returnsNotes: "",
   payidEnabled: true,
   payidIdentifier: "",
   payidName: "",
@@ -65,6 +78,12 @@ const KEYS = {
   freeShippingThreshold: "free_shipping_threshold",
   giftThreshold: "gift_threshold",
   supportEmail: "support_email",
+  legalName: "legal_name",
+  abn: "abn",
+  publicAddress: "public_address",
+  supportHours: "support_hours",
+  dispatchNotes: "dispatch_notes",
+  returnsNotes: "returns_notes",
   payidEnabled: "payid_enabled",
   payidIdentifier: "payid_identifier",
   payidName: "payid_name",
@@ -118,6 +137,12 @@ export const getSettings = cache(async function getSettings(): Promise<StoreSett
     freeShippingThreshold: num(KEYS.freeShippingThreshold, DEFAULT_SETTINGS.freeShippingThreshold),
     giftThreshold: num(KEYS.giftThreshold, DEFAULT_SETTINGS.giftThreshold),
     supportEmail: str(KEYS.supportEmail, DEFAULT_SETTINGS.supportEmail),
+    legalName: optStr(KEYS.legalName, ""),
+    abn: optStr(KEYS.abn, ""),
+    publicAddress: optStr(KEYS.publicAddress, ""),
+    supportHours: optStr(KEYS.supportHours, DEFAULT_SETTINGS.supportHours ?? ""),
+    dispatchNotes: optStr(KEYS.dispatchNotes, ""),
+    returnsNotes: optStr(KEYS.returnsNotes, ""),
     payidEnabled: bool(KEYS.payidEnabled, DEFAULT_SETTINGS.payidEnabled),
     payidIdentifier: optStr(KEYS.payidIdentifier, DEFAULT_SETTINGS.payidIdentifier),
     payidName: optStr(KEYS.payidName, DEFAULT_SETTINGS.payidName),

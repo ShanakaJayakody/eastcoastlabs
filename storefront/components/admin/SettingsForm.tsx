@@ -25,6 +25,7 @@ export default function SettingsForm({
   const [freeShip, setFreeShip] = useState(String(settings.freeShippingThreshold));
   const [gift, setGift] = useState(String(settings.giftThreshold));
   const [email, setEmail] = useState(settings.supportEmail);
+  const [profile,setProfile]=useState({legalName:settings.legalName??'',abn:settings.abn??'',publicAddress:settings.publicAddress??'',supportHours:settings.supportHours??'',dispatchNotes:settings.dispatchNotes??'',returnsNotes:settings.returnsNotes??''});
 
   // Payment
   const [payidOn, setPayidOn] = useState(settings.payidEnabled);
@@ -51,6 +52,7 @@ export default function SettingsForm({
         freeShippingThreshold: Number(freeShip),
         giftThreshold: Number(gift),
         supportEmail: email,
+        ...profile,
         payidEnabled: payidOn,
         payidIdentifier: payid,
         payidName,
@@ -113,6 +115,7 @@ export default function SettingsForm({
           <p className="mt-1 text-xs text-muted">
             Drives the cart progress bar, free shipping at checkout, and the free bacteriostatic-water
             gift.
+            Eligibility uses the goods total after discounts. A zero gift threshold still requires a paid item.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
@@ -300,9 +303,15 @@ export default function SettingsForm({
         <section className="rounded-xl border border-line bg-surface p-5">
           <h3 className="text-sm font-semibold text-fg">Store details</h3>
           <div className="mt-3">
-            <label className="mb-1 block text-xs text-muted">Support email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
+            <label htmlFor="support-email" className="mb-1 block text-xs text-muted">Support email</label>
+            <input id="support-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} />
           </div>
+          <p className="mt-3 text-xs text-muted">These details appear on public contact and policy pages. Enter verified business information; blank fields stay unpublished.</p>
+          {([['legalName','Legal trading name',160],['abn','ABN (11 digits)',20],['publicAddress','Public business/service address',500],['supportHours','Support hours',160],['dispatchNotes','Confirmed dispatch information',2000],['returnsNotes','Additional returns information',2000]] as const).map(([key,label,max])=><label key={key} className="mt-3 block text-xs text-fg-2">{label}
+            {key==='dispatchNotes'||key==='returnsNotes'||key==='publicAddress' ? <textarea value={profile[key]} maxLength={max} rows={3} onChange={e=>setProfile({...profile,[key]:e.target.value})} className={`${field} mt-1`}/> : <input value={profile[key]} maxLength={max} onChange={e=>setProfile({...profile,[key]:e.target.value})} className={`${field} mt-1`}/>}
+          </label>)}
+          {(!profile.legalName || !profile.abn) && <p className="mt-3 text-xs text-warn">Business identity is incomplete. Confirm the legal trading name and ABN before expanding acquisition.</p>}
+          <p className="mt-3 text-xs text-muted">Returns notes supplement the published policy; they cannot remove applicable consumer guarantees.</p>
         </section>
 
         <button

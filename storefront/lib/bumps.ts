@@ -53,7 +53,7 @@ export function buildBumpCandidates(bacWater?: {
       slug: BAC_WATER_SLUG,
       price: bacWater.price,
       icon: "💧",
-      blurb: "Sterile solvent — needed to reconstitute any peptide",
+      blurb: "Optional solvent — check compatibility with your laboratory protocol",
       unit: "1 vial",
       essential: true,
     });

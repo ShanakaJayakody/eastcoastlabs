@@ -46,6 +46,7 @@ export interface SequenceCardData {
   label: string;
   active: boolean;
   paused: boolean;
+  disabled?: boolean;
   context: string | null;
   steps: StepperStep[];
   /** 1-based index of the stage that fires next, if any. */
@@ -125,7 +126,7 @@ export function SequenceCard({ email, data }: { email: string; data: SequenceCar
         <div>
           <div className="flex items-center gap-2">
             <h4 className="text-sm font-semibold text-fg">{data.label}</h4>
-            {data.paused ? (
+            {data.disabled ? <Badge tone="neutral">disabled</Badge> : data.paused ? (
               <Badge tone="warn">paused</Badge>
             ) : data.active ? (
               <Badge tone="success">running</Badge>
@@ -160,7 +161,7 @@ export function SequenceCard({ email, data }: { email: string; data: SequenceCar
           ) : (
             <ControlButton
               icon={Pause}
-              disabled={pending || !data.active}
+              disabled={pending || !data.active || data.disabled}
               onClick={() =>
                 ask({
                   title: `Pause ${data.label}?`,

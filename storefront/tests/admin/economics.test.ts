@@ -1,0 +1,12 @@
+import { beforeEach, expect, it, vi } from 'vitest';
+const mock=vi.hoisted(()=>({rows:[] as Record<string,unknown>[], error:null as null|{message:string}}));
+vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from:()=>{const q={select:()=>q,in:()=>q,order:()=>q,range:()=>Promise.resolve({data:mock.rows,error:mock.error}),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:mock.rows,error:mock.error}).then(resolve)};return q;}})}));
+import {profitForOrders} from '@/lib/admin/costs';
+beforeEach(()=>{mock.error=null;mock.rows=[{order_id:'a',qty:1,refunded_qty:0,confirmed_returned_qty:0,unit_cost_cents:9500,line_total_cents:15000,discount_allocated_cents:1500,refunded_cents:0}];});
+it('nets allocated discounts: 15000 - 1500 - 9500 = 4000 cents',async()=>{expect(await profitForOrders(['a'])).toMatchObject({revenueCents:13500,cogsCents:9500,profitCents:4000,marginPct:29.6});});
+it('leaves gross profit and margin unknown when a consumed line has no frozen cost',async()=>{mock.rows[0].unit_cost_cents=null;expect(await profitForOrders(['a'])).toMatchObject({profitCents:null,marginPct:null,uncostedLines:1});});
+it('keeps consumed COGS after a no-restock full refund',async()=>{Object.assign(mock.rows[0],{refunded_qty:1,refunded_cents:13500});expect(await profitForOrders(['a'])).toMatchObject({revenueCents:0,cogsCents:9500,profitCents:-9500});});
+it('recovers a confirmed sellable return once',async()=>{Object.assign(mock.rows[0],{refunded_qty:1,refunded_cents:13500,confirmed_returned_qty:1});expect(await profitForOrders(['a'])).toMatchObject({revenueCents:0,cogsCents:0,profitCents:0});});
+it('propagates data errors instead of a zero-profit success',async()=>{mock.error={message:'unavailable'};await expect(profitForOrders(['a'])).rejects.toThrow('unavailable');});
+it('does not claim zero profit for an order whose lines are missing',async()=>{mock.rows=[];expect(await profitForOrders(['a'])).toMatchObject({profitCents:null,marginPct:null,uncostedLines:1});});
+it('includes consumed free gift cost and requires its snapshot',async()=>{mock.rows.push({order_id:'a',qty:1,refunded_qty:0,confirmed_returned_qty:0,unit_cost_cents:200,line_total_cents:0,discount_allocated_cents:0,refunded_cents:0});expect(await profitForOrders(['a'])).toMatchObject({profitCents:3800});mock.rows[1].unit_cost_cents=null;expect((await profitForOrders(['a'])).profitCents).toBeNull();});

@@ -1,12 +1,13 @@
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("@/lib/recovery-consent",()=>({verifiedRecoveryEpisode:async()=>undefined}));
 vi.mock("next/server", () => ({ after: vi.fn() }));
-const m = vi.hoisted(() => ({ resolve: vi.fn(), create: vi.fn(), replay: vi.fn(), recovered: vi.fn(), discount: vi.fn() }));
-vi.mock("@/lib/checkout", () => ({ resolveCart: m.resolve }));
+const m = vi.hoisted(() => ({ resolve: vi.fn(), applyGift:vi.fn(),create: vi.fn(), replay: vi.fn(), recovered: vi.fn(), discount: vi.fn(),cookieGet:vi.fn() }));
+vi.mock("@/lib/checkout", () => ({ resolveCart: m.resolve,applyGiftThreshold:m.applyGift }));
 vi.mock("@/lib/admin/orders", () => ({ createOrder: m.create, findCheckoutReplay: m.replay, setOrderPaymentPlan: vi.fn() }));
 vi.mock("@/lib/admin/cart-recovery", () => ({ markCartRecovered: m.recovered, captureCart: vi.fn() }));
 vi.mock("@/lib/admin/discounts", () => ({ validateDiscount: m.discount }));
 vi.mock("@/lib/admin/email", () => ({ queueEmail: vi.fn() }));
+vi.mock("next/headers",()=>({cookies:async()=>({get:m.cookieGet})}));
 vi.mock("@/lib/settings", () => ({ getSettings: async () => ({ freeShippingThreshold: 150, giftThreshold: 250, payidEnabled: false, bankTransferEnabled: true, bankBsb: "123456", bankAccountNumber: "12345678", standardShippingCents: 1200, expressShippingEnabled: false, paymentExpiryHours: 48 }) }));
 import { placeOrder, quoteCart, recoverCheckoutAttempt, type PlaceOrderInput } from "@/app/(store)/checkout/actions";
 const id = "31a1e654-4577-4176-99d8-255613de2911";
@@ -14,8 +15,8 @@ const cart = [{ key: "test:1", slug: "test", variantLabel: "1 vial", quantity: 1
 const input: PlaceOrderInput = { email: "person@example.test", name: "Test Person", address: { line1: "1 Test St", suburb: "Test", state: "VIC", postcode: "3000" }, lines: cart, paymentMethod: "bank_transfer", shippingMethod: "standard", idempotencyKey: id, quoteVersion: "old" };
 const resolved = { items: [{ variantId: id, qty: 1 }], extraItems: [], lines: [{ ...cart[0], name: "Test product", unitPriceCents: 1000, lineTotalCents: 1000, isGift: false }], subtotalCents: 1000, giftApplied: false, warnings: [] };
 beforeEach(() => {
- vi.clearAllMocks(); vi.stubEnv("ORDER_ACCESS_SECRET", "test-only-secret-with-more-than-32-characters");
- m.resolve.mockResolvedValue(resolved); m.replay.mockResolvedValue(null); m.recovered.mockResolvedValue(undefined);
+ vi.clearAllMocks(); vi.stubEnv("ORDER_ACCESS_SECRET", "test-only-secret-with-more-than-32-characters");vi.stubEnv('GA4_API_SECRET','test-secret');vi.stubEnv('NEXT_PUBLIC_GA4_ID','G-TEST123');vi.stubEnv('NEXT_PUBLIC_MEASUREMENT_CAMPAIGNS','launch_2026');vi.stubEnv('NEXT_PUBLIC_MEASUREMENT_EXPERIMENTS','offer-holdout:control|holdout');
+ m.resolve.mockResolvedValue(resolved);m.applyGift.mockImplementation((cart)=>cart);m.replay.mockResolvedValue(null); m.recovered.mockResolvedValue(undefined);
  m.create.mockResolvedValue({ orderId: id, orderNumber: "ECL-1", totalCents: 2200, paymentReference: "ECL-1", paymentExpiresAt: "2026-09-10", replayed: false });
 });
 it("returns the changed authoritative quote without creating an order", async () => {
@@ -54,6 +55,13 @@ it('provides a fresh reviewable quote after the transactional price check races'
  const result=await placeOrder({...input,quoteVersion:quote.version});
  expect(result.ok).toBe(false);if(!result.ok)expect(result.quote?.version).toBeTruthy();
 });
+it('uses the post-discount gift decision in the quote and order payload',async()=>{
+ const withGift={...resolved,giftApplied:true,lines:[...resolved.lines,{...resolved.lines[0],key:'gift:bac',slug:'bacteriostatic-water',name:'Water',unitPriceCents:0,lineTotalCents:0,isGift:true}],items:[...resolved.items,{variantId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',qty:1,priceOverrideCents:0,labelSuffix:' · Free gift'}]};
+ const withoutGift={...withGift,giftApplied:false,lines:resolved.lines,items:resolved.items,warnings:['Free gift removed']};
+ m.resolve.mockResolvedValue(withGift);m.discount.mockResolvedValue({ok:true,discountCents:500});m.applyGift.mockReturnValue(withoutGift);
+ const quote=await quoteCart(cart,'WELCOME');expect(quote).toMatchObject({giftApplied:false,warnings:['Free gift removed'],lines:resolved.lines});
+ await placeOrder({...input,discountCode:'WELCOME',quoteVersion:quote.version});expect(m.create.mock.calls[0][0].items).toEqual(resolved.items);
+});
 
 it('checks an uncertain attempt without resolving or placing another order',async()=>{
  const fingerprint='a'.repeat(64);
@@ -73,4 +81,16 @@ it('returns named field errors for all invalid checkout details',async()=>{
  const r=await placeOrder({...input,email:'bad',name:'',address:{line1:'',suburb:'',state:'XX',postcode:'x'}});
  expect(r).toMatchObject({ok:false,fieldErrors:{email:expect.any(String),name:expect.any(String),street:expect.any(String),suburb:expect.any(String),state:expect.any(String),postcode:expect.any(String)}});
  expect(m.create).not.toHaveBeenCalled();
+});
+it('persists validated consented first-party acquisition and experiment assignment on the created order',async()=>{
+ const measurement=encodeURIComponent(JSON.stringify({acquisition:{source:'google',medium:'cpc',campaign:'launch_2026',landingPath:'/product/bpc-157'},experiments:[{experimentId:'offer-holdout',variant:'holdout'}]}));
+ m.cookieGet.mockImplementation((name:string)=>({ecl_analytics_consent:{value:'granted'},ecl_measurement:{value:measurement},_ga:{value:'GA1.1.123456.789012'}} as Record<string,{value:string}>)[name]);
+ const quote=await quoteCart(cart);await placeOrder({...input,quoteVersion:quote.version});
+ expect(m.create).toHaveBeenCalledWith(expect.objectContaining({analyticsClientId:'123456.789012',orderAttribution:{acquisition:{source:'google',medium:'cpc',campaign:'launch_2026',landingPath:'/product/bpc-157'},experiments:[{experimentId:'offer-holdout',variant:'holdout'}]}}));
+});
+it.each(['denied',undefined])('does not persist measurement when analytics consent is %s',async(consent)=>{
+ const measurement=encodeURIComponent(JSON.stringify({acquisition:{source:'google',landingPath:'/shop'},experiments:[]}));
+ m.cookieGet.mockImplementation((name:string)=>name==='ecl_analytics_consent'&&consent?{value:consent}:name==='ecl_measurement'?{value:measurement}:name==='_ga'?{value:'GA1.1.123456.789012'}:undefined);
+ const quote=await quoteCart(cart);await placeOrder({...input,quoteVersion:quote.version});
+ expect(m.create).toHaveBeenCalledWith(expect.objectContaining({analyticsClientId:undefined,orderAttribution:undefined}));
 });

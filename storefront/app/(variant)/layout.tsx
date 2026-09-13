@@ -1,6 +1,6 @@
 import Providers from "@/components/Providers";
 import CartDrawer from "@/components/CartDrawer";
-import Analytics from "@/components/Analytics";
+import StoreEnhancements from "@/components/StoreEnhancements";
 import DossierHeader from "@/components/variant/v2/DossierHeader";
 import DossierFooter from "@/components/variant/v2/DossierFooter";
 import { newsreader, inter, plexMono } from "@/lib/fonts";
@@ -43,7 +43,7 @@ export default async function VariantLayout({ children }: { children: React.Reac
         <DossierFooter supportEmail={settings.supportEmail} />
         <CartDrawer />
       </div>
-      <Analytics />
+      <StoreEnhancements exitIntent={false} />
     </Providers>
   );
 }

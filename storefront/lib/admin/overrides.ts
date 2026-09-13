@@ -14,16 +14,14 @@ import "server-only";
  * about a cart abandoned a week ago.
  */
 import { adminDb } from "./db";
+import { readAll } from "./read-all";
 import type { SequenceId } from "./sequences";
 
 /** Emails currently paused for one sequence. */
 export async function pausedEmailsFor(sequence: SequenceId): Promise<Set<string>> {
-  const { data, error } = await adminDb()
-    .from("sequence_overrides")
-    .select("email")
-    .eq("sequence", sequence)
-    .eq("action", "pause");
-  if (error) throw new Error(`Cannot read sequence pauses: ${error.message}`);
+  const data=await readAll((start,end)=>adminDb()
+    .from("sequence_overrides").select("email").eq("sequence",sequence).eq("action","pause")
+    .order("email").range(start,end));
   return new Set((data ?? []).map((r) => (r as { email: string }).email));
 }
 

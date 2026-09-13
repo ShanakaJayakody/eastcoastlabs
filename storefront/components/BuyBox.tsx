@@ -6,7 +6,8 @@ import type { TierCard } from "@/lib/pricing";
 import { formatAud, minorToMajor } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
-import { trackAddToCart } from "@/lib/analytics";
+import { commerceItem, trackAddToCart, trackSelectPack } from "@/lib/analytics";
+import { cartContainsProduct, isGiftEligible } from "@/lib/cart-offers";
 
 export interface BuyBoxProduct {
   id: number;
@@ -32,12 +33,13 @@ interface BuyBoxProps {
   bacWater?: BacWaterOption | null;
   sizeLabel?: string;
   cartKeyPrefix?: string;
+  analyticsSlug?: string;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, bacWater, available, sizeLabel, cartKeyPrefix }: BuyBoxProps) {
-  const { addLine, stockFor, lines } = useCart();
+export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, bacWater, available, sizeLabel, cartKeyPrefix, analyticsSlug }: BuyBoxProps) {
+  const { addLine, stockFor, lines, subtotal, giftThreshold } = useCart();
   const { openCart } = useUI();
 
   const remaining = Math.max(0, available - reservedVials(lines, product.slug));
@@ -59,6 +61,13 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
   const maxQty = Math.min(99, Math.floor(remaining / (activeTier?.vials ?? 1)));
   const canAdd = qty <= maxQty && maxQty > 0;
   const variantLabel = `${activeTier ? activeTier.label : "1 vial"}${sizeLabel ? ` · ${sizeLabel}` : ''}`;
+  const waterInBasket = cartContainsProduct(lines, 'bacteriostatic-water');
+  const selectedQualifiesForGift = Boolean(bacWater) && isGiftEligible({
+    subtotalCents: Math.round((subtotal + lineTotal * qty) * 100),
+    thresholdCents: Math.round(giftThreshold * 100),
+    available: stockFor('bacteriostatic-water'),
+    hasPaidItems: true,
+  });
 
   // Sticky add-to-cart bar via IntersectionObserver on the primary ATC block.
   useEffect(() => {
@@ -88,16 +97,14 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
       qty,
       activeTier?.vials ?? 1,
     );
-    trackAddToCart(
-      {
-        item_id: product.id,
-        item_name: product.name,
-        item_variant: variantLabel,
-        price: lineTotal,
-        quantity: qty,
-      },
-      lineTotal * qty,
-    );
+    trackAddToCart(commerceItem({
+      slug: analyticsSlug ?? product.slug,
+      name: product.name,
+      size: sizeLabel,
+      pack: activeTier?.label ?? '1 vial',
+      price: lineTotal,
+      quantity: qty,
+    }), lineTotal * qty);
 
     if (addBac && bacWater && (stockFor("bacteriostatic-water") ?? 1) > 0) {
       addLine(
@@ -117,18 +124,18 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Tier radio cards */}
       {tiers ? (
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-fg">Choose your pack</legend>
-          <div className="grid gap-2.5">
+          <div className="grid gap-2">
             {tiers.map((tier) => {
               const isSel = tier.id === selected;
               return (
                 <label
                   key={tier.id}
-                  className={`relative flex flex-wrap cursor-pointer items-center focus-within:ring-2 focus-within:ring-accent gap-3 rounded-xl border p-3.5 transition-colors ${
+                  className={`relative flex cursor-pointer flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-accent ${
                     isSel ? "border-accent bg-accent/5" : "border-line bg-surface hover:border-line-2"
                   }`}
                 >
@@ -138,7 +145,18 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
                     value={tier.id}
                     checked={isSel}
                     disabled={tier.vials > remaining}
-                    onChange={() => {setSelected(tier.id);setQty(1);}}
+                    onChange={() => {
+                      setSelected(tier.id);
+                      setQty(1);
+                      trackSelectPack(commerceItem({
+                        slug: analyticsSlug ?? product.slug,
+                        name: product.name,
+                        size: sizeLabel,
+                        pack: tier.label,
+                        price: tier.total,
+                        quantity: 1,
+                      }));
+                    }}
                     className="sr-only"
                   />
                   <span
@@ -153,7 +171,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
                       <span className="text-sm font-semibold text-fg">{tier.label}</span>
                       {tier.badge && (
                         <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
-                          {tier.badge}
+                          {/most popular/i.test(tier.badge) ? `${tier.vials} vials` : tier.badge}
                         </span>
                       )}
                     </div>
@@ -189,9 +207,20 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
 
       <p className="text-xs text-muted">One-time purchase · Bank transfer at checkout</p>
 
+      {bacWater && selectedQualifiesForGift && !waterInBasket && (
+        <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success">
+          This selected pack qualifies for an included bacteriostatic water vial. Final eligibility is confirmed after discounts at checkout.
+        </p>
+      )}
+      {bacWater && waterInBasket && (
+        <p className="rounded-lg border border-line bg-surface px-3 py-2 text-xs text-muted">
+          Your basket already includes bacteriostatic water. You can still add an extra vial below.
+        </p>
+      )}
+
       {/* Bac-water attach — hidden when the ledger says bac water is gone,
           so the PDP never invites an add that checkout would refuse. */}
-      {bacWater && (stockFor("bacteriostatic-water") ?? 1) > 0 && (
+      {bacWater && (waterInBasket || !selectedQualifiesForGift) && (stockFor("bacteriostatic-water") ?? 1) > 0 && (
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3.5">
           <input
             type="checkbox"
@@ -200,7 +229,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
             className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
           />
           <span className="text-sm">
-            <span className="font-semibold text-fg">Add {bacWater.name}</span>{" "}
+            <span className="font-semibold text-fg">{waterInBasket ? 'Add an extra' : 'Add'} {bacWater.name}</span>{" "}
             <span className="text-fg-2">+{formatAud(bacWater.price)}</span>
             <span className="mt-0.5 block text-xs text-muted">
               Research accessory. Add to the same shipment.
@@ -211,6 +240,10 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
 
       {/* Add to cart */}
       <div ref={atcRef}>
+        <div className="mb-2 flex items-baseline justify-between gap-3">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-2">Selected total</span>
+          <span className="text-lg font-bold text-fg">{formatAud(lineTotal * qty)}</span>
+        </div>
         <div className="flex items-stretch gap-2.5">
           <div className="inline-flex shrink-0 items-center rounded-xl border border-line bg-surface">
             <button

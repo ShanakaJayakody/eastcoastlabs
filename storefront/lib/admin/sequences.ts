@@ -85,9 +85,7 @@ export const WELCOME_STAGES: StageSpec[] = [
  * than a one-star review at day 14. That ordering, not any filtering of
  * sentiment, is what protects the rating — we publish whatever comes back.
  *
- * The reminder sits at day 24 rather than the obvious 21 because a 1-vial
- * buyer's replenishment nudge fires at shipped+21d; stacking two marketing
- * emails on the same day is exactly the pattern that trains people to unsubscribe.
+ * Reminder timing is independent of purchased pack size; no usage rate is inferred.
  */
 export const REVIEW_STAGES: StageSpec[] = [
   { label: "Arrival check-in", template: "arrival_checkin", from: 5 * 24, until: 10 * 24 },
@@ -114,21 +112,16 @@ export const SECOND_PURCHASE_STAGES: StageSpec[] = [
   { label: "Second-purchase nudge", template: "second_purchase_nudge", from: 30 * 24, until: 60 * 24 },
 ];
 
-/** Replenishment fires once, on a threshold scaled by the order's largest pack. */
-export const replenishmentStages = (packSize: number): StageSpec[] => {
-  const days = replenishmentDays(packSize);
-  return [
-    {
-      label: `Replenishment (${packSize}-pack)`,
-      template: "replenishment",
-      from: days * 24,
-      until: (days + 42) * 24,
-    },
-  ];
+/** One explicitly configured reorder reminder; null keeps it disabled. */
+export const replenishmentStages = (days: number | null): StageSpec[] => {
+  if (days == null || !Number.isInteger(days) || days < 1 || days > 365) return [];
+  return [{
+    label: `Reorder reminder (${days} days after dispatch)`,
+    template: "replenishment",
+    from: days * 24,
+    until: (days + 42) * 24,
+  }];
 };
-
-export const replenishmentDays = (packSize: number): number =>
-  packSize >= 6 ? 154 : packSize >= 3 ? 70 : 21;
 
 export const SEQUENCE_LABELS: Record<SequenceId, string> = {
   cart_recovery: "Cart recovery",
@@ -136,7 +129,7 @@ export const SEQUENCE_LABELS: Record<SequenceId, string> = {
   welcome: "Welcome series",
   post_purchase_review: "Review request",
   review_thank_you: "Review thank-you",
-  replenishment: "Replenishment",
+  replenishment: "Reorder reminder",
   winback: "Winback",
   second_purchase: "Second-purchase nudge",
 };

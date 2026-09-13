@@ -23,7 +23,7 @@ import type { WooProduct } from "./woo";
 import { type TierCard } from "./pricing";
 import { formatAudWhole } from "./format";
 import localCatalog from "@/data/catalog.json";
-import type { ProductSizeOption } from './product-sizes';
+import { normalizeProductSizeLabel, type ProductSizeOption } from './product-sizes';
 
 export interface CatalogProduct extends WooProduct {
   /** Pack tiers built from this product's own variants. Null = no pack tiers. */
@@ -121,6 +121,12 @@ export function rankProductsByPopularity<T extends { slug: string }>(products: r
     .map(({ product }) => product);
 }
 
+/** Keep unavailable items discoverable without spending primary feature slots on them. */
+export function rankAvailableProductsByPopularity<T extends { slug: string; is_in_stock: boolean }>(products: readonly T[]): T[] {
+  const ranked = rankProductsByPopularity(products);
+  return [...ranked.filter((product) => product.is_in_stock), ...ranked.filter((product) => !product.is_in_stock)];
+}
+
 /** Deterministic positive id for a slug the JSON catalog never knew about. */
 function derivedId(slug: string): number {
   let h = 0;
@@ -164,19 +170,15 @@ function tiersFromVariants(variants: VariantRow[], available: number): TierCard[
     const total = v.price_cents / 100;
     const undiscounted = singleMajor * v.pack_size;
     const saving = Math.floor(undiscounted - total);
-    const pct = undiscounted > 0 ? Math.round((saving / undiscounted) * 100) : 0;
     cards.push({
       id: idOf(v.pack_size),
       label: v.label?.split(' · ')[0] || `${v.pack_size}-pack`,
-      // Badges follow the same convention the price table hard-coded: the
-      // smallest pack is the nudge, the largest is the value play.
-      badge: v === packs[packs.length - 1] ? `BEST VALUE — save ${pct}%` : "MOST POPULAR",
+      badge: `${v.pack_size} VIALS`,
       vials: v.pack_size,
       total,
       perVial: Math.round((total / v.pack_size) * 100) / 100,
       strikethrough: undiscounted,
       savingLabel: `Save ${formatAudWhole(saving)}`,
-      preselected: v === packs[0],
     });
   }
 
@@ -237,8 +239,11 @@ function mapRow(row: ProductRow): CatalogProduct | null {
     .filter(size => size.size_enabled !== false && (size === row || size.status === 'active'))
     .flatMap(size => {
       const mapped = mapSingleRow(size);
-      return mapped ? [{ id: mapped.id, slug: size.slug, label: size.size_label ?? '',
-        priceMinor: mapped.prices.price, available: mapped.available, tiers: mapped.tiers }] : [];
+      return mapped ? [{ id: mapped.id, slug: size.slug, sku: mapped.sku,
+        label: normalizeProductSizeLabel(size.size_label ?? ''),
+        priceMinor: mapped.prices.price, available: mapped.available, tiers: mapped.tiers,
+        images: mapped.images, shortDescription: mapped.short_description,
+        description: mapped.description }] : [];
     });
   // A hidden original size can still own an active public product page.
   const display = base ?? (row.size_products ?? []).map(mapSingleRow).find(Boolean);
@@ -328,7 +333,7 @@ export const getCatalogProduct = cache(async function getCatalogProduct(slug: st
     row = parent.data as unknown as ProductRow;
   }
   if (row.size_label) {
-    const children = await db.from('products').select(CARD_COLUMNS).eq('size_parent_id',row.id).eq('status','active').order('created_at');
+    const children = await db.from('products').select(DETAIL_COLUMNS).eq('size_parent_id',row.id).eq('status','active').order('created_at');
     if (children.error) throw new Error('Product sizes are temporarily unavailable');
     row.size_products = children.data as unknown as ProductRow[];
   }

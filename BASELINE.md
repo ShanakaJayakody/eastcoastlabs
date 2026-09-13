@@ -1,182 +1,34 @@
-# BASELINE — East Coast Labs Commerce Metrics
+# East Coast Labs commerce baseline
 
-**Baseline Period:** 90 days ending 2026-07-21  
-**Recorded:** 2026-07-21  
-**Purpose:** Establish pre-upgrade baseline for measuring the ECOM Upgrade Plan impact.  
-**Target comparison:** 90 days post-Phase-2 launch
+Updated 13 September 2026 for the native Supabase storefront. **No production financial or analytics values have been collected or verified in this implementation.** Unknown values are not zero. The previous WooCommerce worksheet contained placeholders and arbitrary uplift targets; it is retained in Git history, not treated as a measured baseline.
 
-> ⚠️ **This file contains [PLACEHOLDER] values to be filled from staging data.**  
-> Source query for each metric is documented inline.
+## Measurement contract
 
----
+Set and record a fixed baseline start/end, timezone (Australia/Sydney), extraction time, deployed commit and accounting basis before comparing results. Use actual paid orders and mature visitor/customer cohorts. Record refunds and expense corrections as known at extraction; current reports restate the original paid cohort rather than reconstructing a historical as-of ledger.
 
-## Orders & Revenue
+| Metric | Baseline | Current source and definition |
+| --- | --- | --- |
+| Paid orders | Not collected | Orders with actual paid_at within the declared period, including subsequently refunded purchases. |
+| Net order revenue | Not collected | Paid order totals less recorded refunds; includes shipping, on the recorded tax basis. |
+| Net paid AOV | Not collected | Net order revenue / paid orders; retain refunded orders in the denominator. |
+| Merchandise gross profit | Not collected | Admin product reports: allocated discounts and merchandise refunds deducted; consumed product/gift costs retained unless a physical restock is confirmed. Unknown COGS means unknown profit. |
+| Contribution before/after acquisition | Not collected | Admin contribution report: actual variable costs and confirmed basis, with cost coverage. Read the contribution runbook before interpreting tax treatment. |
+| Eligible sessions / visitors | Ingestion unverified | Verify analytics provider, explicit consent coverage, bot/internal exclusions and stable eligible visitor definition. Do not substitute order count or email capture. |
+| Paid conversion | Not collected | Paid orders attributed to an eligible visitor/session cohort / that same cohort, allowing a declared transfer lag. Ledger totals and measured coverage must both be shown. |
+| Contribution per eligible visitor | Not collected | Contribution joined to the same assigned visitor cohort / all eligible assigned visitors. Do not mix all ledger revenue with only consented sessions. |
+| Seven-day created-to-paid | Not collected | Admin funnel: orders paid within seven days / created orders old enough to reach seven days. This is operational payment completion, not session conversion. |
+| 60/90-day second purchase | Not collected | Admin cohorts: buyers with a second paid purchase within horizon / first-time buyers whose own horizon has matured. Normalized checkout email includes guest buyers; aliases can split identity. |
+| 60/90-day cumulative contribution | Not collected | All orders paid within each eligible buyer horizon, including the first order and one-time buyers; refunds/costs as known now. Show coverage. |
+| CAC and payback | Not collected | Actual channel/creator acquisition expense, allocated once, divided by new paid customers; compare with realized cohort contribution and a cash reserve. |
+| Quote p95 latency / failure rate | Not collected | Consented quote-request, ready/error event pairs and server operational evidence. Record sample size and browser coverage. |
+| Mobile field performance | Not collected | Real field 75th-percentile LCP/INP/CLS over a declared window. Local fixtures and route budgets are engineering checks, not production field measurements. |
 
-| Metric | Value | Source Query |
-|---|---|---|
-| Total orders (90d) | [PLACEHOLDER] | `wp wc shop_order list --period=last90days --fields=id --format=count` |
-| Gross revenue (90d) | [PLACEHOLDER] | `wp wc shop_order list --period=last90days --fields=total --format=json | jq '[.[] | tonumber] | add'` |
-| Net revenue (90d) | [PLACEHOLDER] | Same as gross, minus refunded orders |
-| Average order value | [PLACEHOLDER] | `net_revenue / total_orders` |
+## Collection and reconciliation
 
-**Notes:**
-- Gross revenue includes all orders regardless of status
-- Net revenue excludes refunded and cancelled orders
-- AOV calculated from net revenue for accuracy
+1. Finance selects the baseline window and reviews full-price, discounted, gifted, partially refunded, no-restock and physical-restock orders against actual records. Complete frozen COGS gaps and actual variable expenses with documented evidence; never infer absent costs as zero.
+2. Analytics verifies public consent, canonical item/size/pack identifiers, actual paid/refund ingestion, private-route exclusion and delayed-transfer attribution. Record consent/client-ID and attribution coverage beside totals. HTTP success alone does not establish provider reporting.
+3. Export only the aggregate baseline needed for a decision into this file. Keep customer-level source records in authorized business systems. Record extraction time and source evidence so later restatements are explainable.
+4. Select the minimum commercially worthwhile effect after the baseline exists. Use contribution as the primary commercial outcome and wrong-size contacts, refunds, payment failures, stock and complaints as guardrails. The previous +25% AOV/+30% repeat/+15% conversion targets were not validated forecasts.
+5. For experiments, predeclare eligibility, randomization, duration/sample method, exclusions and maturation. Compare original assignments; ordinary before/after changes or traffic sent separately to `/` and `/1` do not demonstrate causality.
 
----
-
-## Conversion
-
-| Metric | Value | Source |
-|---|---|---|
-| Sessions (90d) | [PLACEHOLDER] | MonsterInsights / GA4 — document source if available |
-| Conversion rate | [PLACEHOLDER] | `total_orders / sessions` |
-| Note | Sessions not available in WooCommerce Analytics natively | Pull from GA4 or MonsterInsights |
-
-**Notes:**
-- WooCommerce Analytics does not track sessions natively
-- Use Google Analytics 4 (GA4) or MonsterInsights if available
-- Document if session data is unavailable and use alternative proxy
-
----
-
-## Customer Behavior
-
-| Metric | Value | Source Query |
-|---|---|---|
-| Unique customers (90d) | [PLACEHOLDER] | `wp wc shop_order list --period=last90days --fields=customer_id --format=json | jq '[.[] | select(. != 0)] | unique | length'` |
-| Repeat customers (2+ orders) | [PLACEHOLDER] | SQL query needed — see below |
-| Repeat purchase rate | [PLACEHOLDER] | `repeat_customers / unique_customers` |
-
-**SQL Query for Repeat Customers:**
-```sql
-SELECT customer_id, COUNT(*) as order_count
-FROM wp_posts
-WHERE post_type = 'shop_order'
-  AND post_status IN ('wc-completed', 'wc-processing')
-  AND post_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-GROUP BY customer_id
-HAVING COUNT(*) > 1;
-```
-
-**Notes:**
-- Guest orders (customer_id = 0) excluded from unique customer count
-- Repeat customers defined as those with 2+ completed orders in 90-day period
-
----
-
-## Revenue per SKU
-
-| Product | SKU | Units Sold | Revenue | % of Total |
-|---|---|---|---|---|
-| BPC-157 | BPC157 | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| TB-500 | TB500 | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| BPC-157/TB-500 Blend | BPC157-TB500 | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| CJC-1295 | CJC1295 | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| CJC-1295/Ipamorelin | CJC-IPA | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| Ipamorelin | IPA | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| Epithalon | EPITH | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| Selank | SELANK | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| Semax | SEMAX | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| MGF | MGF | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| PT-141 | PT141 | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| GHK-Cu | GHKCU | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| KPV | KPV | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| PEA | PEA | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-| Bacteriostatic Water | BAC-WATER | [PLACEHOLDER] | [PLACEHOLDER] | [PLACEHOLDER] |
-
-**Source Query:**
-```bash
-# Get all line items from orders in the 90-day period
-wp wc shop_order list --period=last90days --fields=line_items --format=json | \
-  jq '[.[] | .line_items[] | {name, sku, quantity, total}] | group_by(.sku) | 
-      map({sku: .[0].sku, name: .[0].name, units: (map(.quantity) | add), revenue: (map(.total | tonumber) | add)})'
-```
-
-**Notes:**
-- Revenue per SKU helps identify top performers and underperformers
-- Use for merchandising decisions and bundle strategy
-
----
-
-## Cart Abandonment Proxy
-
-| Metric | Value | Source |
-|---|---|---|
-| Carts initiated (90d) | [PLACEHOLDER] | GA4 `begin_checkout` events |
-| Carts completed | [PLACEHOLDER] | = Total orders (from Orders & Revenue section) |
-| Abandonment proxy rate | [PLACEHOLDER] | `1 - (completed / initiated)` |
-
-**Notes:**
-- WooCommerce does not track cart initiation natively
-- Use GA4 `begin_checkout` event as proxy
-- If GA4 unavailable, document gap and use alternative approach
-
----
-
-## KPI Targets (90 days post-Phase-2 launch)
-
-| KPI | Baseline | Target | Change | Methodology |
-|---|---|---|---|---|
-| Average Order Value | [PLACEHOLDER] | +25% | [PLACEHOLDER] | Compare 90d post-launch vs 90d baseline |
-| Repeat Purchase Rate | [PLACEHOLDER] | +30% | [PLACEHOLDER] | Compare 90d post-launch vs 90d baseline |
-| Conversion Rate | [PLACEHOLDER] | +15% | [PLACEHOLDER] | Compare 90d post-launch vs 90d baseline |
-
-**Target Calculation Notes:**
-- AOV +25%: Target = Baseline × 1.25
-- Repeat Rate +30%: Target = Baseline × 1.30  
-- Conversion +15%: Target = Baseline × 1.15
-
----
-
-## Notes & Gaps
-
-### Data Availability
-- [ ] WooCommerce Analytics configured and collecting data
-- [ ] Google Analytics 4 (GA4) installed and tracking sessions
-- [ ] MonsterInsights or alternative GA4 integration available
-- [ ] Direct database access for SQL queries if needed
-
-### Known Gaps
-1. **Sessions data:** Not available in WooCommerce Analytics natively — requires GA4 or MonsterInsights
-2. **Cart initiation:** Not tracked by WooCommerce — requires GA4 `begin_checkout` event
-3. **Guest customers:** Cannot be tracked for repeat purchase analysis without email-based matching
-
-### Methodology Notes
-- All metrics use 90-day rolling windows to smooth weekly variations
-- Revenue metrics exclude refunds/cancellations for accuracy
-- Repeat customer analysis uses customer_id only (guests excluded)
-- Post-launch comparison uses same 90-day duration as baseline
-
-### Data Collection Commands
-
-**Export all baseline data in one command:**
-```bash
-# Orders & Revenue
-wp wc shop_order list --period=last90days --fields=id,total,status --format=json > baseline_orders.json
-
-# Customer IDs
-wp wc shop_order list --period=last90days --fields=customer_id --format=json > baseline_customers.json
-
-# Line Items (SKU data)
-wp wc shop_order list --period=last90days --fields=line_items --format=json > baseline_lineitems.json
-```
-
----
-
-## Baseline Validation Checklist
-
-- [ ] All [PLACEHOLDER] values filled with actual data
-- [ ] Source queries tested on staging environment
-- [ ] Session data source confirmed (GA4 or alternative)
-- [ ] Cart initiation tracking confirmed (GA4 or alternative)
-- [ ] SQL query for repeat customers tested
-- [ ] SKU revenue table populated
-- [ ] KPI targets calculated from baseline values
-- [ ] Data collection date documented
-- [ ] Any gaps or limitations noted above
-
----
-
-*This baseline file serves as the pre-intervention reference point. All post-Phase-2 metrics will be compared against these values using identical methodology and measurement windows.*
+Operational instructions: [contribution](docs/operations/2026-09-13-CONTRIBUTION-REPORTING.md), [measurement](storefront/docs/MEASUREMENT.md), [retention](docs/operations/2026-09-13-RETENTION-OPERATIONS.md), and [release coverage](docs/operations/2026-09-13-CONVERSION-RELEASE.md).
