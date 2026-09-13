@@ -29,7 +29,7 @@ export function checkoutUrl(): string {
 export const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID ?? "";
 
 /** Free-shipping threshold in AUD (major units). */
-export const FREE_SHIPPING_THRESHOLD = 150;
+export const FREE_SHIPPING_THRESHOLD = 100;
 
 /** Spend threshold (AUD) that unlocks a free bacteriostatic-water gift. */
 export const GIFT_THRESHOLD = 250;

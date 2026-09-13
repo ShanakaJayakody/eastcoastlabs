@@ -29,23 +29,23 @@ export default function FreeShippingProgress({
   let message: React.ReactNode;
   if (giftUnlocked) {
     message = (
-      <span className="font-medium text-success">🎁 Free shipping + free bacteriostatic water unlocked</span>
+      <span className="font-medium text-success">🎁 Free standard shipping + free bacteriostatic water unlocked</span>
     );
   } else if (freeShipping && hasGiftTier) {
     message = (
       <>
-        Free shipping unlocked. Add{" "}
+        Free standard shipping unlocked. Add{" "}
         <span className="font-semibold text-fg">{formatAud(giftThreshold! - subtotal)}</span> more for a{" "}
         <span className="font-medium text-accent">free bacteriostatic water 🎁</span>
       </>
     );
   } else if (freeShipping) {
-    message = <span className="font-medium text-success">✓ You&apos;ve unlocked free shipping</span>;
+    message = <span className="font-medium text-success">✓ You&apos;ve unlocked free standard shipping</span>;
   } else {
     message = (
       <>
         You&apos;re <span className="font-semibold text-fg">{formatAud(threshold - subtotal)}</span> from free
-        shipping
+        standard shipping
       </>
     );
   }
@@ -67,9 +67,10 @@ export default function FreeShippingProgress({
         )}
       </div>
       <div className="mt-1 flex items-center justify-between text-[11px] text-muted-2">
-        <span>{threshold<=0 ? 'Standard shipping included' : `Free shipping ${formatAud(threshold, 0)}`}</span>
+        <span>{threshold<=0 ? 'Standard shipping included' : `Free standard ${formatAud(threshold, 0)}+`}</span>
         {hasGiftTier && <span>🎁 Free gift {formatAud(giftThreshold!, 0)}</span>}
       </div>
+      <p className="mt-2 text-[11px] text-muted">Shipping eligibility is based on the goods total after discounts and confirmed at checkout.</p>
     </div>
   );
 }

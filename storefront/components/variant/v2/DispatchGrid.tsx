@@ -18,10 +18,10 @@ export default function DispatchGrid({ freeShippingThreshold }: { freeShippingTh
       label: "Shipping",
       content: (
         <>
-          <p className="font-serif-display text-xl text-fg">Free over ${freeShippingThreshold}</p>
+          <p className="font-serif-display text-xl text-fg">Free standard shipping ${freeShippingThreshold}+</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Every order below the threshold ships at a flat rate, calculated at checkout alongside
-            any applicable taxes.
+            Eligibility uses the goods total after discounts. Available standard and express
+            services and their charges are confirmed at checkout.
           </p>
         </>
       ),
