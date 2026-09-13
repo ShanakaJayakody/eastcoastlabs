@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { getCatalog } from "@/lib/catalog";
+import { getCatalog, rankProductsByPopularity } from "@/lib/catalog";
 import { getLatestCoa, getCoaForProduct } from "@/lib/coa";
 import { getHomeCopy } from "@/lib/content";
 import ProductCard from "@/components/ProductCard";
@@ -22,8 +22,6 @@ import VariantTag from "@/components/VariantTag";
 export const revalidate = 300;
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
-const BESTSELLER_SLUGS = ["tesamorelin", "mots-c", "semax", "selank", "bpc-157", "tb-500", "glow", "ghk-cu"];
-
 export default async function HomePage() {
   const [catalog, coa, copy, stacks] = await Promise.all([
     getCatalog(),
@@ -36,8 +34,7 @@ export default async function HomePage() {
   const collections = getCollections();
 
   const { products, bySlug } = catalog;
-  const bestsellers = BESTSELLER_SLUGS.map((s) => bySlug.get(s)).filter((p) => p != null).slice(0, 8);
-  const grid = await decorateCards(bestsellers.length >= 4 ? bestsellers : products.slice(0, 8));
+  const grid = await decorateCards(rankProductsByPopularity(products).slice(0, 8));
 
   // Hero visual: a featured vial (the teal BPC-157 render matches the accent).
   const heroProduct = bySlug.get("bpc-157") ?? grid[0] ?? products[0];
