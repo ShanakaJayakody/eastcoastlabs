@@ -15,6 +15,7 @@
       "icon": "⚖️",
       "tagline": "GLP-1 analogues & energy-regulation research",
       "description": "Incretin analogues and mitochondrial-derived peptides used in metabolic and energy-regulation research.",
+      "showcase_product": "retatrutide",
       "products": ["semaglutide", "tirzepatide", "retatrutide", "tesamorelin", "mots-c"]
     },
     {

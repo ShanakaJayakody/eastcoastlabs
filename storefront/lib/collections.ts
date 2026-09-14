@@ -12,6 +12,8 @@ export interface Collection {
   tagline: string;
   description: string;
   products: string[]; // product slugs
+  /** Product used for the homepage research-area visual, when it differs from collection order. */
+  showcase_product?: string;
 }
 
 const COLLECTIONS = (collectionsData as unknown as { collections: Collection[] }).collections;

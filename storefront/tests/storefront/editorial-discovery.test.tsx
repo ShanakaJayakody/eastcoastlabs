@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { CardProduct } from "@/components/ProductCard";
 import type { Collection } from "@/lib/collections";
+import { getCollection } from "@/lib/collections";
 import FeaturedRange from "@/components/editorial/FeaturedRange";
 import ResearchExplorer from "@/components/editorial/ResearchExplorer";
 import Documentation from "@/components/editorial/Documentation";
@@ -105,6 +106,19 @@ it("allows keyboard focus to preview a collection and keeps its shop link distin
     "href",
     "/collections/cognitive",
   );
+});
+
+it("uses Retatrutide for the metabolic showcase without changing collection order", () => {
+  const metabolic = getCollection("metabolic-weight");
+
+  expect(metabolic?.showcase_product).toBe("retatrutide");
+  expect(metabolic?.products).toEqual([
+    "semaglutide",
+    "tirzepatide",
+    "retatrutide",
+    "tesamorelin",
+    "mots-c",
+  ]);
 });
 
 it("does not manufacture certificates when no verified document is available", () => {
