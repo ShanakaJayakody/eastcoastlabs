@@ -36,7 +36,10 @@ export default async function HomePage() {
   );
   const collections = getCollections();
   const previews = collections.map((collection) => {
-    const product = collection.products
+    const previewSlugs = collection.showcase_product
+      ? [collection.showcase_product, ...collection.products]
+      : collection.products;
+    const product = previewSlugs
       .map((slug) => catalog.bySlug.get(slug))
       .find((item) => item?.images?.length);
     return {
