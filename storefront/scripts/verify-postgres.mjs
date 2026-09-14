@@ -12,6 +12,7 @@ import {workflowChecks} from './postgres-workflow-checks.mjs';
 import {fulfilmentChecks} from './postgres-fulfilment-checks.mjs';
 import {recoveryChecks} from './postgres-recovery-checks.mjs';
 import {operationsChecks} from './postgres-operations-checks.mjs';
+import {customerChecks} from './postgres-customer-checks.mjs';
 
 let ownedContainer;
 let admin;
@@ -64,6 +65,7 @@ try {
   console.log(`Applied ${migrations.length} migrations to disposable PostgreSQL`);
   const a = await connect(url, 'ecl-race-a');
   const b = await connect(url, 'ecl-race-b');
+  await customerChecks({db,a,b,check});
   assert.notEqual(await scalar(a, 'select pg_backend_pid() result'), await scalar(b, 'select pg_backend_pid() result'));
   async function race(lockSql, lockParams, first, second) {
     await db.query('begin');

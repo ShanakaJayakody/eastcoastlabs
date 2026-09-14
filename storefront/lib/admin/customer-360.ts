@@ -15,6 +15,7 @@ import "server-only";
  *     subscription changes and admin actions.
  */
 import { adminDb } from "./db";
+import { customerContact, type CustomerProfile } from "./customer-details";
 import { reorderReminderDays, retentionAssignment } from "./retention-policy";
 import {
   CART_STAGES,
@@ -100,6 +101,8 @@ interface OrderRow {
   shipped_at: string | null;
   payment_reminders_sent: number | null;
   payment_expires_at: string | null;
+  customer_name: string | null;
+  shipping_address: Record<string, string | null> | null;
 }
 
 const FULFILLED = ["shipped", "completed"];
@@ -117,24 +120,23 @@ export async function loadPerson(email: string) {
     { data: outbox },
     { data: overrides },
     { data: notes },
-    { data: profile },
+    { data: profile, error: profileError },
     { data: waitlist },
-    { data: events },
     { data: reviews },
   ] = await Promise.all([
     db.from("customers").select("*").eq("email", clean).maybeSingle(),
     db
       .from("orders")
       .select(
-        "id, order_number, status, total_cents, created_at, shipped_at, payment_reminders_sent, payment_expires_at",
+        "id, order_number, status, total_cents, created_at, shipped_at, payment_reminders_sent, payment_expires_at, customer_name, shipping_address",
       )
       .eq("customer_email", clean)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false }).order("id", { ascending: false }),
     db.from("subscribers").select("source, created_at, unsubscribed_at").eq("email", clean),
     db.from("cart_sessions").select("*").eq("email", clean).maybeSingle(),
     db
       .from("email_outbox")
-      .select("id, template, related_id, status, created_at, sent_at, error")
+      .select("id, template, related_id, status, created_at, sent_at, error, delivery_email")
       .eq("to_email", clean)
       .order("created_at", { ascending: false })
       .limit(300),
@@ -144,14 +146,8 @@ export async function loadPerson(email: string) {
       .select("id, note, actor_email, created_at")
       .eq("email", clean)
       .order("created_at", { ascending: false }),
-    db.from("customer_profiles").select("tags").eq("email", clean).maybeSingle(),
+    db.from("customer_profiles").select("tags, name, phone, address, edit_version, previous_emails").eq("email", clean).maybeSingle(),
     db.from("stock_notifications").select("product_slug, notified").eq("email", clean),
-    db
-      .from("email_events")
-      .select("outbox_id, event, occurred_at")
-      .eq("to_email", clean)
-      .order("occurred_at", { ascending: true })
-      .limit(500),
     // Reviews reach this person only through the order they reviewed, so the
     // inner join on customer_email is the filter.
     db
@@ -161,7 +157,14 @@ export async function loadPerson(email: string) {
       .order("created_at", { ascending: false }),
   ]);
 
+  if (profileError) throw new Error(`Cannot load customer details: ${profileError.message}`);
+  const customerProfile = profile as CustomerProfile | null;
+  const historyEmails = [clean, ...(customerProfile?.previous_emails ?? [])];
+  const { data: events } = await db.from("email_events").select("outbox_id, event, occurred_at")
+    .in("to_email", historyEmails).order("occurred_at", { ascending: true }).limit(500);
+
   const orderRows = (orders ?? []) as OrderRow[];
+  const contact = customerContact(clean, customerProfile, orderRows[0]);
   const subRows = (subscribers ?? []) as {
     source: string | null;
     created_at: string;
@@ -170,7 +173,7 @@ export async function loadPerson(email: string) {
 
   const summary: PersonSummary = {
     email: clean,
-    name: (customer as { name?: string | null } | null)?.name ?? null,
+    name: contact.name,
     ordersCount: (customer as { orders_count?: number } | null)?.orders_count ?? 0,
     ltvCents: (customer as { ltv_cents?: number } | null)?.ltv_cents ?? 0,
     firstOrderAt: (customer as { first_order_at?: string } | null)?.first_order_at ?? null,
@@ -180,14 +183,16 @@ export async function loadPerson(email: string) {
     subscriberSource: subRows[0]?.source ?? null,
     tags: ((profile as { tags?: string[] } | null)?.tags ?? []) as string[],
     hasOrders: orderRows.length > 0,
-    unknown: !customer && !subRows.length && !cart,
+    unknown: !customer && !subRows.length && !cart && !profile && !waitlist?.length,
   };
 
   return {
     summary,
+    contact,
+    historyEmails,
     orders: orderRows,
     cart: (cart ?? null) as CartSessionRow | null,
-    outbox: (outbox ?? []) as (OutboxLookupRow & { error?: string | null })[],
+    outbox: (outbox ?? []) as (OutboxLookupRow & { error?: string | null; delivery_email?: string | null })[],
     pausedSequences: new Set(
       ((overrides ?? []) as { sequence: string }[]).map((o) => o.sequence),
     ),
@@ -422,7 +427,7 @@ export async function buildJourney(
   renderEmailAction?: (row: OutboxLookupRow & { error?: string | null }) => React.ReactNode,
 ): Promise<JourneyItem[]> {
   const db = adminDb();
-  const { summary, orders, outbox, notes, subscriberRows } = person;
+  const { orders, outbox, notes, subscriberRows } = person;
   const items: JourneyItem[] = [];
 
   // Outcomes are ordered by the funnel they describe, not by arrival time, so a
@@ -452,7 +457,7 @@ export async function buildJourney(
       title: humanTemplate(row.template),
       group: TEMPLATE_SEQUENCE[row.template] ?? null,
       status: row.status as JourneyItem["status"],
-      detail: row.error ? `Failed: ${row.error}` : null,
+      detail: row.error ? `Failed: ${row.error}` : row.delivery_email ? `Sent to ${row.delivery_email}` : null,
       outcomes: seen ? OUTCOME_ORDER.filter((o) => seen.has(o)) : undefined,
       action: renderEmailAction?.(row),
     });
@@ -521,7 +526,8 @@ export async function buildJourney(
   const { data: audit } = await db
     .from("admin_audit_log")
     .select("actor_email, action, created_at, diff")
-    .eq("entity_id", summary.email)
+    .eq("entity_type", "customer")
+    .in("entity_id", person.historyEmails)
     .order("created_at", { ascending: false })
     .limit(50);
   for (const a of (audit ?? []) as {

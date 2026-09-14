@@ -63,10 +63,11 @@ function vipThreshold(ltvs: number[]): number {
 
 export async function listPeople(): Promise<PersonRow[]> {
   const db = adminDb();
-  const [customers,carts,subs] = await Promise.all([
+  const [customers,carts,subs,profiles] = await Promise.all([
     readAll((start,end)=>db.from("customers").select("email, name, orders_count, ltv_cents, last_order_at").order("email").range(start,end)),
     readAll((start,end)=>db.from("cart_sessions").select("email, subtotal_cents, reminder_stage, updated_at, status").eq("status","active").order("email").range(start,end)),
     readAll((start,end)=>db.from("subscribers").select("email, unsubscribed_at").order("email").range(start,end)),
+    readAll((start,end)=>db.from("customer_profiles").select("email, name, edit_version").order("email").range(start,end)),
   ]);
 
   const rows = new Map<string, PersonRow>();
@@ -118,6 +119,12 @@ export async function listPeople(): Promise<PersonRow[]> {
     if (s.unsubscribed_at) row.unsubscribed = true;
     else row.subscribed = true;
     rows.set(s.email, row);
+  }
+
+  for (const profile of profiles as { email: string; name: string | null; edit_version: number }[]) {
+    const row = rows.get(profile.email) ?? blank(profile.email);
+    if (profile.edit_version > 0) row.name = profile.name;
+    rows.set(profile.email, row);
   }
 
   const all = [...rows.values()];
