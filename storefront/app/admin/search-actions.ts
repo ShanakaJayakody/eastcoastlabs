@@ -37,7 +37,7 @@ export async function searchAdmin(query: string): Promise<SearchResultItem[]> {
       .select("slug, name, sku")
       .or(`name.ilike.${like},sku.ilike.${like}`)
       .limit(5),
-    db.from("customers").select("email, name").ilike("email", like).limit(5),
+    db.from("admin_people").select("email, name").or(`email.ilike.${like},name.ilike.${like}`).limit(5),
   ]);
 
   const items: SearchResultItem[] = [];

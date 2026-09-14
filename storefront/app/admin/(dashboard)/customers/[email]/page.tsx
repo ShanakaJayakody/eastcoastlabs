@@ -10,6 +10,7 @@ import StatusBadge from "@/components/admin/StatusBadge";
 import StatCard from "@/components/admin/StatCard";
 import Badge from "@/components/admin/Badge";
 import JourneyTimeline from "@/components/admin/JourneyTimeline";
+import CustomerDetails from "@/components/admin/CustomerDetails";
 import type { StepperStep } from "@/components/admin/SequenceStepper";
 import {
   SequenceCard,
@@ -110,6 +111,8 @@ export default async function CustomerDetailPage({
           sub={`${person.outbox.length} total in outbox`}
         />
       </div>
+
+      <CustomerDetails key={email} customer={person.contact} />
 
       {/* Live sequences — the heart of the page */}
       <section className="space-y-3">

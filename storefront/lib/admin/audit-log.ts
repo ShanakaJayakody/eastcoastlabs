@@ -56,7 +56,7 @@ export async function listAudit(filters: AuditFilters = {}): Promise<AuditPage> 
   return { rows: (data ?? []) as AuditRow[], total: count ?? 0 };
 }
 
-function auditQuery(filters: AuditFilters, limit: number, offset: number) {
+async function auditQuery(filters: AuditFilters, limit: number, offset: number) {
   const { actor, action, entityType, entityId, from, to } = filters;
 
   let q = adminDb()
@@ -77,7 +77,12 @@ function auditQuery(filters: AuditFilters, limit: number, offset: number) {
       : q.eq("action", action);
   }
   if (entityType) q = q.eq("entity_type", entityType);
-  if (entityId) q = q.eq("entity_id", entityId);
+  if (entityId && entityType === "customer") {
+    const { data: profile, error } = await adminDb().from("customer_profiles")
+      .select("previous_emails").eq("email", entityId).maybeSingle();
+    if (error) throw new Error(`Cannot load customer audit history: ${error.message}`);
+    q = q.in("entity_id", [entityId, ...(profile?.previous_emails ?? [])]);
+  } else if (entityId) q = q.eq("entity_id", entityId);
 
   const fromIso = sydneyDayBoundary(from);
   const toIsoBound = sydneyDayBoundary(to, true);
