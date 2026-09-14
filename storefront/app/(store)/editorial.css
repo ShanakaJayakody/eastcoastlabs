@@ -167,7 +167,6 @@
   padding-inline: 13px;
 }
 .ecl-header-inner > a img {
-  filter: grayscale(1) brightness(2);
   height: 37px;
 }
 .ecl-header-inner > a > span {
@@ -961,9 +960,6 @@
 .ecl-footer .grid > div > p {
   font-size: 11px;
   line-height: 1.8;
-}
-.ecl-footer .grid > div > div img {
-  filter: grayscale(1) brightness(2);
 }
 .ecl-footer-wordmark {
   font-size: clamp(30px, 8.7vw, 134px);
