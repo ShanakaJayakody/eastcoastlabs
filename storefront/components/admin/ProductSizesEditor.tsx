@@ -80,8 +80,8 @@ function SizeRow({ size, parentSlug, disabled, onStock }: {
   </div>;
 }
 
-export default function ProductSizesEditor({ product, sizes, disabled=false }: {
-  product: ProductListRow; sizes: ProductListRow[]; disabled?: boolean;
+export default function ProductSizesEditor({ product, sizes, disabled=false, adminName }: {
+  product: ProductListRow; sizes: ProductListRow[]; disabled?: boolean; adminName?: string | null;
 }) {
   const router=useRouter();
   const [pending,start]=useTransition();
@@ -125,10 +125,11 @@ export default function ProductSizesEditor({ product, sizes, disabled=false }: {
         </div>
         <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" checked={includePacks} onChange={e=>setIncludePacks(e.target.checked)} className="accent-[var(--color-accent)]"/>Include 3-vial and 6-vial packs</label>
         {includePacks && <div className="grid gap-3 sm:grid-cols-2">{([3,6] as const).map(pack=><label key={pack} className="text-xs text-muted"><span className="mb-1.5 block">{pack}-pack price (AUD)</span><input aria-label={`New size ${pack}-pack price`} type="number" min="0.01" step="0.01" value={packPrice(pack)} onChange={e=>setOverrides({...overrides,[pack]:e.target.value})} className={field}/><span className="mt-1 block">{overrides[pack]===undefined?`Suggested ${pack===3?'10':'20'}% pack saving · editable`:'Custom price'}</span></label>)}</div>}
+        <p className="text-sm text-fg-2">Opening stock recorded by <strong className="text-fg">{adminName || 'Name not set'}</strong></p>
         <p className="text-xs text-muted">Adding a size saves it and records its opening stock immediately.</p>
         <div className="flex justify-end gap-2"><button type="button" className={button} onClick={()=>setAdding(false)}>Cancel</button><button type="button" className={`${button} border-accent bg-accent text-accent-ink`} disabled={pending || disabled || !label.trim() || !Number(single) || (!product.size_label && !currentLabel.trim())} onClick={add}>{pending?'Adding…':'Add size & save'}</button></div>
       </fieldset>}
     </div>
-    <StockDrawer target={target} onClose={()=>setStockSize(null)}/>
+    <StockDrawer target={target} onClose={()=>setStockSize(null)} adminName={adminName}/>
   </section>;
 }

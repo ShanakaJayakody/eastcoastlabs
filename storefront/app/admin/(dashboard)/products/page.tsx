@@ -42,7 +42,7 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<{ q?: string; low?: string; status?: string }>;
 }) {
-  await requireAdmin();
+  const session = await requireAdmin();
   const sp = await searchParams;
   const search = sp.q?.trim() ?? "";
 
@@ -179,7 +179,7 @@ export default async function ProductsPage({
           )}
         </div>
       ) : (
-        <ProductsTable products={visible} />
+        <ProductsTable products={visible} adminName={session.name} />
       )}
     </div>
   );

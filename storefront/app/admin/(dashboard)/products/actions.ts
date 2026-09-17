@@ -314,9 +314,9 @@ export async function reverseReceipt(slug:string,receiptId:string):Promise<Actio
 
 /** Movement history for one variant, fetched on demand so the stock drawer can
  *  show a ledger from the products list without every row preloading one. */
-export async function fetchMovements(variantId: string): Promise<MovementRow[]> {
+export async function fetchMovements(variantId: string, receiptsOnly = false): Promise<MovementRow[]> {
   await requireAdmin();
-  return variantMovements(variantId);
+  return variantMovements(variantId, 20, receiptsOnly);
 }
 
 /** Manually set a product's cost per vial (no receipt involved). */

@@ -14,6 +14,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 export interface AdminSession {
   email: string;
   userId: string;
+  name: string | null;
 }
 
 /**
@@ -38,13 +39,13 @@ const resolveSession = cache(async (): Promise<AdminSession | "anon" | "forbidde
   const email = user.email.toLowerCase();
   const { data } = await admin
     .from("admin_users")
-    .select("email")
+    .select("email, name")
     .eq("email", email)
     .eq("active", true)
     .maybeSingle();
 
   if (!data) return "forbidden";
-  return { email, userId: user.id };
+  return { email, userId: user.id, name: data.name?.trim() || null };
 });
 
 /** Returns the admin session, or null if not signed in / not allow-listed. */

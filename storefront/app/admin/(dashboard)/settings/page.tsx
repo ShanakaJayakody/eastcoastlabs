@@ -10,13 +10,13 @@ export default async function SettingsPage() {
   await requireAdmin();
   const [settings, { data: admins }] = await Promise.all([
     getSettings(),
-    adminDb().from("admin_users").select("email").eq("active", true).order("email"),
+    adminDb().from("admin_users").select("id, email, name").eq("active", true).order("email"),
   ]);
   return (
     <div className="space-y-6">
       <SettingsForm
         settings={settings}
-        adminEmails={(admins ?? []).map((a) => a.email as string)}
+        admins={admins ?? []}
       />
       <CronHealth />
     </div>

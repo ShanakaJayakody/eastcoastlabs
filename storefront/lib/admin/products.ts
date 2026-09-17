@@ -499,21 +499,41 @@ export async function adjustStockWithNotify(opts: {
 }
 
 export interface MovementRow {
+  id: string;
   qty: number;
   reason: string;
   actor_email: string | null;
+  actor_name: string | null;
+  reversed: boolean;
   note: string | null;
   created_at: string;
 }
 
-export async function variantMovements(variantId: string, limit = 20): Promise<MovementRow[]> {
-  const { data } = await adminDb()
+export async function variantMovements(variantId: string, limit = 20, receiptsOnly = false): Promise<MovementRow[]> {
+  const db = adminDb();
+  let query = db
     .from("stock_movements")
-    .select("qty, reason, actor_email, note, created_at")
-    .eq("variant_id", variantId)
+    .select("id, qty, reason, actor_email, note, created_at")
+    .eq("variant_id", variantId);
+  if (receiptsOnly) query = query.eq("reason", "received");
+  const { data, error } = await query
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(limit);
-  return (data ?? []) as MovementRow[];
+  if (error) throw new Error(`Cannot load stock history: ${error.message}`);
+  if (!data?.length) return [];
+
+  const emails = [...new Set(data.flatMap(row => row.actor_email ? [row.actor_email] : []))];
+  const receiptIds = data.filter(row => row.reason === "received").map(row => row.id);
+  const [admins, reversals] = await Promise.all([
+    emails.length ? db.from("admin_users").select("email, name").in("email", emails) : { data: [], error: null },
+    receiptIds.length ? db.from("stock_movements").select("reverses_receipt_id").in("reverses_receipt_id", receiptIds) : { data: [], error: null },
+  ]);
+  if (admins.error) throw new Error(`Cannot load admin names: ${admins.error.message}`);
+  if (reversals.error) throw new Error(`Cannot load receipt reversals: ${reversals.error.message}`);
+  const names = new Map((admins.data ?? []).map(admin => [admin.email, admin.name?.trim() || null]));
+  const reversed = new Set((reversals.data ?? []).map(row => row.reverses_receipt_id));
+  return data.map(row => ({ ...row, actor_name: names.get(row.actor_email) ?? null, reversed: reversed.has(row.id) })) as MovementRow[];
 }
 
 /** Variants at or below their low-stock threshold — dashboard + products filter. */
