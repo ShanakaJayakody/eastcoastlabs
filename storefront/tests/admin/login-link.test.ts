@@ -3,7 +3,9 @@ import { NextRequest } from "next/server";
 
 const { exchangeCodeForSession, getUser, signInWithOtp } = vi.hoisted(() => ({
   exchangeCodeForSession: vi.fn(),
-  getUser: vi.fn(async () => ({ data: { user: null } })),
+  getUser: vi.fn<() => Promise<{ data: { user: { email: string } | null } }>>(async () => ({
+    data: { user: null },
+  })),
   signInWithOtp: vi.fn(),
 }));
 
@@ -69,6 +71,17 @@ describe("admin magic-link sign-in", () => {
     const { middleware } = await import("@/middleware");
     const response = await middleware(
       new NextRequest("https://www.eastcoastlabs.com.au/admin/auth/callback?code=auth-code"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("lets an authenticated user open login to switch admin accounts", async () => {
+    getUser.mockResolvedValue({ data: { user: { email: "admin@omthentic.ai" } } });
+    const { middleware } = await import("@/middleware");
+    const response = await middleware(
+      new NextRequest("https://www.eastcoastlabs.com.au/admin/login"),
     );
 
     expect(response.status).toBe(200);
