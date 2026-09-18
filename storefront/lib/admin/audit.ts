@@ -14,14 +14,20 @@ export interface AuditEntry {
   diff?: unknown;
 }
 
-export async function logAudit(entry: AuditEntry): Promise<void> {
+export async function logAudit(entry: AuditEntry, { strict = false }: { strict?: boolean } = {}): Promise<void> {
   const admin = supabaseAdmin();
-  if (!admin) return;
-  await admin.from("admin_audit_log").insert({
+  if (!admin) {
+    if (strict) throw new Error("Audit database is unavailable");
+    return;
+  }
+  const { error } = await admin.from("admin_audit_log").insert({
     actor_email: entry.actor,
     action: entry.action,
     entity_type: entry.entityType ?? null,
     entity_id: entry.entityId ?? null,
     diff: entry.diff ?? null,
   });
+  // Opt-in checking lets callers report a committed change separately from
+  // failed audit delivery without changing existing best-effort consumers.
+  if (strict && error) throw new Error("Audit entry could not be saved");
 }

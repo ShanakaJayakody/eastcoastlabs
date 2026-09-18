@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import type { StoreSettings } from "@/lib/settings";
 import { saveSettings } from "@/app/admin/(dashboard)/settings/actions";
+import AdminNames, { type AdminNameRow } from "./AdminNames";
 
 const field =
   "w-full rounded-lg border border-line bg-ink-2 px-3 py-2 text-sm text-fg outline-none focus:border-accent";
@@ -13,10 +14,10 @@ const btn = "rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacit
 
 export default function SettingsForm({
   settings,
-  adminEmails,
+  admins,
 }: {
   settings: StoreSettings;
-  adminEmails: string[];
+  admins: AdminNameRow[];
 }) {
   const router = useRouter();
   const [version,setVersion] = useState(settings.version);
@@ -324,20 +325,7 @@ export default function SettingsForm({
       </div>
 
       <div className="space-y-4">
-        <section className="rounded-xl border border-line bg-surface p-4">
-          <h3 className="mb-2 text-sm font-semibold text-fg">Admin users</h3>
-          <ul className="space-y-1.5 text-sm">
-            {adminEmails.map((e) => (
-              <li key={e} className="truncate text-fg-2" title={e}>
-                {e}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-muted">
-            Only these addresses can sign in. Add or remove them in the{" "}
-            <span className="font-mono">admin_users</span> table.
-          </p>
-        </section>
+        <AdminNames admins={admins}/>
 
         <section className="rounded-xl border border-line bg-surface p-4">
           <h3 className="mb-2 text-sm font-semibold text-fg">How payment works</h3>

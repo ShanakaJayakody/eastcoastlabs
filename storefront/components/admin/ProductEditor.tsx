@@ -16,6 +16,7 @@ import { formatAud } from "@/lib/format";
 import { marginOf, tierCostCents } from "@/lib/admin/costs";
 import type { ProductDetail, ProductListRow, MovementRow } from "@/lib/admin/products";
 import ProductSizesEditor from './ProductSizesEditor';
+import StockHistory from './StockHistory';
 import {
   saveProductAll,
   duplicateProductAction,
@@ -71,6 +72,7 @@ export default function ProductEditor({
   prev,
   next,
   sizes,
+  adminName,
 }: {
   product: ProductDetail;
   /** Ledger for the vial pool — the only variant stock actually lives on. */
@@ -79,6 +81,7 @@ export default function ProductEditor({
   prev: ProductNeighbour | null;
   next: ProductNeighbour | null;
   sizes?: ProductListRow[];
+  adminName?: string | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -194,7 +197,7 @@ export default function ProductEditor({
   const stockTarget: StockTarget | null = pool
     ? {
         slug: product.slug,
-        name: product.name,
+        name: product.size_label ? `${product.name} · ${product.size_label}` : product.name,
         poolId: pool.id,
         vialsOnHand,
         unitCostCents: product.unit_cost_cents,
@@ -383,7 +386,7 @@ export default function ProductEditor({
           </div>
 
           {/* ---- Pricing ---- */}
-          <ProductSizesEditor product={product} sizes={sizes ?? [product]} disabled={dirty || pending}/>
+          <ProductSizesEditor product={product} sizes={sizes ?? [product]} disabled={dirty || pending} adminName={adminName}/>
           {!product.size_label && <section id="pricing" className={`${card} scroll-mt-40`}>
             <div className="border-b border-line px-5 py-3">
               <h3 className="text-sm font-semibold text-fg">Tier pricing</h3>
@@ -506,6 +509,13 @@ export default function ProductEditor({
                       </span>
                     ))}
                   </div>
+                </div>
+
+                <div className="border-t border-line pt-4">
+                  <h4 className="text-sm font-semibold text-fg">Who added stock</h4>
+                  <p className="mb-3 mt-1 text-xs text-muted">Latest receipts for this stock pool. Open Manage stock for the full recent history.</p>
+                  {movements.length ? <StockHistory movements={movements.slice(0, 3)} productName={product.size_label ? `${product.name} · ${product.size_label}` : product.name}/>
+                    : <p className="text-sm text-muted">No stock receipts recorded yet.</p>}
                 </div>
 
                 {/* Cost per vial: one home, beside the stock it values. */}
@@ -740,6 +750,7 @@ export default function ProductEditor({
         target={stockOpen ? stockTarget : null}
         onClose={() => setStockOpen(false)}
         initialMovements={movements}
+        adminName={adminName}
       />
     </>
   );

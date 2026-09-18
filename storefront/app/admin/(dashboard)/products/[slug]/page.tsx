@@ -12,7 +12,7 @@ import ProductEditor, { type ProductNeighbour } from "@/components/admin/Product
 export const dynamic = "force-dynamic";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  await requireAdmin();
+  const session = await requireAdmin();
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
@@ -22,7 +22,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const pool = product.variants.find((v) => v.pack_size === 1) ?? null;
 
   const [movements, waitlist, all] = await Promise.all([
-    pool ? variantMovements(pool.id) : Promise.resolve([] as MovementRow[]),
+    pool ? variantMovements(pool.id, 20, true) : Promise.resolve([] as MovementRow[]),
     waitlistCount(slug),
     listProducts(),
   ]);
@@ -43,6 +43,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   return (
     <ProductEditor key={product.id}
       product={product}
+      adminName={session.name}
       sizes={sizes}
       movements={movements}
       waitlist={waitlist}

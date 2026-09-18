@@ -49,13 +49,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Already authenticated but sitting on the login page → dashboard.
-  if (user && isLogin) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  // Keep the login page reachable for an existing session so a signed-in user
+  // can deliberately switch to a different admin account.
 
   return response;
 }

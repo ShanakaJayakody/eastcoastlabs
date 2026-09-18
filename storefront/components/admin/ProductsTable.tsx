@@ -66,7 +66,7 @@ type SortKey = "name" | "stock" | "price";
 const field =
   "rounded-lg border border-line bg-ink-2 px-2.5 py-1.5 text-sm text-fg outline-none focus:border-accent";
 
-export default function ProductsTable({ products }: { products: ProductListRow[] }) {
+export default function ProductsTable({ products, adminName }: { products: ProductListRow[]; adminName?: string | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -91,7 +91,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
   const openStock = (p: ProductListRow, pool: VariantRow) =>
     setStockTarget({
       slug: p.slug,
-      name: p.name,
+      name: p.size_label ? `${p.name} · ${p.size_label}` : p.name,
       poolId: pool.id,
       vialsOnHand: p.totalOnHand,
       unitCostCents: p.unit_cost_cents,
@@ -443,6 +443,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
           >
             Apply stock
           </button>
+          <span className="rounded-md bg-accent/10 px-2 py-1 text-xs text-fg-2">Stock by <strong className="text-fg">{adminName || "Name not set"}</strong></span>
           <span className="mx-1 h-4 w-px bg-line-2" />
           <input
             placeholder="Price %"
@@ -484,7 +485,7 @@ export default function ProductsTable({ products }: { products: ProductListRow[]
         onCancel={() => setConfirmReprice(false)}
       />
 
-      <StockDrawer target={stockTarget} onClose={() => setStockTarget(null)} />
+      <StockDrawer target={stockTarget} onClose={() => setStockTarget(null)} adminName={adminName} />
     </>
   );
 }

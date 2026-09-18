@@ -22,7 +22,7 @@ function AutoChip() {
   );
 }
 
-export default function NewProductForm() {
+export default function NewProductForm({ adminName }: { adminName?: string | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -222,6 +222,7 @@ export default function NewProductForm() {
 
         <section className="rounded-xl border border-line bg-surface p-5">
           <h3 className="text-sm font-semibold text-fg">Inventory</h3>
+          <p className="mt-2 rounded-lg border border-accent/25 bg-accent/5 p-3 text-sm text-fg-2">Stock recorded by <strong className="text-fg">{adminName || "Name not set"}</strong></p>
           <p className="mb-3 mt-1 text-xs text-muted">
             Stock is counted in vials and held as one pool — pack tiers draw from it rather than
             holding stock of their own.

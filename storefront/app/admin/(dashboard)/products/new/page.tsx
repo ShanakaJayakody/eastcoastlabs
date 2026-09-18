@@ -6,7 +6,7 @@ import NewProductForm from "@/components/admin/NewProductForm";
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
-  await requireAdmin();
+  const session = await requireAdmin();
   return (
     <div className="space-y-5">
       <div>
@@ -21,7 +21,7 @@ export default async function NewProductPage() {
           Creates the 1-vial, 3-pack and 6-pack tiers with inventory in one step.
         </p>
       </div>
-      <NewProductForm />
+      <NewProductForm adminName={session.name}/>
     </div>
   );
 }

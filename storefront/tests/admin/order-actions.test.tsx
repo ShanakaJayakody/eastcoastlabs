@@ -22,7 +22,11 @@ it('records a full refund only after explicit confirmation',async()=>{
  expect(within(dialog).getByText(/bank separately/i)).toBeTruthy();
  fireEvent.click(within(dialog).getByRole('button',{name:'Preview refund'}));
  await within(dialog).findByText('Refund to record: $1.00');
- fireEvent.click(within(dialog).getByRole('button',{name:'Record refund'}));
+ // The quote can render before React finishes the preview transition.
+ // Wait for the ready control, not just the quote, before confirming.
+ const confirm=await within(dialog).findByRole('button',{name:'Record refund'});
+ expect(commitRefund).not.toHaveBeenCalled();
+ fireEvent.click(confirm);
  await waitFor(()=>expect(commitRefund).toHaveBeenCalled());
 });
 it('a mixed five-order bulk result retains exact failures and their selections',async()=>{
