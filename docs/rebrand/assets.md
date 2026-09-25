@@ -2,9 +2,9 @@
 
 Both images were created with the built-in image-generation tool and converted to 1440px-wide WebP assets with Sharp. Existing originals were preserved. Product labels remain illustrative photography; current specifications come from the catalogue. No image is used as laboratory evidence.
 
-## Coastal portrait — retired from the rendered routes on 25 September 2026
+## Coastal portrait
 
-The copy and typography revision removed this image from `/1`, `/2` and `/3`. It is retained in the repository for provenance; it is not presented as a customer or team photograph.
+Restored to the rendered routes on 25 September 2026 at the owner’s request for a more welcoming, friendly design. It appears in the sage and plum heroes and the navy contact section. It is editorial brand imagery, not a customer or team photograph.
 
 ### Original generation
 
