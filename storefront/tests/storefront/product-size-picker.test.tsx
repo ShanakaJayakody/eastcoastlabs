@@ -7,12 +7,26 @@ import SizedProductExperience from '@/components/SizedProductExperience';
 import SupplierReportLinks from '@/components/SupplierReportLinks';
 import { labReports } from '@/lib/lab-reports';
 import { setAnalyticsConsent } from '@/lib/attribution';
+import { withRebrandImages } from '@/lib/rebrand-imagery';
 const m=vi.hoisted(()=>({add:vi.fn(),selectSize:vi.fn(),view:vi.fn(),lines:[] as unknown[]}));
 vi.mock('@/lib/cart-context',()=>({useCart:()=>({addLine:m.add,stockFor:()=>null,lines:m.lines})}));
 vi.mock('@/lib/ui-context',()=>({useUI:()=>({openCart:vi.fn()})}));
 vi.mock('@/lib/analytics',async(importOriginal)=>({...await importOriginal<typeof import('@/lib/analytics')>(),trackAddToCart:vi.fn(),trackSelectSize:m.selectSize,trackViewItem:m.view}));
 afterEach(()=>{cleanup();m.add.mockClear();m.selectSize.mockClear();m.view.mockClear();m.lines=[];document.cookie='ecl_analytics_consent=; Max-Age=0; Path=/';});
 const product={id:1,name:'Sample',slug:'sample',sku:'SAMPLE'};
+it('keeps the chosen vial design and exact strength when the customer changes size',()=>{
+ history.replaceState({},'', '/product/retatrutide?rebrand=v3#pack-options');
+ const themed=withRebrandImages({...product,name:'Retatrutide',slug:'retatrutide',sizes},'v3');
+ render(<SizedProductExperience product={themed} sizes={themed.sizes} minorUnit={2} coa={null}/>);
+ expect(screen.getByRole('img',{name:'Retatrutide 10 mg research vial — East Coast Labs'})).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('radio',{name:'20 mg'}));
+ const image=screen.getByRole('img',{name:'Retatrutide 20 mg research vial — East Coast Labs'});
+ expect(decodeURIComponent(image.getAttribute('src') ?? '')).toContain('/images/rebrand/vials/v3/retatrutide-20mg.webp');
+ expect(screen.queryByRole('img',{name:'Retatrutide 10 mg research vial — East Coast Labs'})).toBeNull();
+ expect(window.location.href).toContain('rebrand=v3&size=sample-size-20#pack-options');
+ fireEvent.click(screen.getByRole('button',{name:/Add to Cart ·/}));
+ expect(m.add).toHaveBeenLastCalledWith(expect.objectContaining({slug:'sample-size-20',unitPrice:48}),1,3);
+});
 it('keeps historical sample evidence accessible without presenting it as selected-size certification',()=>{
  render(<SizedProductExperience product={product} sizes={sizes} minorUnit={2} coa={null} supplierEvidence={<SupplierReportLinks reports={labReports.filter(report=>report.productSlug==='ghk-cu')}/>}/>);
  expect(screen.getByRole('link',{name:/GHK.*View report/i})).toHaveAttribute('href','/lab-results#report-51162');

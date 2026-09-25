@@ -7,6 +7,7 @@ import { purchasableStartingPriceMinor } from '@/lib/product-sizes';
 import { commerceItem, trackViewItemList } from '@/lib/analytics';
 import { minorToMajor } from '@/lib/format';
 import { ANALYTICS_CONSENT_EVENT, analyticsConsent } from '@/lib/attribution';
+import type { RebrandVariant } from './rebrand/content';
 
 /**
  * Shop grid with research-goal filter pills + a name/SKU search. Filters
@@ -15,9 +16,11 @@ import { ANALYTICS_CONSENT_EVENT, analyticsConsent } from '@/lib/attribution';
 export default function ShopFilterGrid({
   products,
   collections,
+  imageVariant,
 }: {
   products: CardProduct[];
   collections: Collection[];
+  imageVariant?: RebrandVariant;
 }) {
   const [active, setActive] = useState("all");
   const [query, setQuery] = useState("");
@@ -138,7 +141,7 @@ export default function ShopFilterGrid({
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} listId="shop" listName="Shop" />
+            <ProductCard key={product.id} product={product} listId="shop" listName="Shop" imageVariant={imageVariant} />
           ))}
         </div>
       )}

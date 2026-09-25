@@ -1,5 +1,5 @@
 import MarketingOnly from "./MarketingOnly";
-import Link from "next/link";
+import Link from './rebrand/RebrandLink';
 import Image from "next/image";
 import ResearchDisclaimer from "./ResearchDisclaimer";
 import EmailCapture from "./EmailCapture";

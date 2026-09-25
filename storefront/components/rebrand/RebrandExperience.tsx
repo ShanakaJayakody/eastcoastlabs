@@ -27,6 +27,7 @@ import type { Collection } from "@/lib/collections";
 import type { CoaRecord } from "@/lib/coa";
 import type { LabReport } from "@/lib/lab-reports";
 import { directions, questions, type RebrandVariant } from "./content";
+import { rebrandHref } from '@/lib/rebrand-imagery';
 
 export interface RebrandProps {
   variant: RebrandVariant;
@@ -105,7 +106,7 @@ function Header({ variant }: { variant: RebrandVariant }) {
             ))}
           </nav>
           <div className="rb-header-actions">
-            <Link href="/shop" className="rb-shop-link">
+            <Link href={rebrandHref('/shop', variant)} className="rb-shop-link">
               View peptides <ArrowUpRight size={15} />
             </Link>
             <button
@@ -146,7 +147,7 @@ function Header({ variant }: { variant: RebrandVariant }) {
                 <ArrowUpRight size={18} />
               </a>
             ))}
-            <Link href="/shop">
+            <Link href={rebrandHref('/shop', variant)}>
               View all products <ArrowUpRight size={18} />
             </Link>
             <Link href="/about">
@@ -222,7 +223,7 @@ function Hero({
             </div>
             <Image
               unoptimized
-              src="/images/rebrand/research-collection.webp"
+              src="/images/rebrand/research-collection-v2.webp"
               alt="East Coast Labs research vials arranged on pale blue glass plinths"
               fill
               priority
@@ -301,7 +302,7 @@ function CollectionSection({
             <p className="rb-eyebrow">Our research peptides</p>
             <h2 id="rb-collection-title">{directions[variant].rangeTitle}</h2>
           </div>
-          <Link href="/shop" className="rb-text-link">
+          <Link href={rebrandHref('/shop', variant)} className="rb-text-link">
             View all peptides <ArrowUpRight size={17} />
           </Link>
         </div>
@@ -339,6 +340,7 @@ function CollectionSection({
               <div key={product.id} className="rb-product-with-report">
                 <ProductCard
                   product={product}
+                  imageVariant={variant}
                   listId={`rebrand_${variant}`}
                   listName="Research collection"
                 />
@@ -372,7 +374,7 @@ function CollectionSection({
                 : "There are no products to show here."}
             </h3>
             <p>Try the full catalogue, or email us to check availability.</p>
-            <Link href="/shop" className="rb-text-link">
+            <Link href={rebrandHref('/shop', variant)} className="rb-text-link">
               Open the catalogue <ArrowRight size={16} />
             </Link>
           </div>
@@ -692,7 +694,7 @@ function Footer({
           </div>
           <nav aria-label="Footer collection links">
             <h3>Products and reports</h3>
-            <Link href="/shop">Research peptides</Link>
+            <Link href={rebrandHref('/shop', variant)}>Research peptides</Link>
             <Link href="/lab-results">Laboratory reports</Link>
             <a href="#ordering">Ordering & delivery</a>
             <Link href="/about">About East Coast Labs</Link>

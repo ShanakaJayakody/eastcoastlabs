@@ -8,6 +8,7 @@ import { getCollections } from "@/lib/collections";
 import { getComingSoonProducts } from "@/lib/coming-soon";
 import ComingSoonShelf from "@/components/ComingSoonShelf";
 import type { CardProduct } from "@/components/ProductCard";
+import { parseRebrandVariant, withRebrandImages } from '@/lib/rebrand-imagery';
 
 export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
@@ -19,7 +20,8 @@ export const metadata: Metadata = {
 // Live catalog is fetched server-side (works despite CORS) with a 5-min revalidate.
 export const revalidate = 300;
 
-export default async function ShopPage() {
+export default async function ShopPage({ searchParams }: { searchParams?: Promise<{ rebrand?: string | string[] }> }) {
+  const imageVariant = parseRebrandVariant((await searchParams)?.rebrand);
   const [{ products }, comingSoon] = await Promise.all([
     getCatalog(),
     getComingSoonProducts(),
@@ -63,7 +65,7 @@ export default async function ShopPage() {
         </div>
       ) : (
         <div className="mt-5 sm:mt-8">
-          <ShopFilterGrid products={cards} collections={collections} />
+          <ShopFilterGrid products={cards} collections={collections} imageVariant={imageVariant} />
         </div>
       )}
 
@@ -82,7 +84,7 @@ export default async function ShopPage() {
       </section>
 
       {/* Pipeline — sourcing candidates, with waitlist capture per compound */}
-      <ComingSoonShelf products={comingSoon} />
+      <ComingSoonShelf products={comingSoon.map(product => withRebrandImages(product, imageVariant))} />
     </div>
   );
 }

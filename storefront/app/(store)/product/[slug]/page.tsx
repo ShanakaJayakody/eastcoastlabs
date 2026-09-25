@@ -24,6 +24,7 @@ import { getSettings } from "@/lib/settings";
 import { getGuideForCompound } from "@/lib/guides";
 import ProductDescription, { decodeProductEntities } from '@/components/ProductDescription';
 import { buildProductJsonLd, serializeProductJsonLd } from '@/lib/product-jsonld';
+import { parseRebrandVariant, rebrandHref, withRebrandImages } from '@/lib/rebrand-imagery';
 
 export const revalidate = 300;
 
@@ -52,12 +53,15 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ size?: string }> }) {
+export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ size?: string; rebrand?: string | string[] }> }) {
   const { slug } = await params;
-  const product = await getCatalogProduct(slug);
-  if (!product) notFound();
-  if (product.canonicalSlug) redirect(`/product/${product.canonicalSlug}?size=${encodeURIComponent(slug)}`);
-  const initialSize = (await searchParams)?.size;
+  const query = await searchParams;
+  const imageVariant = parseRebrandVariant(query?.rebrand);
+  const source = await getCatalogProduct(slug);
+  if (!source) notFound();
+  if (source.canonicalSlug) redirect(rebrandHref(`/product/${source.canonicalSlug}?size=${encodeURIComponent(slug)}`, imageVariant));
+  const product = withRebrandImages(source, imageVariant);
+  const initialSize = query?.size;
 
   const minorUnit = product.prices.currency_minor_unit;
   const selectedSize = product.sizes?.find((size) => size.slug === initialSize)
@@ -82,7 +86,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         id: bacWaterProduct.id,
         name: bacWaterProduct.name,
         price: minorToMajor(bacWaterProduct.prices.price, bacWaterProduct.prices.currency_minor_unit),
-        image: bacWaterProduct.images?.[0]?.src,
+        image: withRebrandImages(bacWaterProduct, imageVariant).images?.[0]?.src,
       }
     : null;
 
@@ -109,7 +113,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
       {/* Breadcrumb */}
       <nav className="mb-6 text-xs text-muted-2">
-        <a href="/shop" className="hover:text-accent">Shop</a> <span className="mx-1">/</span>
+        <a href={rebrandHref('/shop', imageVariant)} className="hover:text-accent">Shop</a> <span className="mx-1">/</span>
         <span className="text-fg-2">{product.name}</span>
       </nav>
 
@@ -261,7 +265,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           <h2 className="mb-5 text-lg font-semibold text-fg">Frequently researched together</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {crossSells.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard key={p.id} product={p} imageVariant={imageVariant} />
             ))}
           </div>
         </section>
