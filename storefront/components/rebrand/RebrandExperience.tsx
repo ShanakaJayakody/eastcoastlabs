@@ -6,7 +6,6 @@ import Image from "next/image";
 import {
   ArrowRight,
   ArrowUpRight,
-  Check,
   FileCheck2,
   FileText,
   FlaskConical,
@@ -42,10 +41,22 @@ export interface RebrandProps {
   abn?: string;
 }
 const nav = [
-  { href: "#collection", label: "Our collection" },
-  { href: "#standards", label: "Testing & transparency" },
-  { href: "#journal", label: "The reading room" },
+  { href: "#collection", label: "Products" },
+  { href: "#standards", label: "Lab reports" },
+  { href: "#journal", label: "Before you order" },
 ];
+
+function reportDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("en-AU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+}
 
 function Wordmark({ href }: { href: string }) {
   return (
@@ -53,7 +64,7 @@ function Wordmark({ href }: { href: string }) {
       <span>
         east coast<span className="rb-wordmark-dot">.</span>
       </span>
-      <small>LABS · AUSTRALIA</small>
+      <small>Labs Australia</small>
     </Link>
   );
 }
@@ -69,10 +80,9 @@ function Header({ variant }: { variant: RebrandVariant }) {
         Skip to content
       </a>
       <div className="rb-announcement">
-        <span>Australian owned. Thoughtfully considered.</span>
+        <span>Australian owned · Research use only</span>
         <Link href="/lab-results">
-          Original laboratory reports, open to explore{" "}
-          <ArrowUpRight size={12} />
+          Read the supplier lab reports <ArrowUpRight size={12} />
         </Link>
       </div>
       <header
@@ -95,7 +105,7 @@ function Header({ variant }: { variant: RebrandVariant }) {
           </nav>
           <div className="rb-header-actions">
             <Link href="/shop" className="rb-shop-link">
-              Explore peptides <ArrowUpRight size={15} />
+              View products <ArrowUpRight size={15} />
             </Link>
             <button
               type="button"
@@ -136,7 +146,7 @@ function Header({ variant }: { variant: RebrandVariant }) {
               </a>
             ))}
             <Link href="/shop">
-              Explore all peptides <ArrowUpRight size={18} />
+              View all products <ArrowUpRight size={18} />
             </Link>
             <Link href="/about">
               About East Coast Labs <ArrowUpRight size={18} />
@@ -151,7 +161,13 @@ function Header({ variant }: { variant: RebrandVariant }) {
 function Hero({
   variant,
   reportCount,
-}: Pick<RebrandProps, "variant" | "reportCount">) {
+  report,
+  supportEmail,
+  supportHours,
+}: Pick<
+  RebrandProps,
+  "variant" | "reportCount" | "report" | "supportEmail" | "supportHours"
+>) {
   const copy = directions[variant];
   const science = variant === "v2";
   return (
@@ -161,26 +177,28 @@ function Hero({
     >
       <div className="rb-container rb-hero-grid">
         <div className="rb-hero-copy">
-          <p className="rb-eyebrow">
-            <span className="rb-small-rule" />
-            {copy.eyebrow}
-          </p>
+          <p className="rb-eyebrow">{copy.eyebrow}</p>
           <h1 id="rb-hero-title">
-            {copy.heading}
-            <br />
-            <em>{copy.emphasis}</em>
+            {copy.heading} <br />
+            <span>{copy.emphasis}</span>
           </h1>
           <p className="rb-intro">{copy.intro}</p>
           <div className="rb-actions">
             <Link
-              href={science ? "/lab-results" : "#collection"}
+              href={
+                science
+                  ? "/lab-results"
+                  : variant === "v3"
+                    ? `mailto:${supportEmail}`
+                    : "#collection"
+              }
               className="rb-button rb-button-primary"
             >
               {copy.primary}
               <ArrowUpRight size={18} />
             </Link>
             <Link
-              href={science ? "#collection" : "#standards"}
+              href={variant === "v1" ? "/lab-results" : "#collection"}
               className="rb-text-link"
             >
               {copy.secondary}
@@ -188,46 +206,70 @@ function Hero({
             </Link>
           </div>
           <div className="rb-hero-notes">
-            <span>
-              <Check size={14} /> Original source documents
-            </span>
-            <span>
-              <Check size={14} /> Australian support
-            </span>
+            <span>Original supplier lab reports</span>
+            <span>Australian contact details</span>
           </div>
           <p className="rb-research-note">
             For laboratory research only. Not for human or animal consumption.
           </p>
         </div>
         {variant === "v1" && (
-          <div className="rb-hero-portrait">
-            <Image
-              unoptimized
-              src="/images/rebrand/coastal-women.webp"
-              alt="Editorial brand image of two women at different stages of life on an Australian coastal path"
-              fill
-              priority
-              sizes="(max-width: 800px) 100vw, 50vw"
-            />
-            <div className="rb-photo-label">
-              <span className="rb-label-icon">
-                <FileCheck2 size={23} strokeWidth={1.3} />
-              </span>
-              <span>
-                Confidence in the details.
-                <small>Clear information. Open documentation.</small>
-              </span>
-              <ArrowUpRight size={18} />
+          <figure className="rb-document-hero">
+            <div className="rb-document-heading">
+              <span>A report you can check</span>
+              <span>Janoshik · #{report.taskNumber}</span>
             </div>
-            <span className="rb-photo-register">
-              A THOUGHTFUL WAY FORWARD / ECL
-            </span>
-          </div>
+            <a
+              href={report.image}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Read the original ${report.compound} supplier report`}
+            >
+              <Image
+                unoptimized
+                src={report.image}
+                alt={`Original ${report.compound} supplier report, dated ${reportDate(report.testDate)}`}
+                width={640}
+                height={880}
+                priority
+              />
+            </a>
+            <figcaption>
+              <strong>
+                {report.compound} · {reportDate(report.testDate)}
+              </strong>
+              <span>
+                Historical supplier report. Results apply to the tested sample.
+              </span>
+            </figcaption>
+          </figure>
+        )}
+        {variant === "v3" && (
+          <aside
+            className="rb-contact-card"
+            aria-labelledby="rb-contact-card-title"
+          >
+            <p className="rb-eyebrow">Contact East Coast Labs</p>
+            <h2 id="rb-contact-card-title">Send us your question</h2>
+            <p>
+              Include the product name, a report link or your order number. That
+              helps us get to the detail you need.
+            </p>
+            <a href={`mailto:${supportEmail}`} className="rb-contact-address">
+              {supportEmail}
+              <ArrowUpRight size={18} />
+            </a>
+            {supportHours && <p className="rb-contact-hours">{supportHours}</p>}
+            <div className="rb-contact-scope">
+              We can help with product information and orders. We don’t provide
+              medical or dosing advice.
+            </div>
+          </aside>
         )}
         {science && (
           <div className="rb-science-art">
             <div className="rb-science-art-top">
-              <span>THE RESEARCH COLLECTION</span>
+              <span>Our research peptides</span>
               <FlaskConical size={18} strokeWidth={1.2} />
             </div>
             <Image
@@ -238,74 +280,17 @@ function Hero({
               priority
               sizes="(max-width: 800px) 100vw, 50vw"
             />
-            <div className="rb-science-caption">
-              <span>
-                RESEARCH MATERIALS<span>Clarity, from the outset.</span>
-              </span>
-              <span>01—05</span>
-            </div>
             <Link href="/lab-results" className="rb-science-proof">
               <FileCheck2 size={25} strokeWidth={1.4} />
               <span>
                 <strong>{reportCount} original supplier reports</strong>
-                <small>View samples, dates & source documents</small>
+                <small>Read the original documents</small>
               </span>
               <ArrowUpRight size={20} />
             </Link>
           </div>
         )}
       </div>
-      {variant === "v3" && (
-        <div className="rb-container rb-editorial-panels">
-          <figure>
-            <div className="rb-editorial-image">
-              <Image
-                unoptimized
-                src="/images/rebrand/coastal-women.webp"
-                alt="Editorial portrait of two women beside the coast"
-                fill
-                priority
-                sizes="(max-width: 600px) 100vw, 40vw"
-              />
-            </div>
-            <figcaption>
-              <span>A HUMAN PERSPECTIVE</span>
-              <span>01</span>
-            </figcaption>
-          </figure>
-          <figure>
-            <div className="rb-editorial-image">
-              <Image
-                unoptimized
-                src="/images/rebrand/research-collection.webp"
-                alt="The East Coast Labs research collection"
-                fill
-                priority
-                sizes="(max-width: 600px) 100vw, 35vw"
-              />
-            </div>
-            <figcaption>
-              <span>A CONSIDERED COLLECTION</span>
-              <span>02</span>
-            </figcaption>
-          </figure>
-          <figure>
-            <div className="rb-editorial-image">
-              <Image
-                unoptimized
-                src="/images/editorial/coastal-study.webp"
-                alt="Waves meeting the Australian coastline"
-                fill
-                sizes="(max-width: 600px) 50vw, 25vw"
-              />
-            </div>
-            <figcaption>
-              <span>GROUNDED IN AUSTRALIA</span>
-              <span>03</span>
-            </figcaption>
-          </figure>
-        </div>
-      )}
     </section>
   );
 }
@@ -317,22 +302,24 @@ function TrustStrip() {
         <Link href="/lab-results">
           <FileCheck2 size={24} strokeWidth={1.3} />
           <span>
-            Evidence you can explore<small>Original lab reports, in full</small>
+            Read the original reports
+            <small>Check the sample, date and result</small>
           </span>
           <ArrowUpRight size={16} />
         </Link>
         <a href="#standards">
           <FlaskConical size={24} strokeWidth={1.3} />
           <span>
-            Details that matter<small>Sample, method and batch context</small>
+            Check which batch a report covers
+            <small>Ask us before you order</small>
           </span>
           <ArrowUpRight size={16} />
         </a>
         <a href="#contact">
           <MessageCircle size={24} strokeWidth={1.3} />
           <span>
-            A local point of contact
-            <small>An Australian team, here to help</small>
+            Contact East Coast Labs
+            <small>Send us your product or order question</small>
           </span>
           <ArrowUpRight size={16} />
         </a>
@@ -362,7 +349,7 @@ function CollectionSection({
       <div className="rb-container">
         <div className="rb-section-heading">
           <div>
-            <p className="rb-eyebrow">THE RESEARCH COLLECTION</p>
+            <p className="rb-eyebrow">Our research peptides</p>
             <h2 id="rb-collection-title">{directions[variant].rangeTitle}</h2>
           </div>
           <Link href="/shop" className="rb-text-link">
@@ -370,8 +357,8 @@ function CollectionSection({
           </Link>
         </div>
         <p className="rb-section-description">
-          Explore by research area. Find current sizes, availability and pricing
-          on each product page.
+          Choose a research area below, or open a product to see its sizes,
+          price and availability.
         </p>
         <div className="rb-filters" aria-label="Filter by research area">
           <button
@@ -379,7 +366,7 @@ function CollectionSection({
             aria-pressed={filter === "all"}
             onClick={() => setFilter("all")}
           >
-            Featured research
+            All research areas
           </button>
           {collections.map((item) => (
             <button
@@ -409,13 +396,10 @@ function CollectionSection({
             <FlaskConical size={30} strokeWidth={1.2} />
             <h3>
               {active
-                ? "More to explore in the full collection."
-                : "The collection is being updated."}
+                ? "No products to show in this group."
+                : "There are no products to show here."}
             </h3>
-            <p>
-              Contact our team for current product availability, or explore the
-              full catalogue.
-            </p>
+            <p>Try the full catalogue, or email us to check availability.</p>
             <Link href="/shop" className="rb-text-link">
               Open the catalogue <ArrowRight size={16} />
             </Link>
@@ -423,7 +407,7 @@ function CollectionSection({
         )}
         <div className="rb-range-note">
           <span>Laboratory research materials</span>
-          <span>Clear product information. Considered choices.</span>
+          <span>Sizes and availability are listed on each product page.</span>
         </div>
       </div>
     </section>
@@ -444,58 +428,58 @@ function EvidenceSection({
     >
       <div className="rb-container rb-evidence-grid">
         <div className="rb-evidence-copy">
-          <p className="rb-eyebrow">OUR APPROACH TO TRANSPARENCY</p>
+          <p className="rb-eyebrow">Checking the documentation</p>
           <h2 id="rb-evidence-title">{directions[variant].proofTitle}</h2>
           <p className="rb-section-description">
-            Trust should be something you can look into. That is why we make
-            original laboratory documentation accessible, with the context to
-            read it properly.
+            A laboratory report should tell you what was tested and what the lab
+            found. Here’s how to check the documents we publish, including what
+            they can and can’t confirm.
           </p>
           <ol className="rb-standards-list">
             <li>
-              <span>01</span>
+              <span>1</span>
               <div>
-                <h3>Start with the source.</h3>
+                <h3>Open the original report</h3>
                 <p>
-                  Read original Janoshik supplier reports and review the
-                  laboratory&apos;s verification page.
+                  Our supplier reports include a Janoshik verification link. You
+                  can check the report on the laboratory’s own website.
                 </p>
               </div>
             </li>
             <li>
-              <span>02</span>
+              <span>2</span>
               <div>
-                <h3>Look closely at the sample.</h3>
+                <h3>Read the sample details</h3>
                 <p>
-                  Check what was tested, when it was tested, and the
-                  measurements recorded in that report.
+                  Check the compound, test date and measurements. A result
+                  belongs to the sample named in that document.
                 </p>
               </div>
             </li>
             <li>
-              <span>03</span>
+              <span>3</span>
               <div>
-                <h3>Ask about the current batch.</h3>
+                <h3>Match it to the batch</h3>
                 <p>
-                  Historical results relate to their tested samples. Confirm
-                  current batch applicability with our team.
+                  An older report doesn’t tell you which batch you’ll receive.
+                  Ask us which documents apply to the product you want to order.
                 </p>
               </div>
             </li>
           </ol>
           <Link href="/lab-results" className="rb-button rb-button-primary">
-            Explore the report library <ArrowUpRight size={18} />
+            Read all lab reports <ArrowUpRight size={18} />
           </Link>
         </div>
         <div className="rb-report-stack">
           <div className="rb-report-card">
             <div className="rb-report-top">
-              <span>OPEN DOCUMENTATION</span>
+              <span>From the supplier report library</span>
               <FileText size={21} strokeWidth={1.3} />
             </div>
             <div className="rb-report-heading">
-              <h3>The detail is the difference.</h3>
-              <p>An original from our supplier report library.</p>
+              <h3>{report.compound} supplier report</h3>
+              <p>Open the image to read the full document.</p>
             </div>
             <a
               className="rb-report-preview"
@@ -519,7 +503,11 @@ function EvidenceSection({
               </div>
               <div>
                 <dt>Report date</dt>
-                <dd>{report.testDate}</dd>
+                <dd>
+                  <time dateTime={report.testDate}>
+                    {reportDate(report.testDate)}
+                  </time>
+                </dd>
               </div>
               <div>
                 <dt>Document reference</dt>
@@ -532,24 +520,22 @@ function EvidenceSection({
               rel="noopener noreferrer"
               className="rb-report-verify"
             >
-              Verify at Janoshik <ArrowUpRight size={17} />
+              Check this report on Janoshik <ArrowUpRight size={17} />
             </a>
             <p className="rb-report-footnote">
-              Historical supplier report. Sample-specific results; not proof of
-              current inventory or suitability for personal use.
+              This is a historical supplier report for the sample shown. It
+              doesn’t confirm current stock or suitability for personal use.
             </p>
           </div>
           <div className="rb-report-caption">
             <FileCheck2 size={18} />
-            <span>{reportCount} original reports. Available to read.</span>
+            <span>{reportCount} supplier reports in the library</span>
           </div>
         </div>
         {records.length > 0 && (
           <div className="rb-current-docs">
             <h3>Published batch documents</h3>
-            <p>
-              Read each document and confirm it applies to the batch you need.
-            </p>
+            <p>Check the batch number against the product you’re ordering.</p>
             {records.map((record) => (
               <a
                 key={`${record.compound}-${record.batch_id}`}
@@ -560,7 +546,7 @@ function EvidenceSection({
                 <span>
                   {record.compound}
                   <small>
-                    Batch {record.batch_id} · {record.test_date}
+                    Batch {record.batch_id} · {reportDate(record.test_date)}
                   </small>
                 </span>
                 <span>
@@ -575,42 +561,27 @@ function EvidenceSection({
   );
 }
 
-function AboutSection({ variant }: { variant: RebrandVariant }) {
+function AboutSection({
+  variant,
+  supportEmail,
+}: Pick<RebrandProps, "variant" | "supportEmail">) {
   return (
     <section id="about" className="rb-about" aria-labelledby="rb-about-title">
-      <div className="rb-about-image">
-        <Image
-          unoptimized
-          src={
-            variant === "v3"
-              ? "/images/rebrand/coastal-women.webp"
-              : "/images/editorial/coastal-study.webp"
-          }
-          alt={
-            variant === "v3"
-              ? "Editorial brand portrait of two women beside the Australian coast"
-              : "Ocean surf along a quiet Australian coastline"
-          }
-          fill
-          sizes="(max-width: 800px) 100vw, 50vw"
-        />
-        <span>EAST COAST ROOTS. AN OPEN OUTLOOK.</span>
-      </div>
       <div className="rb-about-copy">
-        <p className="rb-eyebrow">SCIENCE, WITH A HUMAN PERSPECTIVE</p>
+        <p className="rb-eyebrow">A note from East Coast Labs</p>
         <h2 id="rb-about-title">{directions[variant].aboutTitle}</h2>
         <p>{directions[variant].aboutCopy}</p>
         <p>
-          East Coast Labs is an Australian-owned research supplier. We bring
-          together open documentation, straightforward product information and a
-          team you can reach.
+          We’re an Australian-owned supplier of laboratory research peptides.
+          You can contact us about product specifications, supplier reports or
+          an existing order.
         </p>
-        <Link href="/about" className="rb-text-link">
-          Get to know East Coast Labs <ArrowUpRight size={17} />
+        <Link href={`mailto:${supportEmail}`} className="rb-text-link">
+          Email East Coast Labs <ArrowUpRight size={17} />
         </Link>
         <div className="rb-purpose-note">
-          Our products are for laboratory research only. For personal health
-          decisions, speak with a qualified healthcare professional.
+          Our products are for laboratory research only. They are not for human
+          or animal use.
         </div>
       </div>
     </section>
@@ -620,34 +591,28 @@ function AboutSection({ variant }: { variant: RebrandVariant }) {
 function Journal({ report }: { report: LabReport }) {
   const articles = [
     {
-      number: "01",
-      category: "UNDERSTANDING THE EVIDENCE",
-      title: "Start with the original document.",
+      category: "A sample report",
+      title: "What does a lab report look like?",
       href: report.image,
       detail:
-        "Read a historical supplier report, including the sample and test date.",
+        "Open the GHK-Cu supplier report and find the sample name, test date and results.",
       cta: "Open a sample report",
-      icon: FileText,
     },
     {
-      number: "02",
-      category: "A CLOSER LOOK AT TESTING",
+      category: "Understanding purity",
       title: "What can a purity result tell you?",
       href: "#rb-question-1",
       detail:
-        "Understand the scope of a sample result, and the questions it cannot answer.",
+        "A purity percentage has limits. Read what it tells you about a sample and what it leaves out.",
       cta: "Read the explanation",
-      icon: FlaskConical,
     },
     {
-      number: "03",
-      category: "BUILDING YOUR UNDERSTANDING",
-      title: "See the evidence in context.",
+      category: "The document library",
+      title: "Looking for a particular report?",
       href: "/lab-results",
       detail:
-        "Explore original supplier reports and available published batch documents.",
-      cta: "Explore the library",
-      icon: FileCheck2,
+        "Browse the supplier reports and any published batch documents by product.",
+      cta: "Find a report",
     },
   ];
   return (
@@ -659,8 +624,8 @@ function Journal({ report }: { report: LabReport }) {
       <div className="rb-container">
         <div className="rb-section-heading">
           <div>
-            <p className="rb-eyebrow">THE READING ROOM</p>
-            <h2 id="rb-journal-title">Good questions are a good start.</h2>
+            <p className="rb-eyebrow">Before you order</p>
+            <h2 id="rb-journal-title">A few things worth checking</h2>
           </div>
           <Link href="/lab-results" className="rb-text-link">
             View the report library <ArrowUpRight size={17} />
@@ -679,10 +644,6 @@ function Journal({ report }: { report: LabReport }) {
                     ?.setAttribute("open", "");
               }}
             >
-              <div className="rb-journal-art">
-                <article.icon size={48} strokeWidth={0.85} />
-                <span>{article.number}</span>
-              </div>
               <div className="rb-journal-copy">
                 <p className="rb-eyebrow">{article.category}</p>
                 <h3>{article.title}</h3>
@@ -704,15 +665,11 @@ function FaqSection({ supportEmail }: { supportEmail: string }) {
     <section className="rb-section rb-faq" aria-labelledby="rb-faq-title">
       <div className="rb-container rb-faq-grid">
         <div>
-          <p className="rb-eyebrow">HERE TO MAKE THINGS CLEARER</p>
-          <h2 id="rb-faq-title">
-            A little more
-            <br />
-            <em>understanding.</em>
-          </h2>
-          <p>Questions are always welcome.</p>
+          <p className="rb-eyebrow">Your questions</p>
+          <h2 id="rb-faq-title">What would you like to know?</h2>
+          <p>If your question isn’t covered here, send it to us.</p>
           <a href={`mailto:${supportEmail}`} className="rb-text-link">
-            Talk to our team <ArrowUpRight size={16} />
+            Email your question <ArrowUpRight size={16} />
           </a>
         </div>
         <div className="rb-faq-items">
@@ -746,53 +703,51 @@ function Footer({
       <div className="rb-container">
         <div className="rb-footer-top">
           <div>
-            <p className="rb-eyebrow">A LOCAL TEAM. AN OPEN CONVERSATION.</p>
-            <h2>Let&apos;s make things clearer.</h2>
+            <p className="rb-eyebrow">Contact East Coast Labs</p>
+            <h2>Still have a question?</h2>
           </div>
           <a
             href={`mailto:${supportEmail}`}
             className="rb-button rb-button-light"
           >
-            Get in touch <ArrowUpRight size={18} />
+            Email us <ArrowUpRight size={18} />
           </a>
         </div>
         <div className="rb-footer-grid">
           <div>
             <Wordmark href={`/${variant.slice(1)}`} />
             <p>
-              Research, thoughtfully considered.
+              An Australian-owned supplier
               <br />
-              From the Australian east coast.
+              of laboratory research peptides.
             </p>
             <span className="rb-location">
               <MapPin size={14} /> Australian owned
             </span>
           </div>
           <nav aria-label="Footer collection links">
-            <h3>Explore</h3>
+            <h3>Products and reports</h3>
             <Link href="/shop">Research peptides</Link>
             <Link href="/lab-results">Laboratory reports</Link>
-            <a href="#journal">The reading room</a>
-            <Link href="/about">Our story</Link>
+            <a href="#journal">Before you order</a>
+            <Link href="/about">About East Coast Labs</Link>
           </nav>
           <nav aria-label="Customer information">
-            <h3>Good to know</h3>
+            <h3>Ordering</h3>
             <Link href="/shipping">Shipping & delivery</Link>
             <Link href="/returns">Returns policy</Link>
             <Link href="/privacy">Privacy policy</Link>
             <Link href="/terms">Terms & conditions</Link>
           </nav>
           <div>
-            <h3>Here to help</h3>
+            <h3>Contact</h3>
             <a className="rb-support-email" href={`mailto:${supportEmail}`}>
               {supportEmail}
             </a>
             {supportHours && <p>{supportHours}</p>}
             <p>
-              Product questions.
-              <br />
-              Document questions.
-              <br />A real conversation.
+              Include the product name or your order number so we can help with
+              the right details.
             </p>
           </div>
         </div>
@@ -817,7 +772,7 @@ export default function RebrandExperience(props: RebrandProps) {
       <VariantTag variant={variant} experiment={REBRAND_EXPERIMENT} />
       <Header variant={variant} />
       <main id="main-content" tabIndex={-1}>
-        <Hero variant={variant} reportCount={props.reportCount} />
+        <Hero {...props} />
         <TrustStrip />
         {variant === "v2" ? (
           <>
@@ -830,7 +785,7 @@ export default function RebrandExperience(props: RebrandProps) {
             <EvidenceSection {...props} />
           </>
         )}
-        <AboutSection variant={variant} />
+        <AboutSection variant={variant} supportEmail={props.supportEmail} />
         <Journal report={props.report} />
         <FaqSection supportEmail={props.supportEmail} />
       </main>

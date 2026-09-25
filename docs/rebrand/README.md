@@ -4,17 +4,19 @@ Three isolated landing-page directions on `codex/rebrand-variants`. The existing
 
 | URL | Direction | Palette and emphasis |
 | --- | --- | --- |
-| `/1` | Considered Care | Sage, deep green and ivory. Human imagery, reassurance, clear product discovery. |
-| `/2` | Clear Science | Navy, mist blue and white. Scientific hierarchy, documents before products, precise language. |
-| `/3` | A New Perspective | Plum, blush and warm cream. Magazine composition and language that recognises women across life stages. |
+| `/1` | Know what you’re buying | Sage, deep green and ivory. Buyer reassurance and an original report beside the introduction. |
+| `/2` | Check the report | Navy, mist blue and white. Documents before products and practical instructions for checking the evidence. |
+| `/3` | Ask us before you order | Plum, blush and warm cream. Direct email contact and a conversational introduction. |
 
-Each page has a responsive menu, shared shopping bag, catalogue filters, current product sizes/prices, original report links, supporting explanations and accessible native FAQ disclosures. Supporting text is enlarged for mobile and mature readers. Fonts and the two new editorial assets are local. No new runtime dependency was added.
+Each page has a responsive menu, shared shopping bag, catalogue filters, current product sizes/prices, original report links, supporting explanations and accessible native FAQ disclosures. Supporting text is enlarged for mobile and mature readers. The Commissioner font and image assets are local. No new runtime dependency was added.
 
 On phones and touch devices, product size selectors, product links, footer links, secondary calls to action and the cart close button have a minimum 44-pixel touch area. Body copy and research-use notices have larger mobile type. Safe-area spacing accommodates display notches and home indicators. These adjustments are scoped to the three rebrand routes.
 
+See the [copy and typography audit](2026-09-25-copy-and-type-audit.md) for the latest editorial changes, original-site findings and facts still needed from the owner.
+
 ## Evidence and copy
 
-The catalogue remains research-use-only. Imagery and tone address the audience without promising weight loss, postpartum recovery, menopause treatment, hormone balance or clinical safety. The coastal portrait is AI-generated brand imagery, not a testimonial or an actual patient/customer photograph.
+The catalogue remains research-use-only. Imagery and tone address the audience without promising weight loss, postpartum recovery, menopause treatment, hormone balance or clinical safety. The generated coastal portraits have been removed from the rendered rebrand pages. The first route shows an original supplier report and the third shows a contact panel. The existing product arrangement is illustrative imagery, not evidence of testing.
 
 The report feature uses the existing unmodified historical GHK-Cu supplier report, including date and verification URL. Historical reports are explicitly sample-specific and not evidence of current shipped inventory. Current verified COAs appear separately only when returned by the existing `getAllCoa` service. Missing catalogue data gets a truthful empty state. No synthetic rating, customer count, endorsement or certificate is introduced.
 

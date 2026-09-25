@@ -2,7 +2,11 @@
 
 Both images were created with the built-in image-generation tool and converted to 1440px-wide WebP assets with Sharp. Existing originals were preserved. Product labels remain illustrative photography; current specifications come from the catalogue. No image is used as laboratory evidence.
 
-## Coastal portrait
+## Coastal portrait — retired from the rendered routes on 25 September 2026
+
+The copy and typography revision removed this image from `/1`, `/2` and `/3`. It is retained in the repository for provenance; it is not presented as a customer or team photograph.
+
+### Original generation
 
 Saved asset: `storefront/public/images/rebrand/coastal-women.webp`
 

@@ -1,22 +1,8 @@
 @font-face {
-  font-family: RebrandInter;
-  src: url("/fonts/inter-latin.woff2") format("woff2");
+  font-family: RebrandSans;
+  src: url("/fonts/commissioner-latin.woff2") format("woff2");
   font-style: normal;
   font-weight: 100 900;
-  font-display: swap;
-}
-@font-face {
-  font-family: RebrandTenor;
-  src: url("/fonts/tenor-sans-latin.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: RebrandNewsreader;
-  src: url("/fonts/newsreader-italic-latin.woff2") format("woff2");
-  font-style: italic;
-  font-weight: 400 500;
   font-display: swap;
 }
 .rebrand {
@@ -27,7 +13,6 @@
   --rb-soft: #e7ebe2;
   --rb-line: #d4dcd1;
   --rb-white: #fffefa;
-  --rb-display: Georgia, "Times New Roman", serif;
   --color-ink: var(--rb-bg);
   --color-ink-2: var(--rb-soft);
   --color-surface: var(--rb-white);
@@ -45,9 +30,6 @@
   --color-warn: #795329;
   background: var(--rb-bg);
   color: var(--rb-ink);
-  font-family: RebrandInter, Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.65;
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
 }
@@ -59,7 +41,6 @@
   --rb-soft: #eaf0f5;
   --rb-line: #cedae5;
   --rb-white: #fff;
-  --rb-display: RebrandInter, Arial, sans-serif;
 }
 .rebrand.rb-v3 {
   --rb-bg: #faf5f0;
@@ -69,7 +50,6 @@
   --rb-soft: #efe3e8;
   --rb-line: #dfcfd5;
   --rb-white: #fffaf7;
-  --rb-display: RebrandTenor, Georgia, serif;
 }
 body:has(.rebrand) {
   background: #f8f8f2;
@@ -91,24 +71,6 @@ body:has(.rebrand) {
 }
 .rebrand :where(.rb-header, main, .rb-footer) :where(h1, h2, h3, p) {
   margin: 0;
-}
-.rebrand main h1,
-.rebrand main h2,
-.rebrand .rb-footer h2 {
-  font-family: var(--rb-display);
-  font-weight: 400;
-  letter-spacing: -0.045em;
-  line-height: 1.08;
-  text-wrap: balance;
-}
-.rebrand main h2 {
-  font-size: clamp(32px, 3.4vw, 49px);
-}
-.rebrand h1 em,
-.rebrand h2 em {
-  font-family: RebrandNewsreader, Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.035em;
 }
 .rebrand .rb-container {
   width: min(1280px, calc(100% - 104px));
@@ -134,8 +96,6 @@ body:has(.rebrand) {
   min-height: 35px;
   background: var(--rb-ink);
   color: var(--rb-bg);
-  font-size: 10px;
-  letter-spacing: 0.04em;
   padding: 8px 20px;
 }
 .rebrand .rb-announcement a {
@@ -161,28 +121,17 @@ body:has(.rebrand) {
   flex-direction: column;
   flex-shrink: 0;
   color: var(--rb-ink);
-  line-height: 1;
   gap: 7px;
-}
-.rebrand .rb-wordmark > span {
-  font-family: Georgia, serif;
-  font-size: 35px;
-  letter-spacing: -2px;
 }
 .rebrand .rb-wordmark-dot {
   color: var(--rb-accent);
 }
 .rebrand .rb-wordmark small {
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: 0.31em;
   padding-left: 2px;
 }
 .rebrand .rb-desktop-nav {
   display: flex;
   gap: 30px;
-  font-size: 11px;
-  font-weight: 500;
 }
 .rebrand .rb-desktop-nav a,
 .rebrand .rb-shop-link {
@@ -201,8 +150,6 @@ body:has(.rebrand) {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 11px;
-  font-weight: 600;
 }
 .rebrand .rb-cart {
   display: flex;
@@ -214,9 +161,6 @@ body:has(.rebrand) {
   border: 0;
   color: inherit;
   padding: 0;
-}
-.rebrand .rb-cart span {
-  font-size: 10px;
 }
 .rebrand .rb-menu-toggle {
   display: none;
@@ -249,36 +193,16 @@ body:has(.rebrand) {
   gap: 55px;
   align-items: center;
 }
-.rebrand .rb-eyebrow {
-  font-size: 9px;
-  letter-spacing: 0.16em;
-  line-height: 1.6;
-  font-weight: 600;
-  text-transform: uppercase;
-}
 .rebrand .rb-hero .rb-eyebrow {
   display: flex;
   gap: 11px;
   align-items: center;
   margin-bottom: 25px;
 }
-.rebrand .rb-small-rule {
-  width: 23px;
-  height: 1px;
-  background: currentColor;
-  flex-shrink: 0;
-}
 .rebrand .rb-hero h1 {
-  font-size: clamp(48px, 4.6vw, 69px);
-  line-height: 1.045;
   max-width: 650px;
 }
-.rebrand .rb-hero h1 em {
-  color: var(--rb-accent);
-}
 .rebrand .rb-intro {
-  font-size: 14px;
-  line-height: 1.85;
   color: var(--rb-muted);
   max-width: 440px;
   margin-top: 26px;
@@ -297,9 +221,6 @@ body:has(.rebrand) {
   gap: 24px;
   min-height: 50px;
   padding: 13px 22px;
-  font-size: 11px;
-  line-height: 1.4;
-  font-weight: 500;
   border: 1px solid transparent;
   border-radius: 3px;
   transition:
@@ -320,9 +241,6 @@ body:has(.rebrand) {
   display: inline-flex;
   align-items: center;
   gap: 13px;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.5;
   min-height: 40px;
   border-bottom: 1px solid var(--rb-line);
 }
@@ -333,7 +251,6 @@ body:has(.rebrand) {
   display: flex;
   gap: 22px;
   margin-top: 35px;
-  font-size: 10px;
   color: var(--rb-muted);
 }
 .rebrand .rb-hero-notes span {
@@ -342,60 +259,8 @@ body:has(.rebrand) {
   gap: 6px;
 }
 .rebrand .rb-research-note {
-  font-size: 9px;
   color: var(--rb-muted);
   margin-top: 13px;
-}
-.rebrand .rb-hero-portrait {
-  height: 570px;
-  position: relative;
-  border-radius: 180px 180px 3px 3px;
-  overflow: hidden;
-  background: var(--rb-soft);
-}
-.rebrand .rb-hero-portrait > img {
-  object-fit: cover;
-  object-position: 51% center;
-}
-.rebrand .rb-photo-label {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 36px;
-  background: rgba(255, 254, 250, 0.96);
-  padding: 20px 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 13px;
-}
-.rebrand .rb-photo-label small {
-  display: block;
-  font-size: 9px;
-  color: var(--rb-muted);
-  margin-top: 3px;
-}
-.rebrand .rb-photo-label > svg {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-.rebrand .rb-label-icon {
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--rb-line);
-  border-radius: 50%;
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-}
-.rebrand .rb-photo-register {
-  position: absolute;
-  bottom: 10px;
-  left: 23px;
-  color: white;
-  font-size: 7px;
-  letter-spacing: 0.12em;
-  text-shadow: 0 1px 4px #000;
 }
 .rebrand .rb-trust {
   border-block: 1px solid var(--rb-line);
@@ -412,8 +277,6 @@ body:has(.rebrand) {
   gap: 17px;
   padding: 0 32px;
   border-right: 1px solid var(--rb-line);
-  font-size: 12px;
-  font-weight: 500;
 }
 .rebrand .rb-trust-grid > a:first-child {
   padding-left: 0;
@@ -430,8 +293,6 @@ body:has(.rebrand) {
 .rebrand .rb-trust small {
   display: block;
   color: var(--rb-muted);
-  font-size: 10px;
-  font-weight: 400;
   margin-top: 3px;
 }
 .rebrand .rb-trust-grid > a > svg:first-child {
@@ -455,8 +316,6 @@ body:has(.rebrand) {
   flex-shrink: 0;
 }
 .rebrand .rb-section-description {
-  font-size: 13px;
-  line-height: 1.9;
   color: var(--rb-muted);
   max-width: 640px;
   margin-top: 20px;
@@ -470,7 +329,6 @@ body:has(.rebrand) {
 .rebrand .rb-filters button {
   min-height: 39px;
   padding: 8px 15px;
-  font-size: 10px;
   border: 1px solid var(--rb-line);
   color: var(--rb-muted);
   background: transparent;
@@ -505,17 +363,10 @@ body:has(.rebrand) {
 .rebrand .rb-products .ecl-product-details {
   padding: 18px;
 }
-.rebrand .rb-products .ecl-product-details h3 {
-  font-size: 15px;
-  font-weight: 500;
-}
 .rebrand .rb-products .ecl-stock-label {
-  font-size: 9px;
-  letter-spacing: 0.025em;
   background: var(--rb-white);
   border: 1px solid var(--rb-line);
   color: var(--rb-ink);
-  font-weight: 400;
 }
 .rebrand .rb-empty {
   text-align: center;
@@ -526,15 +377,10 @@ body:has(.rebrand) {
 .rebrand .rb-empty > svg {
   margin: 0 auto 15px;
 }
-.rebrand .rb-empty h3 {
-  font-size: 18px;
-  font-weight: 400;
-}
 .rebrand .rb-empty p {
   color: var(--rb-muted);
   margin: 10px auto;
   max-width: 420px;
-  font-size: 12px;
 }
 .rebrand .rb-range-note {
   display: flex;
@@ -543,7 +389,6 @@ body:has(.rebrand) {
   border-top: 1px solid var(--rb-line);
   margin-top: 28px;
   padding-top: 15px;
-  font-size: 9px;
   color: var(--rb-muted);
 }
 .rebrand .rb-evidence {
@@ -557,7 +402,6 @@ body:has(.rebrand) {
 }
 .rebrand .rb-evidence h2 {
   margin-top: 20px;
-  font-size: clamp(35px, 3.8vw, 54px);
 }
 .rebrand .rb-standards-list {
   list-style: none;
@@ -571,19 +415,14 @@ body:has(.rebrand) {
   border-top: 1px solid var(--rb-line);
 }
 .rebrand .rb-standards-list li > span {
-  font-size: 10px;
   padding-top: 3px;
 }
 .rebrand .rb-standards-list h3 {
-  font-size: 13px;
-  font-weight: 500;
   margin-bottom: 6px;
 }
 .rebrand .rb-standards-list p {
-  font-size: 12px;
   color: var(--rb-muted);
   max-width: 380px;
-  line-height: 1.8;
 }
 .rebrand .rb-report-stack {
   padding: 0 8px;
@@ -602,20 +441,11 @@ body:has(.rebrand) {
   align-items: center;
   border-bottom: 1px solid var(--rb-line);
   padding-bottom: 16px;
-  font-size: 8px;
-  letter-spacing: 0.18em;
 }
 .rebrand .rb-report-heading {
   margin: 23px 0 19px;
 }
-.rebrand .rb-report-heading h3 {
-  font-family: var(--rb-display);
-  font-weight: 400;
-  font-size: 26px;
-  letter-spacing: -0.04em;
-}
 .rebrand .rb-report-heading p {
-  font-size: 10px;
   color: var(--rb-muted);
   margin-top: 4px;
 }
@@ -640,7 +470,6 @@ body:has(.rebrand) {
   display: flex;
   justify-content: space-between;
   gap: 15px;
-  font-size: 10px;
   padding: 9px 0;
   border-bottom: 1px solid var(--rb-line);
 }
@@ -649,19 +478,14 @@ body:has(.rebrand) {
 }
 .rebrand .rb-report-fields dd {
   margin: 0;
-  font-weight: 500;
 }
 .rebrand .rb-report-verify {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
-  font-weight: 500;
   padding: 13px 0 8px;
 }
 .rebrand .rb-report-footnote {
-  font-size: 9px;
-  line-height: 1.7;
   color: var(--rb-muted);
   padding-top: 7px;
 }
@@ -671,7 +495,6 @@ body:has(.rebrand) {
   justify-content: center;
   gap: 9px;
   margin-top: 30px;
-  font-size: 10px;
 }
 .rebrand .rb-current-docs {
   grid-column: 1/-1;
@@ -679,12 +502,7 @@ body:has(.rebrand) {
   border-top: 1px solid var(--rb-line);
   padding-top: 25px;
 }
-.rebrand .rb-current-docs h3 {
-  font-size: 18px;
-  font-weight: 400;
-}
 .rebrand .rb-current-docs > p {
-  font-size: 11px;
   color: var(--rb-muted);
   margin: 8px 0 15px;
 }
@@ -695,45 +513,25 @@ body:has(.rebrand) {
   gap: 20px;
   padding: 15px 0;
   border-bottom: 1px solid var(--rb-line);
-  font-size: 12px;
 }
 .rebrand .rb-current-docs small {
   display: block;
-  font-size: 10px;
   color: var(--rb-muted);
 }
 .rebrand .rb-current-docs > a > span:last-child {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 10px;
 }
 .rebrand .rb-about {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 580px;
+  background: var(--rb-soft);
   scroll-margin-top: 30px;
-}
-.rebrand .rb-about-image {
-  position: relative;
-  min-height: 490px;
-}
-.rebrand .rb-about-image img {
-  object-fit: cover;
-}
-.rebrand .rb-about-image > span {
-  position: absolute;
-  bottom: 27px;
-  left: 30px;
-  color: white;
-  font-size: 8px;
-  letter-spacing: 0.13em;
-  text-shadow: 0 1px 4px #000;
 }
 .rebrand .rb-about-copy {
   padding: 85px clamp(35px, 6vw, 105px);
-  background: var(--rb-ink);
-  color: var(--rb-bg);
+  color: var(--rb-ink);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -741,25 +539,20 @@ body:has(.rebrand) {
 }
 .rebrand .rb-about h2 {
   margin: 20px 0 25px;
-  font-size: clamp(35px, 3.5vw, 49px);
 }
 .rebrand .rb-about-copy > p:not(.rb-eyebrow) {
-  font-size: 12px;
-  line-height: 1.95;
   margin-bottom: 17px;
   opacity: 0.87;
 }
 .rebrand .rb-about .rb-text-link {
-  border-color: #ffffff45;
+  border-color: var(--rb-line);
   margin-top: 7px;
 }
 .rebrand .rb-purpose-note {
-  border-top: 1px solid #ffffff35;
+  border-top: 1px solid var(--rb-line);
   margin-top: 30px;
   padding-top: 15px;
-  font-size: 9px;
   opacity: 0.8;
-  line-height: 1.8;
 }
 .rebrand .rb-journal-grid {
   display: grid;
@@ -776,39 +569,14 @@ body:has(.rebrand) {
 .rebrand .rb-journal-card:hover {
   transform: translateY(-3px);
 }
-.rebrand .rb-journal-art {
-  background: var(--rb-soft);
-  height: 155px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-.rebrand .rb-journal-art > span {
-  position: absolute;
-  top: 18px;
-  right: 20px;
-  font-family: var(--rb-display);
-  font-size: 17px;
-}
 .rebrand .rb-journal-copy {
   padding: 25px;
 }
-.rebrand .rb-journal-copy .rb-eyebrow {
-  font-size: 8px;
-}
 .rebrand .rb-journal-copy h3 {
-  font-family: var(--rb-display);
-  font-size: 25px;
-  letter-spacing: -0.03em;
-  line-height: 1.25;
-  font-weight: 400;
   margin: 13px 0;
 }
 .rebrand .rb-journal-copy > p:not(.rb-eyebrow) {
   color: var(--rb-muted);
-  font-size: 11px;
-  line-height: 1.85;
 }
 .rebrand .rb-journal-copy .rb-text-link {
   margin-top: 20px;
@@ -826,7 +594,6 @@ body:has(.rebrand) {
   margin: 17px 0 23px;
 }
 .rebrand .rb-faq-grid > div > p:not(.rb-eyebrow) {
-  font-size: 12px;
   color: var(--rb-muted);
 }
 .rebrand .rb-faq-grid > .rb-faq-items {
@@ -841,8 +608,6 @@ body:has(.rebrand) {
   justify-content: space-between;
   gap: 20px;
   list-style: none;
-  font-size: 12px;
-  font-weight: 500;
   cursor: pointer;
   padding: 23px 0;
 }
@@ -857,8 +622,6 @@ body:has(.rebrand) {
   transform: rotate(45deg);
 }
 .rebrand .rb-faq details p {
-  font-size: 12px;
-  line-height: 1.9;
   color: var(--rb-muted);
   padding: 0 30px 25px 0;
 }
@@ -875,7 +638,6 @@ body:has(.rebrand) {
   padding: 60px 0;
 }
 .rebrand .rb-footer-top h2 {
-  font-size: 37px;
   margin-top: 16px;
 }
 .rebrand .rb-button-light {
@@ -896,27 +658,21 @@ body:has(.rebrand) {
   color: inherit;
 }
 .rebrand .rb-footer-grid p {
-  font-size: 10px;
   margin-top: 20px;
-  line-height: 1.9;
   opacity: 0.78;
 }
 .rebrand .rb-location {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
   margin-top: 18px;
 }
 .rebrand .rb-footer-grid nav {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  font-size: 10px;
 }
 .rebrand .rb-footer-grid h3 {
-  font-size: 11px;
-  font-weight: 500;
   margin-bottom: 10px;
 }
 .rebrand .rb-footer-grid nav a {
@@ -927,7 +683,6 @@ body:has(.rebrand) {
   opacity: 1;
 }
 .rebrand .rb-support-email {
-  font-size: 11px;
   overflow-wrap: anywhere;
 }
 .rebrand .rb-footer-bottom {
@@ -936,41 +691,18 @@ body:has(.rebrand) {
   justify-content: space-between;
   gap: 30px;
   padding: 22px 0;
-  font-size: 8px;
   opacity: 0.75;
 }
 .rebrand .rb-footer :is(a, button):focus-visible {
   outline-color: var(--rb-bg);
 }
 /* Direction 02: crisp geometry, stronger hierarchy and evidence first. */
-.rebrand.rb-v2 .rb-wordmark > span {
-  font-family: RebrandInter, Arial, sans-serif;
-  letter-spacing: -2px;
-  font-weight: 600;
-  font-size: 31px;
-}
 .rebrand.rb-v2 .rb-hero {
   padding: 55px 0 65px;
 }
 .rebrand.rb-v2 .rb-hero-grid {
   gap: 70px;
   grid-template-columns: 1fr 1fr;
-}
-.rebrand.rb-v2 .rb-hero h1 {
-  font-weight: 500;
-  letter-spacing: -0.065em;
-  font-size: clamp(46px, 4.6vw, 68px);
-}
-.rebrand.rb-v2 .rb-hero h1 em {
-  font-family: inherit;
-  font-style: normal;
-  font-weight: 400;
-  color: var(--rb-accent);
-}
-.rebrand.rb-v2 main h2 {
-  font-weight: 450;
-  font-size: clamp(31px, 3vw, 43px);
-  letter-spacing: -0.055em;
 }
 .rebrand.rb-v2 .rb-button,
 .rebrand.rb-v2 .rb-filters button,
@@ -996,25 +728,6 @@ body:has(.rebrand) {
   right: 27px;
   display: flex;
   justify-content: space-between;
-  font-size: 8px;
-  letter-spacing: 0.15em;
-}
-.rebrand .rb-science-caption {
-  position: absolute;
-  bottom: 75px;
-  left: 27px;
-  right: 27px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-}
-.rebrand .rb-science-caption > span > span {
-  display: block;
-  font-size: 21px;
-  letter-spacing: -0.04em;
-  margin-top: 5px;
 }
 .rebrand .rb-science-proof {
   position: absolute;
@@ -1034,13 +747,8 @@ body:has(.rebrand) {
 .rebrand .rb-science-proof > svg:last-child {
   margin-left: auto;
 }
-.rebrand .rb-science-proof strong {
-  font-size: 12px;
-  font-weight: 500;
-}
 .rebrand .rb-science-proof small {
   display: block;
-  font-size: 9px;
   opacity: 0.8;
   margin-top: 4px;
 }
@@ -1048,19 +756,7 @@ body:has(.rebrand) {
   box-shadow: none;
   border-top: 3px solid var(--rb-accent);
 }
-.rebrand.rb-v2 .rb-report-heading h3 {
-  font-size: 24px;
-}
-.rebrand.rb-v2 .rb-journal-copy h3 {
-  font-size: 23px;
-  letter-spacing: -0.05em;
-}
 /* Direction 03: magazine composition, warm plum and a personal voice. */
-.rebrand.rb-v3 .rb-wordmark > span {
-  font-family: RebrandTenor, Georgia, serif;
-  font-size: 32px;
-  letter-spacing: -2px;
-}
 .rebrand.rb-v3 .rb-announcement {
   background: #eadce2;
   color: var(--rb-ink);
@@ -1085,12 +781,7 @@ body:has(.rebrand) {
   margin-bottom: 24px;
 }
 .rebrand.rb-v3 .rb-hero h1 {
-  font-size: clamp(45px, 5.8vw, 82px);
   max-width: none;
-  letter-spacing: -0.055em;
-}
-.rebrand.rb-v3 .rb-hero h1 em {
-  font-size: 1.06em;
 }
 .rebrand.rb-v3 .rb-intro {
   max-width: 510px;
@@ -1110,59 +801,15 @@ body:has(.rebrand) {
 .rebrand.rb-v3 .rb-button {
   border-radius: 50px;
 }
-.rebrand .rb-editorial-panels {
-  display: grid;
-  grid-template-columns: 1.15fr 1fr 0.75fr;
-  gap: 19px;
-  margin-top: 43px;
-}
-.rebrand .rb-editorial-panels figure {
-  margin: 0;
-}
-.rebrand .rb-editorial-image {
-  position: relative;
-  height: 310px;
-  background: var(--rb-soft);
-}
-.rebrand .rb-editorial-image img {
-  object-fit: cover;
-}
-.rebrand .rb-editorial-panels figure:first-child .rb-editorial-image {
-  border-radius: 140px 140px 0 0;
-  overflow: hidden;
-}
-.rebrand .rb-editorial-panels figure:last-child .rb-editorial-image {
-  border-radius: 0 0 140px 0;
-  overflow: hidden;
-}
-.rebrand .rb-editorial-panels figcaption {
-  display: flex;
-  justify-content: space-between;
-  font-size: 7px;
-  letter-spacing: 0.1em;
-  padding-top: 11px;
-}
 .rebrand.rb-v3 .rb-trust {
   background: transparent;
 }
 .rebrand.rb-v3 .rb-evidence {
   background: #efe3e8;
 }
-.rebrand.rb-v3 .rb-journal-art {
-  background: #eadbe1;
-}
-.rebrand.rb-v3 .rb-hero-portrait > img {
-  object-position: center;
-}
 @media (min-width: 1500px) {
-  .rebrand .rb-hero h1 {
-    font-size: 74px;
-  }
   .rebrand .rb-hero-grid {
     gap: 80px;
-  }
-  .rebrand.rb-v3 .rb-hero h1 {
-    font-size: 87px;
   }
 }
 @media (max-width: 1150px) {
@@ -1181,12 +828,6 @@ body:has(.rebrand) {
   .rebrand .rb-hero-grid,
   .rebrand.rb-v2 .rb-hero-grid {
     gap: 35px;
-  }
-  .rebrand .rb-hero h1 {
-    font-size: 52px;
-  }
-  .rebrand .rb-hero-portrait {
-    height: 540px;
   }
   .rebrand .rb-actions {
     gap: 12px;
@@ -1214,19 +855,12 @@ body:has(.rebrand) {
   }
   .rebrand .rb-announcement {
     min-height: 32px;
-    font-size: 9px;
   }
   .rebrand .rb-announcement > a {
     display: none;
   }
   .rebrand .rb-header-inner {
     height: 79px;
-  }
-  .rebrand .rb-wordmark > span {
-    font-size: 30px;
-  }
-  .rebrand .rb-wordmark small {
-    font-size: 7px;
   }
   .rebrand .rb-desktop-nav {
     display: none;
@@ -1250,17 +884,14 @@ body:has(.rebrand) {
     max-width: 600px;
   }
   .rebrand .rb-hero h1 {
-    font-size: clamp(43px, 7.3vw, 65px);
     max-width: 580px;
   }
   .rebrand .rb-hero .rb-eyebrow {
-    font-size: 8px;
     margin-bottom: 22px;
   }
   .rebrand .rb-intro {
     max-width: 520px;
     margin-top: 21px;
-    font-size: 13px;
   }
   .rebrand .rb-actions {
     margin-top: 23px;
@@ -1268,13 +899,6 @@ body:has(.rebrand) {
   }
   .rebrand .rb-hero-notes {
     margin-top: 25px;
-  }
-  .rebrand .rb-hero-portrait {
-    height: 480px;
-    border-radius: 150px 150px 3px 3px;
-  }
-  .rebrand .rb-hero-portrait > img {
-    object-position: center 35%;
   }
   .rebrand .rb-trust-grid {
     grid-template-columns: 1fr;
@@ -1287,16 +911,12 @@ body:has(.rebrand) {
     border-bottom: 1px solid var(--rb-line);
     padding: 18px 0;
     gap: 18px;
-    font-size: 12px;
   }
   .rebrand .rb-trust-grid > a:last-child {
     border-bottom: 0;
   }
   .rebrand .rb-trust-grid > a > svg:last-child {
     display: block;
-  }
-  .rebrand .rb-trust small {
-    font-size: 10px;
   }
   .rebrand .rb-section {
     padding: 60px 0;
@@ -1311,7 +931,6 @@ body:has(.rebrand) {
     max-width: 500px;
   }
   .rebrand .rb-section-description {
-    font-size: 12px;
     margin-top: 15px;
   }
   .rebrand .rb-products {
@@ -1324,9 +943,6 @@ body:has(.rebrand) {
   }
   .rebrand .rb-evidence-copy {
     max-width: 550px;
-  }
-  .rebrand .rb-evidence h2 {
-    font-size: 40px;
   }
   .rebrand .rb-report-stack {
     max-width: 510px;
@@ -1341,9 +957,6 @@ body:has(.rebrand) {
   }
   .rebrand .rb-about {
     grid-template-columns: 1fr;
-  }
-  .rebrand .rb-about-image {
-    min-height: 390px;
   }
   .rebrand .rb-about-copy {
     padding: 55px 35px;
@@ -1362,15 +975,8 @@ body:has(.rebrand) {
     display: grid;
     grid-template-columns: 150px 1fr;
   }
-  .rebrand .rb-journal-art {
-    height: 100%;
-    min-height: 200px;
-  }
   .rebrand .rb-journal-copy {
     padding: 25px;
-  }
-  .rebrand .rb-journal-copy h3 {
-    font-size: 24px;
   }
   .rebrand .rb-faq-grid {
     grid-template-columns: 1fr;
@@ -1378,9 +984,6 @@ body:has(.rebrand) {
   }
   .rebrand .rb-footer-top {
     padding: 40px 0;
-  }
-  .rebrand .rb-footer-top h2 {
-    font-size: 29px;
   }
   .rebrand .rb-footer-grid {
     grid-template-columns: 1.2fr 1fr;
@@ -1390,32 +993,12 @@ body:has(.rebrand) {
   .rebrand .rb-footer-bottom {
     flex-direction: column;
     gap: 7px;
-    font-size: 8px;
   }
   .rebrand.rb-v2 .rb-hero {
     padding: 40px 0;
   }
-  .rebrand.rb-v2 .rb-hero h1 {
-    font-size: clamp(43px, 7.3vw, 65px);
-  }
   .rebrand .rb-science-art {
     min-height: 480px;
-  }
-  .rebrand.rb-v3 .rb-hero h1 {
-    font-size: clamp(42px, 7.1vw, 65px);
-  }
-  .rebrand .rb-editorial-panels {
-    grid-template-columns: 1.1fr 1fr;
-    gap: 14px;
-  }
-  .rebrand .rb-editorial-panels figure:last-child {
-    display: none;
-  }
-  .rebrand .rb-editorial-image {
-    height: 280px;
-  }
-  .rebrand .rb-editorial-panels figcaption {
-    font-size: 6px;
   }
   .rebrand.rb-v3 .rb-hero .rb-intro {
     max-width: 500px;
@@ -1423,9 +1006,6 @@ body:has(.rebrand) {
   .rebrand .rb-filters {
     gap: 7px;
     margin: 24px 0;
-  }
-  .rebrand .rb-filters button {
-    font-size: 10px;
   }
 }
 @media (max-width: 450px) {
@@ -1438,71 +1018,27 @@ body:has(.rebrand) {
   .rebrand .rb-header-actions {
     gap: 8px;
   }
-  .rebrand .rb-hero h1 {
-    font-size: 44px;
-  }
-  .rebrand .rb-hero .rb-eyebrow {
-    font-size: 7px;
-    letter-spacing: 0.12em;
-  }
-  .rebrand .rb-small-rule {
-    width: 14px;
-  }
-  .rebrand .rb-intro {
-    font-size: 12px;
-  }
   .rebrand .rb-actions {
     gap: 13px;
   }
   .rebrand .rb-button {
     padding: 13px 17px;
     gap: 16px;
-    font-size: 10px;
     min-height: 47px;
   }
   .rebrand .rb-text-link {
-    font-size: 10px;
     gap: 9px;
   }
   .rebrand .rb-hero-notes {
     gap: 15px;
-    font-size: 8px;
   }
   .rebrand .rb-research-note {
-    font-size: 8px;
     max-width: 320px;
-  }
-  .rebrand .rb-hero-portrait {
-    height: 365px;
-    border-radius: 110px 110px 2px 2px;
-  }
-  .rebrand .rb-photo-label {
-    left: 13px;
-    right: 13px;
-    bottom: 28px;
-    padding: 14px 12px;
-    gap: 9px;
-    font-size: 11px;
-  }
-  .rebrand .rb-photo-label small {
-    font-size: 8px;
-  }
-  .rebrand .rb-label-icon {
-    width: 34px;
-    height: 34px;
-  }
-  .rebrand .rb-photo-register {
-    left: 15px;
-    font-size: 6px;
   }
   .rebrand .rb-section {
     padding: 50px 0;
   }
-  .rebrand main h2 {
-    font-size: 34px;
-  }
   .rebrand .rb-range-note {
-    font-size: 8px;
     gap: 10px;
     align-items: flex-start;
   }
@@ -1516,18 +1052,8 @@ body:has(.rebrand) {
   .rebrand .rb-products .ecl-product-details {
     padding: 13px;
   }
-  .rebrand .rb-products .ecl-product-details h3 {
-    font-size: 13px;
-  }
-  .rebrand .rb-products .ecl-product-details p {
-    font-size: 11px;
-  }
   .rebrand .rb-filters button {
-    font-size: 9px;
     padding: 7px 12px;
-  }
-  .rebrand .rb-evidence h2 {
-    font-size: 36px;
   }
   .rebrand .rb-standards-list li {
     gap: 18px;
@@ -1538,33 +1064,14 @@ body:has(.rebrand) {
   .rebrand .rb-report-preview {
     height: 210px;
   }
-  .rebrand .rb-report-heading h3 {
-    font-size: 24px;
-  }
-  .rebrand .rb-about-image {
-    min-height: 310px;
-  }
   .rebrand .rb-about-copy {
     padding: 45px 24px;
-  }
-  .rebrand .rb-about h2 {
-    font-size: 35px;
   }
   .rebrand .rb-journal-card {
     grid-template-columns: 1fr;
   }
-  .rebrand .rb-journal-art {
-    height: 140px;
-    min-height: 0;
-  }
   .rebrand .rb-journal-copy {
     padding: 23px;
-  }
-  .rebrand .rb-journal-copy h3 {
-    font-size: 26px;
-  }
-  .rebrand .rb-faq summary {
-    font-size: 12px;
   }
   .rebrand .rb-footer-top {
     flex-direction: column;
@@ -1581,13 +1088,6 @@ body:has(.rebrand) {
   .rebrand .rb-footer-grid > div:last-child {
     grid-column: 1/-1;
   }
-  .rebrand .rb-footer-top h2 {
-    font-size: 30px;
-  }
-  .rebrand .rb-footer-grid nav,
-  .rebrand .rb-footer-grid p {
-    font-size: 11px;
-  }
   .rebrand .rb-science-art {
     min-height: 360px;
   }
@@ -1595,7 +1095,6 @@ body:has(.rebrand) {
     top: 20px;
     left: 20px;
     right: 20px;
-    font-size: 7px;
   }
   .rebrand .rb-science-proof {
     left: 10px;
@@ -1603,49 +1102,12 @@ body:has(.rebrand) {
     padding: 19px 14px;
     gap: 10px;
   }
-  .rebrand .rb-science-proof strong {
-    font-size: 11px;
-  }
-  .rebrand .rb-science-proof small {
-    font-size: 8px;
-  }
-  .rebrand .rb-science-caption {
-    left: 20px;
-    right: 20px;
-  }
-  .rebrand .rb-science-caption > span > span {
-    font-size: 19px;
-  }
   .rebrand.rb-v3 .rb-hero {
     padding-top: 30px;
-  }
-  .rebrand.rb-v3 .rb-hero h1 {
-    font-size: 39px;
-    line-height: 1.11;
-  }
-  .rebrand.rb-v3 .rb-hero h1 em {
-    font-size: 1.08em;
   }
   .rebrand.rb-v3 .rb-actions {
     flex-direction: column;
     gap: 9px;
-  }
-  .rebrand .rb-editorial-panels {
-    margin-top: 29px;
-    gap: 10px;
-  }
-  .rebrand .rb-editorial-image {
-    height: 205px;
-  }
-  .rebrand .rb-editorial-panels figure:first-child .rb-editorial-image {
-    border-radius: 80px 80px 0 0;
-  }
-  .rebrand .rb-editorial-panels figcaption {
-    font-size: 5.5px;
-    letter-spacing: 0.07em;
-  }
-  .rebrand .rb-editorial-panels figcaption > span:last-child {
-    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1659,165 +1121,33 @@ body:has(.rebrand) {
   }
 }
 /* Readable supporting copy for the audience, especially on small screens. */
-.rebrand .rb-desktop-nav,
-.rebrand .rb-shop-link {
-  font-size: 13px;
-}
-.rebrand .rb-eyebrow {
-  font-size: 10px;
-}
-.rebrand .rb-announcement {
-  font-size: 11px;
-}
-.rebrand .rb-intro {
-  font-size: 16px;
-}
-.rebrand .rb-button,
-.rebrand .rb-text-link {
-  font-size: 13px;
-}
-.rebrand .rb-hero-notes {
-  font-size: 11px;
-}
 .rebrand .rb-research-note {
-  font-size: 11px;
   max-width: 450px;
 }
-.rebrand .rb-section-description {
-  font-size: 15px;
-}
-.rebrand .rb-trust-grid > a {
-  font-size: 14px;
-}
-.rebrand .rb-trust small {
-  font-size: 12px;
-}
 .rebrand .rb-filters button {
-  font-size: 12px;
   min-height: 44px;
 }
-.rebrand .rb-standards-list h3 {
-  font-size: 15px;
-}
-.rebrand .rb-standards-list p,
-.rebrand .rb-about-copy > p:not(.rb-eyebrow),
-.rebrand .rb-faq details p {
-  font-size: 14px;
-}
 .rebrand .rb-faq summary {
-  font-size: 14px;
   min-height: 65px;
 }
-.rebrand .rb-report-heading p,
-.rebrand .rb-report-fields > div,
-.rebrand .rb-report-verify,
-.rebrand .rb-report-caption {
-  font-size: 12px;
-}
-.rebrand .rb-report-footnote,
-.rebrand .rb-purpose-note {
-  font-size: 11px;
-}
-.rebrand .rb-journal-copy > p:not(.rb-eyebrow) {
-  font-size: 14px;
-}
-.rebrand .rb-journal-copy .rb-eyebrow {
-  font-size: 9px;
-}
-.rebrand .rb-footer-grid nav,
-.rebrand .rb-footer-grid h3,
-.rebrand .rb-footer-grid p,
-.rebrand .rb-support-email {
-  font-size: 12px;
-}
-.rebrand .rb-footer-bottom {
-  font-size: 10px;
-}
-.rebrand .rb-range-note {
-  font-size: 10px;
-}
-.rebrand .rb-science-proof strong {
-  font-size: 14px;
-}
-.rebrand .rb-science-proof small {
-  font-size: 11px;
-}
 @media (max-width: 450px) {
-  .rebrand .rb-hero .rb-eyebrow {
-    font-size: 9px;
-    letter-spacing: 0.09em;
-  }
-  .rebrand .rb-announcement {
-    font-size: 10px;
-  }
-  .rebrand .rb-intro,
-  .rebrand .rb-section-description {
-    font-size: 14px;
-  }
-  .rebrand .rb-button,
-  .rebrand .rb-text-link {
-    font-size: 12px;
-  }
   .rebrand .rb-hero-notes {
-    font-size: 10px;
     gap: 12px;
     flex-wrap: wrap;
-  }
-  .rebrand .rb-research-note {
-    font-size: 10px;
-  }
-  .rebrand .rb-filters button {
-    font-size: 11px;
-  }
-  .rebrand .rb-products .ecl-product-details p {
-    font-size: 12px;
-  }
-  .rebrand .rb-science-proof strong {
-    font-size: 12px;
-  }
-  .rebrand .rb-science-proof small {
-    font-size: 10px;
-  }
-  .rebrand .rb-range-note {
-    font-size: 9px;
   }
 }
 
 /* Comfortable reading and touch controls on phones and tablets. */
 @media (max-width: 900px), (pointer: coarse) {
   .rebrand {
-    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+    padding-inline: env(safe-area-inset-left, 0px)
+      env(safe-area-inset-right, 0px);
   }
   .rebrand .rb-announcement {
     padding-top: calc(8px + env(safe-area-inset-top, 0px));
   }
   .rebrand .rb-footer {
     padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .rebrand .rb-intro {
-    font-size: 16px;
-  }
-  .rebrand .rb-section-description,
-  .rebrand .rb-standards-list p,
-  .rebrand .rb-about-copy > p:not(.rb-eyebrow),
-  .rebrand .rb-faq summary,
-  .rebrand .rb-faq details p {
-    font-size: 15px;
-  }
-  .rebrand .rb-research-note,
-  .rebrand .rb-photo-label small,
-  .rebrand .rb-purpose-note,
-  .rebrand .rb-report-footnote,
-  .rebrand .rb-footer-bottom {
-    font-size: 12px;
-  }
-  .rebrand .rb-photo-register,
-  .rebrand .rb-editorial-panels figcaption,
-  .rebrand .rb-science-art-top {
-    font-size: 10px;
-  }
-  .rebrand .rb-range-note {
-    font-size: 11px;
   }
   .rebrand .rb-announcement a,
   .rebrand .rb-shop-link {
@@ -1843,14 +1173,9 @@ body:has(.rebrand) {
     padding-inline: 7px;
     border: 1px solid var(--rb-line);
     border-radius: 6px;
-    font-size: 12px;
   }
   .rebrand .rb-footer-grid nav {
     gap: 0;
-    font-size: 14px;
-  }
-  .rebrand .rb-support-email {
-    font-size: 14px;
   }
   .rebrand [role="dialog"][aria-label="Shopping cart"] {
     padding-right: env(safe-area-inset-right, 0px);
@@ -1866,5 +1191,409 @@ body:has(.rebrand) {
     align-items: center;
     justify-content: center;
     min-height: 44px;
+  }
+}
+
+/* One family and a restrained scale keep the words in the foreground. */
+.rebrand {
+  font-family: RebrandSans, "Segoe UI", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.rebrand main h1,
+.rebrand main h2,
+.rebrand .rb-footer h2 {
+  font-family: inherit;
+  font-weight: 550;
+  letter-spacing: -0.025em;
+  line-height: 1.16;
+  text-wrap: pretty;
+}
+.rebrand .rb-hero h1 {
+  font-size: clamp(38px, 4.2vw, 60px);
+  max-width: 720px;
+}
+.rebrand .rb-hero h1 span {
+  color: var(--rb-ink);
+}
+.rebrand main h2,
+.rebrand .rb-footer h2 {
+  font-size: clamp(28px, 2.8vw, 38px);
+}
+.rebrand main h3 {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+.rebrand .rb-wordmark > span {
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+.rebrand .rb-wordmark small {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.035em;
+}
+.rebrand .rb-announcement {
+  font-size: 13px;
+  letter-spacing: 0;
+}
+.rebrand .rb-eyebrow {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.5;
+  color: var(--rb-muted);
+}
+.rebrand .rb-hero .rb-eyebrow {
+  margin-bottom: 20px;
+}
+.rebrand .rb-desktop-nav,
+.rebrand .rb-shop-link,
+.rebrand .rb-button,
+.rebrand .rb-text-link {
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.45;
+}
+.rebrand .rb-button {
+  border-radius: 5px;
+}
+.rebrand .rb-intro {
+  font-size: 18px;
+  line-height: 1.65;
+  max-width: 48ch;
+}
+.rebrand .rb-hero-notes {
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.rebrand .rb-hero-notes span + span {
+  padding-left: 16px;
+  border-left: 1px solid var(--rb-line);
+}
+.rebrand .rb-research-note,
+.rebrand .rb-range-note,
+.rebrand .rb-report-footnote,
+.rebrand .rb-purpose-note,
+.rebrand .rb-footer-bottom {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.rebrand .rb-research-note {
+  max-width: 48ch;
+}
+.rebrand .rb-section-description,
+.rebrand .rb-standards-list p,
+.rebrand .rb-about-copy > p:not(.rb-eyebrow),
+.rebrand .rb-journal-copy > p:not(.rb-eyebrow),
+.rebrand .rb-faq summary,
+.rebrand .rb-faq details p {
+  font-size: 17px;
+  line-height: 1.65;
+}
+.rebrand .rb-trust-grid > a,
+.rebrand .rb-science-proof strong {
+  font-size: 16px;
+  font-weight: 550;
+  line-height: 1.4;
+}
+.rebrand .rb-trust small,
+.rebrand .rb-science-proof small {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  margin-top: 6px;
+}
+.rebrand .rb-filters button {
+  font-size: 14px;
+  line-height: 1.4;
+  border-radius: 5px;
+}
+.rebrand .rb-products .ecl-product-details h3,
+.rebrand .rb-products .ecl-product-details p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.rebrand .rb-products .ecl-product-details h3 {
+  font-size: 16px;
+}
+.rebrand .rb-products .ecl-product-details a[href*="?size="] {
+  font-size: 13px;
+}
+.rebrand .rb-report-card {
+  box-shadow: none;
+  transform: none;
+}
+.rebrand .rb-report-top,
+.rebrand .rb-report-fields,
+.rebrand .rb-report-verify,
+.rebrand .rb-report-caption {
+  font-size: 14px;
+}
+.rebrand .rb-report-heading h3 {
+  font-size: 24px;
+}
+.rebrand .rb-report-heading p {
+  font-size: 15px;
+}
+.rebrand .rb-standards-list > li > span {
+  font-size: 16px;
+  font-weight: 600;
+}
+.rebrand .rb-about {
+  display: block;
+}
+.rebrand .rb-about-copy {
+  max-width: 850px;
+  padding: 70px 48px;
+  margin: 0 auto;
+}
+.rebrand .rb-about-copy > p:not(.rb-eyebrow) {
+  max-width: 65ch;
+}
+.rebrand .rb-journal-grid {
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-top: 1px solid var(--rb-line);
+}
+.rebrand .rb-journal-card {
+  display: block;
+  border: 0;
+  border-bottom: 1px solid var(--rb-line);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+.rebrand .rb-journal-card:hover {
+  transform: none;
+  background: var(--rb-soft);
+}
+.rebrand .rb-journal-copy {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr auto;
+  gap: 16px 30px;
+  align-items: start;
+  padding: 26px 0;
+}
+.rebrand .rb-journal-copy .rb-eyebrow {
+  grid-column: 1 / -1;
+}
+.rebrand .rb-journal-copy h3 {
+  font-size: 22px;
+}
+.rebrand .rb-journal-copy > p:not(.rb-eyebrow),
+.rebrand .rb-journal-copy .rb-text-link {
+  margin: 0;
+}
+.rebrand .rb-footer .rb-eyebrow {
+  color: inherit;
+}
+.rebrand .rb-footer-grid h3,
+.rebrand .rb-footer-grid nav,
+.rebrand .rb-footer-grid p,
+.rebrand .rb-support-email {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.rebrand .rb-footer-grid h3 {
+  font-weight: 600;
+}
+.rebrand .rb-location {
+  font-size: 13px;
+}
+.rebrand .rb-science-art-top {
+  font-size: 14px;
+  letter-spacing: 0;
+}
+.rebrand.rb-v2 .rb-hero h1,
+.rebrand.rb-v2 main h2 {
+  font-weight: 650;
+}
+.rebrand.rb-v3 .rb-hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 65px;
+}
+.rebrand.rb-v3 .rb-hero-copy {
+  text-align: left;
+  max-width: 650px;
+  margin: 0;
+}
+.rebrand.rb-v3 .rb-hero .rb-eyebrow,
+.rebrand.rb-v3 .rb-actions,
+.rebrand.rb-v3 .rb-hero-notes {
+  justify-content: flex-start;
+}
+.rebrand.rb-v3 .rb-intro {
+  margin: 26px 0 0;
+}
+.rebrand.rb-v3 .rb-button {
+  border-radius: 5px;
+}
+.rebrand .rb-document-hero {
+  margin: 0;
+  border: 1px solid var(--rb-line);
+  background: var(--rb-white);
+  border-radius: 5px;
+  padding: 24px;
+}
+.rebrand .rb-document-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.rebrand .rb-document-heading span:last-child {
+  color: var(--rb-muted);
+}
+.rebrand .rb-document-hero > a {
+  display: block;
+  margin: 18px 0;
+  background: white;
+  border: 1px solid var(--rb-line);
+}
+.rebrand .rb-document-hero img {
+  display: block;
+  width: 100%;
+  height: 385px;
+  object-fit: contain;
+}
+.rebrand .rb-document-hero figcaption {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--rb-muted);
+}
+.rebrand .rb-document-hero figcaption strong {
+  color: var(--rb-ink);
+  font-weight: 550;
+}
+.rebrand .rb-contact-card {
+  background: var(--rb-white);
+  border: 1px solid var(--rb-line);
+  border-radius: 5px;
+  padding: 36px;
+}
+.rebrand .rb-contact-card h2 {
+  font-size: 28px;
+  margin: 16px 0;
+}
+.rebrand .rb-contact-card > p:not(.rb-eyebrow) {
+  margin-top: 16px;
+}
+.rebrand .rb-contact-address {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin-top: 24px;
+  font-size: 17px;
+  font-weight: 550;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  overflow-wrap: anywhere;
+}
+.rebrand .rb-contact-address svg {
+  flex-shrink: 0;
+}
+.rebrand .rb-contact-hours,
+.rebrand .rb-contact-scope {
+  font-size: 14px;
+  color: var(--rb-muted);
+}
+.rebrand .rb-contact-scope {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--rb-line);
+}
+@media (max-width: 1150px) {
+  .rebrand.rb-v3 .rb-hero-grid {
+    gap: 30px;
+  }
+}
+@media (max-width: 800px) {
+  .rebrand .rb-wordmark > span {
+    font-size: 27px;
+  }
+  .rebrand .rb-hero h1 {
+    font-size: clamp(35px, 6.6vw, 49px);
+  }
+  .rebrand .rb-intro {
+    font-size: 17px;
+  }
+  .rebrand .rb-section-description,
+  .rebrand .rb-standards-list p,
+  .rebrand .rb-about-copy > p:not(.rb-eyebrow),
+  .rebrand .rb-journal-copy > p:not(.rb-eyebrow),
+  .rebrand .rb-faq summary,
+  .rebrand .rb-faq details p {
+    font-size: 16px;
+  }
+  .rebrand.rb-v3 .rb-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .rebrand.rb-v3 .rb-actions {
+    align-items: flex-start;
+  }
+  .rebrand .rb-journal-copy {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 24px 0;
+  }
+  .rebrand .rb-journal-copy .rb-text-link {
+    justify-self: start;
+  }
+  .rebrand .rb-about-copy {
+    padding: 50px 24px;
+  }
+  .rebrand .rb-document-hero {
+    padding: 20px;
+    max-width: 540px;
+    width: 100%;
+    margin-inline: auto;
+  }
+  .rebrand .rb-document-hero img {
+    height: 330px;
+  }
+  .rebrand .rb-contact-card {
+    padding: 28px;
+  }
+}
+@media (max-width: 450px) {
+  .rebrand .rb-announcement {
+    font-size: 12px;
+  }
+  .rebrand .rb-hero .rb-eyebrow {
+    font-size: 13px;
+  }
+  .rebrand .rb-hero-notes {
+    gap: 6px;
+    flex-direction: column;
+  }
+  .rebrand .rb-hero-notes span + span {
+    border: 0;
+    padding: 0;
+  }
+  .rebrand .rb-report-card {
+    padding: 18px;
+  }
+  .rebrand .rb-report-fields > div {
+    flex-wrap: wrap;
+    gap: 4px 15px;
+  }
+  .rebrand .rb-contact-card {
+    padding: 24px 20px;
+  }
+  .rebrand .rb-document-hero img {
+    height: 290px;
   }
 }
