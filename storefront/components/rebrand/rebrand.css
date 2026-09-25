@@ -1,0 +1,1870 @@
+@font-face {
+  font-family: RebrandInter;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: RebrandTenor;
+  src: url("/fonts/tenor-sans-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: RebrandNewsreader;
+  src: url("/fonts/newsreader-italic-latin.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400 500;
+  font-display: swap;
+}
+.rebrand {
+  --rb-bg: #f8f8f2;
+  --rb-ink: #233c32;
+  --rb-muted: #54635b;
+  --rb-accent: #345b47;
+  --rb-soft: #e7ebe2;
+  --rb-line: #d4dcd1;
+  --rb-white: #fffefa;
+  --rb-display: Georgia, "Times New Roman", serif;
+  --color-ink: var(--rb-bg);
+  --color-ink-2: var(--rb-soft);
+  --color-surface: var(--rb-white);
+  --color-surface-2: var(--rb-soft);
+  --color-line: var(--rb-line);
+  --color-line-2: var(--rb-muted);
+  --color-fg: var(--rb-ink);
+  --color-fg-2: var(--rb-ink);
+  --color-muted: var(--rb-muted);
+  --color-muted-2: var(--rb-muted);
+  --color-accent: var(--rb-accent);
+  --color-accent-2: var(--rb-accent);
+  --color-accent-ink: #fff;
+  --color-success: #345b47;
+  --color-warn: #795329;
+  background: var(--rb-bg);
+  color: var(--rb-ink);
+  font-family: RebrandInter, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+}
+.rebrand.rb-v2 {
+  --rb-bg: #fafcff;
+  --rb-ink: #142c49;
+  --rb-muted: #536477;
+  --rb-accent: #254f7e;
+  --rb-soft: #eaf0f5;
+  --rb-line: #cedae5;
+  --rb-white: #fff;
+  --rb-display: RebrandInter, Arial, sans-serif;
+}
+.rebrand.rb-v3 {
+  --rb-bg: #faf5f0;
+  --rb-ink: #472d42;
+  --rb-muted: #735f6c;
+  --rb-accent: #6c3e5a;
+  --rb-soft: #efe3e8;
+  --rb-line: #dfcfd5;
+  --rb-white: #fffaf7;
+  --rb-display: RebrandTenor, Georgia, serif;
+}
+body:has(.rebrand) {
+  background: #f8f8f2;
+}
+.rebrand * {
+  box-sizing: border-box;
+}
+.rebrand :where(.rb-header, main, .rb-footer, .rb-announcement) a {
+  color: inherit;
+  text-decoration: none;
+}
+.rebrand :where(.rb-header, main, .rb-footer) button {
+  font: inherit;
+  cursor: pointer;
+}
+.rebrand :is(a, button, summary):focus-visible {
+  outline: 3px solid var(--rb-accent);
+  outline-offset: 5px;
+}
+.rebrand :where(.rb-header, main, .rb-footer) :where(h1, h2, h3, p) {
+  margin: 0;
+}
+.rebrand main h1,
+.rebrand main h2,
+.rebrand .rb-footer h2 {
+  font-family: var(--rb-display);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+.rebrand main h2 {
+  font-size: clamp(32px, 3.4vw, 49px);
+}
+.rebrand h1 em,
+.rebrand h2 em {
+  font-family: RebrandNewsreader, Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+.rebrand .rb-container {
+  width: min(1280px, calc(100% - 104px));
+  margin-inline: auto;
+}
+.rebrand .rb-skip {
+  position: fixed;
+  left: 16px;
+  top: -100px;
+  z-index: 100;
+  background: var(--rb-ink);
+  color: white;
+  padding: 12px 20px;
+}
+.rebrand .rb-skip:focus {
+  top: 12px;
+}
+.rebrand .rb-announcement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 46px;
+  min-height: 35px;
+  background: var(--rb-ink);
+  color: var(--rb-bg);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  padding: 8px 20px;
+}
+.rebrand .rb-announcement a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.rebrand .rb-header {
+  position: relative;
+  z-index: 20;
+  background: var(--rb-bg);
+  border-bottom: 1px solid var(--rb-line);
+}
+.rebrand .rb-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100px;
+  gap: 35px;
+}
+.rebrand .rb-wordmark {
+  display: inline-flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  color: var(--rb-ink);
+  line-height: 1;
+  gap: 7px;
+}
+.rebrand .rb-wordmark > span {
+  font-family: Georgia, serif;
+  font-size: 35px;
+  letter-spacing: -2px;
+}
+.rebrand .rb-wordmark-dot {
+  color: var(--rb-accent);
+}
+.rebrand .rb-wordmark small {
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.31em;
+  padding-left: 2px;
+}
+.rebrand .rb-desktop-nav {
+  display: flex;
+  gap: 30px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.rebrand .rb-desktop-nav a,
+.rebrand .rb-shop-link {
+  transition: opacity 0.2s;
+}
+.rebrand .rb-desktop-nav a:hover,
+.rebrand .rb-shop-link:hover {
+  opacity: 0.65;
+}
+.rebrand .rb-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.rebrand .rb-shop-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.rebrand .rb-cart {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  color: inherit;
+  padding: 0;
+}
+.rebrand .rb-cart span {
+  font-size: 10px;
+}
+.rebrand .rb-menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+.rebrand .rb-mobile-nav {
+  display: grid;
+  padding: 8px 24px 22px;
+  border-top: 1px solid var(--rb-line);
+}
+.rebrand .rb-mobile-nav a {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--rb-line);
+}
+.rebrand .rb-hero {
+  padding: 38px 0 50px;
+  overflow: hidden;
+}
+.rebrand .rb-hero-grid {
+  display: grid;
+  grid-template-columns: 1.02fr 1fr;
+  gap: 55px;
+  align-items: center;
+}
+.rebrand .rb-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  line-height: 1.6;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.rebrand .rb-hero .rb-eyebrow {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  margin-bottom: 25px;
+}
+.rebrand .rb-small-rule {
+  width: 23px;
+  height: 1px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.rebrand .rb-hero h1 {
+  font-size: clamp(48px, 4.6vw, 69px);
+  line-height: 1.045;
+  max-width: 650px;
+}
+.rebrand .rb-hero h1 em {
+  color: var(--rb-accent);
+}
+.rebrand .rb-intro {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--rb-muted);
+  max-width: 440px;
+  margin-top: 26px;
+}
+.rebrand .rb-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 22px;
+  margin-top: 30px;
+}
+.rebrand .rb-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 50px;
+  padding: 13px 22px;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.rebrand .rb-button:hover {
+  transform: translateY(-2px);
+}
+.rebrand .rb-button-primary {
+  background: var(--rb-ink);
+  color: var(--rb-bg);
+}
+.rebrand .rb-button-primary:hover {
+  background: var(--rb-accent);
+}
+.rebrand .rb-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  min-height: 40px;
+  border-bottom: 1px solid var(--rb-line);
+}
+.rebrand .rb-text-link:hover {
+  border-color: currentColor;
+}
+.rebrand .rb-hero-notes {
+  display: flex;
+  gap: 22px;
+  margin-top: 35px;
+  font-size: 10px;
+  color: var(--rb-muted);
+}
+.rebrand .rb-hero-notes span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rebrand .rb-research-note {
+  font-size: 9px;
+  color: var(--rb-muted);
+  margin-top: 13px;
+}
+.rebrand .rb-hero-portrait {
+  height: 570px;
+  position: relative;
+  border-radius: 180px 180px 3px 3px;
+  overflow: hidden;
+  background: var(--rb-soft);
+}
+.rebrand .rb-hero-portrait > img {
+  object-fit: cover;
+  object-position: 51% center;
+}
+.rebrand .rb-photo-label {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 36px;
+  background: rgba(255, 254, 250, 0.96);
+  padding: 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+.rebrand .rb-photo-label small {
+  display: block;
+  font-size: 9px;
+  color: var(--rb-muted);
+  margin-top: 3px;
+}
+.rebrand .rb-photo-label > svg {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.rebrand .rb-label-icon {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rb-line);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+.rebrand .rb-photo-register {
+  position: absolute;
+  bottom: 10px;
+  left: 23px;
+  color: white;
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 4px #000;
+}
+.rebrand .rb-trust {
+  border-block: 1px solid var(--rb-line);
+  background: var(--rb-white);
+}
+.rebrand .rb-trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding-block: 25px;
+}
+.rebrand .rb-trust-grid > a {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  padding: 0 32px;
+  border-right: 1px solid var(--rb-line);
+  font-size: 12px;
+  font-weight: 500;
+}
+.rebrand .rb-trust-grid > a:first-child {
+  padding-left: 0;
+}
+.rebrand .rb-trust-grid > a:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+.rebrand .rb-trust-grid > a > svg:last-child {
+  margin-left: auto;
+  width: 14px;
+  flex-shrink: 0;
+}
+.rebrand .rb-trust small {
+  display: block;
+  color: var(--rb-muted);
+  font-size: 10px;
+  font-weight: 400;
+  margin-top: 3px;
+}
+.rebrand .rb-trust-grid > a > svg:first-child {
+  flex-shrink: 0;
+}
+.rebrand .rb-section {
+  padding: 95px 0;
+  scroll-margin-top: 30px;
+}
+.rebrand .rb-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 35px;
+}
+.rebrand .rb-section-heading h2 {
+  max-width: 680px;
+  margin-top: 15px;
+}
+.rebrand .rb-section-heading > .rb-text-link {
+  flex-shrink: 0;
+}
+.rebrand .rb-section-description {
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--rb-muted);
+  max-width: 640px;
+  margin-top: 20px;
+}
+.rebrand .rb-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 30px 0;
+}
+.rebrand .rb-filters button {
+  min-height: 39px;
+  padding: 8px 15px;
+  font-size: 10px;
+  border: 1px solid var(--rb-line);
+  color: var(--rb-muted);
+  background: transparent;
+  border-radius: 50px;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.rebrand .rb-filters button[aria-pressed="true"] {
+  background: var(--rb-ink);
+  border-color: var(--rb-ink);
+  color: var(--rb-bg);
+}
+.rebrand .rb-filters button:hover:not([aria-pressed="true"]) {
+  background: var(--rb-soft);
+}
+.rebrand .rb-products {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+.rebrand .rb-products .ecl-product-card {
+  border-radius: 4px;
+  background: var(--rb-white);
+  border-color: var(--rb-line);
+  box-shadow: none;
+}
+.rebrand .rb-products .ecl-product-image {
+  background: var(--rb-soft);
+  aspect-ratio: 1/1.12;
+}
+.rebrand .rb-products .ecl-product-details {
+  padding: 18px;
+}
+.rebrand .rb-products .ecl-product-details h3 {
+  font-size: 15px;
+  font-weight: 500;
+}
+.rebrand .rb-products .ecl-stock-label {
+  font-size: 9px;
+  letter-spacing: 0.025em;
+  background: var(--rb-white);
+  border: 1px solid var(--rb-line);
+  color: var(--rb-ink);
+  font-weight: 400;
+}
+.rebrand .rb-empty {
+  text-align: center;
+  border: 1px solid var(--rb-line);
+  background: var(--rb-white);
+  padding: 40px 20px;
+}
+.rebrand .rb-empty > svg {
+  margin: 0 auto 15px;
+}
+.rebrand .rb-empty h3 {
+  font-size: 18px;
+  font-weight: 400;
+}
+.rebrand .rb-empty p {
+  color: var(--rb-muted);
+  margin: 10px auto;
+  max-width: 420px;
+  font-size: 12px;
+}
+.rebrand .rb-range-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid var(--rb-line);
+  margin-top: 28px;
+  padding-top: 15px;
+  font-size: 9px;
+  color: var(--rb-muted);
+}
+.rebrand .rb-evidence {
+  background: var(--rb-soft);
+}
+.rebrand .rb-evidence-grid {
+  display: grid;
+  grid-template-columns: 1fr 0.85fr;
+  column-gap: 110px;
+  align-items: center;
+}
+.rebrand .rb-evidence h2 {
+  margin-top: 20px;
+  font-size: clamp(35px, 3.8vw, 54px);
+}
+.rebrand .rb-standards-list {
+  list-style: none;
+  padding: 0;
+  margin: 30px 0;
+}
+.rebrand .rb-standards-list li {
+  display: flex;
+  gap: 24px;
+  padding: 20px 0;
+  border-top: 1px solid var(--rb-line);
+}
+.rebrand .rb-standards-list li > span {
+  font-size: 10px;
+  padding-top: 3px;
+}
+.rebrand .rb-standards-list h3 {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.rebrand .rb-standards-list p {
+  font-size: 12px;
+  color: var(--rb-muted);
+  max-width: 380px;
+  line-height: 1.8;
+}
+.rebrand .rb-report-stack {
+  padding: 0 8px;
+}
+.rebrand .rb-report-card {
+  background: var(--rb-white);
+  border: 1px solid var(--rb-line);
+  padding: 27px;
+  box-shadow:
+    9px 10px 0 -1px var(--rb-soft),
+    9px 10px 0 var(--rb-line);
+}
+.rebrand .rb-report-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--rb-line);
+  padding-bottom: 16px;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+}
+.rebrand .rb-report-heading {
+  margin: 23px 0 19px;
+}
+.rebrand .rb-report-heading h3 {
+  font-family: var(--rb-display);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+.rebrand .rb-report-heading p {
+  font-size: 10px;
+  color: var(--rb-muted);
+  margin-top: 4px;
+}
+.rebrand .rb-report-preview {
+  display: block;
+  height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--rb-line);
+  background: #fff;
+}
+.rebrand .rb-report-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  object-position: top;
+}
+.rebrand .rb-report-fields {
+  margin: 18px 0 8px;
+}
+.rebrand .rb-report-fields > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  font-size: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rb-line);
+}
+.rebrand .rb-report-fields dt {
+  color: var(--rb-muted);
+}
+.rebrand .rb-report-fields dd {
+  margin: 0;
+  font-weight: 500;
+}
+.rebrand .rb-report-verify {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 13px 0 8px;
+}
+.rebrand .rb-report-footnote {
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--rb-muted);
+  padding-top: 7px;
+}
+.rebrand .rb-report-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin-top: 30px;
+  font-size: 10px;
+}
+.rebrand .rb-current-docs {
+  grid-column: 1/-1;
+  margin-top: 55px;
+  border-top: 1px solid var(--rb-line);
+  padding-top: 25px;
+}
+.rebrand .rb-current-docs h3 {
+  font-size: 18px;
+  font-weight: 400;
+}
+.rebrand .rb-current-docs > p {
+  font-size: 11px;
+  color: var(--rb-muted);
+  margin: 8px 0 15px;
+}
+.rebrand .rb-current-docs > a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--rb-line);
+  font-size: 12px;
+}
+.rebrand .rb-current-docs small {
+  display: block;
+  font-size: 10px;
+  color: var(--rb-muted);
+}
+.rebrand .rb-current-docs > a > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+}
+.rebrand .rb-about {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 580px;
+  scroll-margin-top: 30px;
+}
+.rebrand .rb-about-image {
+  position: relative;
+  min-height: 490px;
+}
+.rebrand .rb-about-image img {
+  object-fit: cover;
+}
+.rebrand .rb-about-image > span {
+  position: absolute;
+  bottom: 27px;
+  left: 30px;
+  color: white;
+  font-size: 8px;
+  letter-spacing: 0.13em;
+  text-shadow: 0 1px 4px #000;
+}
+.rebrand .rb-about-copy {
+  padding: 85px clamp(35px, 6vw, 105px);
+  background: var(--rb-ink);
+  color: var(--rb-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.rebrand .rb-about h2 {
+  margin: 20px 0 25px;
+  font-size: clamp(35px, 3.5vw, 49px);
+}
+.rebrand .rb-about-copy > p:not(.rb-eyebrow) {
+  font-size: 12px;
+  line-height: 1.95;
+  margin-bottom: 17px;
+  opacity: 0.87;
+}
+.rebrand .rb-about .rb-text-link {
+  border-color: #ffffff45;
+  margin-top: 7px;
+}
+.rebrand .rb-purpose-note {
+  border-top: 1px solid #ffffff35;
+  margin-top: 30px;
+  padding-top: 15px;
+  font-size: 9px;
+  opacity: 0.8;
+  line-height: 1.8;
+}
+.rebrand .rb-journal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 36px;
+}
+.rebrand .rb-journal-card {
+  display: block;
+  border: 1px solid var(--rb-line);
+  background: var(--rb-white);
+  transition: transform 0.2s;
+}
+.rebrand .rb-journal-card:hover {
+  transform: translateY(-3px);
+}
+.rebrand .rb-journal-art {
+  background: var(--rb-soft);
+  height: 155px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.rebrand .rb-journal-art > span {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  font-family: var(--rb-display);
+  font-size: 17px;
+}
+.rebrand .rb-journal-copy {
+  padding: 25px;
+}
+.rebrand .rb-journal-copy .rb-eyebrow {
+  font-size: 8px;
+}
+.rebrand .rb-journal-copy h3 {
+  font-family: var(--rb-display);
+  font-size: 25px;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  font-weight: 400;
+  margin: 13px 0;
+}
+.rebrand .rb-journal-copy > p:not(.rb-eyebrow) {
+  color: var(--rb-muted);
+  font-size: 11px;
+  line-height: 1.85;
+}
+.rebrand .rb-journal-copy .rb-text-link {
+  margin-top: 20px;
+}
+.rebrand .rb-faq {
+  border-top: 1px solid var(--rb-line);
+  padding-top: 70px;
+}
+.rebrand .rb-faq-grid {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 100px;
+}
+.rebrand .rb-faq h2 {
+  margin: 17px 0 23px;
+}
+.rebrand .rb-faq-grid > div > p:not(.rb-eyebrow) {
+  font-size: 12px;
+  color: var(--rb-muted);
+}
+.rebrand .rb-faq-grid > .rb-faq-items {
+  border-top: 1px solid var(--rb-line);
+}
+.rebrand .rb-faq details {
+  border-bottom: 1px solid var(--rb-line);
+}
+.rebrand .rb-faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 23px 0;
+}
+.rebrand .rb-faq summary::-webkit-details-marker {
+  display: none;
+}
+.rebrand .rb-faq summary svg {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+.rebrand .rb-faq details[open] summary svg {
+  transform: rotate(45deg);
+}
+.rebrand .rb-faq details p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--rb-muted);
+  padding: 0 30px 25px 0;
+}
+.rebrand .rb-footer {
+  background: var(--rb-ink);
+  color: var(--rb-bg);
+}
+.rebrand .rb-footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+  border-bottom: 1px solid #ffffff30;
+  padding: 60px 0;
+}
+.rebrand .rb-footer-top h2 {
+  font-size: 37px;
+  margin-top: 16px;
+}
+.rebrand .rb-button-light {
+  background: var(--rb-bg);
+  color: var(--rb-ink);
+  white-space: nowrap;
+}
+.rebrand .rb-footer-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 0.9fr 0.9fr 1.1fr;
+  gap: 50px;
+  padding: 55px 0;
+}
+.rebrand .rb-footer .rb-wordmark {
+  color: var(--rb-bg);
+}
+.rebrand .rb-footer .rb-wordmark-dot {
+  color: inherit;
+}
+.rebrand .rb-footer-grid p {
+  font-size: 10px;
+  margin-top: 20px;
+  line-height: 1.9;
+  opacity: 0.78;
+}
+.rebrand .rb-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  margin-top: 18px;
+}
+.rebrand .rb-footer-grid nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 10px;
+}
+.rebrand .rb-footer-grid h3 {
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.rebrand .rb-footer-grid nav a {
+  opacity: 0.8;
+}
+.rebrand .rb-footer-grid nav a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
+.rebrand .rb-support-email {
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.rebrand .rb-footer-bottom {
+  border-top: 1px solid #ffffff30;
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 22px 0;
+  font-size: 8px;
+  opacity: 0.75;
+}
+.rebrand .rb-footer :is(a, button):focus-visible {
+  outline-color: var(--rb-bg);
+}
+/* Direction 02: crisp geometry, stronger hierarchy and evidence first. */
+.rebrand.rb-v2 .rb-wordmark > span {
+  font-family: RebrandInter, Arial, sans-serif;
+  letter-spacing: -2px;
+  font-weight: 600;
+  font-size: 31px;
+}
+.rebrand.rb-v2 .rb-hero {
+  padding: 55px 0 65px;
+}
+.rebrand.rb-v2 .rb-hero-grid {
+  gap: 70px;
+  grid-template-columns: 1fr 1fr;
+}
+.rebrand.rb-v2 .rb-hero h1 {
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  font-size: clamp(46px, 4.6vw, 68px);
+}
+.rebrand.rb-v2 .rb-hero h1 em {
+  font-family: inherit;
+  font-style: normal;
+  font-weight: 400;
+  color: var(--rb-accent);
+}
+.rebrand.rb-v2 main h2 {
+  font-weight: 450;
+  font-size: clamp(31px, 3vw, 43px);
+  letter-spacing: -0.055em;
+}
+.rebrand.rb-v2 .rb-button,
+.rebrand.rb-v2 .rb-filters button,
+.rebrand.rb-v2 .rb-products .ecl-product-card {
+  border-radius: 0;
+}
+.rebrand .rb-science-art {
+  position: relative;
+  min-height: 510px;
+  background: #dce9f4;
+  border: 1px solid var(--rb-line);
+  margin-bottom: 20px;
+}
+.rebrand .rb-science-art > img {
+  object-fit: contain;
+  padding: 45px 10px 85px;
+}
+.rebrand .rb-science-art-top {
+  position: absolute;
+  z-index: 1;
+  top: 25px;
+  left: 27px;
+  right: 27px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+}
+.rebrand .rb-science-caption {
+  position: absolute;
+  bottom: 75px;
+  left: 27px;
+  right: 27px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.rebrand .rb-science-caption > span > span {
+  display: block;
+  font-size: 21px;
+  letter-spacing: -0.04em;
+  margin-top: 5px;
+}
+.rebrand .rb-science-proof {
+  position: absolute;
+  bottom: -20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: var(--rb-ink);
+  color: var(--rb-bg);
+  padding: 24px 22px;
+}
+.rebrand .rb-science-proof > svg {
+  flex-shrink: 0;
+}
+.rebrand .rb-science-proof > svg:last-child {
+  margin-left: auto;
+}
+.rebrand .rb-science-proof strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.rebrand .rb-science-proof small {
+  display: block;
+  font-size: 9px;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+.rebrand.rb-v2 .rb-report-card {
+  box-shadow: none;
+  border-top: 3px solid var(--rb-accent);
+}
+.rebrand.rb-v2 .rb-report-heading h3 {
+  font-size: 24px;
+}
+.rebrand.rb-v2 .rb-journal-copy h3 {
+  font-size: 23px;
+  letter-spacing: -0.05em;
+}
+/* Direction 03: magazine composition, warm plum and a personal voice. */
+.rebrand.rb-v3 .rb-wordmark > span {
+  font-family: RebrandTenor, Georgia, serif;
+  font-size: 32px;
+  letter-spacing: -2px;
+}
+.rebrand.rb-v3 .rb-announcement {
+  background: #eadce2;
+  color: var(--rb-ink);
+}
+.rebrand.rb-v3 .rb-header {
+  border: 0;
+}
+.rebrand.rb-v3 .rb-hero {
+  padding-top: 42px;
+  padding-bottom: 50px;
+}
+.rebrand.rb-v3 .rb-hero-grid {
+  display: block;
+}
+.rebrand.rb-v3 .rb-hero-copy {
+  text-align: center;
+  max-width: 1050px;
+  margin: 0 auto;
+}
+.rebrand.rb-v3 .rb-hero .rb-eyebrow {
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.rebrand.rb-v3 .rb-hero h1 {
+  font-size: clamp(45px, 5.8vw, 82px);
+  max-width: none;
+  letter-spacing: -0.055em;
+}
+.rebrand.rb-v3 .rb-hero h1 em {
+  font-size: 1.06em;
+}
+.rebrand.rb-v3 .rb-intro {
+  max-width: 510px;
+  margin: 24px auto 0;
+}
+.rebrand.rb-v3 .rb-actions {
+  justify-content: center;
+  margin-top: 24px;
+}
+.rebrand.rb-v3 .rb-hero-notes {
+  justify-content: center;
+  margin-top: 23px;
+}
+.rebrand.rb-v3 .rb-research-note {
+  margin-top: 8px;
+}
+.rebrand.rb-v3 .rb-button {
+  border-radius: 50px;
+}
+.rebrand .rb-editorial-panels {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.75fr;
+  gap: 19px;
+  margin-top: 43px;
+}
+.rebrand .rb-editorial-panels figure {
+  margin: 0;
+}
+.rebrand .rb-editorial-image {
+  position: relative;
+  height: 310px;
+  background: var(--rb-soft);
+}
+.rebrand .rb-editorial-image img {
+  object-fit: cover;
+}
+.rebrand .rb-editorial-panels figure:first-child .rb-editorial-image {
+  border-radius: 140px 140px 0 0;
+  overflow: hidden;
+}
+.rebrand .rb-editorial-panels figure:last-child .rb-editorial-image {
+  border-radius: 0 0 140px 0;
+  overflow: hidden;
+}
+.rebrand .rb-editorial-panels figcaption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  padding-top: 11px;
+}
+.rebrand.rb-v3 .rb-trust {
+  background: transparent;
+}
+.rebrand.rb-v3 .rb-evidence {
+  background: #efe3e8;
+}
+.rebrand.rb-v3 .rb-journal-art {
+  background: #eadbe1;
+}
+.rebrand.rb-v3 .rb-hero-portrait > img {
+  object-position: center;
+}
+@media (min-width: 1500px) {
+  .rebrand .rb-hero h1 {
+    font-size: 74px;
+  }
+  .rebrand .rb-hero-grid {
+    gap: 80px;
+  }
+  .rebrand.rb-v3 .rb-hero h1 {
+    font-size: 87px;
+  }
+}
+@media (max-width: 1150px) {
+  .rebrand .rb-container {
+    width: calc(100% - 64px);
+  }
+  .rebrand .rb-desktop-nav {
+    gap: 18px;
+  }
+  .rebrand .rb-header-inner {
+    gap: 20px;
+  }
+  .rebrand .rb-shop-link {
+    display: none;
+  }
+  .rebrand .rb-hero-grid,
+  .rebrand.rb-v2 .rb-hero-grid {
+    gap: 35px;
+  }
+  .rebrand .rb-hero h1 {
+    font-size: 52px;
+  }
+  .rebrand .rb-hero-portrait {
+    height: 540px;
+  }
+  .rebrand .rb-actions {
+    gap: 12px;
+  }
+  .rebrand .rb-evidence-grid {
+    column-gap: 55px;
+  }
+  .rebrand .rb-trust-grid > a {
+    padding: 0 20px;
+    gap: 10px;
+  }
+  .rebrand .rb-trust-grid > a > svg:last-child {
+    display: none;
+  }
+  .rebrand .rb-footer-grid {
+    gap: 30px;
+  }
+  .rebrand .rb-faq-grid {
+    gap: 55px;
+  }
+}
+@media (max-width: 800px) {
+  .rebrand .rb-container {
+    width: calc(100% - 48px);
+  }
+  .rebrand .rb-announcement {
+    min-height: 32px;
+    font-size: 9px;
+  }
+  .rebrand .rb-announcement > a {
+    display: none;
+  }
+  .rebrand .rb-header-inner {
+    height: 79px;
+  }
+  .rebrand .rb-wordmark > span {
+    font-size: 30px;
+  }
+  .rebrand .rb-wordmark small {
+    font-size: 7px;
+  }
+  .rebrand .rb-desktop-nav {
+    display: none;
+  }
+  .rebrand .rb-menu-toggle {
+    display: flex;
+  }
+  .rebrand .rb-header-actions {
+    gap: 15px;
+  }
+  .rebrand .rb-hero {
+    padding-top: 35px;
+    padding-bottom: 30px;
+  }
+  .rebrand .rb-hero-grid,
+  .rebrand.rb-v2 .rb-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .rebrand .rb-hero-copy {
+    max-width: 600px;
+  }
+  .rebrand .rb-hero h1 {
+    font-size: clamp(43px, 7.3vw, 65px);
+    max-width: 580px;
+  }
+  .rebrand .rb-hero .rb-eyebrow {
+    font-size: 8px;
+    margin-bottom: 22px;
+  }
+  .rebrand .rb-intro {
+    max-width: 520px;
+    margin-top: 21px;
+    font-size: 13px;
+  }
+  .rebrand .rb-actions {
+    margin-top: 23px;
+    gap: 19px;
+  }
+  .rebrand .rb-hero-notes {
+    margin-top: 25px;
+  }
+  .rebrand .rb-hero-portrait {
+    height: 480px;
+    border-radius: 150px 150px 3px 3px;
+  }
+  .rebrand .rb-hero-portrait > img {
+    object-position: center 35%;
+  }
+  .rebrand .rb-trust-grid {
+    grid-template-columns: 1fr;
+    padding-block: 0;
+  }
+  .rebrand .rb-trust-grid > a,
+  .rebrand .rb-trust-grid > a:first-child,
+  .rebrand .rb-trust-grid > a:last-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--rb-line);
+    padding: 18px 0;
+    gap: 18px;
+    font-size: 12px;
+  }
+  .rebrand .rb-trust-grid > a:last-child {
+    border-bottom: 0;
+  }
+  .rebrand .rb-trust-grid > a > svg:last-child {
+    display: block;
+  }
+  .rebrand .rb-trust small {
+    font-size: 10px;
+  }
+  .rebrand .rb-section {
+    padding: 60px 0;
+  }
+  .rebrand .rb-section-heading {
+    align-items: flex-start;
+    gap: 20px;
+    flex-direction: column;
+  }
+  .rebrand .rb-section-heading h2 {
+    margin-top: 12px;
+    max-width: 500px;
+  }
+  .rebrand .rb-section-description {
+    font-size: 12px;
+    margin-top: 15px;
+  }
+  .rebrand .rb-products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .rebrand .rb-evidence-grid {
+    grid-template-columns: 1fr;
+    gap: 45px;
+  }
+  .rebrand .rb-evidence-copy {
+    max-width: 550px;
+  }
+  .rebrand .rb-evidence h2 {
+    font-size: 40px;
+  }
+  .rebrand .rb-report-stack {
+    max-width: 510px;
+    width: 100%;
+    margin-inline: auto;
+  }
+  .rebrand .rb-report-preview {
+    height: 280px;
+  }
+  .rebrand .rb-current-docs {
+    margin-top: 0;
+  }
+  .rebrand .rb-about {
+    grid-template-columns: 1fr;
+  }
+  .rebrand .rb-about-image {
+    min-height: 390px;
+  }
+  .rebrand .rb-about-copy {
+    padding: 55px 35px;
+  }
+  .rebrand .rb-about h2 {
+    max-width: 470px;
+  }
+  .rebrand .rb-about-copy > p:not(.rb-eyebrow) {
+    max-width: 550px;
+  }
+  .rebrand .rb-journal-grid {
+    gap: 16px;
+    grid-template-columns: 1fr;
+  }
+  .rebrand .rb-journal-card {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+  }
+  .rebrand .rb-journal-art {
+    height: 100%;
+    min-height: 200px;
+  }
+  .rebrand .rb-journal-copy {
+    padding: 25px;
+  }
+  .rebrand .rb-journal-copy h3 {
+    font-size: 24px;
+  }
+  .rebrand .rb-faq-grid {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+  .rebrand .rb-footer-top {
+    padding: 40px 0;
+  }
+  .rebrand .rb-footer-top h2 {
+    font-size: 29px;
+  }
+  .rebrand .rb-footer-grid {
+    grid-template-columns: 1.2fr 1fr;
+    gap: 40px 30px;
+    padding: 40px 0;
+  }
+  .rebrand .rb-footer-bottom {
+    flex-direction: column;
+    gap: 7px;
+    font-size: 8px;
+  }
+  .rebrand.rb-v2 .rb-hero {
+    padding: 40px 0;
+  }
+  .rebrand.rb-v2 .rb-hero h1 {
+    font-size: clamp(43px, 7.3vw, 65px);
+  }
+  .rebrand .rb-science-art {
+    min-height: 480px;
+  }
+  .rebrand.rb-v3 .rb-hero h1 {
+    font-size: clamp(42px, 7.1vw, 65px);
+  }
+  .rebrand .rb-editorial-panels {
+    grid-template-columns: 1.1fr 1fr;
+    gap: 14px;
+  }
+  .rebrand .rb-editorial-panels figure:last-child {
+    display: none;
+  }
+  .rebrand .rb-editorial-image {
+    height: 280px;
+  }
+  .rebrand .rb-editorial-panels figcaption {
+    font-size: 6px;
+  }
+  .rebrand.rb-v3 .rb-hero .rb-intro {
+    max-width: 500px;
+  }
+  .rebrand .rb-filters {
+    gap: 7px;
+    margin: 24px 0;
+  }
+  .rebrand .rb-filters button {
+    font-size: 10px;
+  }
+}
+@media (max-width: 450px) {
+  .rebrand .rb-container {
+    width: calc(100% - 36px);
+  }
+  .rebrand .rb-header-inner {
+    height: 73px;
+  }
+  .rebrand .rb-header-actions {
+    gap: 8px;
+  }
+  .rebrand .rb-hero h1 {
+    font-size: 44px;
+  }
+  .rebrand .rb-hero .rb-eyebrow {
+    font-size: 7px;
+    letter-spacing: 0.12em;
+  }
+  .rebrand .rb-small-rule {
+    width: 14px;
+  }
+  .rebrand .rb-intro {
+    font-size: 12px;
+  }
+  .rebrand .rb-actions {
+    gap: 13px;
+  }
+  .rebrand .rb-button {
+    padding: 13px 17px;
+    gap: 16px;
+    font-size: 10px;
+    min-height: 47px;
+  }
+  .rebrand .rb-text-link {
+    font-size: 10px;
+    gap: 9px;
+  }
+  .rebrand .rb-hero-notes {
+    gap: 15px;
+    font-size: 8px;
+  }
+  .rebrand .rb-research-note {
+    font-size: 8px;
+    max-width: 320px;
+  }
+  .rebrand .rb-hero-portrait {
+    height: 365px;
+    border-radius: 110px 110px 2px 2px;
+  }
+  .rebrand .rb-photo-label {
+    left: 13px;
+    right: 13px;
+    bottom: 28px;
+    padding: 14px 12px;
+    gap: 9px;
+    font-size: 11px;
+  }
+  .rebrand .rb-photo-label small {
+    font-size: 8px;
+  }
+  .rebrand .rb-label-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .rebrand .rb-photo-register {
+    left: 15px;
+    font-size: 6px;
+  }
+  .rebrand .rb-section {
+    padding: 50px 0;
+  }
+  .rebrand main h2 {
+    font-size: 34px;
+  }
+  .rebrand .rb-range-note {
+    font-size: 8px;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .rebrand .rb-range-note > span:last-child {
+    text-align: right;
+    max-width: 160px;
+  }
+  .rebrand .rb-products {
+    gap: 11px;
+  }
+  .rebrand .rb-products .ecl-product-details {
+    padding: 13px;
+  }
+  .rebrand .rb-products .ecl-product-details h3 {
+    font-size: 13px;
+  }
+  .rebrand .rb-products .ecl-product-details p {
+    font-size: 11px;
+  }
+  .rebrand .rb-filters button {
+    font-size: 9px;
+    padding: 7px 12px;
+  }
+  .rebrand .rb-evidence h2 {
+    font-size: 36px;
+  }
+  .rebrand .rb-standards-list li {
+    gap: 18px;
+  }
+  .rebrand .rb-report-card {
+    padding: 21px;
+  }
+  .rebrand .rb-report-preview {
+    height: 210px;
+  }
+  .rebrand .rb-report-heading h3 {
+    font-size: 24px;
+  }
+  .rebrand .rb-about-image {
+    min-height: 310px;
+  }
+  .rebrand .rb-about-copy {
+    padding: 45px 24px;
+  }
+  .rebrand .rb-about h2 {
+    font-size: 35px;
+  }
+  .rebrand .rb-journal-card {
+    grid-template-columns: 1fr;
+  }
+  .rebrand .rb-journal-art {
+    height: 140px;
+    min-height: 0;
+  }
+  .rebrand .rb-journal-copy {
+    padding: 23px;
+  }
+  .rebrand .rb-journal-copy h3 {
+    font-size: 26px;
+  }
+  .rebrand .rb-faq summary {
+    font-size: 12px;
+  }
+  .rebrand .rb-footer-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 23px;
+  }
+  .rebrand .rb-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 35px 20px;
+  }
+  .rebrand .rb-footer-grid > div:first-child {
+    grid-column: 1/-1;
+  }
+  .rebrand .rb-footer-grid > div:last-child {
+    grid-column: 1/-1;
+  }
+  .rebrand .rb-footer-top h2 {
+    font-size: 30px;
+  }
+  .rebrand .rb-footer-grid nav,
+  .rebrand .rb-footer-grid p {
+    font-size: 11px;
+  }
+  .rebrand .rb-science-art {
+    min-height: 360px;
+  }
+  .rebrand .rb-science-art-top {
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    font-size: 7px;
+  }
+  .rebrand .rb-science-proof {
+    left: 10px;
+    right: 10px;
+    padding: 19px 14px;
+    gap: 10px;
+  }
+  .rebrand .rb-science-proof strong {
+    font-size: 11px;
+  }
+  .rebrand .rb-science-proof small {
+    font-size: 8px;
+  }
+  .rebrand .rb-science-caption {
+    left: 20px;
+    right: 20px;
+  }
+  .rebrand .rb-science-caption > span > span {
+    font-size: 19px;
+  }
+  .rebrand.rb-v3 .rb-hero {
+    padding-top: 30px;
+  }
+  .rebrand.rb-v3 .rb-hero h1 {
+    font-size: 39px;
+    line-height: 1.11;
+  }
+  .rebrand.rb-v3 .rb-hero h1 em {
+    font-size: 1.08em;
+  }
+  .rebrand.rb-v3 .rb-actions {
+    flex-direction: column;
+    gap: 9px;
+  }
+  .rebrand .rb-editorial-panels {
+    margin-top: 29px;
+    gap: 10px;
+  }
+  .rebrand .rb-editorial-image {
+    height: 205px;
+  }
+  .rebrand .rb-editorial-panels figure:first-child .rb-editorial-image {
+    border-radius: 80px 80px 0 0;
+  }
+  .rebrand .rb-editorial-panels figcaption {
+    font-size: 5.5px;
+    letter-spacing: 0.07em;
+  }
+  .rebrand .rb-editorial-panels figcaption > span:last-child {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rebrand * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  html:has(.rebrand) {
+    scroll-behavior: auto;
+  }
+}
+/* Readable supporting copy for the audience, especially on small screens. */
+.rebrand .rb-desktop-nav,
+.rebrand .rb-shop-link {
+  font-size: 13px;
+}
+.rebrand .rb-eyebrow {
+  font-size: 10px;
+}
+.rebrand .rb-announcement {
+  font-size: 11px;
+}
+.rebrand .rb-intro {
+  font-size: 16px;
+}
+.rebrand .rb-button,
+.rebrand .rb-text-link {
+  font-size: 13px;
+}
+.rebrand .rb-hero-notes {
+  font-size: 11px;
+}
+.rebrand .rb-research-note {
+  font-size: 11px;
+  max-width: 450px;
+}
+.rebrand .rb-section-description {
+  font-size: 15px;
+}
+.rebrand .rb-trust-grid > a {
+  font-size: 14px;
+}
+.rebrand .rb-trust small {
+  font-size: 12px;
+}
+.rebrand .rb-filters button {
+  font-size: 12px;
+  min-height: 44px;
+}
+.rebrand .rb-standards-list h3 {
+  font-size: 15px;
+}
+.rebrand .rb-standards-list p,
+.rebrand .rb-about-copy > p:not(.rb-eyebrow),
+.rebrand .rb-faq details p {
+  font-size: 14px;
+}
+.rebrand .rb-faq summary {
+  font-size: 14px;
+  min-height: 65px;
+}
+.rebrand .rb-report-heading p,
+.rebrand .rb-report-fields > div,
+.rebrand .rb-report-verify,
+.rebrand .rb-report-caption {
+  font-size: 12px;
+}
+.rebrand .rb-report-footnote,
+.rebrand .rb-purpose-note {
+  font-size: 11px;
+}
+.rebrand .rb-journal-copy > p:not(.rb-eyebrow) {
+  font-size: 14px;
+}
+.rebrand .rb-journal-copy .rb-eyebrow {
+  font-size: 9px;
+}
+.rebrand .rb-footer-grid nav,
+.rebrand .rb-footer-grid h3,
+.rebrand .rb-footer-grid p,
+.rebrand .rb-support-email {
+  font-size: 12px;
+}
+.rebrand .rb-footer-bottom {
+  font-size: 10px;
+}
+.rebrand .rb-range-note {
+  font-size: 10px;
+}
+.rebrand .rb-science-proof strong {
+  font-size: 14px;
+}
+.rebrand .rb-science-proof small {
+  font-size: 11px;
+}
+@media (max-width: 450px) {
+  .rebrand .rb-hero .rb-eyebrow {
+    font-size: 9px;
+    letter-spacing: 0.09em;
+  }
+  .rebrand .rb-announcement {
+    font-size: 10px;
+  }
+  .rebrand .rb-intro,
+  .rebrand .rb-section-description {
+    font-size: 14px;
+  }
+  .rebrand .rb-button,
+  .rebrand .rb-text-link {
+    font-size: 12px;
+  }
+  .rebrand .rb-hero-notes {
+    font-size: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .rebrand .rb-research-note {
+    font-size: 10px;
+  }
+  .rebrand .rb-filters button {
+    font-size: 11px;
+  }
+  .rebrand .rb-products .ecl-product-details p {
+    font-size: 12px;
+  }
+  .rebrand .rb-science-proof strong {
+    font-size: 12px;
+  }
+  .rebrand .rb-science-proof small {
+    font-size: 10px;
+  }
+  .rebrand .rb-range-note {
+    font-size: 9px;
+  }
+}
+
+/* Comfortable reading and touch controls on phones and tablets. */
+@media (max-width: 900px), (pointer: coarse) {
+  .rebrand {
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
+  }
+  .rebrand .rb-announcement {
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+  .rebrand .rb-footer {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .rebrand .rb-intro {
+    font-size: 16px;
+  }
+  .rebrand .rb-section-description,
+  .rebrand .rb-standards-list p,
+  .rebrand .rb-about-copy > p:not(.rb-eyebrow),
+  .rebrand .rb-faq summary,
+  .rebrand .rb-faq details p {
+    font-size: 15px;
+  }
+  .rebrand .rb-research-note,
+  .rebrand .rb-photo-label small,
+  .rebrand .rb-purpose-note,
+  .rebrand .rb-report-footnote,
+  .rebrand .rb-footer-bottom {
+    font-size: 12px;
+  }
+  .rebrand .rb-photo-register,
+  .rebrand .rb-editorial-panels figcaption,
+  .rebrand .rb-science-art-top {
+    font-size: 10px;
+  }
+  .rebrand .rb-range-note {
+    font-size: 11px;
+  }
+  .rebrand .rb-announcement a,
+  .rebrand .rb-shop-link {
+    min-height: 44px;
+  }
+  .rebrand .rb-text-link,
+  .rebrand .rb-desktop-nav a,
+  .rebrand .rb-report-verify,
+  .rebrand .rb-support-email,
+  .rebrand .rb-footer-grid nav a,
+  .rebrand .rb-products .ecl-product-details a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .rebrand .rb-products .ecl-product-details h3 a {
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .rebrand .rb-products .ecl-product-details a[href*="?size="] {
+    justify-content: center;
+    padding-inline: 7px;
+    border: 1px solid var(--rb-line);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .rebrand .rb-footer-grid nav {
+    gap: 0;
+    font-size: 14px;
+  }
+  .rebrand .rb-support-email {
+    font-size: 14px;
+  }
+  .rebrand [role="dialog"][aria-label="Shopping cart"] {
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .rebrand button[aria-label="Close cart"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .rebrand [role="dialog"][aria-label="Shopping cart"] a.bg-accent {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+  }
+}
