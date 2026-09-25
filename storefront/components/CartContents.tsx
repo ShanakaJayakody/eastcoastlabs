@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
+import Link from './rebrand/RebrandLink';
 import Image from "next/image";
 import { cartLineDestination, MAX_CART_QUANTITY } from "@/lib/cart-line";
 import { useCart } from "@/lib/cart-context";

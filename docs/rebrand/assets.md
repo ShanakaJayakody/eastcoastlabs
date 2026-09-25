@@ -1,6 +1,22 @@
 # Rebrand image provenance
 
-Both images were created with the built-in image-generation tool and converted to 1440px-wide WebP assets with Sharp. Existing originals were preserved. Product labels remain illustrative photography; current specifications come from the catalogue. No image is used as laboratory evidence.
+The images were created with the built-in image-generation tool and converted to WebP assets with Sharp. Existing originals were preserved. Product labels remain illustrative photography; current specifications come from the catalogue. No image is used as laboratory evidence.
+
+## Vial catalogue — 25 September 2026
+
+All three rebrand directions have 41 individual vial illustrations: 20 current product/size combinations and 21 coming-soon products. The original blue ECL monogram is retained throughout. Route `/1` uses sage/ivory, `/2` navy/porcelain and `/3` plum/blush. The friendly editorial portraits remain in place.
+
+Assets: `storefront/public/images/rebrand/vials/{v1,v2,v3}/*.webp` (123 images, 1000px square). The navy hero is `storefront/public/images/rebrand/research-collection-v2.webp`.
+
+The [complete prompt and asset manifest](./vial-image-prompts.json) records each delivered file, generation source, exact prompt and SHA-256. Images were edited with the built-in `image_gen.imagegen` tool; Sharp was used only for proportional resizing and WebP conversion.
+
+The owner explicitly confirmed **“99% Pure · Third Party Lab Tested”** for all current peptide batches, with current reports “on the way”. This label wording follows that confirmation; those new reports have not been independently checked or published here. Coming-soon vials and bacteriostatic water do not carry the claim. Historical report images and their qualifications are untouched.
+
+The query parameter `rebrand=v1`, `rebrand=v2` or `rebrand=v3` carries the selected imagery through shop, product, size, shared navigation and cart links. The original homepage and untagged shop/product URLs retain their existing imagery. Correctly labelled 50/100 mg GHK-CU and 10/20 mg Retatrutide images follow the selected size. Prices, stock and catalogue identities are unchanged.
+
+Catalogue-to-image mapping runs only on the server. Client components receive the selected image and a small URL helper, avoiding duplicate catalogue maps in the initial browser download.
+
+Validation: all 123 asset URLs return the expected WebP file; OCR checks confirm product names, strengths and claim presence/absence across the complete set. Individual vials are 43–67 KB. Mobile collection and size-switching views were inspected, and navigation/size/stock isolation has regression coverage. Typecheck, full lint and 724 tests passed before release.
 
 ## Coastal portrait
 

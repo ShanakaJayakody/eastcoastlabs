@@ -1,8 +1,11 @@
 "use client";
 
+import './rebrand/vial-imagery.css';
+
 import { useState } from "react";
 import Image from "next/image";
 import type { WooImage } from "@/lib/woo";
+import { rebrandImageVariant } from '@/lib/rebrand-navigation';
 
 export default function ProductGallery({ images, name }: { images: WooImage[]; name: string }) {
   const [active, setActive] = useState(0);
@@ -11,10 +14,11 @@ export default function ProductGallery({ images, name }: { images: WooImage[]; n
 
   return (
     <div className="ecl-gallery flex flex-col gap-3">
-      <div className="ecl-gallery-main relative h-56 overflow-hidden sm:h-72 lg:aspect-square lg:h-auto rounded-xl border border-line bg-ink-2">
+      <div data-vial-theme={rebrandImageVariant(current?.src)} className="ecl-gallery-main relative h-56 overflow-hidden sm:h-72 lg:aspect-square lg:h-auto rounded-xl border border-line bg-ink-2">
         {current ? (
           <Image
             src={current.src}
+            unoptimized={Boolean(rebrandImageVariant(current.src))}
             alt={current.alt || name}
             fill
             priority
@@ -25,6 +29,7 @@ export default function ProductGallery({ images, name }: { images: WooImage[]; n
           <div className="grid h-full w-full place-items-center text-6xl text-muted-2">🧪</div>
         )}
       </div>
+      {rebrandImageVariant(current?.src) && <p className="text-xs text-muted">Product illustration. Packaging may vary.</p>}
 
       {hasImages && images.length > 1 && (
         <div className="flex flex-wrap gap-2">

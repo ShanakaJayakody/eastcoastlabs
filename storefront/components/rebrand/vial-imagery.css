@@ -1,0 +1,21 @@
+/* New photographs carry their palette with them into shared commerce pages. */
+[data-vial-theme="v1"] { --vial-background: #f8f8f2; }
+[data-vial-theme="v2"] { --vial-background: #fafcff; }
+[data-vial-theme="v3"] { --vial-background: #faf5f0; }
+
+.ecl-store .ecl-product-image[data-vial-theme],
+.ecl-store .ecl-coming-soon-image[data-vial-theme],
+.rebrand .rb-products .ecl-product-image[data-vial-theme],
+.ecl-store .ecl-gallery-main[data-vial-theme] {
+  aspect-ratio: 1;
+  height: auto;
+  background: var(--vial-background);
+}
+
+.ecl-store .ecl-product-image[data-vial-theme] img,
+.ecl-store .ecl-coming-soon-image[data-vial-theme] img,
+.rebrand .rb-products .ecl-product-image[data-vial-theme] img,
+.ecl-store .ecl-gallery-main[data-vial-theme] img {
+  object-fit: contain;
+  padding: 0;
+}

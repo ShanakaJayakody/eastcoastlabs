@@ -38,7 +38,21 @@ it('keeps optional cart recovery collapsed after the core contact details',async
 it('disables submission immediately while a changed cart is repriced',async()=>{m.quote.mockResolvedValueOnce(quote);const ui=render(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());m.quote.mockImplementationOnce(()=>new Promise(()=>{}));m.lines=[{...m.lines[0],quantity:2}];ui.rerender(<CheckoutForm/>);expect(screen.getByRole('button',{name:'Place order'})).toBeDisabled();});
 it('gives every checkout field a persistent accessible label',async()=>{m.quote.mockResolvedValue(quote);render(<CheckoutForm/>);await act(async()=>{});for(const name of ['Email address','Full name','Street address','Suburb','State','Postcode','Phone (optional)','Discount code','Delivery instructions (optional)'])expect(screen.getByLabelText(name)).toBeTruthy();});
 function submitForm(){fireEvent.submit(screen.getByRole('button',{name:'Place order'}).closest('form')!);}
-it('retries an uncertain submission with the same identity and retains contact input',async()=>{m.quote.mockResolvedValue(quote);m.place.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({ok:false,error:'Still pending'});render(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'person@example.test'}});submitForm();await screen.findByRole('alert');expect(screen.getByLabelText('Email address')).toHaveValue('person@example.test');submitForm();await waitFor(()=>expect(m.place).toHaveBeenCalledTimes(2));expect(m.place.mock.calls[0][0].idempotencyKey).toBe(m.place.mock.calls[1][0].idempotencyKey);});
+it('retries an uncertain submission with the same identity and retains contact input',async()=>{
+ m.quote.mockResolvedValue(quote);
+ m.place.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce({ok:false,error:'Still pending'});
+ render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'person@example.test'}});
+ submitForm();
+ await screen.findByRole('alert');
+ expect(screen.getByLabelText('Email address')).toHaveValue('person@example.test');
+ // The error can render before the asynchronous React transition finishes.
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ submitForm();
+ await waitFor(()=>expect(m.place).toHaveBeenCalledTimes(2));
+ expect(m.place.mock.calls[0][0].idempotencyKey).toBe(m.place.mock.calls[1][0].idempotencyKey);
+});
 it('ignores an obsolete quote response after a newer cart is quoted',async()=>{let older!:(v:typeof quote)=>void;m.quote.mockImplementationOnce(()=>new Promise(r=>{older=r;})).mockResolvedValueOnce({...quote,version:'new',totalCents:2400});const ui=render(<CheckoutForm/>);m.lines=[{...m.lines[0],quantity:3}];ui.rerender(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());await act(async()=>older({...quote,totalCents:9900}));expect(screen.queryByText('$99.00')).toBeNull();});
 it('uses a full document navigation to the exact secure payment URL after success',async()=>{const navigate=vi.fn();vi.stubGlobal('location',{assign:navigate});m.quote.mockResolvedValue(quote);m.place.mockResolvedValue({ok:true,orderNumber:'ECL-TEST',orderId:'id',totalCents:1200,purchasedLines:quote.lines,paymentUrl:'/pay/id?token=secure-token'});render(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());submitForm();await waitFor(()=>expect(m.clear).toHaveBeenCalled());expect(navigate).toHaveBeenCalledWith('/pay/id?token=secure-token');expect(m.push).not.toHaveBeenCalled();});
 it('keeps an uncertain order identity when only the authoritative quote version changes',async()=>{

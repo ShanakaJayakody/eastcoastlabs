@@ -1,5 +1,7 @@
 "use client";
 
+import './rebrand/vial-imagery.css';
+
 import Link from "next/link";
 import Image from "next/image";
 import type { WooProduct } from "@/lib/woo";
@@ -8,6 +10,8 @@ import { type TierCard } from "@/lib/pricing";
 import Stars from "./Stars";
 import { normalizeProductSizeLabel, purchasableStartingPriceMinor, type ProductSizeOption } from '@/lib/product-sizes';
 import { commerceItem, trackSelectItem } from '@/lib/analytics';
+import type { RebrandVariant } from './rebrand/content';
+import { rebrandHref, rebrandImageVariant } from '@/lib/rebrand-navigation';
 
 /** The subset of a product a card needs — lets callers pass slim objects. */
 export type CardProduct = Pick<
@@ -22,7 +26,8 @@ export type CardProduct = Pick<
   sizes?: ProductSizeOption[];
 };
 
-export default function ProductCard({ product, listId, listName }: { product: CardProduct; listId?: string; listName?: string }) {
+export default function ProductCard({ product, listId, listName, imageVariant }: { product: CardProduct; listId?: string; listName?: string; imageVariant?: RebrandVariant }) {
+  const href = rebrandHref(`/product/${product.slug}`, imageVariant);
   const img = product.images?.[0];
   const single = product.sizes?.length
     ? minorToMajor(String(purchasableStartingPriceMinor(product.sizes, product.prices.price)), product.prices.currency_minor_unit)
@@ -46,10 +51,11 @@ export default function ProductCard({ product, listId, listName }: { product: Ca
 
   return (
     <article className="ecl-product-card card-hover group flex flex-col overflow-hidden rounded-xl border border-line bg-surface hover:border-accent/50">
-      <Link href={`/product/${product.slug}`} onClick={() => trackSelection()} className="ecl-product-image relative block aspect-square overflow-hidden bg-ink-2">
+      <Link href={href} onClick={() => trackSelection()} data-vial-theme={rebrandImageVariant(img?.src)} className="ecl-product-image relative block aspect-square overflow-hidden bg-ink-2">
         {img ? (
           <Image
             src={img.src}
+            unoptimized={Boolean(rebrandImageVariant(img.src))}
             alt={img.alt || product.name}
             fill
             sizes="(max-width: 768px) 50vw, 25vw"
@@ -68,7 +74,7 @@ export default function ProductCard({ product, listId, listName }: { product: Ca
       </Link>
 
       <div className="ecl-product-details flex flex-1 flex-col gap-1 p-4">
-        <h3 className="text-sm font-semibold text-fg"><Link href={`/product/${product.slug}`} onClick={() => trackSelection()}>{product.name}</Link></h3>
+        <h3 className="text-sm font-semibold text-fg"><Link href={href} onClick={() => trackSelection()}>{product.name}</Link></h3>
         {rating ? (
           <div className="flex items-center gap-1.5">
             <Stars rating={rating.rating} size={12} />
@@ -80,14 +86,14 @@ export default function ProductCard({ product, listId, listName }: { product: Ca
           <p className="text-[11px] uppercase tracking-wider text-muted-2">{product.sku}</p>
         )}
         <div className="mt-auto pt-3">
-          {product.sizes?.length ? <div><p className="text-sm font-semibold text-fg">From {formatAud(single)} / vial</p><div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">{product.sizes.map(size=><Link key={size.slug} href={`/product/${product.slug}?size=${encodeURIComponent(size.slug)}`} onClick={() => trackSelection(size)} className={size.available > 0 ? 'text-accent hover:underline' : 'text-muted-2 line-through'}>{normalizeProductSizeLabel(size.label)}</Link>)}</div></div> : perVialLabel ? (
+          {product.sizes?.length ? <div><p className="text-sm font-semibold text-fg">From {formatAud(single)} / vial</p><div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs">{product.sizes.map(size=><Link key={size.slug} href={rebrandHref(`/product/${product.slug}?size=${encodeURIComponent(size.slug)}`, imageVariant)} onClick={() => trackSelection(size)} className={size.available > 0 ? 'text-accent hover:underline' : 'text-muted-2 line-through'}>{normalizeProductSizeLabel(size.label)}</Link>)}</div></div> : perVialLabel ? (
             <div><p className="text-sm font-semibold text-fg">{formatAud(single)} · 1 vial</p><p className="mt-1 text-xs text-accent">{perVialLabel}{product.tiers?.length ? ` with ${product.tiers.reduce((a,b) => a.perVial < b.perVial ? a : b).vials}-vial pack` : ""}</p></div>
           ) : (
             <p className="text-sm font-semibold text-fg">
               {formatMinor(product.prices.price, product.prices)}
             </p>
           )}
-          <Link href={`/product/${product.slug}`} onClick={() => trackSelection()} className="mt-1 block text-xs text-muted-2 group-hover:text-fg-2">{product.sizes?.length ? 'Choose size' : 'View pack options'} →</Link>
+          <Link href={href} onClick={() => trackSelection()} className="mt-1 block text-xs text-muted-2 group-hover:text-fg-2">{product.sizes?.length ? 'Choose size' : 'View pack options'} →</Link>
         </div>
       </div>
     </article>

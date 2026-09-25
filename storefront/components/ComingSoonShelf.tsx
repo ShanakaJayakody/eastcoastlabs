@@ -4,6 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import EmailCapture from "./EmailCapture";
 import type { ComingSoonProduct } from "@/lib/coming-soon";
+import { rebrandImageVariant } from '@/lib/rebrand-navigation';
+import './rebrand/vial-imagery.css';
 
 /**
  * The coming-soon shelf.
@@ -50,9 +52,10 @@ export default function ComingSoonShelf({ products }: { products: ComingSoonProd
               className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface/60 transition-colors hover:border-line-2"
             >
               {p.images[0] && (
-                <div className="relative aspect-[4/3] overflow-hidden bg-ink-2">
+                <div className="ecl-coming-soon-image relative aspect-[4/3] overflow-hidden bg-ink-2" data-vial-theme={rebrandImageVariant(p.images[0].src)}>
                   <Image
                     src={p.images[0].src}
+                    unoptimized={Boolean(rebrandImageVariant(p.images[0].src))}
                     alt={p.images[0].alt || p.name}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
