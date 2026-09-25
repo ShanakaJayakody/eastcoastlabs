@@ -1,6 +1,6 @@
 # East Coast Labs rebrand explorations
 
-Three isolated landing-page directions on `codex/rebrand-variants`. The existing `/` page, its shell, product pages, prices, inventory and checkout have not been redesigned. The old Dossier at `/1` is replaced; `/2` and `/3` are added. Nothing is deployed and no homepage traffic is redirected.
+Three isolated landing-page directions on `codex/rebrand-variants`. The existing `/` page, its shell, product pages, prices, inventory and checkout have not been redesigned. The old Dossier at `/1` is replaced; `/2` and `/3` are added. These routes are released through the normal GitHub/Vercel production pipeline; no homepage traffic is redirected.
 
 | URL | Direction | Palette and emphasis |
 | --- | --- | --- |
@@ -9,6 +9,8 @@ Three isolated landing-page directions on `codex/rebrand-variants`. The existing
 | `/3` | A New Perspective | Plum, blush and warm cream. Magazine composition and language that recognises women across life stages. |
 
 Each page has a responsive menu, shared shopping bag, catalogue filters, current product sizes/prices, original report links, supporting explanations and accessible native FAQ disclosures. Supporting text is enlarged for mobile and mature readers. Fonts and the two new editorial assets are local. No new runtime dependency was added.
+
+On phones and touch devices, product size selectors, product links, footer links, secondary calls to action and the cart close button have a minimum 44-pixel touch area. Body copy and research-use notices have larger mobile type. Safe-area spacing accommodates display notches and home indicators. These adjustments are scoped to the three rebrand routes.
 
 ## Evidence and copy
 
@@ -55,10 +57,12 @@ All three routes have `noindex, follow` metadata and a canonical URL pointing to
 
 - New attribution regression tests initially failed for unsupported routes/configuration and overlapping experiment dimensions, then passed after implementation.
 - 38 focused measurement/analytics tests passed.
+- The release regression suite passed all 717 tests in 134 files; TypeScript and focused ESLint checks also passed after the mobile refinement.
 - TypeScript check, focused ESLint check and production build passed. The final build was verified with database credentials disabled after an earlier credentialed prerender encountered transient fetch timeouts; live catalogue rendering was separately checked in the browser.
 - Browser checks cover 320, 390, 820, 1024 and 1440-pixel widths, single H1, no horizontal overflow and noindex/canonical metadata.
 - Mobile navigation, collection filtering (Cognitive & Focus resolves Semax/Selank), FAQ disclosure and shopping-bag opening were checked against the actual rendered pages.
 - Shared-cart styling was rechecked after scoping: 14px heading; white CTA text on the dark accent background.
+- The mobile refinement was checked at 320, 390, 768 and 844-pixel widths, including landscape, product filters, FAQ opening, menu Escape/focus return and the empty cart. Phone header visibility and minimum touch sizes were rechecked after the final CSS change.
 - Independent review covered analytics coexistence, evidence wording and style isolation.
 
 ## Files
