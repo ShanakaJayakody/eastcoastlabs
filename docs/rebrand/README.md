@@ -4,9 +4,9 @@ Three isolated landing-page directions on `codex/rebrand-variants`. The existing
 
 | URL | Direction | Palette and emphasis |
 | --- | --- | --- |
-| `/1` | Know what you’re buying | Sage, deep green and ivory. Buyer reassurance and an original report beside the introduction. |
+| `/1` | Know what you’re buying | Sage, deep green and ivory. Buyer reassurance with a welcoming coastal portrait beside the introduction. |
 | `/2` | Check the report | Navy, mist blue and white. Documents before products and practical instructions for checking the evidence. |
-| `/3` | Ask us before you order | Plum, blush and warm cream. Direct email contact and a conversational introduction. |
+| `/3` | Ask us before you order | Plum, blush and warm cream. Coastal portrait, conversational introduction and a direct email panel. |
 
 Each page has a responsive menu, shared shopping bag, catalogue filters, current product sizes/prices, original report links, supporting explanations and accessible native FAQ disclosures. Supporting text is enlarged for mobile and mature readers. The Commissioner font and image assets are local. No new runtime dependency was added.
 
@@ -16,7 +16,7 @@ See the [copy and typography audit](2026-09-25-copy-and-type-audit.md) for the l
 
 ## Evidence and copy
 
-The catalogue remains research-use-only. Imagery and tone address the audience without promising weight loss, postpartum recovery, menopause treatment, hormone balance or clinical safety. The generated coastal portraits have been removed from the rendered rebrand pages. The first route shows an original supplier report and the third shows a contact panel. The existing product arrangement is illustrative imagery, not evidence of testing.
+The catalogue remains research-use-only. Imagery and tone address the audience without promising weight loss, postpartum recovery, menopause treatment, hormone balance or clinical safety. At the owner’s request, coastal portraits and scenery give the pages a welcoming, friendly presentation. Portraits lead the first and third routes and accompany the navy route’s contact section. They are editorial brand imagery, not customer or staff testimonials. Original reports remain in the evidence sections; the third route also retains its direct contact panel.
 
 The report feature uses the existing unmodified historical GHK-Cu supplier report, including date and verification URL. Historical reports are explicitly sample-specific and not evidence of current shipped inventory. Current verified COAs appear separately only when returned by the existing `getAllCoa` service. Missing catalogue data gets a truthful empty state. No synthetic rating, customer count, endorsement or certificate is introduced.
 

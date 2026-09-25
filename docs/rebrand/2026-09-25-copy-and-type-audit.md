@@ -1,5 +1,9 @@
 # Copy and typography audit — 25 September 2026
 
+## Follow-up: welcoming imagery restored
+
+After reviewing the copy and type cleanup, the owner explicitly requested that the images remain for a friendly, welcoming design. Coastal portraits and scenery have been restored while retaining the revised copy and Commissioner typography. The first and third heroes feature the portrait; the navy route pairs the people image with its contact section. Reports remain in the evidence sections and direct contact is preserved. Image framing is softer, and hero images appear before the copy on small screens. The findings below record the preceding audit and should be read with this accepted visual direction.
+
 ## Scope and decision
 
 Audit of all three rebrand routes, their shared navigation, heroes, catalogue copy, evidence section, contact copy, resource links, FAQs, footer, page titles and responsive typography. Related About, product, lab-results and learning-page source/content was also checked for inconsistencies in the customer journey. The original homepage, shared product pages and checkout retain their existing design, as requested in the original brief.

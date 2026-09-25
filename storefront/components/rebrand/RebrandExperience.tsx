@@ -161,12 +161,11 @@ function Header({ variant }: { variant: RebrandVariant }) {
 function Hero({
   variant,
   reportCount,
-  report,
   supportEmail,
   supportHours,
 }: Pick<
   RebrandProps,
-  "variant" | "reportCount" | "report" | "supportEmail" | "supportHours"
+  "variant" | "reportCount" | "supportEmail" | "supportHours"
 >) {
   const copy = directions[variant];
   const science = variant === "v2";
@@ -213,61 +212,48 @@ function Hero({
             For laboratory research only. Not for human or animal consumption.
           </p>
         </div>
-        {variant === "v1" && (
-          <figure className="rb-document-hero">
-            <div className="rb-document-heading">
-              <span>A report you can check</span>
-              <span>Janoshik · #{report.taskNumber}</span>
-            </div>
-            <a
-              href={report.image}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Read the original ${report.compound} supplier report`}
-            >
-              <Image
-                unoptimized
-                src={report.image}
-                alt={`Original ${report.compound} supplier report, dated ${reportDate(report.testDate)}`}
-                width={640}
-                height={880}
-                priority
-              />
-            </a>
-            <figcaption>
-              <strong>
-                {report.compound} · {reportDate(report.testDate)}
-              </strong>
-              <span>
-                Historical supplier report. Results apply to the tested sample.
-              </span>
-            </figcaption>
-          </figure>
+        {!science && (
+          <div className="rb-welcome-photo rb-hero-visual">
+            <Image
+              unoptimized
+              src="/images/rebrand/coastal-women.webp"
+              alt="Editorial image of two women enjoying the Australian coast"
+              fill
+              priority
+              sizes="(max-width: 800px) 100vw, 50vw"
+            />
+          </div>
         )}
         {variant === "v3" && (
           <aside
             className="rb-contact-card"
             aria-labelledby="rb-contact-card-title"
           >
-            <p className="rb-eyebrow">Contact East Coast Labs</p>
-            <h2 id="rb-contact-card-title">Send us your question</h2>
-            <p>
-              Include the product name, a report link or your order number. That
-              helps us get to the detail you need.
-            </p>
-            <a href={`mailto:${supportEmail}`} className="rb-contact-address">
-              {supportEmail}
-              <ArrowUpRight size={18} />
-            </a>
-            {supportHours && <p className="rb-contact-hours">{supportHours}</p>}
-            <div className="rb-contact-scope">
-              We can help with product information and orders. We don’t provide
-              medical or dosing advice.
+            <div>
+              <p className="rb-eyebrow">Contact East Coast Labs</p>
+              <h2 id="rb-contact-card-title">Send us your question</h2>
+              <p>
+                Include the product name, a report link or your order number.
+                That helps us get to the detail you need.
+              </p>
+            </div>
+            <div>
+              <a href={`mailto:${supportEmail}`} className="rb-contact-address">
+                {supportEmail}
+                <ArrowUpRight size={18} />
+              </a>
+              {supportHours && (
+                <p className="rb-contact-hours">{supportHours}</p>
+              )}
+              <div className="rb-contact-scope">
+                We can help with product information and orders. We don’t
+                provide medical or dosing advice.
+              </div>
             </div>
           </aside>
         )}
         {science && (
-          <div className="rb-science-art">
+          <div className="rb-science-art rb-hero-visual">
             <div className="rb-science-art-top">
               <span>Our research peptides</span>
               <FlaskConical size={18} strokeWidth={1.2} />
@@ -567,6 +553,23 @@ function AboutSection({
 }: Pick<RebrandProps, "variant" | "supportEmail">) {
   return (
     <section id="about" className="rb-about" aria-labelledby="rb-about-title">
+      <div className="rb-about-image">
+        <Image
+          unoptimized
+          src={
+            variant === "v2"
+              ? "/images/rebrand/coastal-women.webp"
+              : "/images/editorial/coastal-study.webp"
+          }
+          alt={
+            variant === "v2"
+              ? "Editorial image of two women beside the Australian coast"
+              : "Ocean surf along the Australian coastline"
+          }
+          fill
+          sizes="(max-width: 800px) 100vw, 50vw"
+        />
+      </div>
       <div className="rb-about-copy">
         <p className="rb-eyebrow">A note from East Coast Labs</p>
         <h2 id="rb-about-title">{directions[variant].aboutTitle}</h2>
