@@ -4,7 +4,7 @@ export const directions = {
   v1: {
     name: "Research peptides from an Australian supplier",
     eyebrow: "East Coast Labs · Australian owned",
-    heading: "An Australian supplier of research peptides.",
+    heading: "Research Peptides You Can Trust. Quality You Can Verify",
     intro:
       "Browse our peptide range, compare vial sizes and prices, and read the supplier lab reports we publish. If you have a question about a product or an order, you’re welcome to get in touch.",
     primary: "View research peptides",
@@ -18,7 +18,7 @@ export const directions = {
   v2: {
     name: "Research peptides and supplier lab reports",
     eyebrow: "East Coast Labs · Australian owned",
-    heading: "See the reports behind our research peptides.",
+    heading: "Research Peptides You Can Trust. Quality You Can Verify",
     intro:
       "We’re an Australian peptide supplier. Our library brings together the original supplier reports, test dates and laboratory verification links. Each document identifies the sample that was tested.",
     primary: "View research peptides",
@@ -32,7 +32,7 @@ export const directions = {
   v3: {
     name: "Your Australian research peptide supplier",
     eyebrow: "East Coast Labs · Australian owned",
-    heading: "We supply research peptides across Australia.",
+    heading: "Research Peptides You Can Trust. Quality You Can Verify",
     intro:
       "You can browse the range, compare sizes and read the available reports here. If you’re unsure about a product detail, send us a question. You’re welcome to contact us before placing an order.",
     primary: "View research peptides",
