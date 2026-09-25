@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import EmailCapture from "./EmailCapture";
 import type { ComingSoonProduct } from "@/lib/coming-soon";
-import { rebrandImageVariant } from '@/lib/rebrand-imagery';
+import { rebrandImageVariant } from '@/lib/rebrand-navigation';
 import './rebrand/vial-imagery.css';
 
 /**

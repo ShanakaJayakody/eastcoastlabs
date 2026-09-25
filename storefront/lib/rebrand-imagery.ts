@@ -1,3 +1,5 @@
+import 'server-only';
+
 import type { RebrandVariant } from '@/components/rebrand/content';
 import { normalizeProductSizeLabel } from './product-sizes';
 import type { WooImage } from './woo';
@@ -45,10 +47,6 @@ const vials: Record<string, { name: string; strength: string; sizes?: Record<str
   'thymosin-alpha-1': { name: 'THYMOSIN ALPHA-1', strength: '10 mg' },
 };
 
-export function parseRebrandVariant(value: unknown): RebrandVariant | undefined {
-  return value === 'v1' || value === 'v2' || value === 'v3' ? value : undefined;
-}
-
 export function getRebrandImage(slug: string, variant: RebrandVariant, size?: string): WooImage | null {
   const vial = vials[slug];
   if (!vial) return null;
@@ -60,17 +58,6 @@ export function getRebrandImage(slug: string, variant: RebrandVariant, size?: st
     src: `/images/rebrand/vials/${variant}/${asset}.webp`,
     alt: `${vial.name} ${strength} research vial — East Coast Labs`,
   };
-}
-
-export function rebrandImageVariant(src?: string): RebrandVariant | undefined {
-  return parseRebrandVariant(src?.match(/^\/images\/rebrand\/vials\/(v[123])\//)?.[1]);
-}
-
-export function rebrandHref(href: string, variant?: RebrandVariant): string {
-  if (!variant) return href;
-  const url = new URL(href, 'https://www.eastcoastlabs.com.au');
-  url.searchParams.set('rebrand', variant);
-  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 interface IllustratedProduct {

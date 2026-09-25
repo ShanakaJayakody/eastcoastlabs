@@ -8,7 +8,8 @@ import { getCollections } from "@/lib/collections";
 import { getComingSoonProducts } from "@/lib/coming-soon";
 import ComingSoonShelf from "@/components/ComingSoonShelf";
 import type { CardProduct } from "@/components/ProductCard";
-import { parseRebrandVariant, withRebrandImages } from '@/lib/rebrand-imagery';
+import { withRebrandImages } from '@/lib/rebrand-imagery';
+import { parseRebrandVariant } from '@/lib/rebrand-navigation';
 
 export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
@@ -42,7 +43,7 @@ export default async function ShopPage({ searchParams }: { searchParams?: Promis
     }),
   );
   // Live stock + published ratings, batched (server-only).
-  const cards = await decorateCards(rawCards);
+  const cards = (await decorateCards(rawCards)).map(product => withRebrandImages(product, imageVariant));
 
   return (
     <div className="ecl-catalog-page mx-auto max-w-6xl px-4 py-10">

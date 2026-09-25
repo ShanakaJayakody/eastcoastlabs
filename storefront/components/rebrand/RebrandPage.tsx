@@ -6,6 +6,7 @@ import { decorateCards } from "@/lib/storefront-catalog";
 import { labReports } from "@/lib/lab-reports";
 import RebrandExperience from "./RebrandExperience";
 import type { RebrandVariant } from "./content";
+import { withRebrandImages } from '@/lib/rebrand-imagery';
 
 export default async function RebrandPage({
   variant,
@@ -23,7 +24,7 @@ export default async function RebrandPage({
   return (
     <RebrandExperience
       variant={variant}
-      products={products}
+      products={products.map(product => withRebrandImages(product, variant))}
       collections={getCollections()}
       records={records.slice(0, 3)}
       report={labReports.find((report) => report.productSlug === "ghk-cu")!}

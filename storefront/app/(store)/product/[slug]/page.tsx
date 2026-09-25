@@ -24,7 +24,8 @@ import { getSettings } from "@/lib/settings";
 import { getGuideForCompound } from "@/lib/guides";
 import ProductDescription, { decodeProductEntities } from '@/components/ProductDescription';
 import { buildProductJsonLd, serializeProductJsonLd } from '@/lib/product-jsonld';
-import { parseRebrandVariant, rebrandHref, withRebrandImages } from '@/lib/rebrand-imagery';
+import { withRebrandImages } from '@/lib/rebrand-imagery';
+import { parseRebrandVariant, rebrandHref } from '@/lib/rebrand-navigation';
 
 export const revalidate = 300;
 
@@ -93,7 +94,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const crossSells = getCrossSellSlugs(product.slug)
     .map((s) => bySlug.get(s))
     .filter((p): p is CatalogProduct => p != null && p.slug !== product.slug)
-    .slice(0, 3);
+    .slice(0, 3)
+    .map(product => withRebrandImages(product, imageVariant));
 
   const descriptor = stripHtml(product.short_description) || copy?.descriptor;
   const settings = await getSettings();

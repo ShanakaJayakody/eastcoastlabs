@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getRebrandImage, rebrandHref, parseRebrandVariant, withRebrandImages } from '@/lib/rebrand-imagery';
+import { getRebrandImage, withRebrandImages } from '@/lib/rebrand-imagery';
+import { rebrandHref, parseRebrandVariant } from '@/lib/rebrand-navigation';
 
 describe('rebrand product imagery', () => {
   it('selects the exact labelled size, and never guesses an unpictured strength', () => {

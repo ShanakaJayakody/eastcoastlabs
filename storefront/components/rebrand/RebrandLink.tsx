@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Suspense, type ComponentProps } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { parseRebrandVariant, rebrandHref } from '@/lib/rebrand-imagery';
+import { parseRebrandVariant, rebrandHref } from '@/lib/rebrand-navigation';
 
 type Props = Omit<ComponentProps<typeof Link>, 'href'> & { href: string };
 

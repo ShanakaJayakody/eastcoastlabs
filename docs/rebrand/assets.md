@@ -14,6 +14,8 @@ The owner explicitly confirmed **“99% Pure · Third Party Lab Tested”** for 
 
 The query parameter `rebrand=v1`, `rebrand=v2` or `rebrand=v3` carries the selected imagery through shop, product, size, shared navigation and cart links. The original homepage and untagged shop/product URLs retain their existing imagery. Correctly labelled 50/100 mg GHK-CU and 10/20 mg Retatrutide images follow the selected size. Prices, stock and catalogue identities are unchanged.
 
+Catalogue-to-image mapping runs only on the server. Client components receive the selected image and a small URL helper, avoiding duplicate catalogue maps in the initial browser download.
+
 Validation: all 123 asset URLs return the expected WebP file; OCR checks confirm product names, strengths and claim presence/absence across the complete set. Individual vials are 43–67 KB. Mobile collection and size-switching views were inspected, and navigation/size/stock isolation has regression coverage. Typecheck, full lint and 724 tests passed before release.
 
 ## Coastal portrait

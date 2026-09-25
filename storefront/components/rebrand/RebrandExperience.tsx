@@ -27,7 +27,7 @@ import type { Collection } from "@/lib/collections";
 import type { CoaRecord } from "@/lib/coa";
 import type { LabReport } from "@/lib/lab-reports";
 import { directions, questions, type RebrandVariant } from "./content";
-import { rebrandHref } from '@/lib/rebrand-imagery';
+import { rebrandHref } from '@/lib/rebrand-navigation';
 
 export interface RebrandProps {
   variant: RebrandVariant;

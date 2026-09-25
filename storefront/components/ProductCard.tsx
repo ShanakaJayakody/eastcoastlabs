@@ -11,7 +11,7 @@ import Stars from "./Stars";
 import { normalizeProductSizeLabel, purchasableStartingPriceMinor, type ProductSizeOption } from '@/lib/product-sizes';
 import { commerceItem, trackSelectItem } from '@/lib/analytics';
 import type { RebrandVariant } from './rebrand/content';
-import { rebrandHref, rebrandImageVariant, withRebrandImages } from '@/lib/rebrand-imagery';
+import { rebrandHref, rebrandImageVariant } from '@/lib/rebrand-navigation';
 
 /** The subset of a product a card needs — lets callers pass slim objects. */
 export type CardProduct = Pick<
@@ -26,8 +26,7 @@ export type CardProduct = Pick<
   sizes?: ProductSizeOption[];
 };
 
-export default function ProductCard({ product: source, listId, listName, imageVariant }: { product: CardProduct; listId?: string; listName?: string; imageVariant?: RebrandVariant }) {
-  const product = withRebrandImages(source, imageVariant);
+export default function ProductCard({ product, listId, listName, imageVariant }: { product: CardProduct; listId?: string; listName?: string; imageVariant?: RebrandVariant }) {
   const href = rebrandHref(`/product/${product.slug}`, imageVariant);
   const img = product.images?.[0];
   const single = product.sizes?.length

@@ -5,7 +5,7 @@ import './rebrand/vial-imagery.css';
 import { useState } from "react";
 import Image from "next/image";
 import type { WooImage } from "@/lib/woo";
-import { rebrandImageVariant } from '@/lib/rebrand-imagery';
+import { rebrandImageVariant } from '@/lib/rebrand-navigation';
 
 export default function ProductGallery({ images, name }: { images: WooImage[]; name: string }) {
   const [active, setActive] = useState(0);
