@@ -27,6 +27,7 @@ export default async function RebrandPage({
       collections={getCollections()}
       records={records.slice(0, 3)}
       report={labReports.find((report) => report.productSlug === "ghk-cu")!}
+      productReports={labReports.map(({ productSlug, image, testDate, sample }) => ({ productSlug, image, testDate, sample }))}
       reportCount={labReports.length}
       supportEmail={settings.supportEmail}
       supportHours={settings.supportHours}

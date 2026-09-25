@@ -4,19 +4,27 @@ Three isolated landing-page directions on `codex/rebrand-variants`. The existing
 
 | URL | Direction | Palette and emphasis |
 | --- | --- | --- |
-| `/1` | Know what you’re buying | Sage, deep green and ivory. Buyer reassurance with a welcoming coastal portrait beside the introduction. |
-| `/2` | Check the report | Navy, mist blue and white. Documents before products and practical instructions for checking the evidence. |
-| `/3` | Ask us before you order | Plum, blush and warm cream. Coastal portrait, conversational introduction and a direct email panel. |
+| `/1` | Sage | Deep green and ivory. A clear supplier introduction with a welcoming coastal portrait. |
+| `/2` | Navy | Mist blue and white. Product imagery and direct access to the original supplier reports. |
+| `/3` | Plum | Blush and warm cream. Coastal portrait, conversational introduction and accessible product support. |
+
+## Reassurance preview — 25 September 2026
+
+The [reassurance, design and copy audit](2026-09-25-reassurance-design-copy-audit.md) was applied on `codex/rebrand-reassurance-preview`, then authorised for production. At the owner's request, all three routes use the exact headline “Research Peptides You Can Trust. Quality You Can Verify”. They use a primary shopping action, show introductory copy before the retained image on phones, and place products before the longer report explanation. Matching historical supplier reports are linked beside product cards with their sample and date visible. Practical ordering and delivery information replaces the repeated resource section. Contact copy no longer refers to personal health stages.
+
+This update changes only the three landing pages. The audit's current-batch evidence reconciliation, shipping-settings reconciliation and downstream visual rollout remain separate follow-ups. No unverified testing procedure, founder story, shipping rate or testing guarantee has been added. The original homepage and shared product/checkout design remain in place.
+
+Verification: all 717 regression tests passed; TypeScript and targeted ESLint passed. Browser checks covered every route at 320, 390, 768 and 1440px, with no horizontal overflow, one H1 and no broken section anchors. The final owner-supplied headline was rechecked on every route at 320, 390 and 1440px; at 390px the primary shopping action begins at approximately 490–495px, compared with 719–867px in the audited version. Independent review found no actionable issues.
 
 Each page has a responsive menu, shared shopping bag, catalogue filters, current product sizes/prices, original report links, supporting explanations and accessible native FAQ disclosures. Supporting text is enlarged for mobile and mature readers. The Commissioner font and image assets are local. No new runtime dependency was added.
 
 On phones and touch devices, product size selectors, product links, footer links, secondary calls to action and the cart close button have a minimum 44-pixel touch area. Body copy and research-use notices have larger mobile type. Safe-area spacing accommodates display notches and home indicators. These adjustments are scoped to the three rebrand routes.
 
-See the [copy and typography audit](2026-09-25-copy-and-type-audit.md) for the latest editorial changes, original-site findings and facts still needed from the owner.
+See the [initial copy and typography audit](2026-09-25-copy-and-type-audit.md) for the preceding revision and the [reassurance audit](2026-09-25-reassurance-design-copy-audit.md) for the current direction and wider-site findings.
 
 ## Evidence and copy
 
-The catalogue remains research-use-only. Imagery and tone address the audience without promising weight loss, postpartum recovery, menopause treatment, hormone balance or clinical safety. At the owner’s request, coastal portraits and scenery give the pages a welcoming, friendly presentation. Portraits lead the first and third routes and accompany the navy route’s contact section. They are editorial brand imagery, not customer or staff testimonials. Original reports remain in the evidence sections; the third route also retains its direct contact panel.
+The catalogue remains research-use-only. Imagery and tone address the audience without promising weight loss, postpartum recovery, menopause treatment, hormone balance or clinical safety. At the owner’s request, coastal portraits and scenery give the pages a welcoming, friendly presentation. Portraits appear in the first and third heroes and accompany the navy route’s contact section. They are editorial brand imagery, not customer or staff testimonials. Original reports remain in the evidence sections and are linked beside matching products. Each route provides a direct email link and configured contact hours.
 
 The report feature uses the existing unmodified historical GHK-Cu supplier report, including date and verification URL. Historical reports are explicitly sample-specific and not evidence of current shipped inventory. Current verified COAs appear separately only when returned by the existing `getAllCoa` service. Missing catalogue data gets a truthful empty state. No synthetic rating, customer count, endorsement or certificate is introduced.
 

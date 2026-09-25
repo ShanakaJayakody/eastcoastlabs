@@ -356,6 +356,42 @@ body:has(.rebrand) {
   border-color: var(--rb-line);
   box-shadow: none;
 }
+.rebrand .rb-product-with-report {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rebrand .rb-product-with-report .ecl-product-card {
+  flex: 1;
+}
+.rebrand .rb-product-report {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 66px;
+  padding: 14px 0;
+  font-size: 15px;
+}
+.rebrand .rb-product-report > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.rebrand .rb-product-report small {
+  color: var(--rb-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.rebrand .rb-range-note a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .rebrand .rb-products .ecl-product-image {
   background: var(--rb-soft);
   aspect-ratio: 1/1.12;
@@ -1210,7 +1246,7 @@ body:has(.rebrand) {
   text-wrap: pretty;
 }
 .rebrand .rb-hero h1 {
-  font-size: clamp(38px, 4.2vw, 60px);
+  font-size: clamp(38px, 4vw, 56px);
   max-width: 720px;
 }
 .rebrand .rb-hero h1 span {
@@ -1321,7 +1357,8 @@ body:has(.rebrand) {
   line-height: 1.5;
 }
 .rebrand .rb-products .ecl-product-details h3 {
-  font-size: 16px;
+  font-size: 18px;
+  line-height: 1.35;
 }
 .rebrand .rb-products .ecl-product-details a[href*="?size="] {
   font-size: 13px;
@@ -1366,6 +1403,44 @@ body:has(.rebrand) {
 }
 .rebrand .rb-about-copy > p:not(.rb-eyebrow) {
   max-width: 65ch;
+}
+.rebrand .rb-about-copy > .rb-support-email {
+  display: block;
+  width: fit-content;
+  min-height: 44px;
+  padding-block: 10px;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+}
+.rebrand .rb-about-copy > p.rb-support-hours {
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+.rebrand .rb-ordering {
+  background: var(--rb-white);
+  border-block: 1px solid var(--rb-line);
+}
+.rebrand .rb-ordering-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 38px;
+  margin-top: 36px;
+}
+.rebrand .rb-ordering-grid article {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.rebrand .rb-ordering-grid p {
+  margin-top: 16px;
+  margin-bottom: 18px;
+  color: var(--rb-muted);
+  font-size: 17px;
+  line-height: 1.65;
+}
+.rebrand .rb-ordering-grid .rb-text-link {
+  margin-top: auto;
+  min-height: 44px;
 }
 .rebrand .rb-journal-grid {
   grid-template-columns: 1fr;
@@ -1534,7 +1609,19 @@ body:has(.rebrand) {
     grid-template-columns: 1fr;
   }
   .rebrand .rb-hero-visual {
-    order: -1;
+    order: 0;
+  }
+  .rebrand .rb-ordering-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    margin-top: 26px;
+  }
+  .rebrand .rb-ordering-grid article + article {
+    border-top: 1px solid var(--rb-line);
+    padding-top: 28px;
+  }
+  .rebrand .rb-ordering-grid p {
+    font-size: 16px;
   }
   .rebrand .rb-welcome-photo {
     aspect-ratio: 4 / 3;
