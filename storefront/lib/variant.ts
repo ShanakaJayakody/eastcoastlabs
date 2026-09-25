@@ -1,6 +1,6 @@
 import { getOrderAttribution, storeExperimentAssignment, type ExperimentAssignment } from "./attribution";
 
-export type Variant = "control" | "v1";
+export type Variant = "control" | "v1" | "v2" | "v3";
 export interface WeightedVariant { id: string; weight: number }
 export interface ExperimentConfig { id: string; active: boolean; variants: readonly WeightedVariant[] }
 
@@ -10,6 +10,15 @@ export const HOMEPAGE_EXPERIMENT: ExperimentConfig = {
   id: "homepage-2026q3",
   active: process.env.NEXT_PUBLIC_HOMEPAGE_EXPERIMENT_ACTIVE === "1",
   variants: [{ id: "control", weight: 1 }, { id: "v1", weight: 1 }],
+};
+
+/** New identity keeps rebrand results separate from the earlier /1 Dossier.
+ * Direct URLs are ready for externally allocated traffic; no public redirect
+ * or random assignment is enabled by visiting a design preview. */
+export const REBRAND_EXPERIMENT: ExperimentConfig = {
+  id: "rebrand-2026q3",
+  active: process.env.NEXT_PUBLIC_REBRAND_EXPERIMENT_ACTIVE === "1",
+  variants: [{ id: "v1", weight: 1 }, { id: "v2", weight: 1 }, { id: "v3", weight: 1 }],
 };
 
 const IDENTIFIER = /^[a-z0-9][a-z0-9._~-]{0,63}$/;

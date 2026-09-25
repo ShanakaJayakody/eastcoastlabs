@@ -1,0 +1,5 @@
+# Rebrand variants
+
+Build /1 Considered Care (sage/ivory, reassurance), /2 Clear Science (navy/ice, evidence first), /3 A New Perspective (plum/blush, editorial understanding). Preserve / and commerce routes. Reuse providers, current catalogue/stock/prices, published COAs and clearly labelled historical reports. No disease, weight-loss, menopause-treatment or postpartum efficacy claims for research-only compounds. No invented reviews or certifications. Three different hero/layout compositions plus scoped styles. Shared accessible navigation, product collection filter, report links, FAQs and cart.
+
+Measurement: a new opt-in three-arm rebrand experiment with consent, route-only exposure and first-assignment protection; inactive by default, no redirects. Existing homepage experiment unchanged. Test opt-in and consent behavior before implementation. Verify typecheck/lint, existing measurement tests, production build, desktop and mobile browser behavior with accessibility checks. Preview locally; do not deploy.

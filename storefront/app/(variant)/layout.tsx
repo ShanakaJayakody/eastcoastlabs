@@ -1,31 +1,34 @@
+import type { Metadata, Viewport } from "next";
 import Providers from "@/components/Providers";
-import CartDrawer from "@/components/CartDrawer";
-import StoreEnhancements from "@/components/StoreEnhancements";
-import DossierHeader from "@/components/variant/v2/DossierHeader";
-import DossierFooter from "@/components/variant/v2/DossierFooter";
-import { newsreader, inter, plexMono } from "@/lib/fonts";
 import { getSettings } from "@/lib/settings";
-import { getUpsellStock, getCartPrices, getCartVariants } from "@/lib/storefront-catalog";
+import {
+  getUpsellStock,
+  getCartPrices,
+  getCartVariants,
+} from "@/lib/storefront-catalog";
+import "@/components/rebrand/rebrand.css";
 
-/**
- * A/B variant shell (route /1) — "The Dossier" redesign.
- *
- * Deliberately does NOT reuse the (store) layout: this is a full visual
- * redesign, not a re-theme. What it DOES share with the control site is
- * everything downstream of the landing page — Providers (cart + UI state),
- * CartDrawer, and Analytics — so a shopper who lands on /1 hits the exact
- * same funnel as one who lands on /. The test isolates design, not mechanics.
- *
- * ExitIntentModal is intentionally omitted: calm confidence, no urgency
- * theatre, is part of the design thesis.
- *
- * `.theme-paper` re-declares the design tokens for this subtree only (see
- * globals.css); the font variables from next/font are applied on the same
- * root element so --font-serif/--font-grotesk/--font-data resolve only here.
- */
-export default async function VariantLayout({ children }: { children: React.ReactNode }) {
-  // Same funnel as (store): thresholds + upsell availability for the shared cart.
-  const [settings, stock, prices, variants] = await Promise.all([getSettings(), getUpsellStock(), getCartPrices(), getCartVariants()]);
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/" },
+};
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#f8f8f2",
+};
+
+/** Independent visual shell; prices, inventory and checkout remain shared. */
+export default async function VariantLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [settings, stock, prices, variants] = await Promise.all([
+    getSettings(),
+    getUpsellStock(),
+    getCartPrices(),
+    getCartVariants(),
+  ]);
   return (
     <Providers
       thresholds={{
@@ -33,17 +36,10 @@ export default async function VariantLayout({ children }: { children: React.Reac
         gift: settings.giftThreshold,
       }}
       stock={stock}
-      prices={prices} variants={variants}
+      prices={prices}
+      variants={variants}
     >
-      <div
-        className={`theme-paper flex min-h-screen flex-col bg-ink text-fg ${newsreader.variable} ${inter.variable} ${plexMono.variable}`}
-      >
-        <DossierHeader />
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">{children}</main>
-        <DossierFooter supportEmail={settings.supportEmail} />
-        <CartDrawer />
-      </div>
-      <StoreEnhancements exitIntent={false} />
+      {children}
     </Providers>
   );
 }

@@ -18,7 +18,7 @@ const MAX_AGE_SECONDS = 120 * 24 * 60 * 60;
 const IDENTIFIER = /^[a-z0-9][a-z0-9._~-]{0,63}$/;
 const SOURCES = new Set(["google","bing","newsletter","creator","affiliate","instagram","facebook"]);
 const MEDIUMS = new Set(["cpc","paid-search","email","social","affiliate","organic"]);
-const PUBLIC_PATH = /^(?:\/|\/1|\/(?:shop|stacks|lab-results|learn|about|checkout|creators)|\/(?:product|collections|learn)\/[a-z0-9-]+)\/?$/;
+const PUBLIC_PATH = /^(?:\/|\/[123]|\/(?:shop|stacks|lab-results|learn|about|checkout|creators)|\/(?:product|collections|learn)\/[a-z0-9-]+)\/?$/;
 export const publicMeasurementPath = (path: string) => PUBLIC_PATH.test(path);
 
 function exactKeys(value: Record<string, unknown>, keys: readonly string[]) { return Object.keys(value).every((key) => keys.includes(key)); }

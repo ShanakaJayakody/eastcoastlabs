@@ -25,8 +25,12 @@ function gtagEvent(event: string, params: Record<string, unknown>) {
   if (typeof window === "undefined" || !ga4Enabled() || analyticsConsent() !== "granted") { buffered.length = 0; return; }
   const pageLocation = safeAnalyticsLocation(window.location.href);
   if (!pageLocation) { buffered.length = 0; return; }
-  const assignment = getExperimentAssignments()[0];
-  buffered.push({event,params:{...(assignment?{experiment_id:assignment.experimentId,experiment_variant:assignment.variant}:{}),...params,page_location:pageLocation,page_referrer:""}});
+  const assignments = getExperimentAssignments();
+  const assignment = assignments[0];
+  // Keep the established dimension intact while measuring a rebrand that may
+  // coexist with it. These fields persist through the shared commerce routes.
+  const rebrand = assignments.find(entry => entry.experimentId === "rebrand-2026q3");
+  buffered.push({event,params:{...(assignment?{experiment_id:assignment.experimentId,experiment_variant:assignment.variant}:{}),...(rebrand?{rebrand_experiment_id:rebrand.experimentId,rebrand_variant:rebrand.variant}:{}),...params,page_location:pageLocation,page_referrer:""}});
   if (buffered.length > 100) buffered.shift(); flushAnalytics();
 }
 export function trackPageView() { gtagEvent("page_view", {}); }
@@ -95,4 +99,4 @@ export function trackCreatorEvent(event:CreatorEvent,params:{placement?:CreatorP
   const safe:Record<string,unknown>={};if(params.placement&&creatorPlacements.includes(params.placement))safe.placement=params.placement;
   if(params.errorCode&&creatorErrorCodes.includes(params.errorCode))safe.error_code=params.errorCode;gtagEvent(event,safe);
 }
-export function trackExperimentImpression(experimentId:string,variant:Variant){if(!/^[a-z0-9][a-z0-9._~-]{0,63}$/.test(experimentId))return;gtagEvent("experiment_impression",{experiment_id:experimentId,variant});}
+export function trackExperimentImpression(experimentId:string,variant:Variant){if(!/^[a-z0-9][a-z0-9._~-]{0,63}$/.test(experimentId))return;gtagEvent("experiment_impression",{experiment_id:experimentId,experiment_variant:variant,variant});}

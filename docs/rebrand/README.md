@@ -1,0 +1,71 @@
+# East Coast Labs rebrand explorations
+
+Three isolated landing-page directions on `codex/rebrand-variants`. The existing `/` page, its shell, product pages, prices, inventory and checkout have not been redesigned. The old Dossier at `/1` is replaced; `/2` and `/3` are added. Nothing is deployed and no homepage traffic is redirected.
+
+| URL | Direction | Palette and emphasis |
+| --- | --- | --- |
+| `/1` | Considered Care | Sage, deep green and ivory. Human imagery, reassurance, clear product discovery. |
+| `/2` | Clear Science | Navy, mist blue and white. Scientific hierarchy, documents before products, precise language. |
+| `/3` | A New Perspective | Plum, blush and warm cream. Magazine composition and language that recognises women across life stages. |
+
+Each page has a responsive menu, shared shopping bag, catalogue filters, current product sizes/prices, original report links, supporting explanations and accessible native FAQ disclosures. Supporting text is enlarged for mobile and mature readers. Fonts and the two new editorial assets are local. No new runtime dependency was added.
+
+## Evidence and copy
+
+The catalogue remains research-use-only. Imagery and tone address the audience without promising weight loss, postpartum recovery, menopause treatment, hormone balance or clinical safety. The coastal portrait is AI-generated brand imagery, not a testimonial or an actual patient/customer photograph.
+
+The report feature uses the existing unmodified historical GHK-Cu supplier report, including date and verification URL. Historical reports are explicitly sample-specific and not evidence of current shipped inventory. Current verified COAs appear separately only when returned by the existing `getAllCoa` service. Missing catalogue data gets a truthful empty state. No synthetic rating, customer count, endorsement or certificate is introduced.
+
+Existing shared learning articles include broad all-batch claims, so the new reading room links to original documents, the report library and a measured in-page explanation. Those original shared articles have not been changed.
+
+## Local preview
+
+From `storefront` in this worktree:
+
+```sh
+npm run dev -- --hostname 127.0.0.1 --port 3107
+```
+
+Open `http://127.0.0.1:3107/1`, `/2` or `/3`. The local environment uses the existing database configuration for read-only catalogue/settings rendering; no test orders, emails or inventory writes were performed. With no configuration the pages render the unavailable-data state.
+
+## Split-test readiness
+
+The new experiment identity is `rebrand-2026q3` with arms `v1`, `v2`, `v3`. It is separate from `homepage-2026q3`, so the previous Dossier results are not reused. Merely opening preview URLs does not start an experiment.
+
+When a traffic plan has been chosen, configure both values at build/deployment time:
+
+```dotenv
+NEXT_PUBLIC_REBRAND_EXPERIMENT_ACTIVE=1
+NEXT_PUBLIC_MEASUREMENT_EXPERIMENTS=rebrand-2026q3:v1|v2|v3
+```
+
+Preserve other configured declarations in the comma-separated allowlist if needed. Configure GA4 through the existing setup. No values were enabled in this change.
+
+Allocate comparable eligible visitors equally to the three URLs using the campaign/traffic allocator. Keep each visitor in one arm. Route choice is not randomisation; manually comparing these pages is a design review, not an experiment. Existing `stableExperimentVariant` can support deterministic external allocation. The main `/` route stays untouched and is not a fourth arm in this experiment.
+
+Consent is required before storing attribution or sending events. First assignment wins; browsing another design does not generate a false impression of the originally assigned page. Previewing all three should use experiment-inactive mode. Returning visitors keep their first consented assignment.
+
+Register event-scoped GA4 dimensions `rebrand_experiment_id` and `rebrand_variant`. They accompany consented browser funnel events, including product selection, add-to-cart and order-created, even if an older homepage assignment already exists. The impression also supplies the matching `experiment_id` and `experiment_variant` explicitly. Legacy dimensions remain intact for other events.
+
+Primary paid-conversion analysis should join the exact `rebrand-2026q3` assignment in the existing order attribution snapshot to settled payment outcomes. `order_created` is not a paid purchase. The existing server-side GA4 paid-purchase worker still sends its original single primary experiment dimension; do not use that dimension alone to analyse overlapping experiments. No payment worker or financial reporting behavior was modified.
+
+All three routes have `noindex, follow` metadata and a canonical URL pointing to `/`; they are not added to the sitemap. These are public preview paths if deployed, not password-protected pages.
+
+## Verification
+
+- New attribution regression tests initially failed for unsupported routes/configuration and overlapping experiment dimensions, then passed after implementation.
+- 38 focused measurement/analytics tests passed.
+- TypeScript check, focused ESLint check and production build passed. The final build was verified with database credentials disabled after an earlier credentialed prerender encountered transient fetch timeouts; live catalogue rendering was separately checked in the browser.
+- Browser checks cover 320, 390, 820, 1024 and 1440-pixel widths, single H1, no horizontal overflow and noindex/canonical metadata.
+- Mobile navigation, collection filtering (Cognitive & Focus resolves Semax/Selank), FAQ disclosure and shopping-bag opening were checked against the actual rendered pages.
+- Shared-cart styling was rechecked after scoping: 14px heading; white CTA text on the dark accent background.
+- Independent review covered analytics coexistence, evidence wording and style isolation.
+
+## Files
+
+- Route shells: `storefront/app/(variant)/`
+- Page/data assembly and scoped presentation: `storefront/components/rebrand/`
+- New experiment: `storefront/lib/variant.ts`
+- Consented attribution: `storefront/components/VariantTag.tsx`, `storefront/lib/attribution.ts`, `storefront/lib/analytics.ts`
+- Tests: `storefront/tests/storefront/rebrand-measurement.test.tsx`, `storefront/tests/storefront/rebrand-analytics.test.ts`
+- Asset provenance and exact generation prompts: [assets.md](assets.md)
