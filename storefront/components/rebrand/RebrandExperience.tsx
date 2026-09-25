@@ -34,6 +34,7 @@ export interface RebrandProps {
   collections: Collection[];
   records: CoaRecord[];
   report: LabReport;
+  productReports: Pick<LabReport, "productSlug" | "image" | "testDate" | "sample">[];
   reportCount: number;
   supportEmail: string;
   supportHours?: string;
@@ -41,9 +42,9 @@ export interface RebrandProps {
   abn?: string;
 }
 const nav = [
-  { href: "#collection", label: "Products" },
+  { href: "#collection", label: "Research peptides" },
   { href: "#standards", label: "Lab reports" },
-  { href: "#journal", label: "Before you order" },
+  { href: "#ordering", label: "Ordering & delivery" },
 ];
 
 function reportDate(value: string) {
@@ -105,7 +106,7 @@ function Header({ variant }: { variant: RebrandVariant }) {
           </nav>
           <div className="rb-header-actions">
             <Link href="/shop" className="rb-shop-link">
-              View products <ArrowUpRight size={15} />
+              View peptides <ArrowUpRight size={15} />
             </Link>
             <button
               type="button"
@@ -162,10 +163,9 @@ function Hero({
   variant,
   reportCount,
   supportEmail,
-  supportHours,
 }: Pick<
   RebrandProps,
-  "variant" | "reportCount" | "supportEmail" | "supportHours"
+  "variant" | "reportCount" | "supportEmail"
 >) {
   const copy = directions[variant];
   const science = variant === "v2";
@@ -177,27 +177,18 @@ function Hero({
       <div className="rb-container rb-hero-grid">
         <div className="rb-hero-copy">
           <p className="rb-eyebrow">{copy.eyebrow}</p>
-          <h1 id="rb-hero-title">
-            {copy.heading} <br />
-            <span>{copy.emphasis}</span>
-          </h1>
+          <h1 id="rb-hero-title">{copy.heading}</h1>
           <p className="rb-intro">{copy.intro}</p>
           <div className="rb-actions">
             <Link
-              href={
-                science
-                  ? "/lab-results"
-                  : variant === "v3"
-                    ? `mailto:${supportEmail}`
-                    : "#collection"
-              }
+              href="#collection"
               className="rb-button rb-button-primary"
             >
               {copy.primary}
               <ArrowUpRight size={18} />
             </Link>
             <Link
-              href={variant === "v1" ? "/lab-results" : "#collection"}
+              href={variant === "v3" ? `mailto:${supportEmail}` : "/lab-results"}
               className="rb-text-link"
             >
               {copy.secondary}
@@ -205,8 +196,7 @@ function Hero({
             </Link>
           </div>
           <div className="rb-hero-notes">
-            <span>Original supplier lab reports</span>
-            <span>Australian contact details</span>
+            <span>Shipping from Australia</span>
           </div>
           <p className="rb-research-note">
             For laboratory research only. Not for human or animal consumption.
@@ -223,34 +213,6 @@ function Hero({
               sizes="(max-width: 800px) 100vw, 50vw"
             />
           </div>
-        )}
-        {variant === "v3" && (
-          <aside
-            className="rb-contact-card"
-            aria-labelledby="rb-contact-card-title"
-          >
-            <div>
-              <p className="rb-eyebrow">Contact East Coast Labs</p>
-              <h2 id="rb-contact-card-title">Send us your question</h2>
-              <p>
-                Include the product name, a report link or your order number.
-                That helps us get to the detail you need.
-              </p>
-            </div>
-            <div>
-              <a href={`mailto:${supportEmail}`} className="rb-contact-address">
-                {supportEmail}
-                <ArrowUpRight size={18} />
-              </a>
-              {supportHours && (
-                <p className="rb-contact-hours">{supportHours}</p>
-              )}
-              <div className="rb-contact-scope">
-                We can help with product information and orders. We don’t
-                provide medical or dosing advice.
-              </div>
-            </div>
-          </aside>
         )}
         {science && (
           <div className="rb-science-art rb-hero-visual">
@@ -288,24 +250,24 @@ function TrustStrip() {
         <Link href="/lab-results">
           <FileCheck2 size={24} strokeWidth={1.3} />
           <span>
-            Read the original reports
-            <small>Check the sample, date and result</small>
+            Original supplier reports
+            <small>Sample details and laboratory links</small>
           </span>
           <ArrowUpRight size={16} />
         </Link>
-        <a href="#standards">
-          <FlaskConical size={24} strokeWidth={1.3} />
+        <a href="#ordering">
+          <MapPin size={24} strokeWidth={1.3} />
           <span>
-            Check which batch a report covers
-            <small>Ask us before you order</small>
+            Shipping from Australia
+            <small>How payment and dispatch work</small>
           </span>
           <ArrowUpRight size={16} />
         </a>
-        <a href="#contact">
+        <a href="#about">
           <MessageCircle size={24} strokeWidth={1.3} />
           <span>
-            Contact East Coast Labs
-            <small>Send us your product or order question</small>
+            Product and order support
+            <small>Contact us before or after you buy</small>
           </span>
           <ArrowUpRight size={16} />
         </a>
@@ -318,7 +280,8 @@ function CollectionSection({
   products,
   collections,
   variant,
-}: Pick<RebrandProps, "products" | "collections" | "variant">) {
+  productReports,
+}: Pick<RebrandProps, "products" | "collections" | "variant" | "productReports">) {
   const [filter, setFilter] = useState("all");
   const active = collections.find((item) => item.slug === filter);
   const visible = (
@@ -368,14 +331,37 @@ function CollectionSection({
           ))}
         </div>
         <div className="rb-products" aria-live="polite">
-          {visible.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              listId={`rebrand_${variant}`}
-              listName="Research collection"
-            />
-          ))}
+          {visible.map((product) => {
+            const supplierReport = productReports.find(
+              (item) => item.productSlug === product.slug,
+            );
+            return (
+              <div key={product.id} className="rb-product-with-report">
+                <ProductCard
+                  product={product}
+                  listId={`rebrand_${variant}`}
+                  listName="Research collection"
+                />
+                {supplierReport && (
+                  <a
+                    className="rb-product-report"
+                    href={supplierReport.image}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open historical supplier report for ${supplierReport.sample}`}
+                  >
+                    <span>Supplier report <ArrowUpRight size={15} /></span>
+                    <small>
+                      Historical: {supplierReport.sample}
+                    </small>
+                    <small>
+                      {reportDate(supplierReport.testDate)}
+                    </small>
+                  </a>
+                )}
+              </div>
+            );
+          })}
         </div>
         {!visible.length && (
           <div className="rb-empty" role="status">
@@ -393,7 +379,7 @@ function CollectionSection({
         )}
         <div className="rb-range-note">
           <span>Laboratory research materials</span>
-          <span>Sizes and availability are listed on each product page.</span>
+          <span>Supplier reports describe historical samples, not current stock. <a href="#standards">About the reports</a></span>
         </div>
       </div>
     </section>
@@ -414,41 +400,42 @@ function EvidenceSection({
     >
       <div className="rb-container rb-evidence-grid">
         <div className="rb-evidence-copy">
-          <p className="rb-eyebrow">Checking the documentation</p>
+          <p className="rb-eyebrow">Laboratory documentation</p>
           <h2 id="rb-evidence-title">{directions[variant].proofTitle}</h2>
           <p className="rb-section-description">
-            A laboratory report should tell you what was tested and what the lab
-            found. Here’s how to check the documents we publish, including what
-            they can and can’t confirm.
+            We publish the original supplier reports with their sample details,
+            dates and results intact. You can open the full document and follow
+            its verification link to Janoshik.
           </p>
           <ol className="rb-standards-list">
             <li>
               <span>1</span>
               <div>
-                <h3>Open the original report</h3>
+                <h3>The laboratory’s original document</h3>
                 <p>
-                  Our supplier reports include a Janoshik verification link. You
-                  can check the report on the laboratory’s own website.
+                  Each supplier report includes a link to the laboratory’s
+                  verification page, alongside the original report image.
                 </p>
               </div>
             </li>
             <li>
               <span>2</span>
               <div>
-                <h3>Read the sample details</h3>
+                <h3>The sample and test date</h3>
                 <p>
-                  Check the compound, test date and measurements. A result
-                  belongs to the sample named in that document.
+                  The compound, sample size and measurements belong to the
+                  sample named in the report. The date shows when it was tested.
                 </p>
               </div>
             </li>
             <li>
               <span>3</span>
               <div>
-                <h3>Match it to the batch</h3>
+                <h3>Which supply the report covers</h3>
                 <p>
-                  An older report doesn’t tell you which batch you’ll receive.
-                  Ask us which documents apply to the product you want to order.
+                  These are historical supplier records. To confirm documentation
+                  for the size and batch currently available, contact us with
+                  the product name before ordering.
                 </p>
               </div>
             </li>
@@ -550,7 +537,8 @@ function EvidenceSection({
 function AboutSection({
   variant,
   supportEmail,
-}: Pick<RebrandProps, "variant" | "supportEmail">) {
+  supportHours,
+}: Pick<RebrandProps, "variant" | "supportEmail" | "supportHours">) {
   return (
     <section id="about" className="rb-about" aria-labelledby="rb-about-title">
       <div className="rb-about-image">
@@ -571,91 +559,69 @@ function AboutSection({
         />
       </div>
       <div className="rb-about-copy">
-        <p className="rb-eyebrow">A note from East Coast Labs</p>
+        <p className="rb-eyebrow">Contact East Coast Labs</p>
         <h2 id="rb-about-title">{directions[variant].aboutTitle}</h2>
         <p>{directions[variant].aboutCopy}</p>
-        <p>
-          We’re an Australian-owned supplier of laboratory research peptides.
-          You can contact us about product specifications, supplier reports or
-          an existing order.
-        </p>
         <Link href={`mailto:${supportEmail}`} className="rb-text-link">
           Email East Coast Labs <ArrowUpRight size={17} />
         </Link>
+        <a className="rb-support-email" href={`mailto:${supportEmail}`}>{supportEmail}</a>
+        {supportHours && <p className="rb-support-hours">{supportHours}</p>}
         <div className="rb-purpose-note">
-          Our products are for laboratory research only. They are not for human
-          or animal use.
+          We can help with product documentation and orders. We don’t provide
+          medical or dosing advice.
         </div>
       </div>
     </section>
   );
 }
 
-function Journal({ report }: { report: LabReport }) {
+function OrderingSection() {
   const articles = [
     {
-      category: "A sample report",
-      title: "What does a lab report look like?",
-      href: report.image,
+      title: "Shipped from Australia",
+      href: "/shipping",
       detail:
-        "Open the GHK-Cu supplier report and find the sample name, test date and results.",
-      cta: "Open a sample report",
+        "We ship to Australian addresses. The available services and total are shown at checkout, with tracking details provided when your shipment is recorded.",
+      cta: "Delivery information",
     },
     {
-      category: "Understanding purity",
-      title: "What can a purity result tell you?",
-      href: "#rb-question-1",
+      title: "Payment by bank transfer",
+      href: "/shipping",
       detail:
-        "A purity percentage has limits. Read what it tells you about a sample and what it leaves out.",
-      cta: "Read the explanation",
+        "Place your order to receive the transfer details, exact amount and reference. We prepare your order after payment is confirmed.",
+      cta: "How payment works",
     },
     {
-      category: "The document library",
-      title: "Looking for a particular report?",
-      href: "/lab-results",
+      title: "Help if something’s wrong",
+      href: "/returns",
       detail:
-        "Browse the supplier reports and any published batch documents by product.",
-      cta: "Find a report",
+        "If an order arrives damaged, incorrect or goes missing, contact us with your order reference. Our returns page explains how we look into it and what to send us.",
+      cta: "Order problems and returns",
     },
   ];
   return (
     <section
-      id="journal"
-      className="rb-section rb-journal"
-      aria-labelledby="rb-journal-title"
+      id="ordering"
+      className="rb-section rb-ordering"
+      aria-labelledby="rb-ordering-title"
     >
       <div className="rb-container">
         <div className="rb-section-heading">
           <div>
-            <p className="rb-eyebrow">Before you order</p>
-            <h2 id="rb-journal-title">A few things worth checking</h2>
+            <p className="rb-eyebrow">Ordering & delivery</p>
+            <h2 id="rb-ordering-title">What happens when you order</h2>
           </div>
-          <Link href="/lab-results" className="rb-text-link">
-            View the report library <ArrowUpRight size={17} />
-          </Link>
         </div>
-        <div className="rb-journal-grid">
+        <div className="rb-ordering-grid">
           {articles.map((article) => (
-            <a
-              key={article.href}
-              href={article.href}
-              className="rb-journal-card"
-              onClick={() => {
-                if (article.href.startsWith("#"))
-                  document
-                    .getElementById(article.href.slice(1))
-                    ?.setAttribute("open", "");
-              }}
-            >
-              <div className="rb-journal-copy">
-                <p className="rb-eyebrow">{article.category}</p>
-                <h3>{article.title}</h3>
-                <p>{article.detail}</p>
-                <span className="rb-text-link">
-                  {article.cta} <ArrowUpRight size={16} />
-                </span>
-              </div>
-            </a>
+            <article key={article.title}>
+              <h3>{article.title}</h3>
+              <p>{article.detail}</p>
+              <Link href={article.href} className="rb-text-link">
+                {article.cta} <ArrowUpRight size={16} />
+              </Link>
+            </article>
           ))}
         </div>
       </div>
@@ -663,17 +629,13 @@ function Journal({ report }: { report: LabReport }) {
   );
 }
 
-function FaqSection({ supportEmail }: { supportEmail: string }) {
+function FaqSection() {
   return (
     <section className="rb-section rb-faq" aria-labelledby="rb-faq-title">
       <div className="rb-container rb-faq-grid">
         <div>
-          <p className="rb-eyebrow">Your questions</p>
-          <h2 id="rb-faq-title">What would you like to know?</h2>
-          <p>If your question isn’t covered here, send it to us.</p>
-          <a href={`mailto:${supportEmail}`} className="rb-text-link">
-            Email your question <ArrowUpRight size={16} />
-          </a>
+          <p className="rb-eyebrow">Useful information</p>
+          <h2 id="rb-faq-title">A few common questions</h2>
         </div>
         <div className="rb-faq-items">
           {questions.map((item, index) => (
@@ -706,8 +668,8 @@ function Footer({
       <div className="rb-container">
         <div className="rb-footer-top">
           <div>
-            <p className="rb-eyebrow">Contact East Coast Labs</p>
-            <h2>Still have a question?</h2>
+            <p className="rb-eyebrow">Product and order enquiries</p>
+            <h2>Contact East Coast Labs</h2>
           </div>
           <a
             href={`mailto:${supportEmail}`}
@@ -732,7 +694,7 @@ function Footer({
             <h3>Products and reports</h3>
             <Link href="/shop">Research peptides</Link>
             <Link href="/lab-results">Laboratory reports</Link>
-            <a href="#journal">Before you order</a>
+            <a href="#ordering">Ordering & delivery</a>
             <Link href="/about">About East Coast Labs</Link>
           </nav>
           <nav aria-label="Customer information">
@@ -777,20 +739,11 @@ export default function RebrandExperience(props: RebrandProps) {
       <main id="main-content" tabIndex={-1}>
         <Hero {...props} />
         <TrustStrip />
-        {variant === "v2" ? (
-          <>
-            <EvidenceSection {...props} />
-            <CollectionSection {...props} />
-          </>
-        ) : (
-          <>
-            <CollectionSection {...props} />
-            <EvidenceSection {...props} />
-          </>
-        )}
-        <AboutSection variant={variant} supportEmail={props.supportEmail} />
-        <Journal report={props.report} />
-        <FaqSection supportEmail={props.supportEmail} />
+        <CollectionSection {...props} />
+        <EvidenceSection {...props} />
+        <OrderingSection />
+        <AboutSection variant={variant} supportEmail={props.supportEmail} supportHours={props.supportHours} />
+        <FaqSection />
       </main>
       <Footer {...props} />
       <CartDrawer />
