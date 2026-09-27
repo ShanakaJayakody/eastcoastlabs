@@ -4,7 +4,7 @@ name: Scheduled sweeps
 # lose real value at that cadence — most of all abandoned-cart stage 1, which is
 # meant to land ~1h after someone walks away and is the touch that converts.
 #
-# This workflow drives those three hourly for free. The vercel.json crons stay
+# This workflow drives those sweeps and overdue-order admin alerts hourly. The vercel.json crons stay
 # in place as a daily backstop: every sweep is idempotent (atomic claim +
 # outbox dedupe), so the two schedules overlapping is harmless by design.
 #
@@ -44,6 +44,7 @@ jobs:
           - email-outbox      # retry path for failed transactional sends
           - abandoned-carts   # stage 1 wants ~1h, not ~24h
           - payment-ops       # 4h/24h payment reminders + 48h expiry
+          - overdue-orders    # admin priority alerts after 24h in an order queue
     steps:
       - name: Call ${{ matrix.endpoint }}
         env:

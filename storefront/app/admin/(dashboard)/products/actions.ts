@@ -45,6 +45,7 @@ function fail(err: unknown): ActionResult {
 /** Revalidate admin views AND the storefront pages that render this product. */
 function revalidateProduct(slug: string) {
   revalidatePath("/admin/products");
+  revalidatePath("/admin/stock");
   revalidatePath(`/admin/products/${slug}`);
   revalidatePath("/admin");
   revalidatePath(`/product/${slug}`);
@@ -352,7 +353,7 @@ export async function bulkAdjustStock(
     try{const result=await adjustStockWithNotify({variantId:id,qty:Math.round(qty),reason,actor:session.email,note:"bulk update"});notified+=result.notified;succeeded.push(id);if(result.warning)warnings.push(`${id}: ${result.warning}`);}
     catch(err){failed.push({id,error:err instanceof Error?err.message:String(err)});}
   }
-  revalidatePath("/admin/products");revalidatePath("/admin");revalidatePath("/shop");
+  revalidatePath("/admin/products");revalidatePath("/admin/stock");revalidatePath("/admin");revalidatePath("/shop");
   return {ok:failed.length===0,succeeded,failed,warning:warnings.length?warnings.join(" "):undefined,message:`Updated ${succeeded.length} variants · ${failed.length} failed${notified?` · ${notified} emails queued`:""}`};
 }
 

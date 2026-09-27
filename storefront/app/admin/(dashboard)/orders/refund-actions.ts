@@ -14,7 +14,7 @@ export async function commitRefund(orderId:string,selection:RefundSelection,rest
  const session=await requireAdmin();
  try{
   const result=await commitReviewedRefund(orderId,selection,restock,token,key,session.email);
-  revalidatePath(`/admin/orders/${orderId}`);revalidatePath('/admin/orders');revalidatePath('/admin');
+  revalidatePath(`/admin/orders/${orderId}`);revalidatePath('/admin/orders');revalidatePath('/admin');revalidatePath('/admin/stock');
   return {ok:true as const,...result};
  }catch(error){return failure(error)}
 }

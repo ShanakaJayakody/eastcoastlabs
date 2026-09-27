@@ -133,6 +133,23 @@ export async function renderTemplate(
   const settings = await getSettings();
   const SUPPORT_EMAIL = settings.supportEmail;
   switch (template) {
+    case "admin_order_overdue": {
+      const awaitingPayment = payload.queue === "awaiting_payment";
+      const label = awaitingPayment ? "Awaiting payment" : "To fulfil";
+      const number = String(payload.order_number ?? "");
+      const hours = Math.max(24, Math.floor(Number(payload.hours_waiting) || 24));
+      const action = awaitingPayment
+        ? "Check the transfer and confirm payment if it has cleared, or follow up with the customer. Fulfil the order as soon as payment is confirmed."
+        : "Pack and dispatch this order as soon as possible, then record its tracking details.";
+      const subject = `[PRIORITY] ${number} overdue — ${label}`;
+      return { subject, html: shell(esc(subject),
+        `<h1 style="font-size:20px;">Overdue order requires attention</h1>
+        <p><strong>${esc(number)}</strong> has been in <strong>${label}</strong> for <strong>${hours} hours</strong>, exceeding the 24-hour action window.</p>
+        <p>${esc(String(payload.customer_name || "Customer"))} · ${cents(Number(payload.amount_cents) || 0)}</p>
+        <p>${action}</p>
+        ${payButton(`${SITE}/admin/orders/${encodeURIComponent(String(payload.order_id ?? ""))}`, "Review order")}
+        <p style="font-size:12px;color:#8b96a8;">Sent to all active admins. Reminders repeat every 24 hours while the order remains in this queue. Check the order for its latest status before taking action.</p>`) };
+    }
     case "admin_daily_brief": {
       if (typeof payload.subject !== "string" || typeof payload.html !== "string") throw new Error("Invalid daily brief");
       return { subject:payload.subject,html:payload.html };

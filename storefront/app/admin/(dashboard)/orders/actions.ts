@@ -34,6 +34,7 @@ export async function confirmPayment(orderId: string, paymentRef?: string): Prom
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
+    revalidatePath("/admin/stock");
     return { ok: true };
   } catch (err) {
     return fail(err);
@@ -63,6 +64,7 @@ export async function reinstate(
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
+    revalidatePath("/admin/stock");
     return { ok: true };
   } catch (err) {
     return fail(err);
@@ -94,6 +96,7 @@ export async function bulkReinstate(
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  revalidatePath("/admin/stock");
   return { ok: failed.length === 0, done, failed };
 }
 
@@ -110,6 +113,7 @@ export async function advanceStatus(
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
+    revalidatePath("/admin/stock");
     return { ok: true };
   } catch (err) {
     return fail(err);
@@ -141,6 +145,7 @@ export async function bulkAdvanceStatus(
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  revalidatePath("/admin/stock");
   if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.map(f=>f.id).join(", ")}`, failed };
   return { ok: true, moved, failed };
 }
@@ -171,6 +176,7 @@ export async function bulkConfirmPayment(
 
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
+  revalidatePath("/admin/stock");
   if (!moved) return { ok: false, error: `Nothing moved. Failed: ${failed.map(f=>f.id).join(", ")}`, failed };
   return { ok: true, moved, failed };
 }

@@ -7,7 +7,7 @@ import BuyBox from '../../components/BuyBox';
 import SizeFixture from './size-fixture';
 import CustomerFixture from './customer-fixture';
 import StockFixture from './stock-fixture';
-import StockDashboardFixture from './stock-dashboard-fixture';
+import StockManagementFixture from './stock-management-fixture';
 import CartDrawer from '../../components/CartDrawer';
 import Header from '../../components/Header';
 import DossierHeader from '../../components/variant/v2/DossierHeader';
@@ -39,7 +39,7 @@ function Preview(){
   <label className="mt-3 block">Creator submission simulation<select value={creatorSubmission} onChange={e=>{const m=e.target.value as CreatorMode;setCreatorSubmission(m);setCreatorMode(m);}} className="ml-2 rounded border border-line bg-ink p-2"><option value="success">Success</option><option value="unavailable">Unavailable</option><option value="rate-limited">Rate limited</option><option value="field-error">Field error</option></select></label>
   <p className="mt-2 text-xs text-muted">{lines.length} cart lines. After changing simulation, use Refresh order total or change shipping in checkout.</p>
  </div>}<div className={dossier?'theme-paper flex min-h-screen flex-col bg-ink text-fg':'flex min-h-screen flex-col'}>{page.endsWith('-admin')?null:dossier?<DossierHeader/>:<Header/>}<main id="main-content" tabIndex={-1} className={mainClass}>
- {page==='stock-dashboard-admin'?<StockDashboardFixture/>:page==='stock-admin'?<StockFixture/>:page==='customer-admin'?<CustomerFixture/>:page==='sizes'||page==='sizes-admin'?<SizeFixture admin={page==='sizes-admin'}/>:page==='creators'?creator:page==='recovery'?<><h1 className="text-2xl font-bold">Restore your cart</h1><CartRecoveryRestore token={'a'.repeat(43)}/></>:page==='checkout'?<><h1 className="text-2xl font-bold">Checkout preview</h1><CheckoutForm/></>:<><h1 className="mb-6 text-2xl font-bold">Synthetic compound · 4 vials available</h1><BuyBox product={{id:900001,name:'Synthetic Research Compound',slug:'synthetic-compound',sku:'SYNTHETIC'}} tiers={tiers} singlePriceMinor="4500" minorUnit={2} available={4}/></>}
+ {page==='stock-management-admin'?<StockManagementFixture/>:page==='stock-admin'?<StockFixture/>:page==='customer-admin'?<CustomerFixture/>:page==='sizes'||page==='sizes-admin'?<SizeFixture admin={page==='sizes-admin'}/>:page==='creators'?creator:page==='recovery'?<><h1 className="text-2xl font-bold">Restore your cart</h1><CartRecoveryRestore token={'a'.repeat(43)}/></>:page==='checkout'?<><h1 className="text-2xl font-bold">Checkout preview</h1><CheckoutForm/></>:<><h1 className="mb-6 text-2xl font-bold">Synthetic compound · 4 vials available</h1><BuyBox product={{id:900001,name:'Synthetic Research Compound',slug:'synthetic-compound',sku:'SYNTHETIC'}} tiers={tiers} singlePriceMinor="4500" minorUnit={2} available={4}/></>}
  </main><CartDrawer/></div></>;
 }
 createRoot(document.getElementById('root')!).render(<CartProvider stock={stock} prices={prices}><UIProvider><Preview/></UIProvider></CartProvider>);

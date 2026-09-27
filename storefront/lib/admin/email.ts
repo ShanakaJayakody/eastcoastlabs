@@ -7,6 +7,7 @@ import { retentionAssignment } from "./retention-policy";
 // harmless; the sender still needs a database lease before it can contact Resend.
 export type EmailTemplate =
   | "admin_daily_brief"
+  | "admin_order_overdue"
   | "subscription_confirmation"
   | "cart_recovery_confirmation"
   | "order_confirmation"

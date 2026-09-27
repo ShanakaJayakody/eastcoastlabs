@@ -16,6 +16,13 @@ it("uses the same provider idempotency key on retried delivery",async()=>{
  expect(m.send).toHaveBeenCalledTimes(2);
  for(const call of m.send.mock.calls)expect(call[1]).toEqual({idempotencyKey:"ecl-outbox/id-1"});
 });
+it('sends overdue admin alerts with high-priority email headers without marketing credentials',async()=>{
+ vi.stubEnv('UNSUBSCRIBE_SECRET','');
+ const alert={...row,template:'admin_order_overdue',to_email:'admin@example.test'};
+ m.rpc.mockImplementation(async(name:string)=>({data:name==='prepare_email_delivery_v2'?{subject:'Overdue',html:'Action needed',from:'Sender',tag:'id-1'}:name==='claim_email_outbox'?[alert]:true,error:null}));
+ expect(await drainOutbox(1)).toMatchObject({sent:1,failed:0});
+ expect(m.send.mock.calls[0][0]).toMatchObject({to:'admin@example.test',headers:{'X-Priority':'1','Importance':'high','X-MSMail-Priority':'High'}});
+});
 it("does not deliver a cancelled or newly suppressed claimed row",async()=>{
  m.rpc.mockImplementation(async(name:string)=>({data:name==="prepare_email_delivery_v2"?{subject:"Test",html:"Test",from:"Test <test@example.test>",tag:"id-1"}:name==="claim_email_outbox"?[row]:false,error:null}));
  expect(await drainOutbox(1)).toMatchObject({sent:0,cancelled:1});expect(m.send).not.toHaveBeenCalled();

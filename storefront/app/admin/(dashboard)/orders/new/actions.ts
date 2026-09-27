@@ -69,6 +69,7 @@ export async function createManualOrder(input: ManualOrderInput): Promise<Manual
 
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
+    revalidatePath("/admin/stock");
     return { ok: true, orderId: order.orderId, orderNumber: order.orderNumber };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

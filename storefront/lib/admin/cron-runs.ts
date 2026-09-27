@@ -6,6 +6,7 @@ export const CRON_JOBS = [
   { job: "lifecycle", label: "Lifecycle sweeps", schedule: "daily", overdueHours: 30 },
   { job: "abandoned-carts", label: "Cart recovery", schedule: "hourly + daily backstop", overdueHours: 3 },
   { job: "payment-ops", label: "Unpaid orders", schedule: "hourly + daily backstop", overdueHours: 3 },
+  { job: "overdue-orders", label: "Overdue order alerts", schedule: "hourly + daily backstop", overdueHours: 3 },
   { job: "daily-brief", label: "Daily brief", schedule: "daily", overdueHours: 30 },
 ] as const;
 export interface CronRun {

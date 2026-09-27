@@ -151,6 +151,7 @@ export const PAUSABLE: SequenceId[] = [
 /** Templates that must deliver regardless of marketing suppression. */
 export const TRANSACTIONAL_TEMPLATES: EmailTemplate[] = [
   "admin_daily_brief",
+  "admin_order_overdue",
   "subscription_confirmation",
   "cart_recovery_confirmation",
   "order_confirmation",
