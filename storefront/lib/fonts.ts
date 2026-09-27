@@ -1,14 +1,16 @@
 /**
  * Fonts scoped to the creator pages via CSS variables on their root element.
- * Use the bundled Inter font so its Google delivery URL cannot break builds.
+ * Bundle Inter and Newsreader so their Google delivery URLs cannot break builds.
  */
-import { Newsreader, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
 import localFont from "next/font/local";
 
-export const newsreader = Newsreader({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
+export const newsreader = localFont({
+  src: [
+    { path: "../public/fonts/newsreader-normal-latin.woff2", weight: "400 500", style: "normal" },
+    { path: "../public/fonts/newsreader-variable-italic-latin.woff2", weight: "400 500", style: "italic" },
+  ],
+  adjustFontFallback: "Times New Roman",
   variable: "--font-serif",
   display: "swap",
 });
