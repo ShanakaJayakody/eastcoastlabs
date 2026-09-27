@@ -124,6 +124,17 @@ it('clips the matching calendar position to the end of a shorter previous month'
  expect(r.matched.previous_end).toBe('2026-02-28T13:00:00+00:00');
 });
 
+it('keeps future custom bounds valid for empty reports and order exports',async()=>{
+ await insert('shipped','2026-08-10','2026-08-11','2026-08-12');
+ const r=await report('month','custom','2026-10-01','2026-10-31');
+ expect(r.from).toBe('2026-10-01');expect(r.to).toBe('2026-10-31');
+ expect(r.periods).toEqual([]);expect(r.summary.shipped_count).toBe(0);
+ const result=await db.query<{r:{total:number;rows:unknown[]}}>("select admin_fulfilment_orders('shipments',$1,$2,'milestone','desc',0,50,$3,null) r",[r.from,r.to,r.as_of]);
+ expect(result.rows[0].r).toMatchObject({total:0,rows:[]});
+ const spanning=await report('month','custom','2026-09-01','2026-12-31');
+ expect(spanning.periods.map((p:{key:string})=>p.key)).toEqual(['2026-09-01']);
+});
+
 it('rejects invalid database filter inputs',async()=>{
   await expect(report('year')).rejects.toThrow(/grain/i);
   // Failed statement is outside an explicit SQL savepoint: PGlite marks the transaction aborted.

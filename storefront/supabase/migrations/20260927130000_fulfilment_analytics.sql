@@ -60,12 +60,14 @@ begin
  select min(created_at) into first_at from orders where created_at<=at_time;
  from_day:=case p_range when 'custom' then p_from when '12w' then (date_trunc('week',local_now)-interval '11 weeks')::date
  when '12m' then (date_trunc('month',local_now)-interval '11 months')::date else coalesce((first_at at time zone 'Australia/Sydney')::date,local_now::date) end;
- to_day:=least(case when p_range='custom' then p_to else local_now::date end,local_now::date);
+ -- Preserve requested bounds for drilldowns, including an empty future range.
+ -- Only bucket generation is capped at the report day; facts exclude future events.
+ to_day:=case when p_range='custom' then p_to else local_now::date end;
  start_time:=from_day::timestamp at time zone 'Australia/Sydney';
  end_time:=(to_day+1)::timestamp at time zone 'Australia/Sydney';
  step:=case p_grain when 'week' then interval '1 week' else interval '1 month' end;
  bucket:=date_trunc(p_grain,greatest(from_day::timestamp,(first_at at time zone 'Australia/Sydney')::date::timestamp));
- while first_at is not null and bucket<(to_day+1)::timestamp and from_day<=to_day loop
+ while first_at is not null and bucket<(least(to_day,local_now::date)+1)::timestamp and from_day<=local_now::date loop
   bucket_end:=bucket+step;
   bucket_start_at:=bucket at time zone 'Australia/Sydney'; bucket_end_at:=bucket_end at time zone 'Australia/Sydney';
   partial:='{}';
