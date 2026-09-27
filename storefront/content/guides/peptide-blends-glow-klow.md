@@ -30,7 +30,7 @@ Together they are studied in models of connective-tissue repair, cellular signal
 ## Physical & handling properties
 
 - **Format:** lyophilised powder (three-peptide blend)
-- **Reconstitution:** dissolve gently in [bacteriostatic water](/learn/reconstituting-research-peptides) to a clear solution; use the [concentration calculator](/learn) to record the total-peptide concentration
+- **Reconstitution:** dissolve gently in [bacteriostatic water](/learn/reconstituting-research-peptides) to a clear solution; use the [concentration calculator](/learn#reconstitution-calculator) to record the total-peptide concentration
 - **Storage:** refrigerate lyophilised and reconstituted vials ([storage guide](/learn/storing-research-peptides))
 
 ## Verifying a blend
