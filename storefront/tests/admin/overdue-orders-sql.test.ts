@@ -9,7 +9,7 @@ beforeAll(async () => {
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
     create schema storage; create table storage.buckets(id text primary key,name text,public boolean);`);
   for (const file of readdirSync('supabase/migrations').filter(file => file.endsWith('.sql')).sort()) {
-    if (file === '20260927090000_overdue_order_reminders.sql') {
+    if (file === '20260927110000_overdue_order_reminders.sql') {
       await db.exec(`insert into orders(id,order_number,customer_email,status,created_at,paid_at) values
         ('10000000-0000-0000-0000-000000000001','BACKFILL-PENDING','history@example.test','pending','2026-09-01',null),
         ('10000000-0000-0000-0000-000000000002','BACKFILL-PAID','history@example.test','paid','2026-09-01','2026-09-25'),

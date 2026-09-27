@@ -14,7 +14,7 @@ Catalogue → Stock (`/admin/stock`) contains stock attribution by person, produ
 
 ## Release
 
-Apply `20260927090000_overdue_order_reminders.sql` through the [tracked migration process](MIGRATIONS.md), then release the application and workflow together. The migration backfills current queue entry times from status history, falling back to payment or creation timestamps for historical records. Existing orders already overdue become eligible on the first sweep.
+Apply `20260927110000_overdue_order_reminders.sql` through the [tracked migration process](MIGRATIONS.md), then release the application and workflow together. The migration backfills current queue entry times from status history, falling back to payment or creation timestamps for historical records. Existing orders already overdue become eligible on the first sweep.
 
 The new job uses the existing `CRON_SECRET`, workflow `CRON_BASE_URL`, Resend configuration, and active-admin list. No additional credentials are required. Changes in a local checkout do not activate production reminders.
 
