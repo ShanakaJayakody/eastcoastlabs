@@ -61,7 +61,7 @@ export default async function OrdersPage({
 
   const [{ rows, total }, counts] = await Promise.all([
     listOrders({ status, search, limit, offset: (page - 1) * limit, from, to, sort, dir, discount }),
-    orderStatusCounts(),
+    orderStatusCounts({ search, from, to, discount }),
   ]);
   const pages = Math.max(1, Math.ceil(total / limit));
 

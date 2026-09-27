@@ -87,7 +87,7 @@ interface MarketingSend {
  * stops the sweep so missing catalogue data cannot trigger unwanted requests.
  */
 async function accessorySlugs(): Promise<Set<string>> {
-  const data = await readAll((start,end)=>adminDb().from("products").select("slug").contains("categories", ["accessory"]).order("id").range(start,end));
+  const data = await readAll((start,end)=>adminDb().from("products").select("slug").contains("categories", JSON.stringify(["accessory"])).order("id").range(start,end));
   return new Set((data ?? []).map((p) => (p as { slug: string }).slug));
 }
 

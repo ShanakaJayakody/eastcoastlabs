@@ -73,6 +73,16 @@ export interface OrderListFilters {
   discount?: string | null;
 }
 
+/** URL-originating search syntax shared by the list and its status badges. */
+function normaliseOrderSearch(search: string | undefined | null): string | null {
+  const value = search?.trim();
+  return value ? value.replace(/[,()]/g, "") : null;
+}
+
+function normaliseOrderDiscount(discount: string | undefined | null): string | null {
+  return discount?.trim() || null;
+}
+
 export async function listOrders(
   filters: OrderListFilters = {},
 ): Promise<{ rows: OrderListRow[]; total: number }> {
@@ -104,13 +114,14 @@ export async function listOrders(
   if (toIsoBound) q = q.lt("created_at", toIsoBound);
   // Codes are stored as typed, so match case-insensitively rather than making
   // the operator guess how a code was capitalised at checkout.
-  if (discount?.trim()) q = q.ilike("discount_code", discount.trim().replace(/[%_*\\]/g, "\\$&"));
-  if (search?.trim()) {
+  const discountCode = normaliseOrderDiscount(discount);
+  if (discountCode) q = q.ilike("discount_code", discountCode.replace(/[%_*\\]/g, "\\$&"));
+  const searchTerm = normaliseOrderSearch(search);
+  if (searchTerm) {
     // Commas separate conditions in a PostgREST .or() and parens group them, so
     // an unescaped one produces a 400 and a 500 page. With live search this now
     // fires per keystroke, not on an explicit submit.
-    const s = search.trim().replace(/[,()]/g, "");
-    q = q.or(`order_number.ilike.%${s}%,customer_email.ilike.%${s}%,customer_name.ilike.%${s}%`);
+    q = q.or(`order_number.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%,customer_name.ilike.%${searchTerm}%`);
   }
 
   const { data, count, error } = await q;
@@ -127,15 +138,23 @@ export async function listOrders(
  * Row counts per status (plus the to_fulfil and all rollups) so the filter tabs
  * can show live numbers — a queue you can't count isn't a queue.
  */
-export async function orderStatusCounts(): Promise<Record<string, number>> {
+export async function orderStatusCounts(
+  filters: Pick<OrderListFilters, "search" | "from" | "to" | "discount"> = {},
+): Promise<Record<string, number>> {
   const statuses:OrderStatus[]=["pending","paid","processing","shipped","completed","cancelled","refunded"];
-  const results=await Promise.all(statuses.map(async status=>{
-    const {count,error}=await adminDb().from("orders").select("*",{head:true,count:"exact"}).eq("status",status);
-    if(error)throw new Error(`orderStatusCounts: ${error.message}`);
-    return {status,count:count??0};
-  }));
-  const counts:Record<string,number>={all:0,to_fulfil:0};
-  for(const {status,count} of results){counts[status]=count;counts.all+=count;if(TO_FULFIL.includes(status))counts.to_fulfil+=count;}
+  const {data,error}=await adminDb().rpc("admin_order_status_counts", {
+    p_search: normaliseOrderSearch(filters.search),
+    p_from: sydneyDayBoundary(filters.from),
+    p_to: sydneyDayBoundary(filters.to, true),
+    p_discount: normaliseOrderDiscount(filters.discount),
+  });
+  if(error)throw new Error(`orderStatusCounts: ${error.message}`);
+  const counts:Record<string,number>=Object.fromEntries(statuses.map(status=>[status,0]));
+  for(const row of (data??[]) as {status:OrderStatus;count:number|string}[]){
+    if(statuses.includes(row.status)) counts[row.status]=Number(row.count);
+  }
+  counts.all=statuses.reduce((total,status)=>total+counts[status],0);
+  counts.to_fulfil=TO_FULFIL.reduce((total,status)=>total+counts[status],0);
 
   return counts;
 }
