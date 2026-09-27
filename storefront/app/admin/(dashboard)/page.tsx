@@ -24,8 +24,6 @@ import ActionQueue from "@/components/admin/ActionQueue";
 import Nudges from "@/components/admin/Nudges";
 import Badge from "@/components/admin/Badge";
 import { Bar } from "@/components/admin/Skeleton";
-import StockByPerson from "@/components/admin/StockByPerson";
-import { getStockAttribution } from "@/lib/admin/stock-attribution-query";
 
 export const dynamic = "force-dynamic";
 
@@ -63,10 +61,6 @@ export default async function AdminDashboard({
         <p className="mt-1 text-sm text-muted">Here&apos;s what needs you today.</p>
       </div>
 
-      <Suspense fallback={<StockAttributionSkeleton />}>
-        <StockAttributionSection />
-      </Suspense>
-
       <Suspense fallback={<QueueSkeleton />}>
         <AttentionSection />
       </Suspense>
@@ -93,19 +87,6 @@ export default async function AdminDashboard({
 }
 
 /* ---------------------------------- work --------------------------------- */
-
-async function StockAttributionSection() {
-  try {
-    const report = await getStockAttribution();
-    return <StockByPerson report={report}/>;
-  } catch {
-    return <section className="rounded-2xl border border-accent/30 bg-surface p-6"><h2 className="text-xl font-semibold text-fg">Stock by person</h2><p role="status" className="mt-2 text-sm text-muted">Stock attribution could not be loaded. Refresh to try again; totals are unavailable.</p><Link href="/admin/products" className="mt-3 inline-block text-sm font-medium text-accent-2 underline">View stock records</Link></section>;
-  }
-}
-
-function StockAttributionSkeleton() {
-  return <section className="space-y-4 rounded-2xl border border-accent/30 bg-surface p-6" aria-label="Loading stock by person"><Bar className="h-6 w-44"/><div className="grid gap-3 sm:grid-cols-3">{[1,2,3].map(key => <Bar key={key} className="h-32"/>)}</div></section>;
-}
 
 async function AttentionSection() {
   const queue = await attentionQueue();

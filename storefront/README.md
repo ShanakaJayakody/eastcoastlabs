@@ -44,4 +44,6 @@ The audit changes are staged for review, not deployed. The [implementation repor
 
 Additional guides: [checkout abuse limits](docs/CHECKOUT-ABUSE.md), [paid analytics](docs/PAID-ANALYTICS.md).
 
+[Stock management and overdue-order alerts](docs/OVERDUE-ORDERS.md) documents the Catalogue stock page, hourly priority reminders, timing rules, and deployment requirements.
+
 The September 13 conversion implementation adds synchronized product sizes, simpler mobile purchasing, consented attribution, contribution reporting and configurable retention. Its [release record](../docs/operations/2026-09-13-CONVERSION-RELEASE.md) maps the approved audit to code, verification and business inputs. See the revised [baseline contract](../BASELINE.md) before interpreting conversion or lifetime-value results.

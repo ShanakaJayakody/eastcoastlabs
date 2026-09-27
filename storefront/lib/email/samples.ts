@@ -36,6 +36,7 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
     label: "Transactional",
     templates: [
       { id: "admin_daily_brief", name: "Admin daily brief", trigger: "Daily operations summary to active admins" },
+      { id: "admin_order_overdue", name: "Overdue order alert", trigger: "Over 24h awaiting payment or fulfilment; repeats every 24h to active admins" },
       { id: "cart_recovery_confirmation", name: "Cart confirmation", trigger: "Explicit cart-link request" },
       { id: "subscription_confirmation", name: "Subscription confirmation", trigger: "Mailbox confirmation requested" },
       { id: "order_confirmation", name: "Order confirmation", trigger: "Payment marked received" },
@@ -95,6 +96,8 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
     : {};
 
   switch (template) {
+    case "admin_order_overdue":
+      return { order_id: "00000000-0000-0000-0000-000000000000", order_number: "ECL-1042", customer_name: "Sample Customer", amount_cents: 24900, queue: "to_fulfil", hours_waiting: 25 };
     case "admin_daily_brief":
       return {subject:"East Coast Labs — sample daily brief",html:"<!doctype html><html><body><h1>Daily operations brief</h1><p>Sample preview: 2 paid orders await dispatch; no failed jobs.</p></body></html>"};
     case "cart_recovery_confirmation":

@@ -13,6 +13,7 @@ import {fulfilmentChecks} from './postgres-fulfilment-checks.mjs';
 import {recoveryChecks} from './postgres-recovery-checks.mjs';
 import {operationsChecks} from './postgres-operations-checks.mjs';
 import {customerChecks} from './postgres-customer-checks.mjs';
+import {overdueOrderChecks} from './postgres-overdue-order-checks.mjs';
 
 let ownedContainer;
 let admin;
@@ -82,6 +83,7 @@ try {
     } finally { await db.query('commit'); }
     return results;
   }
+  await overdueOrderChecks({db,a,b,check,race});
   async function fixture(onHand = 3) {
     const product = randomUUID(), variant = randomUUID();
     await db.query(`insert into products(id,slug,name,unit_cost_cents) values($1,$2,'Synthetic audit item',200)`, [product, `audit-${product}`]);

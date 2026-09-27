@@ -1,12 +1,14 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test("dashboard correlates supplied and sold vials by person with order drill-down on desktop and mobile", async ({ page }, info) => {
+test("catalogue stock correlates supplied and sold vials by person with order drill-down on desktop and mobile", async ({ page }, info) => {
   await page.route("**/*", route => {
     const url = new URL(route.request().url());
     return url.hostname === "127.0.0.1" && !url.pathname.startsWith("/api/") ? route.continue() : route.abort();
   });
-  await page.goto("/frame.html?page=stock-dashboard-admin&bare=1");
+  await page.goto("/frame.html?page=stock-management-admin&bare=1");
+  await expect(page.getByRole("link", { name: "Receive or adjust stock" })).toHaveAttribute("href", "/admin/products");
+  await page.screenshot({ path: info.outputPath("stock-page.png"), fullPage: true });
   const section = page.getByRole("region", { name: "Stock by person" });
   await expect(section.getByRole("heading", { name: "Stock by person" })).toBeInViewport();
   await expect(section.getByText("FIFO estimate", { exact: true })).toBeVisible();
@@ -20,7 +22,7 @@ test("dashboard correlates supplied and sold vials by person with order drill-do
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const accessibility = await new AxeBuilder({ page }).include("#stock-by-person").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(accessibility.violations.filter(violation => ["serious", "critical"].includes(violation.impact ?? ""))).toEqual([]);
-  await section.screenshot({ path: info.outputPath("stock-dashboard.png") });
+  await section.screenshot({ path: info.outputPath("stock-management.png") });
   await sales.click();
   const dialog = page.getByRole("dialog", { name: "Jordan Lee" });
   await expect(dialog.getByRole("link", { name: "ECL-4001" })).toHaveAttribute("href", "/admin/orders/4001");
