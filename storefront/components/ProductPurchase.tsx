@@ -41,7 +41,7 @@ export default function ProductPurchase({ product, sizes, minorUnit, bacWater, i
         <div><dt className="text-muted-2">Selected size</dt><dd className="font-semibold text-fg">{label}</dd></div>
         <div><dt className="text-muted-2">SKU</dt><dd className="truncate font-mono font-semibold text-fg">{size.sku || product.sku}</dd></div>
         <div><dt className="text-muted-2">Format</dt><dd className="text-fg-2">Research vial</dd></div>
-        <div><dt className="text-muted-2">Availability</dt><dd className={size.available > 0 ? 'text-success' : 'text-warn'}>{size.available > 0 ? `${size.available} vials available` : 'Out of stock'}</dd></div>
+        <div><dt className="text-muted-2">Availability</dt><dd className={size.available > 0 ? 'text-success' : 'text-warn'}>{size.available > 0 ? 'In stock' : 'Out of stock'}</dd></div>
       </dl>
     </div>
     {evidenceStatus && <p className="text-xs text-muted">{evidenceStatus}</p>}

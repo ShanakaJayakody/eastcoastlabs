@@ -6,4 +6,6 @@ The commerce shell uses Tenor Sans (400, upright) for display headings and Commi
 - Commissioner: The Commissioner Project Authors; [upstream source](https://github.com/kosbarts/Commissioner). License included as `Commissioner-OFL.txt`.
 - Font binaries supplied by the Google Fonts CSS API on 2026-09-13; unchanged Latin subsets, totaling 46,952 bytes. No third-party font requests are made by the storefront.
 
-Inter and Newsreader files from the preceding design remain archived here but are no longer referenced or preloaded by the commerce shell or rebrand routes.
+The creator pages load bundled Inter and Newsreader through `lib/fonts.ts`. Newsreader's normal and variable italic Latin files were supplied unchanged by the Google Fonts CSS API on 2026-09-27, preserving the 400–500 weights and both styles while avoiding build failures from extensionless Google delivery URLs. License included as `Newsreader-OFL.txt`; [upstream source](https://github.com/google/fonts/tree/main/ofl/newsreader).
+
+The preceding design's `newsreader-italic-latin.woff2` remains archived. Inter and Newsreader are not referenced or preloaded by the commerce shell or rebrand routes.
