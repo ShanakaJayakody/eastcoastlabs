@@ -1,8 +1,8 @@
 import { beforeEach,expect,it,vi } from 'vitest';
-const m=vi.hoisted(()=>({read:vi.fn(),queue:vi.fn(),unsubscribe:vi.fn()}));
+const m=vi.hoisted(()=>({read:vi.fn(),queue:vi.fn(),unsubscribe:vi.fn(),contains:vi.fn()}));
 vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from:(table:string)=>{
  const filters:Record<string,unknown>={};let columns='';
- const q={select:(v:string)=>{columns=v;return q;},in:()=>q,not:()=>q,is:()=>q,gte:()=>q,lte:()=>q,neq:()=>q,contains:()=>q,order:()=>q,limit:()=>q,range:()=>q,
+ const q={select:(v:string)=>{columns=v;return q;},in:()=>q,not:()=>q,is:()=>q,gte:()=>q,lte:()=>q,neq:()=>q,contains:(...args:unknown[])=>{m.contains(table,...args);return q;},order:()=>q,limit:()=>q,range:()=>q,
  eq:(k:string,v:unknown)=>{filters[k]=v;return q;},then:(resolve:(v:unknown)=>unknown)=>Promise.resolve(m.read(table,columns,filters)).then(resolve)};return q;
 }})}));
 vi.mock('@/lib/admin/email',()=>({queueEmail:m.queue}));
@@ -30,5 +30,13 @@ it('counts only inserted outbox rows, not deduplicated queue attempts',async()=>
 it('reports missing unsubscribe signing configuration as a failed job',async()=>{
  m.unsubscribe.mockReturnValue(null);
  await expect(sweepWelcomeSeries()).rejects.toThrow(/unsubscribe/i);
+});
+it('sends valid JSON to the accessory category lookup',async()=>{
+ const shipped_at=new Date(Date.now()-6*86400000).toISOString();
+ m.read.mockImplementation((table:string)=>({data:table==='orders'?[{id:'order',order_number:'ECL-1',customer_email:'buyer@example.test',created_at:shipped_at,shipped_at,order_items:[{product_slug:'sample',product_name:'Sample'}]}]:[],error:null}));
+
+ await sweepPostPurchase();
+
+ expect(m.contains).toHaveBeenCalledWith('products','categories',JSON.stringify(['accessory']));
 });
 it('does not inspect recipients or infer pack depletion when reorder timing is disabled',async()=>{vi.stubEnv('REORDER_REMINDER_DAYS','');expect(await sweepReplenishment()).toEqual({queued:0});expect(m.read).not.toHaveBeenCalled();vi.unstubAllEnvs();});
