@@ -108,7 +108,23 @@ it('denies non-server roles and produces no operational side effects',async()=>{
   expect((await db.query('select (select count(*) from order_events) events,(select count(*) from email_outbox) mail')).rows).toEqual(before.rows);
 });
 
-it('rejects invalid database filter inputs and handles a database with no orders',async()=>{
+it('handles a database with no orders without inventing a historical baseline',async()=>{
+ const r=await report();expect(r.first_order_at).toBeNull();expect(r.periods).toEqual([]);expect(r.summary.fulfilment.median).toBeNull();expect(r.queues).toEqual({paid:0,unpaid:0});
+});
+
+it('preserves a requested range before recorded history as an empty range',async()=>{
+ await insert('shipped','2026-08-10','2026-08-11','2026-08-12');
+ const r=await report('month','custom','2026-07-01','2026-07-31');
+ expect(r.from).toBe('2026-07-01');expect(r.to).toBe('2026-07-31');expect(r.periods).toEqual([]);expect(r.summary.shipped_count).toBe(0);
+});
+
+it('clips the matching calendar position to the end of a shorter previous month',async()=>{
+ await insert('shipped','2026-01-01','2026-02-01','2026-02-02');
+ const r=await report('month','all',null,null,'2026-03-31T04:00:00Z');
+ expect(r.matched.previous_end).toBe('2026-02-28T13:00:00+00:00');
+});
+
+it('rejects invalid database filter inputs',async()=>{
   await expect(report('year')).rejects.toThrow(/grain/i);
   // Failed statement is outside an explicit SQL savepoint: PGlite marks the transaction aborted.
 });
