@@ -45,7 +45,12 @@ export default async function LearnPage() {
           dosing or administration guidance.
         </p>
         <ResearchDisclaimer className="mt-5" />
+        <a href="#reconstitution-calculator" className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 px-4 text-sm font-medium text-accent hover:bg-accent/20">
+          Open reconstitution calculator <span aria-hidden="true">↓</span>
+        </a>
       </div>
+
+      <div className="mt-10"><ReconstitutionCalculator /></div>
 
       {order.map((cat) =>
         groups[cat]?.length ? (
@@ -73,14 +78,6 @@ export default async function LearnPage() {
           </section>
         ) : null,
       )}
-
-      {/* Reconstitution calculator */}
-      <section className="mt-12">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-2">
-          Tools
-        </h2>
-        <ReconstitutionCalculator />
-      </section>
 
       <div className="mt-12 rounded-2xl border border-accent/25 bg-gradient-to-br from-surface to-ink-2 p-6 text-center">
         <p className="text-sm text-muted">

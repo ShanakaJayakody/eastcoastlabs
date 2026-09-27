@@ -30,7 +30,7 @@ You can add [bacteriostatic water and syringes](/shop) to any order.
 
 Concentration is simply the mass of peptide divided by the volume of diluent. For example, a 10&nbsp;mg vial reconstituted with 2&nbsp;ml of water gives a solution of 5&nbsp;mg/ml.
 
-Our [reconstitution concentration calculator](/learn) does this maths for you and expresses the result per insulin unit (1 unit = 0.01&nbsp;ml) for convenient record-keeping. It is a concentration reference only — not dosing guidance.
+Our [reconstitution concentration calculator](#reconstitution-calculator) does this maths for you and expresses the result in mg/mL, mcg/mL and per U-100 unit (1 unit = 0.01&nbsp;mL). You can also enter a sample volume to calculate the amount it contains. It is a concentration reference only — not dosing guidance.
 
 ## Storage after reconstitution
 

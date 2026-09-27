@@ -5,6 +5,7 @@ import { getGuide, getGuides } from "@/lib/guides";
 import { getCatalogProducts } from "@/lib/catalog";
 import ProductCard from "@/components/ProductCard";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
+import ReconstitutionCalculator from "@/components/ReconstitutionCalculator";
 
 export const revalidate = 3600;
 
@@ -76,8 +77,18 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           {guide.readMins} min read{guide.updated ? ` · Updated ${guide.updated}` : ""}
         </p>
 
+        {slug === "reconstituting-research-peptides" && (
+          <a href="#reconstitution-calculator" className="mt-5 inline-flex min-h-11 items-center gap-3 rounded-lg border border-accent/40 bg-accent/10 px-4 text-sm font-medium text-accent hover:bg-accent/20">
+            Jump to calculator <span aria-hidden="true">↓</span>
+          </a>
+        )}
+
         <div className="prose-ecl mt-8" dangerouslySetInnerHTML={{ __html: guide.html }} />
       </article>
+
+      {slug === "reconstituting-research-peptides" && (
+        <div className="mt-10"><ReconstitutionCalculator /></div>
+      )}
 
       {/* Shop the compound(s) this guide covers */}
       {relatedProducts.length > 0 && (
