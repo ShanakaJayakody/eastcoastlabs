@@ -12,7 +12,7 @@ import ConfirmModal from "./ConfirmModal";
 
 export interface DiscountRow {
   code: string;
-  kind: "percent" | "fixed";
+  kind: "percent" | "fixed" | "legacy_price";
   percent: number | null;
   value_cents: number | null;
   min_spend_cents: number;
@@ -173,7 +173,11 @@ export default function DiscountsManager({
                   <tr key={d.code} className="transition hover:bg-surface-2">
                     <td className="px-4 py-3 font-mono text-accent">{d.code}</td>
                     <td className="px-4 py-3 text-fg-2">
-                      {d.kind === "percent" ? `${d.percent}% off` : `${formatAud((d.value_cents ?? 0) / 100)} off`}
+                      {d.kind === "legacy_price"
+                        ? "Legacy price book"
+                        : d.kind === "percent"
+                          ? `${d.percent}% off`
+                          : `${formatAud((d.value_cents ?? 0) / 100)} off`}
                     </td>
                     <td className="hidden px-4 py-3 text-muted sm:table-cell">
                       {d.min_spend_cents ? formatAud(d.min_spend_cents / 100) : "—"}
@@ -217,14 +221,16 @@ export default function DiscountsManager({
                         >
                           {d.active ? "Disable" : "Enable"}
                         </button>
-                        <button
-                          disabled={pending}
-                          onClick={() => setDeleting(d.code)}
-                          className="text-muted hover:text-red-400"
-                          aria-label={`Delete ${d.code}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {d.kind !== "legacy_price" && (
+                          <button
+                            disabled={pending}
+                            onClick={() => setDeleting(d.code)}
+                            className="text-muted hover:text-red-400"
+                            aria-label={`Delete ${d.code}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
