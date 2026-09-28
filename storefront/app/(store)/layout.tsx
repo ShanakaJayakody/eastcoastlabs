@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import StoreEnhancements from "@/components/StoreEnhancements";
 import { getSettings } from "@/lib/settings";
+import { shippingRules } from '@/lib/shipping-policy';
+import { availablePaymentOptions } from '@/lib/payments';
 import {
   getUpsellStock,
   getCartPrices,
@@ -53,6 +55,8 @@ export default async function StoreLayout({
       stock={stock}
       prices={prices}
       variants={variants}
+      shipping={shippingRules(settings)}
+      paymentLabels={availablePaymentOptions(settings).map(option => option.label)}
     >
       <script
         type="application/ld+json"

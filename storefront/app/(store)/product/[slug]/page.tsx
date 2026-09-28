@@ -26,6 +26,7 @@ import ProductDescription, { decodeProductEntities } from '@/components/ProductD
 import { buildProductJsonLd, serializeProductJsonLd } from '@/lib/product-jsonld';
 import { withRebrandImages } from '@/lib/rebrand-imagery';
 import { parseRebrandVariant, rebrandHref } from '@/lib/rebrand-navigation';
+import ProductFacts from '@/components/ProductFacts';
 
 export const revalidate = 300;
 
@@ -39,8 +40,9 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getCatalogProduct(slug);
-  if (!product) return { title: "Product not found" };
+  const source = await getCatalogProduct(slug);
+  if (!source) return { title: "Product not found" };
+  const product = withRebrandImages(source);
   const desc = stripHtml(product.short_description || product.description).slice(0, 160);
   return {
     title: product.seo_title || product.name,
@@ -130,42 +132,28 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           supplierEvidence={labReports.some(report => report.productSlug === product.slug) ? <SupplierReportLinks reports={labReports.filter(report => report.productSlug === product.slug)} /> : undefined}
         />
       ) : <>
-      <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2">
+      <div className="ecl-product-intro grid min-w-0 grid-cols-[104px_minmax(0,1fr)] gap-4 lg:grid-cols-2 lg:gap-8">
         {/* Gallery */}
-        <div className="order-2 lg:col-start-1 lg:row-start-1 lg:row-span-2"><ProductGallery images={product.images ?? []} name={product.name} /></div>
+        <div className="col-start-1 row-start-1 lg:row-span-3"><ProductGallery images={product.images ?? []} name={product.name} /></div>
 
         {/* Buy column */}
-        <div className="order-1 min-w-0 lg:col-start-2">
+        <div className="col-start-2 row-start-1 min-w-0">
           <div className="flex items-center gap-2 text-xs text-muted-2">
             <span className="uppercase tracking-wider">{product.sku}</span>
-            <span
-              className={`rounded-full px-2 py-0.5 font-semibold ${
-                product.is_in_stock !== false ? "bg-success/15 text-success" : "bg-warn/15 text-warn"
-              }`}
-            >
-              {product.is_in_stock !== false ? "In stock" : "Out of stock"}
-            </span>
           </div>
-          <h1 className="mt-2 text-3xl font-bold text-fg">{product.name}</h1>
+          <h1 className="mt-1 text-2xl font-bold text-fg lg:text-3xl">{product.name}</h1>
+          <p className="mt-2 text-2xl font-semibold text-fg">{new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(singleMajor)}<span className="ml-1 text-xs font-normal text-muted">/ vial</span></p>
           {rating && (
             <a href="#reviews" className="mt-2 inline-block transition-opacity hover:opacity-80">
               <ReviewSummary rating={rating.rating} count={rating.count} showSampleTag />
             </a>
           )}
-          {descriptor && <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted">{descriptor}</p>}
-          {guide && (
-            <a
-              href={`/learn/${guide.slug}`}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline"
-            >
-              📖 Read the {product.name} research overview →
-            </a>
-          )}
-          <ResearchDisclaimer variant="badge" className="mt-3" />
-          <p className="mt-3 text-sm font-semibold text-accent">Single vial: {new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD"}).format(singleMajor)}</p>
-          <a href="#pack-options" className="mt-2 inline-block text-sm text-accent underline">View pack prices and availability</a>
         </div>
-        <div id="pack-options" className="order-3 min-w-0 scroll-mt-24 lg:col-start-2">
+        <div className="col-span-2 lg:col-span-1 lg:col-start-2">
+          <ProductFacts available={product.is_in_stock !== false} certificate={Boolean(coa)} historical={labReports.some(report => report.productSlug === product.slug)} />
+          <ResearchDisclaimer className="mt-2" />
+        </div>
+        <div id="pack-options" className="col-span-2 min-w-0 scroll-mt-28 lg:col-span-1 lg:col-start-2">
           {product.is_in_stock === false ? (
             <div className="mt-6 rounded-xl border border-line bg-surface p-5">
               <p className="text-sm font-semibold text-fg">Out of stock — get notified</p>
@@ -181,7 +169,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </div>
             </div>
           ) : (
-            <div className="mt-6">
+            <div>
               <BuyBox
                 product={{
                   id: product.id,
@@ -207,7 +195,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       </div>
 
       {/* COA verification module */}
-      <div className="mt-8">
+      <div id="product-documentation" className="mt-8 scroll-mt-28">
         {coa || !labReports.some((report) => report.productSlug === product.slug) ? (
           <CoaModule record={coa} />
         ) : (
@@ -220,6 +208,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         <section className="mt-12 grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <h2 className="mb-3 text-lg font-semibold text-fg">Product details</h2>
+            {descriptor && !/HPLC-tested batch verification/i.test(descriptor) && <p className="mb-3 text-sm leading-relaxed text-muted">{descriptor}</p>}
+            {guide && <a href={`/learn/${guide.slug}`} className="mb-4 inline-flex min-h-11 items-center text-sm font-medium text-accent hover:underline">Read the {product.name} research overview →</a>}
             <ProductDescription html={product.description || copy!.html} />
           </div>
 

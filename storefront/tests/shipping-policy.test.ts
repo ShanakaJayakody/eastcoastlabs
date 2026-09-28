@@ -3,6 +3,13 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { quoteShipping, shippingCentsFor } from "@/lib/shipping";
 
 describe("shipping charges against the discounted goods total", () => {
+  it('treats a zero rate as included shipping even below the saved reward threshold', () => {
+    const settings = { ...DEFAULT_SETTINGS, standardShippingCents: 0, expressShippingCents: 0 };
+    expect(quoteShipping(5000, settings)).toMatchObject([
+      { method: 'standard', cents: 0, isFree: true, remainingCents: 0, freeThresholdCents: 0 },
+      { method: 'express', cents: 0, isFree: true, remainingCents: 0, freeThresholdCents: 0 },
+    ]);
+  });
   it.each([
     { subtotal: 1, standard: 1000, express: 1500 },
     { subtotal: 9999, standard: 1000, express: 1500 },

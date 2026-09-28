@@ -8,10 +8,11 @@ import BuyBox, { type BuyBoxProduct, type BacWaterOption } from './BuyBox';
 import EmailCapture from './EmailCapture';
 import { commerceItem, trackSelectSize } from '@/lib/analytics';
 
-export default function ProductPurchase({ product, sizes, minorUnit, bacWater, initialSize, evidenceStatus, selectedSlug, onSelectedSizeChange }: {
+export default function ProductPurchase({ product, sizes, minorUnit, bacWater, initialSize, evidenceStatus, selectedSlug, onSelectedSizeChange, compact = false }: {
   product: BuyBoxProduct; sizes: ProductSizeOption[]; minorUnit: number;
   bacWater?: BacWaterOption | null; initialSize?: string; evidenceStatus?: string;
   selectedSlug?: string; onSelectedSizeChange?: (slug: string) => void;
+  compact?: boolean;
 }) {
   const initial = sizes.some((size) => size.slug === initialSize)
     ? initialSize
@@ -34,8 +35,8 @@ export default function ProductPurchase({ product, sizes, minorUnit, bacWater, i
       price: minorToMajor(option.priceMinor, minorUnit),
     }));
   };
-  return <div className="space-y-4">
-    <div aria-live="polite" className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
+  return <div data-purchase-options tabIndex={-1} aria-label="Purchase options" className="space-y-3 scroll-mt-28 outline-none focus-visible:ring-2 focus-visible:ring-accent">
+    {!compact && <div aria-live="polite" className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
       {selectedImage && <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-2"><Image src={selectedImage} alt={`${product.name} ${label}`} fill sizes="64px" className="object-contain p-1" /></div>}
       <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-1 text-xs">
         <div><dt className="text-muted-2">Selected size</dt><dd className="font-semibold text-fg">{label}</dd></div>
@@ -43,13 +44,13 @@ export default function ProductPurchase({ product, sizes, minorUnit, bacWater, i
         <div><dt className="text-muted-2">Format</dt><dd className="text-fg-2">Research vial</dd></div>
         <div><dt className="text-muted-2">Availability</dt><dd className={size.available > 0 ? 'text-success' : 'text-warn'}>{size.available > 0 ? 'In stock' : 'Out of stock'}</dd></div>
       </dl>
-    </div>
-    {evidenceStatus && <p className="text-xs text-muted">{evidenceStatus}</p>}
-    <p data-testid="size-price" aria-live="polite" className="text-2xl font-semibold tracking-tight text-fg">
+    </div>}
+    {!compact && evidenceStatus && <p className="text-xs text-muted">{evidenceStatus}</p>}
+    {!compact && <p data-testid="size-price" aria-live="polite" className="text-2xl font-semibold tracking-tight text-fg">
       {formatAud(minorToMajor(size.priceMinor, minorUnit))}
       <span className="ml-2 text-sm font-normal text-muted">/ vial</span>
-    </p>
-    <fieldset className="border-t border-line pt-4">
+    </p>}
+    <fieldset className="border-t border-line pt-3">
       <legend className="float-left mb-2 w-full text-sm font-medium text-fg">Size</legend>
       <div className="flex clear-both flex-wrap gap-2">
         {sizes.map(option => <label key={option.slug} className={`cursor-pointer rounded-full border px-6 py-2.5 text-sm font-medium focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2 focus-within:ring-offset-ink ${size.slug === option.slug ? 'border-fg bg-fg text-ink' : 'border-line-2 text-fg hover:border-fg'}`}>

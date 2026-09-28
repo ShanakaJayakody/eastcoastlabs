@@ -1,4 +1,5 @@
 "use client";
+import PaymentSteps from './PaymentSteps';
 
 import CartRecoveryRequest from "./CartRecoveryRequest";
 import {normalizeCheckoutLines} from "@/lib/checkout-lines";
@@ -447,11 +448,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             Nothing is charged on this page. You&apos;ll get the transfer details — with a reference
             and the exact amount — the moment you place the order.
           </p>
-          <ol className="mb-4 grid gap-1 text-xs text-fg-2">
-            <li>1. Place your order and receive payment instructions.</li>
-            <li>2. Transfer the exact amount using your order reference.</li>
-            <li>3. We confirm receipt of payment, then prepare your order.</li>
-          </ol>
+          <div className="mb-4"><PaymentSteps /></div>
 
           {quote && quote.paymentOptions.length === 0 ? (
             <p className="rounded-lg border border-warn/40 bg-warn/5 p-3 text-sm text-warn">
