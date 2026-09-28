@@ -260,7 +260,7 @@ export async function resolveCart(lines: ClientCartLine[]): Promise<ResolvedCart
     const variant = lookup(line);
 
     if (variant) {
-      items.push({ variantId: variant.id, qty: line.quantity, expectedPriceCents: variant.price_cents });
+      items.push({ variantId: variant.id, qty: line.quantity, expectedPriceCents: variant.price_cents, legacyDiscountEligible: true });
       resolvedLines.push({ key: line.key, slug: line.slug, name: variant.name, variantLabel: variant.label, variantId:variant.id, quantity: line.quantity, unitPriceCents: variant.price_cents, lineTotalCents: variant.price_cents * line.quantity, isGift: false });
       continue;
     }

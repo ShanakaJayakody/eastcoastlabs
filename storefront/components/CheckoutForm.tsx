@@ -24,6 +24,7 @@ import CheckoutBump, { type BumpProduct } from "./CheckoutBump";
 import CheckoutQuickSummary from "./CheckoutQuickSummary";
 
 const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
+const LEGACY_EMAIL_ERROR = "Enter the email used for your previous East Coast Labs order.";
 
 const cents = (c: number) => formatAud(c / 100);
 
@@ -59,10 +60,14 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   const errorRef = useRef<HTMLParagraphElement>(null);
   const attempt = useRef<{key:string;id:string;unconfirmed?:boolean} | null>(null);
   const automaticShippingChange = useRef(false);
+  const freeExpressPreviouslyAvailable = useRef(false);
+  const automaticallySelectedExpress = useRef(false);
   const [previousAttempt,setPreviousAttempt] = useState<StoredCheckoutAttempt|null>(null);
   useEffect(()=>{setPreviousAttempt(readCheckoutAttempt());},[]);
   const payload = normalizeCheckoutLines(lines);
-  const requestKey = JSON.stringify([payload, appliedCode, shippingMethod]);
+  const normalizedEmail = email.trim().toLowerCase();
+  const legacyEmail = appliedCode.trim().toUpperCase()==="ECLLEGACY" ? normalizedEmail : "";
+  const requestKey = JSON.stringify([payload, appliedCode, shippingMethod, legacyEmail]);
   const quoteReady = !!quote && quotedKey === requestKey && !quoteError;
   useEffect(() => {
     if (!error || pending) return;
@@ -70,14 +75,31 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     const control = first ? document.getElementById(`checkout-${first}`) : null;
     if (control) control.focus(); else errorRef.current?.focus();
   }, [error,fieldErrors,pending]);
-  const invalid = (name:CheckoutField) => ({name,id:`checkout-${name}`,"aria-invalid":!!fieldErrors[name],"aria-describedby":fieldErrors[name] ? `checkout-${name}-error`:undefined});
-  const fieldError = (name:CheckoutField) => fieldErrors[name] ? <span id={`checkout-${name}-error`} className="mt-1 block text-xs text-warn">{fieldErrors[name]}</span> : null;
+  const sharesDiscountError = (name:CheckoutField) => name === "email" && !!fieldErrors.email && quote?.discountError === fieldErrors.email;
+  const invalid = (name:CheckoutField) => ({name,id:`checkout-${name}`,"aria-invalid":!!fieldErrors[name],"aria-describedby":fieldErrors[name] ? (sharesDiscountError(name) ? "discount-error" : `checkout-${name}-error`):undefined});
+  const fieldError = (name:CheckoutField) => fieldErrors[name] && !sharesDiscountError(name) ? <span id={`checkout-${name}-error`} className="mt-1 block text-xs text-warn">{fieldErrors[name]}</span> : null;
   function reconcilePayment(q:CartQuote){
     setPaymentSelection(current=>{
       const method=current.method && q.paymentOptions.some(o=>o.method===current.method)
         ? current.method : q.paymentOptions[0]?.method ?? null;
       return method===current.method ? current : {method,automatic:current.automatic || current.method!==null};
     });
+  }
+
+  function reconcileShipping(q:CartQuote){
+    const freeExpress = q.shippingOptions.some(option=>option.method==='express' && option.isFree && option.cents===0);
+    let method=q.shippingMethod;
+    if(freeExpress && !freeExpressPreviouslyAvailable.current && method!=='express'){
+      method='express';
+      automaticallySelectedExpress.current=true;
+    } else if(!freeExpress && automaticallySelectedExpress.current){
+      // Losing a free upgrade must not silently add a paid Express charge.
+      method='standard';
+      automaticallySelectedExpress.current=false;
+    }
+    freeExpressPreviouslyAvailable.current=freeExpress;
+    if(method!==shippingMethod)automaticShippingChange.current=true;
+    setShippingMethod(method);
   }
 
   useEffect(() => {
@@ -93,17 +115,16 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       if(requestId)trackQuoteError(requestId,Date.now()-started,'timeout');
       setQuoteError("Confirming your total is taking longer than expected. Please retry.");
     },15_000);
-    quoteCart(payload, appliedCode || undefined, shippingMethod)
+    quoteCart(payload, appliedCode || undefined, shippingMethod, legacyEmail || undefined)
       .then(q => {
         if (cancelled) return;
         clearTimeout(timeout);
         if(requestId)trackQuoteReady(requestId,Date.now()-started);
         setQuote(q);
         setQuotedKey(requestKey);
-        // A disabled service may have been replaced by the authoritative quote.
+        // Reconcile free upgrades and services replaced by the authoritative quote.
         // Changing the request key keeps submission blocked until it is repriced.
-        if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
-        setShippingMethod(q.shippingMethod);
+        reconcileShipping(q);
         reconcilePayment(q);
       }).catch(() => {
         if (!cancelled) {clearTimeout(timeout);if(requestId)trackQuoteError(requestId,Date.now()-started,'network');setQuoteError("We couldn’t confirm your order total. Please retry.");}
@@ -112,6 +133,24 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     // requestKey contains every price-relevant input; payload is reconstructed per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey, ready, retry]);
+
+  function clearLegacyEmailError() {
+    setFieldErrors(current => {
+      if (current.email !== LEGACY_EMAIL_ERROR) return current;
+      const {email: _email, ...rest} = current;
+      return rest;
+    });
+  }
+
+  function applyDiscount() {
+    const normalizedCode = code.trim().toUpperCase();
+    setCode(normalizedCode);
+    setAppliedCode(normalizedCode);
+    if (normalizedCode === "ECLLEGACY" && !normalizedEmail) {
+      setFieldErrors(current => ({...current,email:LEGACY_EMAIL_ERROR}));
+      document.getElementById("checkout-email")?.focus();
+    } else if (normalizedCode !== "ECLLEGACY") clearLegacyEmailError();
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -129,7 +168,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       },
       lines: payload, paymentMethod, discountCode: appliedCode.trim().toUpperCase() || undefined,
     });
-    // An automatic service fallback must not authorise a second order while
+    // An automatic service change must not authorise a second order while
     // the original request may still commit. Explicit customer edits stay distinct.
     if((automaticShippingChange.current || paymentSelection.automatic) && attempt.current?.unconfirmed && attempt.current.key!==attemptKey){
       const previous=JSON.parse(attempt.current.key);
@@ -144,6 +183,16 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       try {
         const hash = await checkoutRequestHash(attemptKey);
         const stored = hash ? readCheckoutAttempt() : null;
+        if(!attempt.current && stored && stored.hash!==hash && automaticShippingChange.current){
+          // A reload loses the in-memory attempt. Compare the persisted request
+          // with only the automatic shipping change undone before replacing it.
+          const previous=JSON.parse(attemptKey);
+          previous.shippingAddress.shipping_method=shippingMethod==='express'?'standard':'express';
+          if(await checkoutRequestHash(JSON.stringify(previous))===stored.hash){
+            setError("Checkout options changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.");
+            return;
+          }
+        }
         if (!attempt.current || attempt.current.key !== attemptKey) {
           attempt.current = {key:attemptKey,id:stored?.hash===hash ? stored.id : crypto.randomUUID(),unconfirmed:stored?.hash===hash};
         }
@@ -163,8 +212,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             if(!wasUnconfirmed)submittedAttempt.unconfirmed=false;
             const q=res.quote;
             setQuote(q);setQuotedKey(requestKey);
-            if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
-            setShippingMethod(q.shippingMethod);
+            reconcileShipping(q);
             reconcilePayment(q);
           }
           setFieldErrors(res.fieldErrors ?? {});setError(res.error);
@@ -236,7 +284,10 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
               placeholder="Email address"
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (e.target.value.trim()) clearLegacyEmailError();
+              }}
               className={`${field} `}
             /></span></label>{fieldError("email")}
             <label htmlFor="checkout-name" className="min-w-0 block text-xs text-fg-2 sm:col-span-2">Full name<span className="mt-1 block"><input {...invalid("name")}
@@ -347,7 +398,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
                       type="radio"
                       name="shipping"
                       checked={isSel}
-                      onChange={() => {automaticShippingChange.current=false;setShippingMethod(opt.method);}}
+                      onChange={() => {automaticShippingChange.current=false;automaticallySelectedExpress.current=false;setShippingMethod(opt.method);}}
                       className="sr-only"
                     />
                     <span
@@ -483,7 +534,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             /></span></label>
             <button
               type="button"
-              onClick={() => setAppliedCode(code.trim())}
+              onClick={applyDiscount}
               className="rounded-lg border border-line-2 px-3 py-2 text-sm text-fg-2 transition hover:text-fg"
             >
               Apply
@@ -500,9 +551,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
               <dt className="text-muted">Subtotal</dt>
               <dd className="text-fg-2">{quote ? cents(quote.subtotalCents) : "—"}</dd>
             </div>
-            {quote && quote.discountCents > 0 && (
+            {quote && quotedKey === requestKey && !quote.discountError && (quote.discountCents > 0 || !!appliedCode) && (
               <div className="flex justify-between">
-                <dt className="text-muted">Discount</dt>
+                <dt className="text-muted">Discount{appliedCode ? ` · ${appliedCode}` : ''}</dt>
                 <dd className="text-success">−{cents(quote.discountCents)}</dd>
               </div>
             )}

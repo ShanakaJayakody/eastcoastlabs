@@ -43,6 +43,8 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
 export interface NewOrderItem {
   variantId: string;
   qty: number;
+  /** Set only by server resolution of directly purchased variants. */
+  legacyDiscountEligible?: boolean;
   /** Deprecated: ignored. Labels and subscription flags never grant discounts. */
   discountPct?: number;
   /** Server-derived price override in cents (e.g. a $0 gift vial). */
@@ -260,7 +262,14 @@ export async function reinstatabilityFor(orderIds: string[]): Promise<Map<string
 /** Re-reservation and optional payment settle together or not at all. */
 export async function reinstateOrder(orderId: string, opts: OrderOperationOptions & { toPaid?: boolean; paymentRef?: string } = {}): Promise<{ reinstatedTo: OrderStatus }> {
   const settings = await getSettings();
-  const result = await operation(orderId, "reinstate", { ...opts, paymentExpiryHours: settings.paymentExpiryHours });
+  const { data: order, error } = await adminDb().from("orders").select("shipping_address").eq("id", orderId).maybeSingle();
+  if (error) throw new Error(`load shipping method: ${error.message}`);
+  if (!order) throw new Error("Order not found");
+  const express = order.shipping_address?.shipping_method === "express" && settings.expressShippingEnabled;
+  const result = await operation(orderId, "reinstate", { ...opts, paymentExpiryHours: settings.paymentExpiryHours, shippingPolicy: {
+    baseCents: express ? settings.expressShippingCents : settings.standardShippingCents,
+    freeThresholdCents: Math.round((express ? settings.expressFreeThreshold : settings.freeShippingThreshold) * 100),
+  } });
   return { reinstatedTo: result.reinstatedTo };
 }
 export async function refundOrder(orderId: string, opts: RestockOptions = {}): Promise<void> {

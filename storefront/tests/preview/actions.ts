@@ -8,7 +8,7 @@ export function setQuoteMode(next:QuoteMode){mode=next;}
 export type CreatorMode='success'|'unavailable'|'rate-limited'|'field-error';
 let creatorMode:CreatorMode='success';
 export function setCreatorMode(next:CreatorMode){creatorMode=next;}
-export async function quoteCart(lines:ClientCartLine[],discountCode?:string,shippingMethod:ShippingMethod='standard'):Promise<CartQuote>{
+export async function quoteCart(lines:ClientCartLine[],discountCode?:string,shippingMethod:ShippingMethod='standard',_email?:string):Promise<CartQuote>{
  const requestedMode=mode;
  if(requestedMode==='delayed') await new Promise(resolve=>setTimeout(resolve,20000));
  if(requestedMode==='failure') throw new Error('Synthetic quote failure');

@@ -34,6 +34,7 @@ export default async function VariantLayout({
       thresholds={{
         freeShipping: settings.freeShippingThreshold,
         gift: settings.giftThreshold,
+        express: settings.expressShippingEnabled ? settings.expressFreeThreshold : undefined,
       }}
       stock={stock}
       prices={prices}

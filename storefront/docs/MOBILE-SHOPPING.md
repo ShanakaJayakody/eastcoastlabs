@@ -1,6 +1,6 @@
 # Mobile shopping improvements
 
-Implemented on `codex/mobile-shopping`, based on the approved first pass. Local changes only; no deployment or store-setting changes.
+Implemented on `codex/mobile-shopping`, based on the approved first pass. The release incorporates production baseline `ea330d8`, including legacy pricing, express auto-selection and cart reward milestones. No store-setting changes or database migrations are part of this release.
 
 ## Shopper experience
 
@@ -24,9 +24,10 @@ Open `http://127.0.0.1:4198/mobile-shopping.html`. This preview uses synthetic p
 
 ## Verification
 
-- Unit suite: 747 tests across 140 files.
-- Browser regression suite: 80 passed, 7 expected skips. After the server-rendering change, the 12 mobile-shopping and product-size cases passed again at 320 px, 390 px and desktop widths.
-- Production build, TypeScript check and all route JavaScript budgets pass. Product page: 141.6 kB gzip, against the unchanged 142 kB limit.
+- Unit suite after integration: 911 tests across 152 files.
+- Browser regression suite: 83 passed, 7 expected skips, including mobile-shopping and product-size cases at 320 px, 390 px and desktop widths.
+- Production build, TypeScript check and all route JavaScript budgets pass. Product page: 141,977 bytes gzip, against the unchanged 142,000-byte limit.
+- Express reward milestones use normalized checkout rules, including zero-cost and disabled express shipping. Regression tests preserve the older threshold fallback for isolated layouts.
 - Browser checks cover direct documentation jumps, a button covered by the fixed header, selected pack/size pricing, sold-out variants, cart visibility, horizontal overflow and serious/critical accessibility findings.
 
 Conversion impact needs measurement after release. Compare mobile product-view → add-to-cart, add-to-cart → checkout, and checkout → payment-confirmed rates by device and traffic source. The existing analytics consent rules remain in effect.

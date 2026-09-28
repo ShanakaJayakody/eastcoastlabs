@@ -42,3 +42,20 @@ it.each([0,1000])('keeps the cart, product, announcement and policy consistent w
   if (rate === 0) expect(cart.queryByText(/from free standard/i)).toBeNull();
   expect(cart.getByText(/Pay by PayID/)).toBeVisible();
 });
+
+it.each([true,false])('keeps express reward milestones aligned with checkout when enabled=%s', enabled => {
+  const settings = {...DEFAULT_SETTINGS, standardShippingCents:1000,
+    expressShippingEnabled:enabled, expressShippingCents:0, expressFreeThreshold:200};
+  localStorage.setItem('ecl_cart_v1',JSON.stringify([{key:'sample:single',productId:1,name:'Sample',slug:'sample',variantLabel:'1 vial',unitPrice:50,quantity:1}]));
+  render(<CartProvider shipping={shippingRules(settings)} paymentLabels={['PayID']}
+    thresholds={{freeShipping:100,gift:250,express:700}} stock={{'bacteriostatic-water':0}}>
+    <CartContents/>
+  </CartProvider>);
+  const rewards=within(screen.getByRole('region',{name:'Cart rewards'}));
+  if (enabled) {
+    expect(rewards.getByText('Free Express shipping')).toBeVisible();
+    expect(rewards.getByText('$0+')).toBeVisible();
+    expect(quoteShipping(5000,settings).find(rule=>rule.method==='express')?.cents).toBe(0);
+  } else expect(rewards.queryByText('Free Express shipping')).toBeNull();
+  expect(rewards.queryByText('$700+')).toBeNull();
+});
