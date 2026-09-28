@@ -2026,3 +2026,18 @@
     gap: 15px;
   }
 }
+
+/* Keep the first purchasing decision compact on phones. */
+.ecl-product-page .ecl-product-intro { gap: 20px 32px; align-items: start; }
+.ecl-product-page { padding-bottom: 110px; }
+@media (max-width: 1023px) {
+  .ecl-product-page { padding-top: 24px; }
+  .ecl-product-page > nav { margin-bottom: 20px; }
+  .ecl-product-page .ecl-product-intro { gap: 16px; }
+  .ecl-product-page .ecl-product-intro h1 { font-size: 27px; line-height: 1.15; overflow-wrap: anywhere; }
+  .ecl-product-intro .ecl-gallery-main,
+  .ecl-store .ecl-product-intro .ecl-gallery-main[data-vial-theme] { height: 124px; aspect-ratio: auto; }
+  .ecl-store .ecl-product-intro .ecl-gallery-main img { padding: 4px; }
+  .ecl-product-intro .ecl-gallery > p { font-size: 10px; line-height: 1.4; }
+  .ecl-product-intro .ecl-gallery button { width: 44px; height: 44px; }
+}

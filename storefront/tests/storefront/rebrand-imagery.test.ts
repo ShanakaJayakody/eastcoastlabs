@@ -3,6 +3,17 @@ import { getRebrandImage, withRebrandImages } from '@/lib/rebrand-imagery';
 import { rebrandHref, parseRebrandVariant } from '@/lib/rebrand-navigation';
 
 describe('rebrand product imagery', () => {
+  it('replaces the known mislabelled GHK image with the matching illustration on the default storefront', () => {
+    const wrong = { src: 'https://yeszjgbqumulvtltkfsw.supabase.co/storage/v1/object/public/product-images/ghk-cu/primary.png' };
+    const source = { slug: 'ghk-cu', images: [wrong], sizes: [
+      { label: '100 mg', available: 4, images: [wrong] },
+      { label: '50 mg', available: 2, images: [wrong] },
+    ] };
+    const result = withRebrandImages(source);
+    expect(result.images[0].src).toBe('/images/products/ghk-cu-100mg-labelled.webp');
+    expect(result.sizes[1].images[0].src).toBe('/images/products/ghk-cu-50mg-labelled.webp');
+    expect(source.images[0]).toBe(wrong);
+  });
   it('selects the exact labelled size, and never guesses an unpictured strength', () => {
     expect(getRebrandImage('ghk-cu', 'v3', '50')?.src).toBe('/images/rebrand/vials/v3/ghk-cu-50mg.webp');
     expect(getRebrandImage('ghk-cu', 'v1', '100mg')?.alt).toContain('100 mg');

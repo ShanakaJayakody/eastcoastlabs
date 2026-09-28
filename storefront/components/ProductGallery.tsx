@@ -22,7 +22,7 @@ export default function ProductGallery({ images, name }: { images: WooImage[]; n
             alt={current.alt || name}
             fill
             priority
-            sizes="(max-width: 1024px) 100vw, 40vw"
+            sizes="(max-width: 1023px) 104px, 40vw"
             className="object-contain p-6"
           />
         ) : (

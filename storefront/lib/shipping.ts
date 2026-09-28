@@ -13,6 +13,7 @@ import "server-only";
  */
 
 import { getSettings, type StoreSettings } from "./settings";
+import { shippingRules } from './shipping-policy';
 
 export type ShippingMethod = "standard" | "express";
 
@@ -40,37 +41,13 @@ export interface ShippingQuote {
  * how the order total is written.
  */
 export function quoteShipping(subtotalCents: number, s: StoreSettings): ShippingQuote[] {
-  const standardFree = Math.round(s.freeShippingThreshold * 100);
-  const expressFree = Math.round(s.expressFreeThreshold * 100);
-
-  const quotes: ShippingQuote[] = [
-    {
-      method: "standard",
-      label: "Standard shipping",
-      baseCents: s.standardShippingCents,
-      // An empty cart ships for nothing — never quote postage on $0.
-      cents: subtotalCents <= 0 ? 0 : subtotalCents >= standardFree ? 0 : s.standardShippingCents,
-      freeThresholdCents: standardFree,
-      isFree: subtotalCents > 0 && subtotalCents >= standardFree,
-      remainingCents: Math.max(0, standardFree - subtotalCents),
-      eta: "2–5 business days",
-    },
-  ];
-
-  if (s.expressShippingEnabled) {
-    quotes.push({
-      method: "express",
-      label: "Express shipping",
-      baseCents: s.expressShippingCents,
-      cents: subtotalCents <= 0 ? 0 : subtotalCents >= expressFree ? 0 : s.expressShippingCents,
-      freeThresholdCents: expressFree,
-      isFree: subtotalCents > 0 && subtotalCents >= expressFree,
-      remainingCents: Math.max(0, expressFree - subtotalCents),
-      eta: "1–2 business days",
-    });
-  }
-
-  return quotes;
+  return shippingRules(s).map(rule => ({
+    method: rule.method, label: rule.label, baseCents: rule.rateCents,
+    cents: subtotalCents <= 0 || subtotalCents >= rule.freeThresholdCents ? 0 : rule.rateCents,
+    freeThresholdCents: rule.freeThresholdCents,
+    isFree: subtotalCents > 0 && subtotalCents >= rule.freeThresholdCents,
+    remainingCents: Math.max(0, rule.freeThresholdCents - subtotalCents), eta: rule.eta,
+  }));
 }
 
 /**

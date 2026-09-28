@@ -10,6 +10,8 @@ import FreeShippingProgress from "./FreeShippingProgress";
 import CartUpsell from "./CartUpsell";
 import ResearchDisclaimer from "./ResearchDisclaimer";
 import { isGiftEligible } from "@/lib/cart-offers";
+import { shippingSummary } from '@/lib/shipping-policy';
+import PaymentSteps from './PaymentSteps';
 
 const GIFT_KEY = "gift:bac-water";
 
@@ -26,6 +28,8 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
     giftThreshold,
     stockFor,
     ready,
+    shipping,
+    paymentLabels,
   } = useCart();
 
   // Free bacteriostatic-water gift once the basket clears the gift threshold.
@@ -161,9 +165,11 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
           <span className="text-muted">Subtotal ({itemCount} {itemCount === 1 ? "item" : "items"})</span>
           <span className="text-base font-bold text-fg">{formatAud(subtotal)}</span>
         </div>
-        <p className="text-[11px] text-muted-2">
-          Shipping and the confirmed total appear at checkout. Bank transfer details follow when you place the order.
-        </p>
+        <div className="text-xs text-muted">
+          {shipping?.map(rule => <p key={rule.method}>{shippingSummary(rule)}</p>)}
+          <p className="mt-1">Final total confirmed at checkout.</p>
+          <p className="mt-1">{paymentLabels?.length === 0 ? 'Payments currently unavailable.' : `Pay by ${paymentLabels?.join(' or ') || 'bank transfer'} after placing your order.`}</p>
+        </div>
         <button
           type="button"
           onClick={goToCheckout}
@@ -172,6 +178,7 @@ export default function CartContents({ onNavigate }: { onNavigate?: () => void }
         >
           Checkout →
         </button>
+        {paymentLabels?.length !== 0 && <PaymentSteps compact />}
         <p className="text-center text-[11px] text-muted-2">
           Secure checkout on eastcoastlabs.com.au
         </p>

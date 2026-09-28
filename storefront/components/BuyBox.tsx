@@ -8,6 +8,7 @@ import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
 import { commerceItem, trackAddToCart, trackSelectPack } from "@/lib/analytics";
 import { cartContainsProduct, isGiftEligible } from "@/lib/cart-offers";
+import PurchaseReassurance from './PurchaseReassurance';
 
 export interface BuyBoxProduct {
   id: number;
@@ -40,16 +41,18 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, bacWater, available, sizeLabel, cartKeyPrefix, analyticsSlug }: BuyBoxProps) {
   const { addLine, stockFor, lines, subtotal, giftThreshold } = useCart();
-  const { openCart } = useUI();
+  const { openCart, cartOpen } = useUI();
 
   const remaining = Math.max(0, available - reservedVials(lines, product.slug));
   const defaultTier = tiers?.find(t => t.preselected && t.vials <= remaining)?.id ?? tiers?.find(t => t.vials <= remaining)?.id ?? "single";
   const [selected, setSelected] = useState<TierCard["id"]>(defaultTier);
   const [addBac, setAddBac] = useState(false);
   const [qty, setQty] = useState(1);
-  const [showSticky, setShowSticky] = useState(false);
+  const [stickyPosition, setStickyPosition] = useState<'before' | 'after' | null>(null);
 
-  const atcRef = useRef<HTMLDivElement | null>(null);
+  const atcRef = useRef<HTMLButtonElement | null>(null);
+  const optionsRef = useRef<HTMLDivElement | null>(null);
+  const showSticky = stickyPosition !== null && !cartOpen;
 
   const activeTier = useMemo(
     () => (tiers ? tiers.find((t) => t.id === selected) ?? tiers[0] : null),
@@ -69,16 +72,34 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
     hasPaidItems: true,
   });
 
-  // Sticky add-to-cart bar via IntersectionObserver on the primary ATC block.
+  // Track the actual button: a visible total does not make the action reachable.
   useEffect(() => {
     const el = atcRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowSticky(!entry.isIntersecting && entry.boundingClientRect.top < 0),
-      { threshold: 0 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    if (!el) return;
+    let frame = 0;
+    const refresh = () => {
+      frame = 0;
+      const rect = el.getBoundingClientRect();
+      if (!rect.height) return;
+      const header = document.querySelector('header');
+      const position = header && getComputedStyle(header).position;
+      const top = header && (position === 'sticky' || position === 'fixed')
+        ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+      setStickyPosition(rect.top < top ? 'after' : rect.bottom > window.innerHeight ? 'before' : null);
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(refresh); };
+    // Scroll also covers instant anchor jumps that never intersect the button.
+    window.addEventListener('scroll', schedule, {passive:true});
+    window.addEventListener('resize', schedule);
+    const observer = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver(schedule, {threshold:1}) : null;
+    observer?.observe(el);
+    schedule();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
   }, []);
 
   function handleAdd() {
@@ -124,7 +145,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={optionsRef} tabIndex={-1} aria-label="Purchase options" className="ecl-purchase-options space-y-3 scroll-mt-28 outline-none focus-visible:ring-2 focus-visible:ring-accent">
       {/* Tier radio cards */}
       {tiers ? (
         <fieldset>
@@ -205,8 +226,6 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         </div>
       )}
 
-      <p className="text-xs text-muted">One-time purchase · Bank transfer at checkout</p>
-
       {bacWater && selectedQualifiesForGift && !waterInBasket && (
         <p className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success">
           This selected pack qualifies for an included bacteriostatic water vial. Final eligibility is confirmed after discounts at checkout.
@@ -239,7 +258,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
       )}
 
       {/* Add to cart */}
-      <div ref={atcRef}>
+      <div>
         <div className="mb-2 flex items-baseline justify-between gap-3">
           <span className="text-xs font-medium uppercase tracking-wide text-muted-2">Selected total</span>
           <span className="text-lg font-bold text-fg">{formatAud(lineTotal * qty)}</span>
@@ -269,6 +288,7 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
             </button>
           </div>
           <button
+            ref={atcRef}
             type="button"
             onClick={handleAdd}
             disabled={!canAdd}
@@ -283,13 +303,16 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
         </p>
       </div>
 
+      <PurchaseReassurance />
+
       {/* Sticky add-to-cart bar (appears on scroll) */}
       <div
+        role="region"
+        aria-label="Quick purchase"
+        hidden={!showSticky}
         inert={!showSticky}
         aria-hidden={!showSticky}
-        className={`pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 backdrop-blur transition-transform duration-300 ${
-          showSticky ? "translate-y-0" : "translate-y-full"
-        }`}
+        className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 backdrop-blur"
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="min-w-0">
@@ -302,11 +325,17 @@ export default function BuyBox({ product, tiers, singlePriceMinor, minorUnit, ba
           </div>
           <button
             type="button"
-            onClick={handleAdd}
-            disabled={!canAdd}
-            className="btn-press shrink-0 rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition hover:brightness-95"
+            onClick={() => {
+              if (stickyPosition === 'before') {
+                const options = optionsRef.current?.closest<HTMLElement>('[data-purchase-options]') ?? optionsRef.current;
+                options?.scrollIntoView?.({block:'start', behavior:'instant'});
+                options?.focus({preventScroll:true});
+              } else handleAdd();
+            }}
+            disabled={stickyPosition === 'after' && !canAdd}
+            className="btn-press min-h-11 shrink-0 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-50"
           >
-            Add to Cart
+            {stickyPosition === 'before' ? 'Choose options' : 'Add to Cart'}
           </button>
         </div>
       </div>

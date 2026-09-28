@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState, useCallback, t
 import { MAX_CART_QUANTITY, cartLineVials } from "./cart-line";
 import { checkoutUrl, FREE_SHIPPING_THRESHOLD, GIFT_THRESHOLD } from "./env";
 import { commerceItem, trackBeginCheckout, trackRemoveFromCart, type GaItem } from "./analytics";
+import type { ShippingRule } from './shipping-policy';
 
 export interface CartLine {
   key: string; // stable per product+variant
@@ -20,6 +21,8 @@ export interface CartLine {
 }
 
 interface CartContextValue {
+  shipping?: ShippingRule[];
+  paymentLabels?: string[];
   lines: CartLine[];
   itemCount: number;
   subtotal: number;
@@ -87,6 +90,8 @@ export function CartProvider({
   stock,
   prices,
   variants,
+  shipping,
+  paymentLabels,
 }: {
   children: ReactNode;
   thresholds?: CartThresholds;
@@ -95,8 +100,11 @@ export function CartProvider({
   stock?: Record<string, number>;
   prices?: Record<string, number>;
   variants?: Record<string,string>;
+  shipping?: ShippingRule[];
+  paymentLabels?: string[];
 }) {
-  const freeShippingThreshold = thresholds?.freeShipping ?? FREE_SHIPPING_THRESHOLD;
+  const standardRule = shipping?.find(rule => rule.method === 'standard');
+  const freeShippingThreshold = standardRule ? standardRule.freeThresholdCents / 100 : thresholds?.freeShipping ?? FREE_SHIPPING_THRESHOLD;
   const giftThreshold = thresholds?.gift ?? GIFT_THRESHOLD;
   const [lines, setLines] = useState<CartLine[]>([]);
   const [ready, setReady] = useState(false);
@@ -197,6 +205,8 @@ export function CartProvider({
   }, [lines, subtotal]);
 
   const value: CartContextValue = {
+    shipping,
+    paymentLabels,
     lines,
     itemCount,
     subtotal,

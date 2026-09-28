@@ -5,6 +5,7 @@ export function parseRebrandVariant(value: unknown): RebrandVariant | undefined 
 }
 
 export function rebrandImageVariant(src?: string): RebrandVariant | undefined {
+  if (/^\/images\/products\/ghk-cu-(100|50)mg-labelled\.webp$/.test(src ?? '')) return 'v1';
   return parseRebrandVariant(src?.match(/^\/images\/rebrand\/vials\/(v[123])\//)?.[1]);
 }
 

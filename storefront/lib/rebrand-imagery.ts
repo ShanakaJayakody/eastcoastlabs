@@ -67,7 +67,22 @@ interface IllustratedProduct {
 }
 
 export function withRebrandImages<T extends IllustratedProduct>(product: T, variant?: RebrandVariant): T {
-  if (!variant) return product;
+  if (!variant) {
+    // This legacy GHK asset is labelled 10 mg; the active supplies are 50/100 mg.
+    // Replace only that known asset, preserving any newly supplied photography.
+    const incorrect = 'https://yeszjgbqumulvtltkfsw.supabase.co/storage/v1/object/public/product-images/ghk-cu/primary.png';
+    const correct = (images: WooImage[] | undefined, size?: string) => images?.flatMap(image => {
+      if (image.src.split('?')[0] !== incorrect) return [image];
+      const label = normalizeProductSizeLabel(size ?? '100 mg');
+      return ['100 mg', '50 mg'].includes(label)
+        ? [{src:`/images/products/ghk-cu-${label.replace(' ', '')}-labelled.webp`,alt:`GHK-CU ${label} product illustration — East Coast Labs`}]
+        : [];
+    });
+    if (product.slug !== 'ghk-cu' || ![...(product.images ?? []), ...(product.sizes?.flatMap(size => size.images ?? []) ?? [])].some(image => image.src.split('?')[0] === incorrect)) return product;
+    const sizes = product.sizes?.map(size => ({...size, images:correct(size.images, size.label)}));
+    const selected = sizes?.find(size => size.available > 0) ?? sizes?.[0];
+    return {...product, images:correct(product.images, selected?.label), ...(sizes ? {sizes} : {})};
+  }
   const sizes = product.sizes?.map(size => {
     const image = getRebrandImage(product.slug, variant, size.label);
     return image ? { ...size, images: [image] } : size;

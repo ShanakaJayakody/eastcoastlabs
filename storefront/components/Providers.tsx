@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { CartProvider, type CartThresholds } from "@/lib/cart-context";
 import { UIProvider } from "@/lib/ui-context";
+import type { ShippingRule } from '@/lib/shipping-policy';
 
 export default function Providers({
   children,
@@ -10,6 +11,8 @@ export default function Providers({
   stock,
   prices,
   variants,
+  shipping,
+  paymentLabels,
 }: {
   children: ReactNode;
   /** Resolved server-side from admin settings by the layout. Omitted → the
@@ -19,9 +22,11 @@ export default function Providers({
   stock?: Record<string, number>;
   prices?: Record<string, number>;
   variants?: Record<string,string>;
+  shipping?: ShippingRule[];
+  paymentLabels?: string[];
 }) {
   return (
-    <CartProvider thresholds={thresholds} stock={stock} prices={prices} variants={variants}>
+    <CartProvider thresholds={thresholds} stock={stock} prices={prices} variants={variants} shipping={shipping} paymentLabels={paymentLabels}>
       <UIProvider>{children}</UIProvider>
     </CartProvider>
   );
