@@ -27,6 +27,7 @@ interface CartContextValue {
   hasFreeShipping: boolean;
   freeShippingThreshold: number;
   giftThreshold: number;
+  expressFreeThreshold?: number;
   /** Live availability for a slug, or null when the server didn't report it
    *  (unknown ≠ sold out — untracked items stay sellable). */
   stockFor: (slug: string) => number | null;
@@ -51,6 +52,8 @@ interface CartContextValue {
 export interface CartThresholds {
   freeShipping: number;
   gift: number;
+  /** Omitted when Express shipping is disabled. */
+  express?: number;
 }
 
 const STORAGE_KEY = "ecl_cart_v1";
@@ -204,6 +207,7 @@ export function CartProvider({
     hasFreeShipping: subtotal >= freeShippingThreshold,
     freeShippingThreshold,
     giftThreshold,
+    expressFreeThreshold: thresholds?.express,
     stockFor,
     priceFor,
     ready,

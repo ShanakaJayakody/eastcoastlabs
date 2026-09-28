@@ -50,7 +50,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
     "Bank transfer details provided after checkout",
   ],
   freeShippingThreshold: 100,
-  giftThreshold: 250,
+  giftThreshold: 150,
   supportEmail: "eclpeptides@gmail.com",
   legalName: "",
   abn: "",

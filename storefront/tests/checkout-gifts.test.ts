@@ -1,10 +1,10 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-const fixtures=vi.hoisted(()=>({threshold:0}));
+const fixtures=vi.hoisted(()=>({threshold:0,paidPrice:1000}));
 vi.mock('@/lib/settings',()=>({getSettings:async()=>({giftThreshold:fixtures.threshold})}));
 vi.mock('@/lib/admin/inventory',()=>({getAvailability:async()=>({available:20})}));
 vi.mock('@/lib/stacks',()=>({getStackBySlug:async()=>null}));
 vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from:()=>{
-  const rows=[{id:'paid',price_cents:1000,pack_size:1,active:true,label:'1 vial',products:{slug:'sample',name:'Sample',status:'active'}},
+  const rows=[{id:'paid',price_cents:fixtures.paidPrice,pack_size:1,active:true,label:'1 vial',products:{slug:'sample',name:'Sample',status:'active'}},
     {id:'water',price_cents:2000,pack_size:1,active:true,label:'1 vial',products:{slug:'bacteriostatic-water',name:'Water',status:'active'}}];
   let filtered=rows;
   const value=(row:typeof rows[number],key:string)=>key.startsWith('products.')?row.products[key.slice(9) as keyof typeof row.products]:row[key as keyof typeof row];
@@ -17,7 +17,7 @@ vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from:()=>{
 import { resolveCart } from '@/lib/checkout';
 import * as checkout from '@/lib/checkout';
 const gift={key:'gift:bac-water',slug:'bacteriostatic-water',variantLabel:'Free gift',quantity:1};
-beforeEach(()=>{fixtures.threshold=0;});
+beforeEach(()=>{fixtures.threshold=0;fixtures.paidPrice=1000;});
 it('rejects a gift-only request even when the configured threshold is zero',async()=>{
   const cart=await resolveCart([gift]);
   expect(cart.giftApplied).toBe(false);
@@ -49,4 +49,20 @@ it('removes only the threshold gift after a discount takes the basket below elig
   expect(result.lines.some(line=>line.isGift)).toBe(false);
   expect(result.items).toEqual([{variantId:'water',qty:1,priceOverrideCents:0,labelSuffix:' · Sample stack (included)'},{variantId:'paid',qty:1,expectedPriceCents:1000}]);
   expect(original.giftApplied).toBe(true);
+});
+
+it.each([[14999,false],[15000,true],[15001,true]])('enforces the $150 gift threshold at %s cents',async(price,eligible)=>{
+  fixtures.threshold=150;
+  fixtures.paidPrice=price as number;
+  const cart=await resolveCart([{key:'sample',slug:'sample',variantLabel:'1 vial',quantity:1},gift]);
+  expect(cart.giftApplied).toBe(eligible);
+  expect(cart.lines.filter(line=>line.isGift)).toHaveLength(eligible?1:0);
+});
+
+it('removes the $150 gift when discounts bring goods to $149.99',async()=>{
+  fixtures.threshold=150;
+  fixtures.paidPrice=15000;
+  const cart=await resolveCart([{key:'sample',slug:'sample',variantLabel:'1 vial',quantity:1}]);
+  expect(checkout.applyGiftThreshold(cart,15000,15000).giftApplied).toBe(true);
+  expect(checkout.applyGiftThreshold(cart,14999,15000).giftApplied).toBe(false);
 });
