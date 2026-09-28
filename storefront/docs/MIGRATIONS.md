@@ -2,6 +2,14 @@
 
 > Production was baselined through `20260904100000_cron_runs.sql` and upgraded through `20260908220000_application_privileges.sql` on 9 September 2026: 19 baseline entries, 14 newly applied files, zero pending at release. Do not baseline that installation again. Future runs verify recorded hashes and apply only later files.
 
+## Prepared legacy-pricing production sequence
+
+At release preparation on 28 September 2026, the legacy-pricing release was complete but not yet deployed. Its production-specific capture migration is `20260928100000_legacy_pricing.sql`. Apply it exactly once, while catalogue prices are still the intended legacy prices, and verify the matching application deployment before beginning any later price changes. The immutable `legacy_discount_captures` completion marker prevents a replay from expanding the frozen variant or customer sets; later additions require a new reviewed migration.
+
+Production preflight found two audited, already-applied predecessors without ECL ledger rows: `20260927120000_order_status_counts.sql` and `20260927130000_fulfilment_analytics.sql`. For this production state only, the reviewed MCP release envelope may reconcile their allowlisted filename/SHA-256 metadata without replaying their DDL, then apply `20260928100000_legacy_pricing.sql` and its ledger row atomically. This is not a general baseline path. The permanent [production release record](./LEGACY-PRICING-RELEASE.md) preserves the exact reviewed hashes, preparation evidence, limitations, and required dated activation/application closeout; recheck the remote state immediately before activation.
+
+Use [the ECLLEGACY operations runbook](./LEGACY-PRICING.md) for the exact aggregate checks, no-email-export rule, application sequencing, and emergency active switch.
+
 Run migration commands from `storefront/`. The runner reads only `supabase/migrations/*.sql`; it never opens or executes `supabase/seed.sql`. Application code and pending migration SQL must be reviewed together before a release. CI runs against isolated fixtures and never applies SQL to a hosted database.
 
 ## Safety model

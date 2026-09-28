@@ -23,6 +23,7 @@ import CheckoutBump, { type BumpProduct } from "./CheckoutBump";
 import CheckoutQuickSummary from "./CheckoutQuickSummary";
 
 const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
+const LEGACY_EMAIL_ERROR = "Enter the email used for your previous East Coast Labs order.";
 
 const cents = (c: number) => formatAud(c / 100);
 
@@ -63,7 +64,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   const [previousAttempt,setPreviousAttempt] = useState<StoredCheckoutAttempt|null>(null);
   useEffect(()=>{setPreviousAttempt(readCheckoutAttempt());},[]);
   const payload = normalizeCheckoutLines(lines);
-  const requestKey = JSON.stringify([payload, appliedCode, shippingMethod]);
+  const normalizedEmail = email.trim().toLowerCase();
+  const legacyEmail = appliedCode.trim().toUpperCase()==="ECLLEGACY" ? normalizedEmail : "";
+  const requestKey = JSON.stringify([payload, appliedCode, shippingMethod, legacyEmail]);
   const quoteReady = !!quote && quotedKey === requestKey && !quoteError;
   useEffect(() => {
     if (!error || pending) return;
@@ -71,8 +74,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     const control = first ? document.getElementById(`checkout-${first}`) : null;
     if (control) control.focus(); else errorRef.current?.focus();
   }, [error,fieldErrors,pending]);
-  const invalid = (name:CheckoutField) => ({name,id:`checkout-${name}`,"aria-invalid":!!fieldErrors[name],"aria-describedby":fieldErrors[name] ? `checkout-${name}-error`:undefined});
-  const fieldError = (name:CheckoutField) => fieldErrors[name] ? <span id={`checkout-${name}-error`} className="mt-1 block text-xs text-warn">{fieldErrors[name]}</span> : null;
+  const sharesDiscountError = (name:CheckoutField) => name === "email" && !!fieldErrors.email && quote?.discountError === fieldErrors.email;
+  const invalid = (name:CheckoutField) => ({name,id:`checkout-${name}`,"aria-invalid":!!fieldErrors[name],"aria-describedby":fieldErrors[name] ? (sharesDiscountError(name) ? "discount-error" : `checkout-${name}-error`):undefined});
+  const fieldError = (name:CheckoutField) => fieldErrors[name] && !sharesDiscountError(name) ? <span id={`checkout-${name}-error`} className="mt-1 block text-xs text-warn">{fieldErrors[name]}</span> : null;
   function reconcilePayment(q:CartQuote){
     setPaymentSelection(current=>{
       const method=current.method && q.paymentOptions.some(o=>o.method===current.method)
@@ -110,7 +114,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       if(requestId)trackQuoteError(requestId,Date.now()-started,'timeout');
       setQuoteError("Confirming your total is taking longer than expected. Please retry.");
     },15_000);
-    quoteCart(payload, appliedCode || undefined, shippingMethod)
+    quoteCart(payload, appliedCode || undefined, shippingMethod, legacyEmail || undefined)
       .then(q => {
         if (cancelled) return;
         clearTimeout(timeout);
@@ -128,6 +132,24 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     // requestKey contains every price-relevant input; payload is reconstructed per render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey, ready, retry]);
+
+  function clearLegacyEmailError() {
+    setFieldErrors(current => {
+      if (current.email !== LEGACY_EMAIL_ERROR) return current;
+      const {email: _email, ...rest} = current;
+      return rest;
+    });
+  }
+
+  function applyDiscount() {
+    const normalizedCode = code.trim().toUpperCase();
+    setCode(normalizedCode);
+    setAppliedCode(normalizedCode);
+    if (normalizedCode === "ECLLEGACY" && !normalizedEmail) {
+      setFieldErrors(current => ({...current,email:LEGACY_EMAIL_ERROR}));
+      document.getElementById("checkout-email")?.focus();
+    } else if (normalizedCode !== "ECLLEGACY") clearLegacyEmailError();
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -261,7 +283,10 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
               placeholder="Email address"
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (e.target.value.trim()) clearLegacyEmailError();
+              }}
               className={`${field} `}
             /></span></label>{fieldError("email")}
             <label htmlFor="checkout-name" className="min-w-0 block text-xs text-fg-2 sm:col-span-2">Full name<span className="mt-1 block"><input {...invalid("name")}
@@ -512,7 +537,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             /></span></label>
             <button
               type="button"
-              onClick={() => setAppliedCode(code.trim())}
+              onClick={applyDiscount}
               className="rounded-lg border border-line-2 px-3 py-2 text-sm text-fg-2 transition hover:text-fg"
             >
               Apply
@@ -529,9 +554,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
               <dt className="text-muted">Subtotal</dt>
               <dd className="text-fg-2">{quote ? cents(quote.subtotalCents) : "—"}</dd>
             </div>
-            {quote && quote.discountCents > 0 && (
+            {quote && quotedKey === requestKey && !quote.discountError && (quote.discountCents > 0 || !!appliedCode) && (
               <div className="flex justify-between">
-                <dt className="text-muted">Discount</dt>
+                <dt className="text-muted">Discount{appliedCode ? ` · ${appliedCode}` : ''}</dt>
                 <dd className="text-success">−{cents(quote.discountCents)}</dd>
               </div>
             )}

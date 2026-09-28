@@ -7,7 +7,7 @@ import { after } from "next/server";
 import { createHash } from "node:crypto";
 import { applyGiftThreshold, resolveCart, type ClientCartLine, type ResolvedCartLine } from "@/lib/checkout";
 import { createOrder, findCheckoutReplay, type CreatedOrder } from "@/lib/admin/orders";
-import { validateDiscount } from "@/lib/admin/discounts";
+import { validateDiscount, type DiscountQuoteLine } from "@/lib/admin/discounts";
 import { markCartRecovered } from "@/lib/admin/cart-recovery";
 import { getSettings } from "@/lib/settings";
 import { quoteShipping, shippingCentsFor, isShippingMethod, type ShippingMethod, type ShippingQuote } from "@/lib/shipping";
@@ -45,11 +45,21 @@ function validate(input: PlaceOrderInput): string | null {
   return null;
 }
 
-async function resolveQuote(lines: ClientCartLine[], discountCode?: string, shippingMethod?: ShippingMethod) {
+async function resolveQuote(lines: ClientCartLine[], discountCode?: string, shippingMethod?: ShippingMethod, email?: string) {
   if (!validateLines(lines)) throw new Error("Your cart contains invalid items or quantities.");
   if (discountCode !== undefined && !bounded(discountCode, 50, false)) throw new Error("Invalid discount code.");
+  if (email !== undefined && !bounded(email, 254, false)) throw new Error("Invalid email.");
   const [resolvedCart, settings] = await Promise.all([resolveCart(lines), getSettings()]);
-  const discount = discountCode?.trim() ? await validateDiscount(discountCode, resolvedCart.subtotalCents) : null;
+  const normalizedEmail = email?.trim().toLowerCase();
+  const cleanCode = discountCode?.trim().toUpperCase() ?? "";
+  const discountLines: DiscountQuoteLine[] = resolvedCart.items.map((item, lineIndex) => {
+    const unitPriceCents = item.priceOverrideCents ?? item.expectedPriceCents;
+    if (unitPriceCents === undefined) throw new Error("Missing authoritative item price.");
+    return { lineIndex, variantId: item.variantId, qty: item.qty, unitPriceCents,
+      legacyEligible: item.legacyDiscountEligible === true && item.priceOverrideCents === undefined,
+      hasPriceOverride: item.priceOverrideCents !== undefined };
+  });
+  const discount = cleanCode ? await validateDiscount({ code: cleanCode, subtotalCents: resolvedCart.subtotalCents, email: normalizedEmail, lines: discountLines }) : null;
   const discountCents = discount?.ok ? discount.discountCents : 0;
   const afterDiscount = resolvedCart.subtotalCents - discountCents;
   const resolved = applyGiftThreshold(resolvedCart, afterDiscount, Math.round(settings.giftThreshold * 100));
@@ -63,11 +73,19 @@ async function resolveQuote(lines: ClientCartLine[], discountCode?: string, ship
   };
   // Includes resolved stock identities and allocations, so a replaced variant,
   // missing gift or changed bundle cannot silently reuse an old confirmation.
-  const quote: CartQuote = { ...value, version: hash({ ...value, items: resolved.items, discountCode: discountCode?.trim().toUpperCase() ?? "" }) };
+  // Gifts are zero-priced but removing one can shift subsequent item indices.
+  // Associate allocations with their original item, then index the final payload.
+  const allocationByItem = new Map(discount?.allocations?.map(allocation =>
+    [resolvedCart.items[allocation.lineIndex], allocation.discountCents]));
+  const allocations = discount?.allocations ? resolved.items.map((item, lineIndex) =>
+    ({ lineIndex, discountCents: allocationByItem.get(item) ?? 0 })) : undefined;
+  const legacyIdentity = cleanCode === "ECLLEGACY" || allocations !== undefined
+    ? { email: normalizedEmail ?? "", allocations } : {};
+  const quote: CartQuote = { ...value, version: hash({ ...value, items: resolved.items, discountCode: cleanCode, ...legacyIdentity }) };
   return { quote, resolved, settings };
 }
-export async function quoteCart(lines: ClientCartLine[], discountCode?: string, shippingMethod?: ShippingMethod): Promise<CartQuote> {
-  return (await resolveQuote(lines, discountCode, shippingMethod)).quote;
+export async function quoteCart(lines: ClientCartLine[], discountCode?: string, shippingMethod?: ShippingMethod, email?: string): Promise<CartQuote> {
+  return (await resolveQuote(lines, discountCode, shippingMethod, email)).quote;
 }
 
 function success(order: CreatedOrder, warnings: string[] = []): PlaceOrderResult {
@@ -109,7 +127,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     createOrderAccessToken(input.idempotencyKey, "payment");
     const existing = await findCheckoutReplay(input.idempotencyKey, requestFingerprint);
     if (existing) return success(existing);
-    const { quote, resolved, settings } = await resolveQuote(input.lines, discountCode, input.shippingMethod);
+    const { quote, resolved, settings } = await resolveQuote(input.lines, discountCode, input.shippingMethod, email);
     if (input.quoteVersion !== quote.version) return { ok: false, error: "Your order details have changed. Review the updated summary and place your order again.", quote };
     if (!resolved.items.length) return { ok: false, error: "None of the items in your cart are available.", quote };
     if (quote.discountError) return { ok: false, error: quote.discountError, fieldErrors:{discount:quote.discountError}, quote };
@@ -145,9 +163,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("CHECKOUT_RATE_LIMIT")) return { ok: false, error: "You have several recent payment requests. Please use your existing payment email or contact support before placing another order." };
     if (msg.includes("OUT_OF_STOCK:")) return { ok: false, error: "One of your items just sold out. Please adjust your cart and try again.", outOfStockSku: msg.split("OUT_OF_STOCK:")[1]?.split(/\s/)[0] };
-    if (msg.includes("QUOTE_CHANGED")) {
-      const updated = await resolveQuote(input.lines, input.discountCode, input.shippingMethod).catch(() => null);
-      return { ok: false, error: "A price changed while you were checking out. Review the updated order summary and try again.", quote: updated?.quote };
+    if (msg.includes("QUOTE_CHANGED") || msg.includes("Discount unavailable")) {
+      const updated = await resolveQuote(input.lines, input.discountCode, input.shippingMethod, input.email.trim().toLowerCase()).catch(() => null);
+      return { ok: false, error: "A price or discount changed while you were checking out. Review the updated order summary and try again.", quote: updated?.quote };
     }
     console.error("Checkout transaction could not be confirmed; inspect the private operation log");
     return { ok: false, error: "We couldn't confirm your order. Please retry with the same details; a completed attempt will be recovered safely." };

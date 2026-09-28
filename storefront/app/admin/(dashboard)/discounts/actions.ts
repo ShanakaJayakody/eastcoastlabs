@@ -25,6 +25,8 @@ export async function createDiscount(input: DiscountInput): Promise<ActionResult
   const code = input.code.trim().toUpperCase();
   if (!/^[A-Z0-9_-]{3,32}$/.test(code))
     return { ok: false, error: "Code must be 3–32 chars (A–Z, 0–9, - or _)." };
+  if (input.kind !== "percent" && input.kind !== "fixed")
+    return { ok: false, error: "Discount kind must be percent or fixed." };
   if (input.kind === "percent" && (input.amount < 1 || input.amount > 100))
     return { ok: false, error: "Percentage must be 1–100." };
   if (input.kind === "fixed" && input.amount <= 0)
@@ -80,12 +82,32 @@ export async function toggleDiscount(code: string, active: boolean): Promise<Act
 
 export async function deleteDiscount(code: string): Promise<ActionResult> {
   const session = await requireAdmin();
+  const normalizedCode = code.trim().toUpperCase();
   try {
-    const { error } = await adminDb().from("discounts").delete().eq("code", code);
+    const db = adminDb();
+    const { data: discount, error: readError } = await db
+      .from("discounts")
+      .select("kind")
+      .eq("code", normalizedCode)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (discount?.kind === "legacy_price") {
+      return {
+        ok: false,
+        error: "Legacy pricing programs cannot be deleted. Disable the program instead.",
+      };
+    }
+
+    const { error } = await db.from("discounts").delete().eq("code", normalizedCode);
     if (error) throw new Error(error.message);
-    await logAudit({ actor: session.email, action: "discount.delete", entityType: "discount", entityId: code });
+    await logAudit({
+      actor: session.email,
+      action: "discount.delete",
+      entityType: "discount",
+      entityId: normalizedCode,
+    });
     revalidatePath("/admin/discounts");
-    return { ok: true, message: `${code} deleted` };
+    return { ok: true, message: `${normalizedCode} deleted` };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }

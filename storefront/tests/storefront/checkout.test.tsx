@@ -149,6 +149,132 @@ it('keeps quote discount errors linked before any submission',async()=>{
  await screen.findByText('Code is unavailable.');expect(screen.getByLabelText('Discount code')).toHaveAttribute('aria-invalid','true');expect(screen.getByLabelText('Discount code')).toHaveAccessibleDescription('Code is unavailable.');
 });
 
+it('asks for the historic order email before applying ECLLEGACY',async()=>{
+ m.quote.mockImplementation(async(_lines:unknown,code?:string)=>code==='ECLLEGACY'
+  ? {...quote,discountError:'Enter the email used for your previous East Coast Labs order.'}
+  : quote);
+ render(<CheckoutForm/>);
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent(/email used for your previous/i);
+ expect(screen.getByLabelText('Email address')).toHaveFocus();
+ expect(screen.getByLabelText('Email address')).toHaveAccessibleDescription('Enter the email used for your previous East Coast Labs order.');
+});
+
+it('requotes legacy pricing when the supplied email changes without sending browser pricing data',async()=>{
+ let resolveChanged!:(value:typeof quote)=>void;
+ m.quote.mockResolvedValueOnce(quote).mockResolvedValueOnce(quote).mockImplementationOnce(()=>new Promise(resolve=>{resolveChanged=resolve;}));
+ render(<CheckoutForm/>);
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:' First@Example.Test '}});
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:' ecllegacy '}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ await waitFor(()=>expect(m.quote).toHaveBeenLastCalledWith(
+  [{key:'a',slug:'a',variantLabel:'1 vial',quantity:1}],
+  'ECLLEGACY','standard','first@example.test'));
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'other@example.test'}});
+ expect(screen.getByRole('button',{name:'Place order'})).toBeDisabled();
+ await waitFor(()=>expect(m.quote).toHaveBeenLastCalledWith(
+  [{key:'a',slug:'a',variantLabel:'1 vial',quantity:1}],
+  'ECLLEGACY','standard','other@example.test'));
+ await act(async()=>resolveChanged(quote));
+ expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled();
+});
+
+it('does not reprice a non-legacy quote when the email changes',async()=>{
+ m.quote.mockResolvedValue(quote);render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ const calls=m.quote.mock.calls.length;
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'person@example.test'}});
+ await act(async()=>{});
+ expect(m.quote).toHaveBeenCalledTimes(calls);
+ expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled();
+});
+
+it.each([{discountCents:345,label:'−$3.45'},{discountCents:0,label:'−$0.00'}])(
+ 'shows an eligible ECLLEGACY discount of $label',async({discountCents,label})=>{
+  m.quote.mockImplementation(async(_lines:unknown,code?:string)=>({...quote,discountCents:code?discountCents:0,totalCents:1200-discountCents}));
+  render(<CheckoutForm/>);
+  fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'eligible@example.test'}});
+  fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+  fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+  expect(await screen.findByText('Discount · ECLLEGACY')).toBeVisible();
+  expect(screen.getByText(label)).toBeVisible();
+ });
+
+it('does not present an unconfirmed legacy code as a zero discount',async()=>{
+ let resolveLegacy!:(value:typeof quote)=>void;
+ m.quote.mockResolvedValueOnce(quote).mockImplementationOnce(()=>new Promise(resolve=>{resolveLegacy=resolve;}));
+ render(<CheckoutForm/>);await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'eligible@example.test'}});
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ expect(screen.queryByText('Discount · ECLLEGACY')).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Place order'})).toBeDisabled();
+ await act(async()=>resolveLegacy(quote));
+ expect(screen.getByText('Discount · ECLLEGACY')).toBeVisible();
+});
+
+it('keeps an ineligible legacy response associated with the discount input',async()=>{
+ const message='Use ECLLEGACY with the email address from your previous East Coast Labs order.';
+ m.quote.mockImplementation(async(_lines:unknown,code?:string)=>code?{...quote,discountError:message}:quote);
+ render(<CheckoutForm/>);
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'ineligible@example.test'}});
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ expect(await screen.findByRole('alert')).toHaveTextContent(message);
+ expect(screen.getByLabelText('Discount code')).toHaveAttribute('aria-invalid','true');
+ expect(screen.getByLabelText('Discount code')).toHaveAccessibleDescription(message);
+});
+
+it('removes the applied legacy code and requotes without an email identity',async()=>{
+ m.quote.mockImplementation(async(_lines:unknown,code?:string)=>({...quote,discountCents:code?100:0,totalCents:code?1100:1200}));
+ render(<CheckoutForm/>);
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'eligible@example.test'}});
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ expect(await screen.findByText('Discount · ECLLEGACY')).toBeVisible();
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:''}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ await waitFor(()=>expect(m.quote).toHaveBeenLastCalledWith(expect.anything(),undefined,'standard',undefined));
+ expect(screen.queryByText('Discount · ECLLEGACY')).not.toBeInTheDocument();
+});
+
+it.each([{label:'removed',code:''},{label:'replaced',code:'TENOFF'}])(
+ 'clears the legacy-only email error when ECLLEGACY is $label',async({code})=>{
+  m.quote.mockImplementation(async(_lines:unknown,discountCode?:string)=>discountCode==='ECLLEGACY'
+   ? {...quote,discountError:'Enter the email used for your previous East Coast Labs order.'}
+   : quote);
+  render(<CheckoutForm/>);
+  const email=screen.getByLabelText('Email address');
+  fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+  fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+  expect(await screen.findByRole('alert')).toHaveTextContent(/email used for your previous/i);
+  expect(email).toHaveAttribute('aria-invalid','true');
+  expect(email).toHaveAccessibleDescription(/email used for your previous/i);
+  fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:code}});
+  fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+  await waitFor(()=>expect(m.quote).toHaveBeenLastCalledWith(expect.anything(),code || undefined,'standard',undefined));
+  expect(email).toHaveAttribute('aria-invalid','false');
+  expect(email).not.toHaveAccessibleDescription(/email used for your previous/i);
+ });
+
+it('uses a distinct order identity after the legacy email changes during an uncertain attempt',async()=>{
+ m.quote.mockResolvedValue(quote);m.place.mockRejectedValue(new Error('response lost'));
+ render(<CheckoutForm/>);
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'first@example.test'}});
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ submitForm();await screen.findByRole('alert');
+ const first=m.place.mock.calls[0][0].idempotencyKey;
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.change(screen.getByLabelText('Email address'),{target:{value:'other@example.test'}});
+ expect(screen.getByRole('button',{name:'Place order'})).toBeDisabled();
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ submitForm();await waitFor(()=>expect(m.place).toHaveBeenCalledTimes(2));
+ expect(m.place.mock.calls[1][0].idempotencyKey).not.toBe(first);
+});
+
 const shippingOptions=[
  {method:'standard',label:'Standard shipping',cents:1000,baseCents:1000,eta:'2–5 days',freeThresholdCents:15000,isFree:false,remainingCents:13800},
  {method:'express',label:'Express shipping',cents:1800,baseCents:1800,eta:'1–2 days',freeThresholdCents:15000,isFree:false,remainingCents:13800},
@@ -206,7 +332,7 @@ it('returns automatic Express to Standard after a discount removes eligibility a
  fireEvent.click(screen.getByRole('button',{name:'Apply'}));
  await waitFor(()=>expect(screen.getByRole('radio',{name:/Standard shipping/})).toBeChecked());
  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
- expect(m.quote.mock.lastCall).toEqual([expect.any(Array),'TENOFF','standard']);
+ expect(m.quote.mock.lastCall).toEqual([expect.any(Array),'TENOFF','standard',undefined]);
  fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:''}});
  fireEvent.click(screen.getByRole('button',{name:'Apply'}));
  await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());

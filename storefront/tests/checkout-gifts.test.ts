@@ -31,7 +31,7 @@ it('does not let a removed or forged paid line qualify a gift',async()=>{
 it('still grants one stock-backed gift for a genuine qualifying purchase',async()=>{
   const cart=await resolveCart([{key:'sample',slug:'sample',variantLabel:'1 vial',quantity:1},gift]);
   expect(cart.giftApplied).toBe(true);
-  expect(cart.items).toEqual([{variantId:'paid',qty:1,expectedPriceCents:1000},{variantId:'water',qty:1,priceOverrideCents:0,labelSuffix:' · Free gift'}]);
+  expect(cart.items).toEqual([{variantId:'paid',qty:1,expectedPriceCents:1000,legacyDiscountEligible:true},{variantId:'water',qty:1,priceOverrideCents:0,labelSuffix:' · Free gift'}]);
 });
 it('derives the automatic gift for a qualifying restored cart without a client gift line',async()=>{
   fixtures.threshold=10;
@@ -47,7 +47,7 @@ it('removes only the threshold gift after a discount takes the basket below elig
   const result=apply(original,900,1000);
   expect(result.giftApplied).toBe(false);
   expect(result.lines.some(line=>line.isGift)).toBe(false);
-  expect(result.items).toEqual([{variantId:'water',qty:1,priceOverrideCents:0,labelSuffix:' · Sample stack (included)'},{variantId:'paid',qty:1,expectedPriceCents:1000}]);
+  expect(result.items).toEqual([{variantId:'water',qty:1,priceOverrideCents:0,labelSuffix:' · Sample stack (included)'},{variantId:'paid',qty:1,expectedPriceCents:1000,legacyDiscountEligible:true}]);
   expect(original.giftApplied).toBe(true);
 });
 
