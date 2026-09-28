@@ -239,6 +239,25 @@ it('removes the applied legacy code and requotes without an email identity',asyn
  expect(screen.queryByText('Discount · ECLLEGACY')).not.toBeInTheDocument();
 });
 
+it.each([{label:'removed',code:''},{label:'replaced',code:'TENOFF'}])(
+ 'clears the legacy-only email error when ECLLEGACY is $label',async({code})=>{
+  m.quote.mockImplementation(async(_lines:unknown,discountCode?:string)=>discountCode==='ECLLEGACY'
+   ? {...quote,discountError:'Enter the email used for your previous East Coast Labs order.'}
+   : quote);
+  render(<CheckoutForm/>);
+  const email=screen.getByLabelText('Email address');
+  fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'ECLLEGACY'}});
+  fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+  expect(await screen.findByRole('alert')).toHaveTextContent(/email used for your previous/i);
+  expect(email).toHaveAttribute('aria-invalid','true');
+  expect(email).toHaveAccessibleDescription(/email used for your previous/i);
+  fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:code}});
+  fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+  await waitFor(()=>expect(m.quote).toHaveBeenLastCalledWith(expect.anything(),code || undefined,'standard',undefined));
+  expect(email).toHaveAttribute('aria-invalid','false');
+  expect(email).not.toHaveAccessibleDescription(/email used for your previous/i);
+ });
+
 it('uses a distinct order identity after the legacy email changes during an uncertain attempt',async()=>{
  m.quote.mockResolvedValue(quote);m.place.mockRejectedValue(new Error('response lost'));
  render(<CheckoutForm/>);

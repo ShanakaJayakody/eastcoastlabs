@@ -133,6 +133,14 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey, ready, retry]);
 
+  function clearLegacyEmailError() {
+    setFieldErrors(current => {
+      if (current.email !== LEGACY_EMAIL_ERROR) return current;
+      const {email: _email, ...rest} = current;
+      return rest;
+    });
+  }
+
   function applyDiscount() {
     const normalizedCode = code.trim().toUpperCase();
     setCode(normalizedCode);
@@ -140,7 +148,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
     if (normalizedCode === "ECLLEGACY" && !normalizedEmail) {
       setFieldErrors(current => ({...current,email:LEGACY_EMAIL_ERROR}));
       document.getElementById("checkout-email")?.focus();
-    }
+    } else if (normalizedCode !== "ECLLEGACY") clearLegacyEmailError();
   }
 
   function submit(e: React.FormEvent) {
@@ -277,11 +285,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (e.target.value.trim()) setFieldErrors(current => {
-                  if (current.email !== LEGACY_EMAIL_ERROR) return current;
-                  const {email: _email, ...rest} = current;
-                  return rest;
-                });
+                if (e.target.value.trim()) clearLegacyEmailError();
               }}
               className={`${field} `}
             /></span></label>{fieldError("email")}
