@@ -32,4 +32,4 @@ export const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID ?? "";
 export const FREE_SHIPPING_THRESHOLD = 100;
 
 /** Spend threshold (AUD) that unlocks a free bacteriostatic-water gift. */
-export const GIFT_THRESHOLD = 250;
+export const GIFT_THRESHOLD = 150;
