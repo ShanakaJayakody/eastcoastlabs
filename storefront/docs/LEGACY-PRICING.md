@@ -2,7 +2,7 @@
 
 ## Release status and boundaries
 
-The legacy-pricing release is complete and locally verified, but it has **not** been deployed. `20260928100000_legacy_pricing.sql` must capture production before any catalogue price increase, and the matching application deployment must be verified before a later, separately reviewed price-increase release begins. This release does not increase any price.
+At release preparation on 28 September 2026, the legacy-pricing release was complete and locally verified but had **not** been deployed. `20260928100000_legacy_pricing.sql` must capture production before any catalogue price increase, and the matching application deployment must be verified before a later, separately reviewed price-increase release begins. This release does not increase any price. See the permanent [production release record](./LEGACY-PRICING-RELEASE.md) for exact reviewed hashes, exception boundaries, preparation evidence, and the required dated activation/application closeout on PR #26.
 
 `ECLLEGACY` is a frozen price book, not a percentage discount:
 
@@ -30,7 +30,7 @@ The audited production environment has two already-applied predecessor migration
 - `20260927120000_order_status_counts.sql`
 - `20260927130000_fulfilment_analytics.sql`
 
-For this production state only, the reviewed MCP release envelope may atomically insert the two allowlisted filename/SHA-256 metadata rows before applying the legacy migration. It must not replay either predecessor's DDL; in particular, replaying the existing plain `CREATE FUNCTION` statements would fail. This is a one-time reconciliation exception, not permission to baseline unknown history or repair checksum mismatches. The audit and envelope evidence are in `.superpowers/sdd/2026-09-28-legacy-pricing/production-preflight.md` and `.superpowers/sdd/2026-09-28-legacy-pricing/release-envelope-review.md`. Recheck the remote metadata and privileges immediately before activation, and regenerate/review the envelope if the legacy migration changes.
+For this production state only, the reviewed MCP release envelope may atomically insert the two allowlisted filename/SHA-256 metadata rows before applying the legacy migration. It must not replay either predecessor's DDL; in particular, replaying the existing plain `CREATE FUNCTION` statements would fail. This is a one-time reconciliation exception, not permission to baseline unknown history or repair checksum mismatches. The permanent [production release record](./LEGACY-PRICING-RELEASE.md) contains the exact reviewed predecessor, migration, and envelope hashes; verified scope and limitations; and activation/application closeout requirements. Recheck the remote metadata and privileges immediately before activation, and regenerate and review the envelope if the legacy migration changes.
 
 ## Aggregate verification
 
