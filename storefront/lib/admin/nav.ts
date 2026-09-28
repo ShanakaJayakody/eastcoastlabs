@@ -10,6 +10,7 @@ import {
   Settings,
   ScrollText,
   BarChart3,
+  Timer,
   Sparkles,
   Mail,
   LifeBuoy,
@@ -39,6 +40,7 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, group: "Today" },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart, group: "Today" },
+  { label: "Fulfilment", href: "/admin/fulfilment", icon: Timer, group: "Today" },
   { label: "Products", href: "/admin/products", icon: Package, group: "Catalogue" },
   { label: "Stock", href: "/admin/stock", icon: Boxes, group: "Catalogue" },
   { label: "Pipeline", href: "/admin/pipeline", icon: Sparkles, group: "Catalogue" },

@@ -1,0 +1,2 @@
+"use client";
+export default function ErrorView({reset}:{reset:()=>void}){return <div className="rounded-xl border border-line bg-surface p-6" role="alert"><h2 className="text-lg font-medium">Fulfilment data could not be loaded</h2><p className="mt-2 text-sm text-muted">The report is unavailable. Please retry to load current figures.</p><button type="button" onClick={reset} className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm text-accent-ink">Retry</button></div>;}
