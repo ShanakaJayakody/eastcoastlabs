@@ -43,6 +43,8 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
 export interface NewOrderItem {
   variantId: string;
   qty: number;
+  /** Set only by server resolution of directly purchased variants. */
+  legacyDiscountEligible?: boolean;
   /** Deprecated: ignored. Labels and subscription flags never grant discounts. */
   discountPct?: number;
   /** Server-derived price override in cents (e.g. a $0 gift vial). */

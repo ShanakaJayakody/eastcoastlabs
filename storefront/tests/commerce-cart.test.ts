@@ -12,6 +12,11 @@ vi.mock('@/lib/stacks',()=>({getStackBySlug:async()=>fixture.stack}));
 import {resolveCart} from '@/lib/checkout';
 beforeEach(()=>{fixture.stack=null;fixture.rows=[{id:'variant',price_cents:1000,pack_size:1,active:true,label:'1 vial',products:{slug:'sample',name:'Sample',status:'active'}}]});
 describe('authoritative cart eligibility',()=>{
+ it('marks direct packs and accessories eligible using server prices',async()=>{
+  fixture.rows.push(...[3,6].map(pack=>({...fixture.rows[0],id:`pack-${pack}`,pack_size:pack,label:`${pack}-pack`,price_cents:pack*900})),{...fixture.rows[0],id:'swabs',products:{slug:'alcohol-swabs',name:'Swabs',status:'active'}});
+  const result=await resolveCart(fixture.rows.map(row=>({key:row.id,slug:row.products.slug,variantLabel:row.label,variantId:row.id,quantity:1})));
+  expect(result.items.map(item=>[item.legacyDiscountEligible,item.expectedPriceCents])).toEqual([[true,1000],[true,2700],[true,5400],[true,1000]]);
+ });
  it('treats saved subscribe labels as one-time purchases at the full price',async()=>{
   const result=await resolveCart([{key:'sample:sub',slug:'sample',variantLabel:'1 vial · Subscribe',quantity:2}]);
   expect(result.subtotalCents).toBe(2000);expect(result.items[0].discountPct??0).toBe(0);
@@ -31,6 +36,7 @@ describe('authoritative cart eligibility',()=>{
   fixture.stack={name:'Sample bundle',bundlePriceCents:0,freeBacWater:false,components:[{slug:'sample',name:'Sample'},{slug:'other',name:'Other'}]};
   const result=await resolveCart([{key:'stack:sample',slug:'sample',variantLabel:'Bundle',quantity:1}]);
   expect(result.subtotalCents).toBe(0);expect(result.items.map(i=>i.priceOverrideCents)).toEqual([0,0]);
+  expect(result.items.every(item=>item.legacyDiscountEligible!==true)).toBe(true);
  });
 
 });
