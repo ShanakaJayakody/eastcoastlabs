@@ -58,6 +58,8 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
   const errorRef = useRef<HTMLParagraphElement>(null);
   const attempt = useRef<{key:string;id:string;unconfirmed?:boolean} | null>(null);
   const automaticShippingChange = useRef(false);
+  const freeExpressPreviouslyAvailable = useRef(false);
+  const automaticallySelectedExpress = useRef(false);
   const [previousAttempt,setPreviousAttempt] = useState<StoredCheckoutAttempt|null>(null);
   useEffect(()=>{setPreviousAttempt(readCheckoutAttempt());},[]);
   const payload = normalizeCheckoutLines(lines);
@@ -77,6 +79,22 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
         ? current.method : q.paymentOptions[0]?.method ?? null;
       return method===current.method ? current : {method,automatic:current.automatic || current.method!==null};
     });
+  }
+
+  function reconcileShipping(q:CartQuote){
+    const freeExpress = q.shippingOptions.some(option=>option.method==='express' && option.isFree && option.cents===0);
+    let method=q.shippingMethod;
+    if(freeExpress && !freeExpressPreviouslyAvailable.current && method!=='express'){
+      method='express';
+      automaticallySelectedExpress.current=true;
+    } else if(!freeExpress && automaticallySelectedExpress.current){
+      // Losing a free upgrade must not silently add a paid Express charge.
+      method='standard';
+      automaticallySelectedExpress.current=false;
+    }
+    freeExpressPreviouslyAvailable.current=freeExpress;
+    if(method!==shippingMethod)automaticShippingChange.current=true;
+    setShippingMethod(method);
   }
 
   useEffect(() => {
@@ -99,10 +117,9 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
         if(requestId)trackQuoteReady(requestId,Date.now()-started);
         setQuote(q);
         setQuotedKey(requestKey);
-        // A disabled service may have been replaced by the authoritative quote.
+        // Reconcile free upgrades and services replaced by the authoritative quote.
         // Changing the request key keeps submission blocked until it is repriced.
-        if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
-        setShippingMethod(q.shippingMethod);
+        reconcileShipping(q);
         reconcilePayment(q);
       }).catch(() => {
         if (!cancelled) {clearTimeout(timeout);if(requestId)trackQuoteError(requestId,Date.now()-started,'network');setQuoteError("We couldn’t confirm your order total. Please retry.");}
@@ -128,7 +145,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       },
       lines: payload, paymentMethod, discountCode: appliedCode.trim().toUpperCase() || undefined,
     });
-    // An automatic service fallback must not authorise a second order while
+    // An automatic service change must not authorise a second order while
     // the original request may still commit. Explicit customer edits stay distinct.
     if((automaticShippingChange.current || paymentSelection.automatic) && attempt.current?.unconfirmed && attempt.current.key!==attemptKey){
       const previous=JSON.parse(attempt.current.key);
@@ -143,6 +160,16 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
       try {
         const hash = await checkoutRequestHash(attemptKey);
         const stored = hash ? readCheckoutAttempt() : null;
+        if(!attempt.current && stored && stored.hash!==hash && automaticShippingChange.current){
+          // A reload loses the in-memory attempt. Compare the persisted request
+          // with only the automatic shipping change undone before replacing it.
+          const previous=JSON.parse(attemptKey);
+          previous.shippingAddress.shipping_method=shippingMethod==='express'?'standard':'express';
+          if(await checkoutRequestHash(JSON.stringify(previous))===stored.hash){
+            setError("Checkout options changed after an unconfirmed order attempt. Check your previous order attempt before placing another order.");
+            return;
+          }
+        }
         if (!attempt.current || attempt.current.key !== attemptKey) {
           attempt.current = {key:attemptKey,id:stored?.hash===hash ? stored.id : crypto.randomUUID(),unconfirmed:stored?.hash===hash};
         }
@@ -162,8 +189,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
             if(!wasUnconfirmed)submittedAttempt.unconfirmed=false;
             const q=res.quote;
             setQuote(q);setQuotedKey(requestKey);
-            if(q.shippingMethod!==shippingMethod)automaticShippingChange.current=true;
-            setShippingMethod(q.shippingMethod);
+            reconcileShipping(q);
             reconcilePayment(q);
           }
           setFieldErrors(res.fieldErrors ?? {});setError(res.error);
@@ -346,7 +372,7 @@ export default function CheckoutForm({ bumps = [] }: { bumps?: BumpProduct[] }) 
                       type="radio"
                       name="shipping"
                       checked={isSel}
-                      onChange={() => {automaticShippingChange.current=false;setShippingMethod(opt.method);}}
+                      onChange={() => {automaticShippingChange.current=false;automaticallySelectedExpress.current=false;setShippingMethod(opt.method);}}
                       className="sr-only"
                     />
                     <span

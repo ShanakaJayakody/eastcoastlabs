@@ -12,6 +12,8 @@ vi.mock('next/navigation',()=>({useRouter:()=>({push:m.push})}));
 vi.mock('@/app/(store)/checkout/actions',()=>({quoteCart:m.quote,placeOrder:m.place,recoverCheckoutAttempt:m.recover,captureCartEmail:vi.fn()}));
 vi.mock('@/app/cart-recovery/actions',()=>({requestCartRecovery:m.request}));
 import CheckoutForm from '@/components/CheckoutForm';
+import { quoteShipping, type ShippingMethod } from '@/lib/shipping';
+import { DEFAULT_SETTINGS } from '@/lib/settings';
 const quote={version:'v1',lines:[{key:'a',slug:'a',name:'Authoritative name',variantLabel:'1 vial',quantity:1,unitPriceCents:1200,lineTotalCents:1200,isGift:false}],subtotalCents:1200,totalCents:1200,shippingCents:0,shippingMethod:'standard',discountCents:0,paymentOptions:[{method:'bank_transfer',label:'Bank transfer',badges:[],blurb:'Transfer'}],shippingOptions:[],warnings:[]};
 beforeEach(()=>{sessionStorage.clear();m.lines=[{key:'a',slug:'a',name:'Local name',variantLabel:'1 vial',quantity:1,unitPrice:12}];vi.stubGlobal("crypto",webcrypto);m.quote.mockReset();m.place.mockReset();m.recover.mockReset();m.push.mockReset();m.clear.mockReset();});
 it('shows a failed quote with an actionable retry',async()=>{m.quote.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(quote);render(<CheckoutForm/>);fireEvent.click(await screen.findByRole('button',{name:/retry/i}));expect(await screen.findByText('Authoritative name')).toBeTruthy();expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled();});
@@ -159,6 +161,145 @@ async function selectExpress(){
 }
 function quoteWithBothMethods(){
  m.quote.mockImplementation(async(_lines:unknown,_code:unknown,method:string)=>({...quote,shippingMethod:method,shippingOptions,shippingCents:method==='express'?1800:1000,totalCents:method==='express'?3000:2200}));
+}
+
+function tieredQuote(goodsCents:number, method:ShippingMethod='standard', discountCents=0) {
+ const options=quoteShipping(goodsCents-discountCents,{...DEFAULT_SETTINGS,expressFreeThreshold:200});
+ const shipping=options.find(option=>option.method===method)!;
+ return {...quote,version:`${goodsCents}-${discountCents}-${method}`,subtotalCents:goodsCents,discountCents,
+  shippingOptions:options,shippingMethod:method,shippingCents:shipping.cents,totalCents:goodsCents-discountCents+shipping.cents};
+}
+
+it.each([
+ {goods:19999,method:'standard'},
+ {goods:20000,method:'express'},
+ {goods:20001,method:'express'},
+])('selects $method shipping automatically for $goods cents and submits the matching quote',async({goods,method})=>{
+ m.quote.mockImplementation(async(_lines:unknown,_code:unknown,requested:ShippingMethod)=>tieredQuote(goods,requested));
+ m.place.mockResolvedValue({ok:false,error:'Test submission stopped.'});
+ render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('radio',{name:method==='express'?/Express shipping/:/Standard shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ submitForm();
+ await waitFor(()=>expect(m.place).toHaveBeenCalledTimes(1));
+ expect(m.place.mock.calls[0][0]).toMatchObject({shippingMethod:method,quoteVersion:`${goods}-0-${method}`});
+});
+
+it('blocks submission until the automatic free Express selection is repriced',async()=>{
+ let resolveExpress!:(value:ReturnType<typeof tieredQuote>)=>void;
+ m.quote.mockResolvedValueOnce(tieredQuote(20000)).mockImplementationOnce(()=>new Promise(resolve=>{resolveExpress=resolve;}));
+ render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+ expect(screen.getByRole('button',{name:'Place order'})).toBeDisabled();
+ submitForm();expect(m.place).not.toHaveBeenCalled();
+ await act(async()=>resolveExpress(tieredQuote(20000,'express')));
+ expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled();
+});
+
+it('returns automatic Express to Standard after a discount removes eligibility and upgrades again when removed',async()=>{
+ m.quote.mockImplementation(async(_lines:unknown,code:string|undefined,method:ShippingMethod)=>tieredQuote(20000,method,code?1000:0));
+ render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.click(screen.getByText('Have a discount code?'));
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:'TENOFF'}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Standard shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ expect(m.quote.mock.lastCall).toEqual([expect.any(Array),'TENOFF','standard']);
+ fireEvent.change(screen.getByLabelText('Discount code'),{target:{value:''}});
+ fireEvent.click(screen.getByRole('button',{name:'Apply'}));
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+});
+
+it('selects free Express when the cart grows into eligibility but preserves a subsequent explicit Standard choice',async()=>{
+ m.quote.mockImplementation(async(lines:typeof m.lines,_code:unknown,method:ShippingMethod)=>tieredQuote(lines[0].quantity*10000,method));
+ const ui=render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Standard shipping/})).toBeChecked());
+ m.lines=[{...m.lines[0],quantity:2}];ui.rerender(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.click(screen.getByRole('radio',{name:/Standard shipping/}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.click(screen.getByRole('button',{name:'Refresh order total'}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ expect(screen.getByRole('radio',{name:/Standard shipping/})).toBeChecked();
+});
+
+it('preserves explicitly selected paid Express through gaining and losing free eligibility',async()=>{
+ m.quote.mockImplementation(async(lines:typeof m.lines,_code:unknown,method:ShippingMethod)=>tieredQuote(lines[0].quantity*10000,method));
+ const ui=render(<CheckoutForm/>);await selectExpress();
+ m.lines=[{...m.lines[0],quantity:2}];ui.rerender(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ m.lines=[{...m.lines[0],quantity:1}];ui.rerender(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked();
+ expect(screen.getByText('$115.00')).toBeVisible();
+});
+
+it('requires recovery when a reload automatically upgrades an uncertain Standard order to free Express',async()=>{
+ m.quote.mockImplementation(async(_lines:unknown,_code:unknown,method:ShippingMethod)=>tieredQuote(20000,method));
+ m.place.mockRejectedValue(new Error('Response lost'));
+ const ui=render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.click(screen.getByRole('radio',{name:/Standard shipping/}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ submitForm();await screen.findByRole('alert');
+ const original=sessionStorage.getItem('ecl_checkout_attempt');
+ ui.unmount();render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ m.place.mockResolvedValue({ok:false,error:'Unexpected duplicate request.'});
+ await act(async()=>submitForm());
+ expect(await screen.findByRole('alert')).toHaveTextContent('Check your previous order attempt before placing another order.');
+ expect(m.place).toHaveBeenCalledTimes(1);
+ expect(sessionStorage.getItem('ecl_checkout_attempt')).toBe(original);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ fireEvent.click(screen.getByRole('radio',{name:/Standard shipping/}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ await act(async()=>submitForm());
+ await waitFor(()=>expect(m.place).toHaveBeenCalledTimes(2));
+ expect(m.place.mock.lastCall![0].idempotencyKey).toBe(JSON.parse(original!).id);
+});
+
+it('allows an Express retry when a first Standard submission was definitively declined with a newly eligible quote',async()=>{
+ m.quote.mockImplementation(async(_lines:unknown,_code:unknown,method:ShippingMethod)=>tieredQuote(19999,method));
+ m.place.mockResolvedValueOnce({ok:false,error:'Review the updated total.',quote:tieredQuote(20000)});
+ render(<CheckoutForm/>);
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ m.quote.mockImplementation(async(_lines:unknown,_code:unknown,method:ShippingMethod)=>tieredQuote(20000,method));
+ submitForm();await screen.findByText('Review the updated total.');
+ await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+ m.place.mockResolvedValue({ok:false,error:'Test submission stopped.'});
+ submitForm();await waitFor(()=>expect(m.place).toHaveBeenCalledTimes(2));
+ expect(m.place.mock.lastCall![0]).toMatchObject({shippingMethod:'express',quoteVersion:'20000-0-express'});
+});
+
+for(const path of ['refresh','submission'] as const){
+ it(`keeps an uncertain Standard order recoverable after a free Express upgrade from ${path}`,async()=>{
+  m.quote.mockImplementation(async(_lines:unknown,_code:unknown,method:ShippingMethod)=>tieredQuote(19999,method));
+  m.place.mockRejectedValue(new Error('Response lost'));
+  render(<CheckoutForm/>);
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  submitForm();await screen.findByRole('alert');
+  const original=sessionStorage.getItem('ecl_checkout_attempt');
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  m.quote.mockImplementation(async(_lines:unknown,_code:unknown,method:ShippingMethod)=>tieredQuote(20000,method));
+  if(path==='refresh')fireEvent.click(screen.getByRole('button',{name:'Refresh order total'}));
+  else {
+   m.place.mockResolvedValueOnce({ok:false,error:'Review the updated total.',quote:tieredQuote(20000)});
+   submitForm();await screen.findByText('Review the updated total.');
+  }
+  await waitFor(()=>expect(screen.getByRole('radio',{name:/Express shipping/})).toBeChecked());
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Place order'})).toBeEnabled());
+  await act(async()=>submitForm());
+  expect(m.place).toHaveBeenCalledTimes(path==='refresh'?1:2);
+  expect(sessionStorage.getItem('ecl_checkout_attempt')).toBe(original);
+  expect(screen.getByRole('alert')).toHaveTextContent('Check your previous order attempt before placing another order.');
+ });
 }
 for(const path of ['refresh','submission'] as const){
  it(`reconciles disabled Express shipping from a ${path} quote before successfully submitting Standard`,async()=>{

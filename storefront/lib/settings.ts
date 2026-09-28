@@ -45,7 +45,7 @@ export interface StoreSettings {
 export const DEFAULT_SETTINGS: StoreSettings = {
   announcementItems: [
     "Research use only — check available batch documentation",
-    "Free standard $100+ · express $150+",
+    "Free standard $100+ · express $200+",
     "Order preparation after payment confirmation",
     "Bank transfer details provided after checkout",
   ],
@@ -70,7 +70,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   standardShippingCents: 1000,
   expressShippingEnabled: true,
   expressShippingCents: 1500,
-  expressFreeThreshold: 150,
+  expressFreeThreshold: 200,
 };
 
 const KEYS = {
