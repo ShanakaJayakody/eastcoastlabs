@@ -8,6 +8,7 @@ export const CRON_JOBS = [
   { job: "payment-ops", label: "Unpaid orders", schedule: "hourly + daily backstop", overdueHours: 3 },
   { job: "overdue-orders", label: "Overdue order alerts", schedule: "hourly + daily backstop", overdueHours: 3 },
   { job: "daily-brief", label: "Daily brief", schedule: "daily", overdueHours: 30 },
+  { job: "admin-sms", label: "Director SMS", schedule: "hourly check; one daily update", overdueHours: 3 },
 ] as const;
 export interface CronRun {
   job:string; status:"ok"|"failed"; detail:Record<string,unknown>; error:string|null; duration_ms:number|null; created_at:string;

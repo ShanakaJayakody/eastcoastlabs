@@ -15,6 +15,7 @@ import {operationsChecks} from './postgres-operations-checks.mjs';
 import {customerOrderChecks} from './postgres-customer-orders-checks.mjs';
 import {customerChecks} from './postgres-customer-checks.mjs';
 import {overdueOrderChecks} from './postgres-overdue-order-checks.mjs';
+import {adminSmsChecks} from './postgres-admin-sms-checks.mjs';
 
 let ownedContainer;
 let admin;
@@ -85,6 +86,7 @@ try {
     return results;
   }
   await overdueOrderChecks({db,a,b,check,race});
+  await adminSmsChecks({db,a,b,check});
   async function fixture(onHand = 3) {
     const product = randomUUID(), variant = randomUUID();
     await db.query(`insert into products(id,slug,name,unit_cost_cents) values($1,$2,'Synthetic audit item',200)`, [product, `audit-${product}`]);
