@@ -67,13 +67,14 @@ export interface AbandonedCartRow {
 /** Active (not yet recovered) carts idle past the threshold — dashboard visibility. */
 export async function listAbandonedCarts(idleHours = 1, limit = 10): Promise<AbandonedCartRow[]> {
   const cutoff = new Date(Date.now() - idleHours * 60 * 60 * 1000).toISOString();
-  const { data } = await adminDb()
+  const { data, error } = await adminDb()
     .from("cart_sessions")
     .select("email, subtotal_cents, updated_at, reminder_sent_at")
     .eq("status", "active")
     .lt("updated_at", cutoff)
     .order("updated_at", { ascending: false })
     .limit(limit);
+  if(error)throw new Error(`Recovery list unavailable: ${error.message}`);
   return (data ?? []) as AbandonedCartRow[];
 }
 

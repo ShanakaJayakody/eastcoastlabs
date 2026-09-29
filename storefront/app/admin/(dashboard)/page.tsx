@@ -64,28 +64,32 @@ async function OldestOrders(){
 }
 
 async function PanelsSection() {
+  try{return await PanelData();}catch{return <SectionFailure title="Activity"/>;}
+}
+async function PanelData() {
   const admin = supabaseAdmin();
+  if(!admin)throw new Error('Activity unavailable');
 
   const tableCount = async (table: string): Promise<number> => {
-    if (!admin) return 0;
-    const { count } = await admin.from(table).select("*", { count: "exact", head: true });
+    const { count, error } = await admin.from(table).select("*", { count: "exact", head: true });
+    if(error)throw new Error('Activity count unavailable');
     return count ?? 0;
   };
   const pendingReviewCount = async (): Promise<number> => {
-    if (!admin) return 0;
-    const { count } = await admin
+    const { count, error } = await admin
       .from("reviews")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending");
+    if(error)throw new Error('Review count unavailable');
     return count ?? 0;
   };
   const recentActivity = async (): Promise<AuditRow[]> => {
-    if (!admin) return [];
-    const { data } = await admin
+    const { data, error } = await admin
       .from("admin_audit_log")
       .select("actor_email, action, created_at")
       .order("created_at", { ascending: false })
       .limit(8);
+    if(error)throw new Error('Recent activity unavailable');
     return (data ?? []) as AuditRow[];
   };
 

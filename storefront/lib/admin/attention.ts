@@ -92,10 +92,11 @@ const TO_FULFIL: OrderStatus[] = ["paid", "processing"];
 /** Outstanding "tell me when it's back" signups, per product slug. Cached for
  *  the request so the queue and the nudges share one read. */
 const waitlistDemand = cache(async (): Promise<Map<string, number>> => {
-  const { data } = await adminDb()
+  const { data, error } = await adminDb()
     .from("stock_notifications")
     .select("product_slug")
     .eq("notified", false);
+  if(error)throw new Error(`Waitlist unavailable: ${error.message}`);
   const demand = new Map<string, number>();
   for (const row of data ?? []) {
     const slug = row.product_slug as string;
@@ -168,6 +169,9 @@ export async function attentionQueue(limit = 8): Promise<AttentionQueue> {
   ]);
 
   const items: AttentionItem[] = [];
+  for(const result of [fulfilRes,paymentRes,reviewRes,fulfilTotal,paymentTotal,reviewTotal]){
+    if(result.error)throw new Error(`Priorities unavailable: ${result.error.message}`);
+  }
 
   for (const row of (fulfilRes.data ?? []) as unknown as {
     id: string;
@@ -442,6 +446,9 @@ export async function anomalyNudges(): Promise<Nudge[]> {
   ]);
 
   const nudges: Nudge[] = [];
+  for(const result of [ordersRes,emailRes,unpaidRes,sentRes]){
+    if(result.error)throw new Error(`Operational alerts unavailable: ${result.error.message}`);
+  }
 
   // 1. An unusually long quiet spell. The baseline is this store's own median
   //    gap between paid orders, so a slow shop is not permanently alarmed.
