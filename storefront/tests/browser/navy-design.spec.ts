@@ -16,8 +16,13 @@ test('navy page fits the viewport and keeps product, report and brand links acce
  await page.evaluate(()=>document.fonts.ready.then(()=>undefined));
  const layout=await page.evaluate(()=>({fits:document.documentElement.scrollWidth<=innerWidth,viewport:innerWidth,width:document.documentElement.scrollWidth,fontStatus:document.fonts.status,wide:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth&&!e.closest('.rb-hero-art')).map(e=>({tag:e.tagName,className:e.className,right:e.getBoundingClientRect().right})).slice(0,12),widthAfterMeasurement:document.documentElement.scrollWidth}));
  expect(layout.fits,JSON.stringify(layout)).toBe(true);
- await expect(page.locator('.rb-header img')).toHaveAttribute('src','/logo.png');
- await expect(page.locator('.rb-footer img')).toHaveAttribute('src','/logo.png');
+ for(const shell of ['.rb-header','.rb-footer']){
+  const mark=page.locator(`${shell} .rb-brand-mark`);
+  await expect(mark).toBeVisible();
+  expect(await mark.evaluate(e=>getComputedStyle(e).maskImage)).toContain('/brand/ecl-cobalt-symbol.png');
+ }
+ await expect(page.locator('.rb-header .rb-brand-mark')).toHaveCSS('background-color','rgb(36, 92, 255)');
+ await expect(page.locator('.rb-footer .rb-brand-mark')).toHaveCSS('background-color','rgb(255, 255, 255)');
  await expect(page.getByRole('link',{name:'Retatrutide',exact:true})).toHaveAttribute('href','/product/retatrutide?rebrand=v2');
  await page.getByRole('button',{name:'Metabolic research',exact:true}).click();
  await expect(page.getByRole('link',{name:'Retatrutide',exact:true})).toBeVisible();
