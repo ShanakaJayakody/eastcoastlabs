@@ -187,6 +187,7 @@ export interface OrderDetail {
     product_name: string | null;
     product_slug: string | null;
     variant_label: string | null;
+    size_label: string | null;
     sku: string | null;
     unit_price_cents: number;
     qty: number;
@@ -214,7 +215,7 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
     db
       .from("order_items")
       .select(
-        "id, variant_id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents, refunded_qty, refunded_cents",
+        "id, variant_id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents, refunded_qty, refunded_cents, product_variants(products(size_label))",
       )
       .eq("order_id", id),
     db
@@ -226,7 +227,13 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
 
   return {
     ...(order as unknown as OrderDetail),
-    items: (items ?? []) as OrderDetail["items"],
+    items: (items ?? []).map((row) => {
+      const item = row as unknown as Omit<OrderDetail["items"][number], "size_label"> & {
+        product_variants?: { products?: { size_label?: string | null } | null } | null;
+      };
+      const { product_variants, ...snapshot } = item;
+      return { ...snapshot, size_label: product_variants?.products?.size_label ?? null };
+    }),
     events: (events ?? []) as OrderDetail["events"],
   };
 }

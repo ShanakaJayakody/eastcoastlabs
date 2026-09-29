@@ -7,6 +7,7 @@ import { Minus, Plus, X } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { OrderStatus } from "@/lib/admin/orders";
 import { editItemQty, removeItem } from "@/app/admin/(dashboard)/orders/actions";
+import { orderItemVariantIdentity } from "@/lib/admin/order-item-identity";
 import ConfirmModal from "./ConfirmModal";
 import RefundReview from "./RefundReview";
 
@@ -14,6 +15,7 @@ export interface ItemRow {
   id: string;
   product_name: string | null;
   variant_label: string | null;
+  size_label?: string | null;
   sku: string | null;
   unit_price_cents: number;
   qty: number;
@@ -74,12 +76,20 @@ export default function OrderItemsPanel({
         <tbody className="divide-y divide-line">
           {items.map((it) => {
             const remaining = it.qty - it.refunded_qty;
+            const identity = orderItemVariantIdentity(it.variant_label, it.size_label);
             return (
               <tr key={it.id}>
                 <td className="px-4 py-3">
-                  <span className="text-fg-2">{it.product_name}</span>
+                  <span className="flex flex-wrap items-center gap-2 text-fg-2">
+                    <span className="font-medium">{it.product_name}</span>
+                    {identity.sizeLabel && (
+                      <span className="rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-sm font-bold text-accent-2">
+                        {identity.sizeLabel}
+                      </span>
+                    )}
+                  </span>
                   <span className="block text-xs text-muted">
-                    {it.variant_label}
+                    {identity.detailLabel}
                     {it.sku ? ` · ${it.sku}` : " · accessory"}
                   </span>
                   {it.refunded_qty > 0 && (

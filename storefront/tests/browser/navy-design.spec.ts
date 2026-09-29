@@ -82,7 +82,7 @@ test('navy mobile menu traps focus and closes after navigation',async({page},tes
  await expect(dialog).toBeHidden();
  await expect(opener).toBeFocused();
  await opener.click();
- await dialog.getByRole('link',{name:'Research peptides',exact:true}).click();
+ await dialog.getByRole('link',{name:'Explore this page',exact:true}).click();
  await expect(dialog).toBeHidden();
  expect(await page.evaluate(()=>document.body.style.overflow)).not.toBe('hidden');
 });
