@@ -101,7 +101,7 @@ it('reports exact uncapped overdue counts and separates yesterday from a new Mel
     ('synthetic@example.test','paid','2026-09-30T14:00:00Z','2026-09-30T14:00:00Z',20001),
     ('synthetic@example.test','pending','2026-09-28T10:00:00Z',null,99999);
     update orders set action_queue_entered_at=paid_at where status='paid';`);
-  const result=(await db.query("select admin_sms_order_totals('2026-09-30T22:00:00Z') result")).rows[0].result;
+  const result=(await db.query<{result:unknown}>("select admin_sms_order_totals('2026-09-30T22:00:00Z') result")).rows[0].result;
   expect(result).toEqual({yesterdayRevenueCents:124001,monthRevenueCents:20001,overdueFulfilment:60});
 });
 
