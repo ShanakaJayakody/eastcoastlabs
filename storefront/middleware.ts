@@ -11,14 +11,25 @@
  */
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {isReadOnlyPreview,PREVIEW_READ_ONLY_MESSAGE} from "./lib/admin/preview-policy";
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function middleware(request: NextRequest) {
+  const path=request.nextUrl.pathname;
+  const isAdmin=path==='/admin'||path.startsWith('/admin/');
+  const staticAsset=/^\/(?:_next\/(?:static|image)|fonts|brand|images)\//.test(path)||path==='/favicon.ico';
+  if(isReadOnlyPreview()&&!isAdmin&&!staticAsset) {
+    if(path==='/'&&['GET','HEAD'].includes(request.method)) return NextResponse.redirect(new URL('/admin',request.url));
+    return new NextResponse(PREVIEW_READ_ONLY_MESSAGE,{status:403,headers:{
+      'Cache-Control':'private, no-store, max-age=0','X-Robots-Tag':'noindex, nofollow, noarchive','Referrer-Policy':'no-referrer',
+    }});
+  }
+  if(!isAdmin) return NextResponse.next();
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(URL, ANON, {
+  const supabase = createServerClient(SUPABASE_URL, ANON, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -56,5 +67,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

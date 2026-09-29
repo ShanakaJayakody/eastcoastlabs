@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -15,7 +16,7 @@ type Status = "pending" | "published" | "rejected";
 
 /** Moderate a review. Publishing is the only path to shopper visibility. */
 export async function setReviewStatus(id: string, status: Status): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const db = adminDb();
     const { data: before } = await db
@@ -54,7 +55,7 @@ export async function createReview(input: {
   body: string;
   verified: boolean;
 }): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!input.productSlug || !input.author.trim() || !input.title.trim() || !input.body.trim())
     return { ok: false, error: "Product, author, title and body are required." };
   if (!Number.isInteger(input.rating) || input.rating < 1 || input.rating > 5)
@@ -90,7 +91,7 @@ export async function createReview(input: {
 
 /** Purge the seeded sample reviews, if any were ever loaded into the table. */
 export async function deleteSampleReviews(): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const db = adminDb();
     const { error } = await db.from("reviews").delete().eq("is_sample", true);
