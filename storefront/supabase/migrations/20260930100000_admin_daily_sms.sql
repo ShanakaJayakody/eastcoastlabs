@@ -99,15 +99,31 @@ begin
   return total;
 end $$;
 
-create function public.claim_admin_sms(p_day date,p_id uuid default null)
-returns setof public.admin_sms_outbox language plpgsql security definer set search_path=public as $$
-declare chosen uuid;
+create function public.reconcile_admin_sms()
+returns integer language plpgsql security definer set search_path=public as $$
+declare affected integer;
 begin
-  -- An expired uncertain attempt needs reconciliation; never manufacture a new intent.
+  -- Runs even outside the sending window and while the operator has paused sends.
   update admin_sms_outbox set status=case when first_attempt_at is null then 'expired' else 'uncertain' end,
     last_error='Delivery window expired or retry limit reached',updated_at=now()
     where status in ('queued','sending') and (lease_until is null or lease_until<=now())
       and (expires_at<=now() or first_attempt_at<now()-interval '23 hours' or attempts>=6);
+  get diagnostics affected=row_count;
+  return affected;
+end $$;
+
+create function public.admin_sms_unresolved_count()
+returns integer language sql stable security definer set search_path=public as $$
+  select count(*)::integer from admin_sms_outbox where status in ('failed','uncertain','expired')
+    or (status='accepted' and updated_at<now()-interval '2 hours')
+    or (status in ('queued','sending') and expires_at<=now() and (lease_until is null or lease_until<=now()))
+$$;
+
+create function public.claim_admin_sms(p_day date,p_id uuid default null)
+returns setof public.admin_sms_outbox language plpgsql security definer set search_path=public as $$
+declare chosen uuid;
+begin
+  perform reconcile_admin_sms();
   perform 1 from admin_sms_settings where singleton for share;
   select id into chosen from admin_sms_outbox
     where local_send_date=p_day and status in ('queued','sending') and next_attempt_at<=now()
@@ -187,7 +203,7 @@ do $$ declare f record;
 begin
   for f in select oid::regprocedure signature from pg_proc where pronamespace='public'::regnamespace
     and proname in ('save_admin_sms_settings','admin_sms_order_totals','enqueue_admin_sms','claim_admin_sms',
-      'authorize_admin_sms','finish_admin_sms','report_admin_sms') loop
+      'authorize_admin_sms','finish_admin_sms','report_admin_sms','reconcile_admin_sms','admin_sms_unresolved_count') loop
     execute format('revoke all on function %s from public,anon,authenticated',f.signature);
     execute format('grant execute on function %s to service_role',f.signature);
   end loop;

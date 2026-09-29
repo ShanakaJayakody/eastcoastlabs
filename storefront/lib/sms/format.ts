@@ -4,6 +4,7 @@ const WATCHED = [
   ['bacteriostatic-water','Bac Water'], ['alcohol-swabs','Alc Swabs'],
   ['semaglutide','Sema'], ['tesamorelin','Tesa'], ['ss-31','SS31'], ['igf','IGF'],
 ] as const;
+export const ADMIN_SMS_STOCK_SLUGS=WATCHED.map(([slug])=>slug);
 const GSM = new Set(Array.from('@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà'));
 const EXTENDED = new Set(Array.from('\f^{}\\[~]|€'));
 export function smsSegments(body: string): number {

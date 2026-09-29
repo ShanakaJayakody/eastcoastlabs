@@ -118,3 +118,15 @@ it('saves settings with an atomic audit and denies public and authenticated data
   expect(await queue()).toEqual({queued:1});
   await db.exec('reset role');
 });
+
+it('reconciles an interrupted final-window send even while paused and alerts after more than 24 hours',async()=>{
+  await db.exec('update admin_sms_settings set enabled=true');await queue();
+  const row=await claim();await authorize(row);
+  await db.exec(`update admin_sms_settings set enabled=false;
+    update admin_sms_outbox set created_at=now()-interval '26 hours',first_attempt_at=now()-interval '25 hours',
+      expires_at=now()-interval '21 hours',lease_until=now()-interval '24 hours',updated_at=now()-interval '25 hours'`);
+  expect((await db.query<{n:number}>('select reconcile_admin_sms() n')).rows[0].n).toBe(1);
+  expect((await rows())[0].status).toBe('uncertain');
+  expect((await db.query<{n:number}>('select admin_sms_unresolved_count() n')).rows[0].n).toBe(1);
+  expect((await db.query<{n:number}>('select reconcile_admin_sms() n')).rows[0].n).toBe(0);
+});

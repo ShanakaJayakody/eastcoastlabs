@@ -4,7 +4,7 @@ import { listProducts } from './products';
 import { briefRecipients } from './daily-brief';
 import { queueEmail } from './email';
 import { emailShell, emailButton } from '@/lib/email/layout';
-import { smsSchedule, selectLowStockNames } from '@/lib/sms/format';
+import { smsSchedule, selectLowStockNames, ADMIN_SMS_STOCK_SLUGS } from '@/lib/sms/format';
 import { mobileMessageConfig, listAdminSmsRecipients, getMobileMessageBalance, sendMobileMessage } from '@/lib/sms/mobile-message';
 import { runSmsWorker, type SmsIssue, type SmsRunOptions } from '@/lib/sms/worker';
 import type { AdminSmsSettings, AdminSmsSummary, SmsOutboxRow } from '@/lib/sms/types';
@@ -20,7 +20,7 @@ export async function getAdminSmsSettings():Promise<AdminSmsSettings> {
   return data as AdminSmsSettings;
 }
 export async function buildAdminSmsSummary(now=new Date()):Promise<AdminSmsSummary> {
-  const [totals,products]=await Promise.all([smsRpc('admin_sms_order_totals',{p_now:now.toISOString()}),listProducts()]);
+  const [totals,products]=await Promise.all([smsRpc('admin_sms_order_totals',{p_now:now.toISOString()}),listProducts({requireStockFor:ADMIN_SMS_STOCK_SLUGS})]);
   if(!totals||typeof totals!=='object')throw new Error('Director SMS totals unavailable');
   const day=smsSchedule(now,8).day;
   const yesterday=new Date(new Date(day+'T12:00:00Z').getTime()-86400000).toISOString().slice(0,10);
@@ -47,15 +47,15 @@ export async function recentAdminSms():Promise<SmsOutboxRow[]> {
   return data as SmsOutboxRow[];
 }
 async function alertUnresolved(now:Date) {
-  const {count,error}=await adminDb().from('admin_sms_outbox').select('id',{count:'exact',head:true})
-    .gte('created_at',new Date(now.getTime()-86400000).toISOString())
-    .or(`status.in.(failed,uncertain,expired),and(status.eq.accepted,updated_at.lt.${new Date(now.getTime()-7200000).toISOString()})`);
-  if(error)throw new Error('Director SMS health unavailable');
+  const count=await smsRpc('admin_sms_unresolved_count',{});
   if(count)await queueAdminSmsAlert('unresolved',now);
 }
 export async function runDailyAdminSms(now=new Date(),options:SmsRunOptions={}):Promise<Record<string,unknown>> {
   const enabled=()=>process.env.ADMIN_SMS_ENABLED==='true';
-  if(!options.dry&&enabled())await alertUnresolved(now);
+  if(!options.dry&&enabled()){
+    await smsRpc('reconcile_admin_sms',{});
+    await alertUnresolved(now);
+  }
   return runSmsWorker(now,options,{
     enabled,settings:getAdminSmsSettings,summary:buildAdminSmsSummary,recipients:listAdminSmsRecipients,
     balance:getMobileMessageBalance,config:mobileMessageConfig,send:sendMobileMessage,rpc:smsRpc,alert:queueAdminSmsAlert,
