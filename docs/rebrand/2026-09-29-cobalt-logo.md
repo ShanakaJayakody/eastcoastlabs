@@ -1,15 +1,15 @@
-# Cobalt logo refinement
+# Navy accent logo refinement
 
-The navy review page (`/2`) uses a cobalt ECL monogram with a horizontal Manrope wordmark. The entire lockup is one ink colour (`#245CFF`) on light backgrounds and white on the navy footer. The wordmark retains the existing name and research-peptides descriptor. The original homepage remains unchanged.
+The navy review page (`/2`) uses the ECL navy accent (`#275B88`) for the ECL monogram, paired with a dark-navy horizontal Manrope wordmark. The footer reverses the full lockup to white. The wordmark retains the existing name and research-peptides descriptor. The original homepage remains unchanged.
 
 ## Assets
 
 - `storefront/public/brand/ecl-cobalt-master.png`: original transparent image-generation output, 1254 × 1254.
 - `storefront/public/brand/ecl-cobalt-symbol.png`: trimmed, resized transparent symbol, 512 × 512. Used as a CSS alpha mask so the displayed lockup has one uniform ink colour.
-- `storefront/app/(variant)/2/icon.png`: symbol-only 96 × 96 favicon, scoped to the review route.
+- `storefront/app/(variant)/2/icon.png`: symbol-only 96 × 96 favicon in the ECL navy accent, scoped to the review route.
 - `storefront/public/fonts/manrope-latin.woff2`: unchanged Google Fonts Latin variable subset; OFL license beside the font. The Manrope family is used only in the wordmark.
 
-The reference was the user's blue interlocking ECL monogram image, `Codex Image Sep 28, 2026, 12_01_26 PM.png`. The built-in image-generation tool produced the transparent symbol. Sharp was used for trimming, resizing and PNG export. The website wordmark is live, selectable text rather than generated lettering.
+The reference was the user's blue interlocking ECL monogram image, `Codex Image Sep 28, 2026, 12_01_26 PM.png`. The built-in image-generation tool produced the transparent symbol. Sharp was used for trimming, resizing, the navy favicon export and PNG output. The website applies the ECL navy accent through the source image's alpha mask, so the original cobalt source image is retained only as source artwork. The website wordmark is live, selectable text rather than generated lettering.
 
 ## Generation prompt
 

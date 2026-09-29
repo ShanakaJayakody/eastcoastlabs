@@ -21,7 +21,7 @@ test('navy page fits the viewport and keeps product, report and brand links acce
   await expect(mark).toBeVisible();
   expect(await mark.evaluate(e=>getComputedStyle(e).maskImage)).toContain('/brand/ecl-cobalt-symbol.png');
  }
- await expect(page.locator('.rb-header .rb-brand-mark')).toHaveCSS('background-color','rgb(36, 92, 255)');
+ await expect(page.locator('.rb-header .rb-brand-mark')).toHaveCSS('background-color','rgb(39, 91, 136)');
  await expect(page.locator('.rb-footer .rb-brand-mark')).toHaveCSS('background-color','rgb(255, 255, 255)');
  await expect(page.locator('.rb-header .rb-brand-type')).toHaveCSS('color','rgb(21, 46, 70)');
  await expect(page.locator('.rb-footer .rb-brand-type')).toHaveCSS('color','rgb(255, 255, 255)');
