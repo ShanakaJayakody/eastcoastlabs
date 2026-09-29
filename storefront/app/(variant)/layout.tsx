@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Providers from "@/components/Providers";
 import { getSettings } from "@/lib/settings";
+import { shippingRules } from '@/lib/shipping-policy';
+import { availablePaymentOptions } from '@/lib/payments';
 import {
   getUpsellStock,
   getCartPrices,
@@ -14,7 +16,7 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = {
   colorScheme: "light",
-  themeColor: "#f8f8f2",
+  themeColor: "#112b43",
 };
 
 /** Independent visual shell; prices, inventory and checkout remain shared. */
@@ -39,6 +41,8 @@ export default async function VariantLayout({
       stock={stock}
       prices={prices}
       variants={variants}
+      shipping={shippingRules(settings)}
+      paymentLabels={availablePaymentOptions(settings).map(option => option.label)}
     >
       {children}
     </Providers>

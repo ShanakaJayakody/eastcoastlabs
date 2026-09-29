@@ -17,7 +17,9 @@ export const HOMEPAGE_EXPERIMENT: ExperimentConfig = {
  * or random assignment is enabled by visiting a design preview. */
 export const REBRAND_EXPERIMENT: ExperimentConfig = {
   id: "rebrand-2026q3",
-  active: process.env.NEXT_PUBLIC_REBRAND_EXPERIMENT_ACTIVE === "1",
+  // The owner selected navy. Retain the identity for historical attribution,
+  // but never allocate new traffic to the retired design comparison.
+  active: false,
   variants: [{ id: "v1", weight: 1 }, { id: "v2", weight: 1 }, { id: "v3", weight: 1 }],
 };
 

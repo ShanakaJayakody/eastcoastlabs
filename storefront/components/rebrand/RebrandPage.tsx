@@ -5,13 +5,13 @@ import { getSettings } from "@/lib/settings";
 import { decorateCards } from "@/lib/storefront-catalog";
 import { labReports } from "@/lib/lab-reports";
 import RebrandExperience from "./RebrandExperience";
-import type { RebrandVariant } from "./content";
+import { availablePaymentOptions } from '@/lib/payments';
 import { withRebrandImages } from '@/lib/rebrand-imagery';
 
 export default async function RebrandPage({
   variant,
 }: {
-  variant: RebrandVariant;
+  variant: "v2";
 }) {
   const [catalog, records, settings] = await Promise.all([
     getCatalog(),
@@ -31,6 +31,7 @@ export default async function RebrandPage({
       productReports={labReports.map(({ productSlug, image, testDate, sample }) => ({ productSlug, image, testDate, sample }))}
       reportCount={labReports.length}
       supportEmail={settings.supportEmail}
+      paymentLabels={availablePaymentOptions(settings).map(option => option.label)}
       supportHours={settings.supportHours}
       legalName={settings.legalName}
       abn={settings.abn}
