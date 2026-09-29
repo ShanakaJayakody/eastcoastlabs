@@ -13,7 +13,7 @@ function CartFixture() {
   }
   return <>
     <div className="flex flex-wrap gap-2 p-4">
-      {[99.99, 100, 149.99, 150, 199.99, 200].map(amount => <button key={amount} className="rounded border border-line p-2" onClick={() => load(amount)}>Cart ${amount}</button>)}
+      {[149.99, 150, 199.99, 200, 249.99, 250].map(amount => <button key={amount} className="rounded border border-line p-2" onClick={() => load(amount)}>Cart ${amount}</button>)}
     </div>
     <CartContents />
   </>;
@@ -31,7 +31,7 @@ function Preview() {
     </div>
     <main style={{ width, maxWidth: '100%' }} className="mx-auto border border-line bg-ink">
       <h1 className="p-4 text-xl">Cart rewards — synthetic preview</h1>
-      <CartProvider thresholds={{freeShipping:100, gift:150, express:expressEnabled ? 200 : undefined}} stock={{'bacteriostatic-water': giftAvailable ? 5 : 0}}>
+      <CartProvider thresholds={{freeShipping:150, gift:200, express:expressEnabled ? 250 : undefined}} stock={{'bacteriostatic-water': giftAvailable ? 5 : 0}}>
         <CartFixture />
       </CartProvider>
     </main>

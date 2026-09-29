@@ -7,14 +7,14 @@ import FreeShippingProgress from "@/components/FreeShippingProgress";
 afterEach(cleanup);
 
 it.each([
-  [99.99, "$0.01 away from free standard shipping"],
-  [100, "$50.00 away from free bacteriostatic water"],
-  [149.99, "$0.01 away from free bacteriostatic water"],
-  [150, "$50.00 away from free Express shipping"],
-  [199.99, "$0.01 away from free Express shipping"],
-  [200, "All available rewards unlocked"],
+  [149.99, "$0.01 away from free standard shipping"],
+  [150, "$50.00 away from free bacteriostatic water"],
+  [199.99, "$0.01 away from free bacteriostatic water"],
+  [200, "$50.00 away from free Express shipping"],
+  [249.99, "$0.01 away from free Express shipping"],
+  [250, "All available rewards unlocked"],
 ])("shows the next reward accurately at $%s", (subtotal, message) => {
-  render(<FreeShippingProgress subtotal={subtotal as number} threshold={100} giftThreshold={150} expressThreshold={200} />);
+  render(<FreeShippingProgress subtotal={subtotal as number} threshold={150} giftThreshold={200} expressThreshold={250} />);
   expect(screen.getByRole("status")).toHaveTextContent(message);
   expect(screen.getByText(/after discounts.*checkout/i)).toBeInTheDocument();
   expect(screen.getAllByRole("listitem")).toHaveLength(3);
