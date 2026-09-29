@@ -2,7 +2,7 @@ import MarketingOnly from "./MarketingOnly";
 import Link from './rebrand/RebrandLink';
 import Image from "next/image";
 import ResearchDisclaimer from "./ResearchDisclaimer";
-import EmailCapture from "./EmailCapture";
+import NewsletterForm from './NewsletterForm';
 import { getCollections } from "@/lib/collections";
 
 export default function Footer({ supportEmail = "eclpeptides@gmail.com",legalName,abn,supportHours="Mon–Fri, 9am–5pm AEST" }: { supportEmail?: string;legalName?:string;abn?:string;supportHours?:string }) {
@@ -19,7 +19,7 @@ export default function Footer({ supportEmail = "eclpeptides@gmail.com",legalNam
               Be first to know when a batch is back in stock or a new research compound drops.
             </p>
           </div>
-          <EmailCapture source="footer" cta="Subscribe" successMsg="✓ Subscribed — watch your inbox." />
+          <NewsletterForm source="footer" cta="Subscribe" successMsg="✓ Subscribed — watch your inbox." />
         </div>
 
         </MarketingOnly>

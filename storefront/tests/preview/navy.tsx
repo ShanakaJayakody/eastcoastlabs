@@ -2,6 +2,7 @@ import {createRoot} from 'react-dom/client';
 import '../../app/globals.css';
 import '../../components/rebrand/rebrand.css';
 import RebrandExperience from '../../components/rebrand/RebrandExperience';
+import NavyFooter from '../../components/rebrand/NavyFooter';
 import {CartProvider} from '../../lib/cart-context';
 import {UIProvider} from '../../lib/ui-context';
 import {getCollections} from '../../lib/collections';
@@ -19,4 +20,4 @@ const products:CardProduct[] = ['retatrutide', 'ghk-cu', 'klow', 'bpc-157', 'tes
   {id:900115,slug:'bpc-157-large',sku:'BPC-15',label:'15 mg',priceMinor:'8500',available:3,tiers:null},
  ]} : {}),
 }));
-createRoot(document.getElementById('root')!).render(<CartProvider stock={{'bacteriostatic-water':0}}><UIProvider><RebrandExperience variant="v2" products={products} collections={getCollections()} records={[]} report={labReports.find(r=>r.productSlug==='ghk-cu')!} productReports={labReports} reportCount={labReports.length} supportEmail="support@example.test" paymentLabels={['Bank transfer','PayID']}/></UIProvider></CartProvider>);
+createRoot(document.getElementById('root')!).render(<CartProvider stock={{'bacteriostatic-water':0}}><UIProvider><RebrandExperience variant="v2" products={products} collections={getCollections()} records={[]} report={labReports.find(r=>r.productSlug==='ghk-cu')!} productReports={labReports} reportCount={labReports.length} supportEmail="support@example.test" paymentLabels={['Bank transfer','PayID']}><NavyFooter collections={getCollections()} supportEmail="support@example.test" /></RebrandExperience></UIProvider></CartProvider>);
