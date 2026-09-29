@@ -5,7 +5,7 @@ it('applies the complete migration chain to an isolated database with restricted
  const db=new PGlite();
  try {
   await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
-   create schema storage;create table storage.buckets(id text primary key,name text,public boolean);`);
+   create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage;create table storage.buckets(id text primary key,name text,public boolean);`);
   for(const file of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort()) {
    try {await db.exec(readFileSync(`supabase/migrations/${file}`,'utf8'));}
    catch(e){throw new Error(`Migration ${file}: ${e instanceof Error?e.message:String(e)}`);}

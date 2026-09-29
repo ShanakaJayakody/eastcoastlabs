@@ -4,7 +4,7 @@ import {beforeAll,afterAll,beforeEach,expect,it} from 'vitest';
 let db:PGlite;
 const variant='20000000-0000-0000-0000-000000000088';
 beforeAll(async()=>{
- db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema storage;create table storage.buckets(id text primary key,name text,public boolean);`);
+ db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage;create table storage.buckets(id text primary key,name text,public boolean);`);
  for(const file of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort())await db.exec(readFileSync(`supabase/migrations/${file}`,'utf8'));
  await db.exec(`insert into products(id,slug,name) values('10000000-0000-0000-0000-000000000088','bridge-fixture','Bridge fixture');insert into product_variants(id,product_id,sku,pack_size,label,price_cents) values('${variant}','10000000-0000-0000-0000-000000000088','BRIDGE',1,'1 vial',1000);insert into stock_movements(variant_id,qty,reason) values('${variant}',10,'received');`);
 });

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { CARRIERS } from "@/lib/customer-orders/presentation";
 import { confirmPayment, correctTracking, advanceStatus, cancel, addNote, reinstate, deleteOrder } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
 import RefundReview from "./RefundReview";
@@ -18,13 +19,14 @@ export default function OrderActions({
   orderId,
   status,
   stockCheck,
-  orderNumber, trackingNumber, hasRefunds=false,
+  orderNumber, trackingNumber, carrierCode, hasRefunds=false,
 }: {
   orderId: string;
   orderNumber?:string;
   hasRefunds?:boolean;
   remainingRefundCents?:number;
   trackingNumber?:string|null;
+  carrierCode?:string|null;
   status: OrderStatus;
   /** Line-by-line availability, supplied only for cancelled orders. */
   stockCheck?: ReinstateLineCheck[];
@@ -32,6 +34,8 @@ export default function OrderActions({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [paymentRef, setPaymentRef] = useState("");
+  const [carrier, setCarrier] = useState(carrierCode ?? "");
+  const carrierField = <label className="block text-xs">Shipping carrier<select className={"mt-1 block w-full rounded border border-line bg-ink p-2"} value={carrier} onChange={e=>setCarrier(e.target.value)}><option value="">Unknown / other</option>{Object.entries(CARRIERS).map(([key,value])=><option key={key} value={key}>{value.name}</option>)}</select></label>;
   const [tracking, setTracking] = useState(trackingNumber ?? "");
   const [note, setNote] = useState("");
 
@@ -101,7 +105,7 @@ export default function OrderActions({
           </label>
         </div>}
       />}
-      {(status==='shipped'||status==='completed') && <div className="space-y-2"><label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><button disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking),'Tracking updated')}>Save tracking correction</button></div>}
+      {(status==='shipped'||status==='completed') && <div className="space-y-2">{carrierField}<label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><button disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking,carrier||null),'Tracking updated')}>Save tracking correction</button></div>}
 
       {status === "cancelled" && (
         <div className="space-y-2 rounded-lg border border-line-2 bg-ink-2/50 p-3">
@@ -183,7 +187,9 @@ export default function OrderActions({
 
       {status === "processing" || status === "paid" ? (
         <div className="space-y-2">
+          {carrierField}
           <input
+            aria-label="Tracking number"
             placeholder="Tracking number"
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
@@ -191,7 +197,7 @@ export default function OrderActions({
           />
           <button
             disabled={pending || !tracking.trim()}
-            onClick={() => run(() => advanceStatus(orderId, "shipped", tracking), "Marked shipped — dispatch email queued")}
+            onClick={() => run(() => advanceStatus(orderId, "shipped", tracking, carrier || null), "Marked shipped — dispatch email queued")}
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Mark shipped {tracking ? "with tracking" : ""}

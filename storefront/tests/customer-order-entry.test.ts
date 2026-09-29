@@ -1,0 +1,12 @@
+import {beforeEach,it,expect,vi} from 'vitest';
+const m=vi.hoisted(()=>({row:vi.fn(),eq:vi.fn()}));
+vi.mock('@/lib/supabase',()=>({supabaseAdmin:()=>({from:()=>({select:()=>({eq:m.eq})})})}));
+import {GET} from '@/app/(customer)/orders/access/route';
+import {createOrderViewToken} from '@/lib/customer-orders/tokens';
+import {safeCustomerReturnPath} from '@/lib/customer-auth/return-path';
+const id='10000000-0000-0000-0000-000000000001';
+beforeEach(()=>{vi.clearAllMocks();vi.stubEnv('CUSTOMER_ORDERS_ENABLED','1');vi.stubEnv('ORDER_ACCESS_SECRET','k'.repeat(32));m.eq.mockImplementation(()=>({eq:m.eq,maybeSingle:m.row}));m.row.mockResolvedValue({data:{id,order_access_version:1},error:null});});
+it('rejects malformed grants before any order lookup',async()=>{const r=await GET(new Request('https://www.eastcoastlabs.com.au/orders/access?token=bad'));expect(r.status).toBe(303);expect(r.headers.get('location')).toContain('/account/sign-in');expect(m.row).not.toHaveBeenCalled();expect(r.headers.get('set-cookie')).toBeNull();});
+it('exchanges a version-matched link for a private cookie and clean redirect',async()=>{const r=await GET(new Request(`https://www.eastcoastlabs.com.au/orders/access?token=${createOrderViewToken(id)}`));expect(r.status).toBe(303);expect(r.headers.get('location')).toBe(`https://www.eastcoastlabs.com.au/orders/${id}`);expect(r.headers.get('set-cookie')).toContain('HttpOnly');expect(r.headers.get('set-cookie')).toContain('SameSite=lax');expect(r.headers.get('cache-control')).toContain('no-store');expect(r.headers.get('referrer-policy')).toBe('no-referrer');});
+it('revoked links cannot set a cookie',async()=>{m.row.mockResolvedValue({data:null,error:null});const r=await GET(new Request(`https://www.eastcoastlabs.com.au/orders/access?token=${createOrderViewToken(id)}`));expect(r.headers.get('set-cookie')).toBeNull();});
+it('keeps sign-in returns on known private pages without queries or external URLs',()=>{for(const input of ['//evil.test','https://evil.test','/admin','/orders/access?token=foo','/account/orders?evil'])expect(safeCustomerReturnPath(input)).toBe('/account/orders');expect(safeCustomerReturnPath(`/orders/${id}`)).toBe(`/orders/${id}`);});

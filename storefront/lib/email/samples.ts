@@ -91,7 +91,7 @@ const SAMPLE_CART = [
   { name: "Bacteriostatic Water 10ml", quantity: 1 },
 ];
 
-export function samplePayload(template: EmailTemplate): Record<string, unknown> {
+function legacySamplePayload(template: EmailTemplate): Record<string, unknown> {
   const base: Record<string, unknown> = MARKETING_TEMPLATES.includes(template)
     ? { unsubscribe_url: SAMPLE_UNSUB }
     : {};
@@ -165,4 +165,16 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
     default:
       return base;
   }
+}
+
+/** Real product artwork, synthetic order/customer data. Never a live capability. */
+export function samplePayload(template: EmailTemplate): Record<string, unknown> {
+  const payload=legacySamplePayload(template);
+  if (!['payment_instructions','payment_reminder','payment_expiring','payment_expired','order_confirmation','order_shipped','order_refunded'].includes(template)) return payload;
+  const id='00000000-0000-0000-0000-000000000000';
+  return {...payload,order_id:id,order_summary_v1:{order_id:id,order_number:'ECL-1042',access_version:1,created_at:'2026-09-27T01:00:00Z',currency:'AUD',
+    carrier_code:template==='order_shipped'?'auspost':null,tracking_number:template==='order_shipped'?'SAMPLE-TRACKING':null,
+    subtotal_cents:24900,discount_cents:0,shipping_cents:0,total_cents:24900,refunded_cents:template==='order_refunded'?24900:0,
+    items:[{id:'sample-50',name:'GHK-Cu',size_label:'50 mg',variant_label:'1 vial',qty:2,refunded_qty:template==='order_refunded'?2:0,line_total_cents:19800,discount_cents:0,image_url:'/images/order-email/ghk-cu-50mg.jpg',image_alt:'GHK-Cu 50 mg vial',is_gift:false},
+      {id:'sample-100',name:'GHK-Cu',size_label:'100 mg',variant_label:'1 vial',qty:1,refunded_qty:template==='order_refunded'?1:0,line_total_cents:5100,discount_cents:0,image_url:'/images/order-email/ghk-cu-100mg.jpg',image_alt:'GHK-Cu 100 mg vial',is_gift:false}]}};
 }

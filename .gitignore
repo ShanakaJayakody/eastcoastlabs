@@ -28,3 +28,6 @@ package-lock.json
 .env*.local
 
 .vercel
+
+# Generated local email gallery (contains only synthetic preview capabilities)
+/tmp/email-preview/

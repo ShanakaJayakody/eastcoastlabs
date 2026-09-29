@@ -1,5 +1,6 @@
 "use server";
 
+import { claimCheckoutOrders } from "@/lib/customer-auth/claim";
 import { checkoutFieldErrors, type CheckoutFieldErrors } from "@/lib/checkout-fields";
 import { verifiedRecoveryEpisode } from "@/lib/recovery-consent";
 import { validCheckoutLines as validateLines, normalizeCheckoutLines } from "@/lib/checkout-lines";
@@ -152,6 +153,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       idempotencyKey: input.idempotencyKey, requestFingerprint, analyticsClientId, orderAttribution, purchasedLines: resolved.lines, paymentExpiryHours: settings.paymentExpiryHours, expectedTotalCents: quote.totalCents });
     // Email intent is inserted by the commerce transaction. Provider delivery
     // belongs to the outbox worker and cannot turn a committed order into a failure.
+    await claimCheckoutOrders(email);
     await markCartRecovered(email, order.orderId, recoveryEpisodeId).catch(() => console.error("Checkout recovery attribution awaits investigation"));
     return success(order, resolved.warnings);
   } catch (err) {
