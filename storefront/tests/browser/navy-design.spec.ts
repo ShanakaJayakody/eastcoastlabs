@@ -11,8 +11,11 @@ test.beforeEach(async({page})=>{
 
 test('navy page fits the viewport and keeps product, report and brand links accessible',async({page})=>{
  await expect(page.getByRole('heading',{level:1})).toHaveText(/Research Peptides.*You Can Trust.*Quality You Can.*Verify/);
- const layout=await page.evaluate(()=>({fits:document.documentElement.scrollWidth<=innerWidth,wide:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&!e.closest('.rb-hero-art')).map(e=>({tag:e.tagName,className:e.className,right:e.getBoundingClientRect().right})).slice(0,12)}));
- expect(layout.fits,JSON.stringify(layout.wide)).toBe(true);
+ // Font loading is asynchronous in this client-rendered fixture. Measure the
+ // finished layout; the separate blocked-font case verifies its fallback too.
+ await page.evaluate(()=>document.fonts.ready.then(()=>undefined));
+ const layout=await page.evaluate(()=>({fits:document.documentElement.scrollWidth<=innerWidth,viewport:innerWidth,width:document.documentElement.scrollWidth,fontStatus:document.fonts.status,wide:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth&&!e.closest('.rb-hero-art')).map(e=>({tag:e.tagName,className:e.className,right:e.getBoundingClientRect().right})).slice(0,12),widthAfterMeasurement:document.documentElement.scrollWidth}));
+ expect(layout.fits,JSON.stringify(layout)).toBe(true);
  await expect(page.locator('.rb-header img')).toHaveAttribute('src','/logo.png');
  await expect(page.locator('.rb-footer img')).toHaveAttribute('src','/logo.png');
  await expect(page.getByRole('link',{name:'Retatrutide',exact:true})).toHaveAttribute('href','/product/retatrutide?rebrand=v2');
@@ -23,6 +26,15 @@ test('navy page fits the viewport and keeps product, report and brand links acce
  await expect(page.getByRole('link',{name:'GHK-Cu',exact:true})).toBeVisible();
  const result=await new AxeBuilder({page}).include('.rebrand').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
  expect(result.violations.filter(v=>['serious','critical'].includes(v.impact??''))).toEqual([]);
+});
+
+test('navy layout fits before the brand font is available',async({page})=>{
+ await page.route('**/*.woff2',route=>route.abort());
+ await page.reload();
+ await expect(page.getByRole('heading',{level:1})).toBeVisible();
+ await page.evaluate(()=>document.fonts.ready.then(()=>undefined));
+ const layout=await page.evaluate(()=>({width:document.documentElement.scrollWidth,viewport:innerWidth,wide:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth&&!e.closest('.rb-hero-art')).map(e=>({tag:e.tagName,className:e.className,right:e.getBoundingClientRect().right}))}));
+ expect(layout.width,JSON.stringify(layout)).toBeLessThanOrEqual(layout.viewport);
 });
 
 test('navy cart keeps its compact heading and readable primary action',async({page})=>{
