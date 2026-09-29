@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowDown, ArrowRight, ArrowUpRight, FileCheck2, FileText, FlaskConical, MapPin, MessageCircle, PackageCheck, Plus } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, FileCheck2, FileText, FlaskConical, MessageCircle, PackageCheck, Plus } from "lucide-react";
 import ProductCard, { type CardProduct } from "@/components/ProductCard";
 import CartDrawer from "@/components/CartDrawer";
 import StoreEnhancements from "@/components/StoreEnhancements";
@@ -12,9 +12,10 @@ import type { CoaRecord } from "@/lib/coa";
 import type { LabReport } from "@/lib/lab-reports";
 import { directions, questions } from "./content";
 import { rebrandHref } from "@/lib/rebrand-navigation";
-import NavyBrand from "./NavyBrand";
 import NavyHeader from "./NavyHeader";
 import ProductFinder from "./ProductFinder";
+import NavyResearchExplorer from "./NavyResearchExplorer";
+import './homepage-sections.css';
 
 export interface RebrandProps {
   variant: "v2";
@@ -29,6 +30,8 @@ export interface RebrandProps {
   legalName?: string;
   abn?: string;
   paymentLabels?: string[];
+  faq?: { q: string; a: string }[];
+  children?: ReactNode;
 }
 
 function Hero() {
@@ -130,7 +133,8 @@ function CollectionSection({
             </button>
           ))}
         </div>
-        <div className="rb-products" aria-live="polite">
+        <p className="sr-only" role="status">Showing {visible.length} {active ? active.name : 'popular'} products.</p>
+        <div className="rb-products">
           {visible.map((product) => {
             const supplierReport = productReports.find(
               (item) => item.productSlug === product.slug,
@@ -340,11 +344,11 @@ function AboutSection({ supportEmail, supportHours }: Pick<RebrandProps, "suppor
     <div className="rb-container rb-about-grid">
       <div className="rb-about-image"><Image unoptimized src="/images/rebrand/coastal-women.webp" alt="Editorial portrait of two women beside the Australian coast" fill sizes="(max-width: 760px) 100vw, 50vw" /></div>
       <div className="rb-about-copy">
-        <p className="rb-eyebrow">An Australian company. An open conversation.</p>
-        <h2 id="rb-about-title">You’re welcome<br />to ask us first.</h2>
-        <p>Choosing a supplier shouldn’t mean working everything out on your own. If you’d like to check a product detail, understand a report or ask about delivery, get in touch.</p>
-        <p>Send us the product name or your order number, and we’ll help with the details.</p>
-        <a href={`mailto:${supportEmail}`} className="rb-button rb-button-primary">Contact East Coast Labs<ArrowUpRight size={18} aria-hidden /></a>
+        <p className="rb-eyebrow">From the east coast. For the curious.</p>
+        <h2 id="rb-about-title">Grounded here.<br />Here to help.</h2>
+        <p>We’re an Australian-owned research supplier with a straightforward belief: choosing your research materials should feel informed, considered and clear.</p>
+        <p>From exploring a compound to understanding a report or your order, our local team is here to help with the details.</p>
+        <Link href="/about" className="rb-button rb-button-primary">Meet East Coast Labs<ArrowUpRight size={18} aria-hidden /></Link>
         <a className="rb-support-email" href={`mailto:${supportEmail}`}>{supportEmail}</a>
         {supportHours && <p className="rb-support-hours">{supportHours}</p>}
         <p className="rb-purpose-note">Product and order support. We don’t provide medical or dosing advice.</p>
@@ -366,32 +370,27 @@ function OrderingSection({ paymentLabels = [] }: Pick<RebrandProps, "paymentLabe
   </section>;
 }
 
-function FaqSection({ supportEmail }: Pick<RebrandProps, "supportEmail">) {
-  return <section className="rb-section rb-faq" aria-labelledby="rb-faq-title"><div className="rb-container rb-faq-grid">
-    <div className="rb-faq-intro"><p className="rb-eyebrow">Before you order</p><h2 id="rb-faq-title">A little more<br />information.</h2><p>Looking for a particular detail?<br />You can always ask us.</p><a href={`mailto:${supportEmail}`} className="rb-text-link">Get in touch<ArrowUpRight size={17} aria-hidden /></a></div>
-    <div className="rb-faq-items">{questions.map((item, index) => <details id={`rb-question-${index}`} key={item.q}><summary>{item.q}<Plus size={19} aria-hidden /></summary><p>{item.a}</p></details>)}</div>
+function KnowledgeSection() {
+  return <section id="research-library" className="rb-section rb-library" aria-labelledby="rb-library-title"><div className="rb-container rb-library-grid">
+    <div><p className="rb-eyebrow">Keep asking questions</p><h2 id="rb-library-title">A little curiosity.<br />A clearer understanding.</h2></div>
+    <div><p>Explore compound overviews, learn how to read a lab report, and build your understanding of research fundamentals.</p><Link href="/learn" className="rb-button rb-button-light">Explore the research library<ArrowUpRight size={18} aria-hidden /></Link></div>
   </div></section>;
 }
 
-function Footer({ supportEmail, supportHours, legalName, abn }: Pick<RebrandProps, "supportEmail" | "supportHours" | "legalName" | "abn">) {
-  return <footer className="rb-footer" id="contact"><div className="rb-container">
-    <div className="rb-footer-top"><div><p className="rb-eyebrow">Explore East Coast Labs</p><h2>Find your next research peptide.</h2></div><Link href="/shop?rebrand=v2" className="rb-button rb-button-light">Shop the full range<ArrowUpRight size={18} aria-hidden /></Link></div>
-    <div className="rb-footer-grid">
-      <div className="rb-footer-brand"><NavyBrand footer /><p>Australian-owned supplier of laboratory research peptides.</p><span className="rb-location"><MapPin size={15} aria-hidden />Australia</span></div>
-      <nav aria-label="Footer collection links"><h3>Explore</h3><Link href="/shop?rebrand=v2">Research peptides</Link><Link href="/lab-results">Lab reports</Link><a href="#about">About us</a><Link href="/learn">Research library</Link></nav>
-      <nav aria-label="Customer information"><h3>Customer care</h3><Link href="/shipping">Shipping & delivery</Link><Link href="/returns">Returns policy</Link><Link href="/privacy">Privacy policy</Link><Link href="/terms">Terms & conditions</Link></nav>
-      <div className="rb-footer-contact"><h3>Let’s talk</h3><a className="rb-support-email" href={`mailto:${supportEmail}`}>{supportEmail}</a>{supportHours && <p>{supportHours}</p>}<p>Questions about a product or an order?<br />We’re here to help.</p></div>
-    </div>
-    <div className="rb-footer-bottom"><span>© {new Date().getFullYear()} {legalName || 'East Coast Labs'}{abn ? ` · ABN ${abn}` : ''}</span><span>For laboratory research only. Not for human or animal consumption.</span></div>
-  </div></footer>;
+function FaqSection({ supportEmail, faq = questions }: Pick<RebrandProps, "supportEmail" | "faq">) {
+  if (!faq.length) return null;
+  return <section className="rb-section rb-faq" aria-labelledby="rb-faq-title"><div className="rb-container rb-faq-grid">
+    <div className="rb-faq-intro"><p className="rb-eyebrow">Before you order</p><h2 id="rb-faq-title">A little more<br />information.</h2><p>Looking for a particular detail?<br />You can always ask us.</p><a href={`mailto:${supportEmail}`} className="rb-text-link">Get in touch<ArrowUpRight size={17} aria-hidden /></a></div>
+    <div className="rb-faq-items">{faq.map((item, index) => <details id={`rb-question-${index}`} key={item.q}><summary>{item.q}<Plus size={19} aria-hidden /></summary><p>{item.a}</p></details>)}</div>
+  </div></section>;
 }
 
 export default function RebrandExperience(props: RebrandProps) {
   return <div className="rebrand rb-v2" data-brand-variant="v2">
     <NavyHeader />
     <main id="main-content" tabIndex={-1}>
-      <Hero /><TrustStrip /><CollectionSection {...props} /><EvidenceSection {...props} /><AboutSection {...props} /><OrderingSection {...props} /><FaqSection {...props} />
+      <Hero /><TrustStrip /><CollectionSection {...props} /><NavyResearchExplorer collections={props.collections} products={props.products} /><EvidenceSection {...props} /><AboutSection {...props} /><KnowledgeSection /><OrderingSection {...props} /><FaqSection {...props} />
     </main>
-    <Footer {...props} /><CartDrawer /><StoreEnhancements exitIntent={false} />
+    {props.children}<CartDrawer /><StoreEnhancements exitIntent={false} />
   </div>;
 }
