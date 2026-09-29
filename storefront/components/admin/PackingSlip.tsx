@@ -1,6 +1,7 @@
 import { formatAud } from "@/lib/format";
 import type { OrderFulfilment } from "@/lib/admin/fulfilment";
 import type { OrderDetail } from "@/lib/admin/order-queries";
+import { orderItemVariantIdentity } from "@/lib/admin/order-item-identity";
 
 const cents = (c: number) => formatAud(c / 100);
 
@@ -70,20 +71,28 @@ export default function PackingSlip({
           </tr>
         </thead>
         <tbody>
-          {shippable.map((it) => (
-            <tr key={it.id} className="border-b border-neutral-300">
+          {shippable.map((it) => {
+            const identity = orderItemVariantIdentity(it.variant_label, it.size_label);
+            return <tr key={it.id} className="border-b border-neutral-300">
               <td className="py-2">
-                <span className="font-medium">{it.product_name}</span>
+                <span className="flex flex-wrap items-center gap-2 font-medium">
+                  <span>{it.product_name}</span>
+                  {identity.sizeLabel && (
+                    <span className="rounded border border-black px-1.5 py-0.5 text-sm font-bold">
+                      {identity.sizeLabel}
+                    </span>
+                  )}
+                </span>
                 <span className="block text-xs text-neutral-600">
-                  {it.variant_label}
+                  {identity.detailLabel}
                   {it.sku ? ` · ${it.sku}` : ""}
                 </span>
               </td>
               <td className="py-2 font-mono text-xs">{fulfilment?.lines.some(l=>l.itemId===it.id) ? "See physical units below" : `${it.packQty} unallocated order units · physical pool unknown`}</td>
               <td className="py-2 text-center">{it.packQty}</td>
               <td className="py-2 text-right">{cents(it.line_total_cents)}</td>
-            </tr>
-          ))}
+            </tr>;
+          })}
         </tbody>
         <tfoot>
           <tr>
@@ -119,12 +128,12 @@ export default function PackingSlip({
 
       {!!fulfilment?.lines.length && <section className="mt-5 space-y-3 text-xs" aria-label="Physical lot assignments">
         <h2 className="font-bold">Recorded physical lot assignments</h2>
-        {fulfilment.lines.map(line=><div key={`${line.itemId}-${line.poolId}`}>
-          <p className="font-semibold">{line.productName} · {line.variantLabel} · {line.poolName} pool</p>
+        {fulfilment.lines.map(line=>{const item=order.items.find(candidate=>candidate.id===line.itemId);const identity=orderItemVariantIdentity(line.variantLabel,item?.size_label);return <div key={`${line.itemId}-${line.poolId}`}>
+          <p className="font-semibold">{line.productName}{identity.sizeLabel?` · ${identity.sizeLabel}`:''}{identity.detailLabel?` · ${identity.detailLabel}`:''} · {line.poolName} pool</p>
           {line.allocations.map(a=><div key={a.lotId}><p>{a.lotCode} · {a.units} physical units</p>{a.coa?<a href={a.coa.url} className="underline">Verified COA {a.coa.batchId}</a>:<p>No verified COA linked</p>}</div>)}
           <p>{line.unallocatedUnits} unallocated physical units</p>
           {line.allocatedUnits>line.requiredUnits&&<p>{fulfilment.editable?"Physical release must be reviewed before dispatch.":"Historical dispatched assignments retained after refund."}</p>}
-        </div>)}
+        </div>})}
       </section>}
       <p className="mt-3 text-xs text-neutral-600">Packing quantities exclude refunded units. Amounts above show the original order accounting.</p>
       <footer className="mt-10 border-t border-neutral-300 pt-4 text-xs text-neutral-600">
