@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { inter, newsreader, plexMono } from "@/lib/fonts";
 import { getSettings } from "@/lib/settings";
 import CreatorLanding from "@/components/creators/CreatorLanding";
 import CreatorApplicationForm from "@/components/creators/CreatorApplicationForm";
@@ -14,11 +13,11 @@ export const metadata: Metadata = {
 export default async function CreatorsPage() {
   const settings = await getSettings();
   return (
-    <div className={`${inter.variable} ${newsreader.variable} ${plexMono.variable}`}>
+    <>
       <CreatorLanding
         supportEmail={settings.supportEmail}
         application={<CreatorApplicationForm />}
       />
-    </div>
+    </>
   );
 }

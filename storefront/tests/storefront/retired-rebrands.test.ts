@@ -8,7 +8,7 @@ for (const [name, Page] of [['sage', SagePage], ['plum', PlumPage]] as const) {
       Page();
       expect.fail('A retired design must redirect instead of rendering.');
     } catch (error) {
-      expect(error).toHaveProperty('digest', 'NEXT_REDIRECT;replace;/2;307;');
+      expect(error).toHaveProperty('digest', 'NEXT_REDIRECT;replace;/;308;');
     }
   });
 }

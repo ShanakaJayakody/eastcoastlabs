@@ -1,9 +1,7 @@
 import Providers from "@/components/Providers";
-import AnnouncementBar from "@/components/AnnouncementBar";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import CartDrawer from "@/components/CartDrawer";
-import StoreEnhancements from "@/components/StoreEnhancements";
+import type {Viewport} from 'next';
+import NavyStoreShell from '@/components/rebrand/NavyStoreShell';
+import {getCollections} from '@/lib/collections';
 import { getSettings } from "@/lib/settings";
 import { shippingRules } from '@/lib/shipping-policy';
 import { availablePaymentOptions } from '@/lib/payments';
@@ -12,8 +10,9 @@ import {
   getCartPrices,
   getCartVariants,
 } from "@/lib/storefront-catalog";
-import { brandBody, brandDisplay } from "@/lib/editorial-fonts";
 import "./editorial.css";
+
+export const viewport: Viewport = {colorScheme: 'light', themeColor: '#112b43'};
 
 // The storefront shell: everything a shopper sees. Admin routes deliberately do
 // NOT inherit this — no cart, no exit-intent, no GA4.
@@ -62,16 +61,9 @@ export default async function StoreLayout({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd).replace(/</g,'\\u003c') }}
       />
-      <div
-        className={`ecl-store ${brandBody.variable} ${brandDisplay.variable} flex min-h-screen flex-col`}
-      >
-        <AnnouncementBar />
-        <Header />
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1">{children}</main>
-        <Footer supportEmail={settings.supportEmail} legalName={settings.legalName} abn={settings.abn} supportHours={settings.supportHours} />
-        <CartDrawer />
-      </div>
-      <StoreEnhancements />
+      <NavyStoreShell collections={getCollections()} supportEmail={settings.supportEmail} legalName={settings.legalName} abn={settings.abn} supportHours={settings.supportHours}>
+        {children}
+      </NavyStoreShell>
     </Providers>
   );
 }

@@ -1,6 +1,12 @@
+'use client';
 import Link from "next/link";
+import {usePathname} from 'next/navigation';
+import NavyMessageShell from '@/components/rebrand/NavyMessageShell';
+import NotFoundMessage from '@/components/NotFoundMessage';
 
 export default function NotFound() {
+  const pathname = usePathname();
+  if (!pathname?.startsWith('/admin')) return <NavyMessageShell><NotFoundMessage /></NavyMessageShell>;
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center gap-4 px-4 py-24 text-center">
       <p className="text-5xl">🧪</p>

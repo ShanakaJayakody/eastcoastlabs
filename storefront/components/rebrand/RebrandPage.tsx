@@ -5,7 +5,6 @@ import { getSettings } from "@/lib/settings";
 import { decorateCards } from "@/lib/storefront-catalog";
 import { labReports } from "@/lib/lab-reports";
 import RebrandExperience from "./RebrandExperience";
-import NavyFooter from './NavyFooter';
 import { availablePaymentOptions } from '@/lib/payments';
 import { withRebrandImages } from '@/lib/rebrand-imagery';
 import { getHomeCopy } from '@/lib/content';
@@ -25,7 +24,13 @@ export default async function RebrandPage({
   const products = await decorateCards(
     rankAvailableProductsByPopularity(catalog.products),
   );
+  const faq = copy.faq.length ? copy.faq : questions;
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({
+      '@context':'https://schema.org', '@type':'FAQPage',
+      mainEntity: faq.map(({q,a})=>({'@type':'Question',name:q,acceptedAnswer:{'@type':'Answer',text:a}})),
+    }).replace(/</g, '\\u003c')}} />
     <RebrandExperience
       variant={variant}
       products={products.map(product => withRebrandImages(product, variant))}
@@ -39,9 +44,8 @@ export default async function RebrandPage({
       supportHours={settings.supportHours}
       legalName={settings.legalName}
       abn={settings.abn}
-      faq={copy.faq.length ? copy.faq : questions}
-    >
-      <NavyFooter collections={getCollections()} supportEmail={settings.supportEmail} supportHours={settings.supportHours} legalName={settings.legalName} abn={settings.abn} />
-    </RebrandExperience>
+      faq={faq}
+    />
+    </>
   );
 }
