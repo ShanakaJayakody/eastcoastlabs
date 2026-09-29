@@ -17,7 +17,7 @@ export default async function CustomerOrderPage({ params }: { params: Promise<{ 
   return <div className="co-receipt"><div className="co-page-heading"><div><p className="co-eyebrow">Your order</p><h1>{order.number}</h1><p>Placed {orderDate(order.createdAt)}</p></div><Link className="co-secondary" href="/shop">Continue shopping</Link></div>
     <OrderReceipt order={order} />
     {order.status.showPayment && <section className="co-card"><h2>Complete your payment</h2><p>Payment deadline: {new Date(order.payment.expiresAt!).toLocaleString('en-AU', { timeZone: 'Australia/Melbourne', dateStyle: 'medium', timeStyle: 'short' })} (Melbourne time).</p>
-      {instructions ? <PaymentInstructionsPanel instructions={instructions} /> : <p>Contact us for payment details.</p>}
+      {instructions ? <PaymentInstructionsPanel instructions={{...instructions,notes:instructions.notes.filter(note=>!note.startsWith("We hold your order for "))}} /> : <p>Contact us for payment details.</p>}
       <RefreshStatus /></section>}
     {!order.privateDetails && customerAccountsEnabled() && <aside className="co-signin-note"><h2>All your orders, in one place</h2><p>Sign in with the email you used at checkout to see your full receipt, delivery address and order history.</p><Link className="co-secondary" href={`/account/sign-in?returnTo=${encodeURIComponent(`/orders/${id}`)}`}>Sign in with email</Link></aside>}
   </div>;

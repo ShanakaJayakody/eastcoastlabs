@@ -22,3 +22,10 @@ it('preserves legacy templates without a snapshot or with rollout disabled',asyn
  const old=await renderTemplate('order_confirmation',{order_id:id,order_number:'ECL-1234'});expect(old.html).not.toContain('/orders/access');expect(old.text).toBeUndefined();
  vi.stubEnv('CUSTOMER_ORDER_EMAILS_ENABLED','');const off=await renderTemplate('order_shipped',payload);expect(off.html).not.toContain('/orders/access');
 });
+it('initial unpaid email shows the stored absolute deadline even when rendered late under changed settings',async()=>{
+ vi.useFakeTimers();vi.setSystemTime(new Date('2026-09-30T04:00:00Z'));
+ try {
+  const r=await renderTemplate('payment_instructions',{...payload,payment_expires_at:'2026-09-30T06:00:00Z',payment_method:'bank_transfer'});
+  expect(r.html).toContain('30 Sept 2026');expect(r.text).toContain('4:00 pm AEST');expect(r.text).not.toContain('after 72 hours');expect(r.html).toContain('reservation ends');
+ } finally {vi.useRealTimers();}
+});

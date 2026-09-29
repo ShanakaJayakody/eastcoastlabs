@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getCustomerSession } from '@/lib/customer-auth/server';
 import { orderCookieName, verifyOrderCookie } from './tokens';
+import { historicalProductImage } from './media';
 import { presentOrder } from './presentation';
 import type { RawOrder } from './types';
 const UUID=/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
@@ -30,13 +31,13 @@ async function withHistoricalImages(order:RawOrder):Promise<RawOrder>{
  const slugs=[...new Set(order.order_items.filter(i=>!i.image_url_snapshot&&i.product_slug).map(i=>i.product_slug!))];
  if(!slugs.length)return order;
  const db=supabaseAdmin();if(!db)return order;
- const {data,error}=await db.from('products').select('slug,size_label,images').in('slug',slugs);
+ const {data,error}=await db.from('products').select('slug,size_label,size_parent_id,images').in('slug',slugs);
  if(error)return order; // An unavailable catalogue must not hide the receipt.
  const products=new Map((data??[]).map(p=>[p.slug,p]));
  return {...order,order_items:order.order_items.map(i=>{
   const p=products.get(i.product_slug);
-  if(i.image_url_snapshot||!p||i.size_label_snapshot&&p.size_label!==i.size_label_snapshot)return i;
-  return {...i,image_url_snapshot:p.images?.[0]?.src??null};
+  if(i.image_url_snapshot||!p)return i;
+  return {...i,image_url_snapshot:historicalProductImage(p,i.size_label_snapshot,i.variant_label)};
  })};
 }
 export function parseOrderCursor(value:string|undefined):{at:string;id:string}|null{

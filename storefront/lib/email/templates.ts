@@ -157,9 +157,10 @@ async function renderLegacyTemplate(
            </p>
            ${
              instructions
-               ? instructionsTable(instructions) + notesList(instructions.notes)
+               ? instructionsTable(instructions) + notesList(enrichment ? instructions.notes.filter(note => !note.startsWith("We hold your order for ")) : instructions.notes)
                : `<p style="${styles.paragraph}">Please contact us using the details below for help with payment.</p>`
            }
+           ${enrichment ? `<p style="${styles.paragraph}">Your reservation ends <strong>${esc(paymentDeadline(payload))}</strong>. If you have already transferred, no further payment is needed. Contact us if it arrives after this deadline.</p>` : ""}
            ${payButton(payUrl, "View payment details")}`,
         ),
       };

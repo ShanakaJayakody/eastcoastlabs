@@ -403,7 +403,7 @@ export async function uploadProductImage(slug: string, formData: FormData): Prom
     }
     const publicUrl = db.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
     const emailUrl = db.storage.from(IMAGE_BUCKET).getPublicUrl(emailPath).data.publicUrl;
-    const images = [...product.images, { src: publicUrl, email_src: emailUrl, alt: product.name }];
+    const images = [...product.images, { src: publicUrl, email_src: emailUrl, alt: product.name, size_label: product.size_label ?? null }];
     await setProductImages(slug, images, session.email);
 
     revalidatePath(`/admin/products/${slug}`);

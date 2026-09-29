@@ -17,11 +17,15 @@ try {
  const {prepareProductMedia}=await vite.ssrLoadModule('/lib/product-media.ts');
  let offset=0;
  while(true){
-  const {data:products,error}=await db.from('products').select('id,slug,images').order('id').range(offset,offset+99);
+  const {data:products,error}=await db.from('products').select('id,slug,images,size_parent_id,size_label').order('id').range(offset,offset+99);
   if(error)throw new Error('Could not read product media');if(!products.length)break;
   for(const product of products){
-   if(!/^[a-z0-9-]+$/.test(product.slug)){skipped++;continue;}
-   const images=Array.isArray(product.images)?product.images:[];const first=images[0];
+   if(product.size_parent_id||!/^[a-z0-9-]+$/.test(product.slug)){skipped++;continue;}
+   const images=Array.isArray(product.images)?product.images:[];
+   const sizeKey=v=>(v||'').replace(/\s/g,'').toLowerCase();
+   const match=product.size_label?images.findIndex(i=>i.size_label&&sizeKey(i.size_label)===sizeKey(product.size_label)):-1;
+   const index=match>=0?match:0,first=images[index];
+   if(first?.size_label&&sizeKey(first.size_label)!==sizeKey(product.size_label)){skipped++;continue;}
    if(!first?.src||first.email_src){skipped++;continue;}
    let input;
    if(typeof first.src==='string'&&/^\/images\/[\w./-]+\.(png|jpe?g|webp)$/i.test(first.src)){
@@ -44,7 +48,7 @@ try {
      const uploaded=await db.storage.from('product-images').upload(target,body,{contentType:'image/jpeg',cacheControl:'31536000',upsert:false});
      if(uploaded.error&&!/already exists|duplicate/i.test(uploaded.error.message))throw new Error(`Upload failed for ${product.slug}`);
     }
-    const updated=[{...first,src:db.storage.from('product-images').getPublicUrl(imagePath).data.publicUrl,email_src:db.storage.from('product-images').getPublicUrl(thumbnailPath).data.publicUrl},...images.slice(1)];
+    const updated=images.map((image,i)=>i===index?{...first,size_label:product.size_label??null,src:db.storage.from('product-images').getPublicUrl(imagePath).data.publicUrl,email_src:db.storage.from('product-images').getPublicUrl(thumbnailPath).data.publicUrl}:image);
     // Compare-and-set: a concurrent catalogue edit must not be overwritten.
     const saved=await db.from('products').update({images:updated}).eq('id',product.id).eq('images',JSON.stringify(images)).select('id');
     if(saved.error||saved.data?.length!==1)throw new Error(`Catalogue changed or save failed for ${product.slug}; rerun after review`);
