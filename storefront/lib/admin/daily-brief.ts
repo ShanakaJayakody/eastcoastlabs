@@ -11,6 +11,7 @@
  * nothing; a Saturday against last Saturday tells you whether the week moved.
  */
 import "server-only";
+import { emailShell, emailButton, EMAIL_STYLES, EMAIL_COLORS, escapeEmailHtml } from "@/lib/email/layout";
 import { adminDb } from "./db";
 import {
   revenueWindow,
@@ -81,7 +82,7 @@ function deltaText(current: number, previous: number): string {
   return `${pct >= 0 ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)}% vs the same day last week`;
 }
 
-/** Plain, table-free HTML — this is read on a phone at 7am, not admired. */
+/** The same email identity as customer messages, with operations-specific content. */
 export function renderDailyBrief(brief: DailyBrief): { subject: string; html: string } {
   const { yesterday, sameDayLastWeek, queue, nudges } = brief;
   // Midday avoids any offset ambiguity when formatting the label.
@@ -99,14 +100,13 @@ export function renderDailyBrief(brief: DailyBrief): { subject: string; html: st
     queue.counts.restock && `${queue.counts.restock} out of stock with people waiting`,
   ].filter(Boolean) as string[];
 
-  const escape = (text: string): string =>
-    text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escape = escapeEmailHtml;
 
   const nudgeHtml = nudges.length
     ? `<h3 style="margin:24px 0 8px;font-size:15px">Worth a look</h3>${nudges
         .map(
           (n) =>
-            `<p style="margin:0 0 10px"><strong>${escape(n.headline)}</strong><br><span style="color:#666">${escape(n.detail)}</span></p>`,
+            `<p style="margin:0 0 10px"><strong>${escape(n.headline)}</strong><br><span style="color:${EMAIL_COLORS.muted}">${escape(n.detail)}</span></p>`,
         )
         .join("")}`
     : "";
@@ -117,16 +117,16 @@ export function renderDailyBrief(brief: DailyBrief): { subject: string; html: st
       : `No sales yesterday · ${work.length ? work[0] : "nothing waiting"}`;
 
   const html = `
-<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;color:#111;line-height:1.5">
-  <p style="color:#666;margin:0 0 4px;font-size:13px">${escape(pretty)}</p>
+<h1 style="${EMAIL_STYLES.heading}">Your daily operations brief</h1>
+  <p style="color:${EMAIL_COLORS.muted};margin:0 0 4px;font-size:13px">${escape(pretty)}</p>
   <h2 style="margin:0 0 4px;font-size:22px">${aud(yesterday.revenueCents)}</h2>
-  <p style="margin:0 0 2px;color:#666;font-size:13px">
+  <p style="margin:0 0 2px;color:${EMAIL_COLORS.muted};font-size:13px">
     ${brief.orderCount} order${brief.orderCount === 1 ? "" : "s"} · ${escape(deltaText(yesterday.revenueCents, sameDayLastWeek.revenueCents))}
   </p>
-  <p style="margin:0 0 16px;color:#666;font-size:13px">
+  <p style="margin:0 0 16px;color:${EMAIL_COLORS.muted};font-size:13px">
     Gross profit ${aud(yesterday.profitCents)}${
       yesterday.uncostedLines > 0
-        ? ` <span style="color:#a60">(unknown — ${yesterday.uncostedLines} line${yesterday.uncostedLines === 1 ? "" : "s"} without a recorded cost)</span>`
+        ? ` <span style="color:#795329">(unknown — ${yesterday.uncostedLines} line${yesterday.uncostedLines === 1 ? "" : "s"} without a recorded cost)</span>`
         : ""
     }${yesterday.refundedCents > 0 ? ` · ${aud(yesterday.refundedCents)} refunded` : ""}
   </p>
@@ -135,16 +135,13 @@ export function renderDailyBrief(brief: DailyBrief): { subject: string; html: st
   ${
     work.length
       ? `<ul style="margin:0 0 8px;padding-left:18px">${work.map((w) => `<li>${escape(w)}</li>`).join("")}</ul>`
-      : `<p style="margin:0 0 8px;color:#666">Nothing — everything is packed, confirmed and moderated.</p>`
+      : `<p style="margin:0 0 8px;color:${EMAIL_COLORS.muted}">Nothing — everything is packed, confirmed and moderated.</p>`
   }
   ${nudgeHtml}
 
-  <p style="margin:24px 0 0">
-    <a href="https://www.eastcoastlabs.com.au/admin" style="color:#0a7">Open the dashboard →</a>
-  </p>
-</div>`.trim();
+  ${emailButton("https://www.eastcoastlabs.com.au/admin", "Open the dashboard")}`.trim();
 
-  return { subject, html };
+  return { subject, html: emailShell({ preheader: subject, body: html, audience: "admin" }) };
 }
 
 /** Active admins are the recipients — no separate list to drift out of date. */
