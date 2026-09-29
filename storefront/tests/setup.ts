@@ -3,6 +3,7 @@ import { afterEach, beforeEach, vi } from "vitest";
 // Tests must never inherit a developer's production credentials. Explicitly
 // stub the boundary in each test that needs a database/provider response.
 for (const key of [
+  "MOBILE_MESSAGE_API_USERNAME", "MOBILE_MESSAGE_API_PASSWORD", "MOBILE_MESSAGE_SENDER", "MOBILE_MESSAGE_ADMIN_LIST_ID", "MOBILE_MESSAGE_WEBHOOK_SECRET", "ADMIN_SMS_ENABLED",
   "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_DB_URL", "DATABASE_URL", "RESEND_API_KEY", "CRON_SECRET", "ORDER_ACCESS_SECRET", "UNSUBSCRIBE_SECRET", "RESEND_WEBHOOK_SECRET", "GA4_API_SECRET", "NEXT_PUBLIC_GA4_ID", "CREATOR_APPLICATION_SECRET", "CREATOR_ALLOWED_ORIGINS", "CREATOR_TRUSTED_CLIENT_IP_HEADER",
 ]) delete process.env[key];
