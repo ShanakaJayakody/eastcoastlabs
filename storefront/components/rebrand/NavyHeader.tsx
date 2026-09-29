@@ -33,7 +33,10 @@ export default function NavyHeader() {
           {navigation.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}
         </nav>
         <div className="rb-header-actions">
-          <Link className="rb-icon-button rb-search" href="/shop?rebrand=v2#catalog-search" aria-label="Search peptides"><Search size={21} strokeWidth={1.5} /></Link>
+          <a className="rb-icon-button rb-search" href="#homepage-product-search" aria-label="Search peptides" onClick={event => {
+            const search = document.getElementById('homepage-product-search');
+            if (search) { event.preventDefault(); search.focus(); }
+          }}><Search size={21} strokeWidth={1.5} aria-hidden /></a>
           <button className="rb-bag" type="button" onClick={openCart} aria-label={`Open shopping bag, ${ready ? itemCount : 0} items`}>
             <ShoppingBag size={20} strokeWidth={1.5} aria-hidden /><span>Bag</span><span className="rb-bag-count">{ready ? itemCount : 0}</span>
           </button>

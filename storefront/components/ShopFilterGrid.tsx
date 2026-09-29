@@ -8,6 +8,7 @@ import { commerceItem, trackViewItemList } from '@/lib/analytics';
 import { minorToMajor } from '@/lib/format';
 import { ANALYTICS_CONSENT_EVENT, analyticsConsent } from '@/lib/attribution';
 import type { RebrandVariant } from './rebrand/content';
+import { searchProducts } from '@/lib/product-search';
 
 /**
  * Shop grid with research-goal filter pills + a name/SKU search. Filters
@@ -64,11 +65,7 @@ export default function ShopFilterGrid({
       const set = new Set(col?.products ?? []);
       list = list.filter((p) => set.has(p.slug));
     }
-    const term = query.trim().toLowerCase();
-    if (term) {
-      list = list.filter((p) => [p.name, p.slug, p.sku, ...(p.sizes?.flatMap((size) => [size.label, size.sku ?? '', size.slug]) ?? [])]
-        .some((value) => value.toLowerCase().includes(term)));
-    }
+    list = searchProducts(list, query).map(match => match.product);
     if (inStock) list = list.filter(p => p.is_in_stock !== false);
     if (sort !== "featured") list = [...list].sort((a,b) => sort === "name" ? a.name.localeCompare(b.name) :
       (purchasableStartingPriceMinor(a.sizes,a.prices.price)-purchasableStartingPriceMinor(b.sizes,b.prices.price)) * (sort === "price-desc" ? -1 : 1));
