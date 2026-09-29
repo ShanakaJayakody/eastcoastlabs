@@ -13,7 +13,7 @@ Implementation and local verification are complete. **Hosted preview publishing 
 
 The deployment API returned `BLOCKED`, `TEAM_ACCESS_REQUIRED`, and `alwaysRefuseToBuild: true`. Its stated reason is: “The deployment was blocked because the commit author doesn’t have permission to create deployments for this project.” The inherited Git author is `omthentic <admin@omthentic.ai>`. The deploying CLI account is `shanaka-8039`.
 
-Owner action is required: approve/connect the existing Git author through the appropriate Vercel account/team configuration, or confirm the correct owner-linked Git identity for this branch. No author metadata has been rewritten or omitted to evade the check. See [Vercel's collaboration troubleshooting](https://vercel.com/docs/deployments/troubleshoot-project-collaboration#team-configuration).
+The owner subsequently confirmed `shanaka@medwithpurpose.com` as the correct owner-linked Git email. The deployment retry uses that email on a new documentation-only commit. Existing commits and global/repository Git settings are unchanged; no deployment metadata is forged or omitted. The earlier `sshanaka@medwithpurpose.com` spelling was corrected before any commit or deployment used it. See [Vercel's collaboration troubleshooting](https://vercel.com/docs/deployments/troubleshoot-project-collaboration#team-configuration).
 
 An earlier credential-free attempt, `dpl_9m8tCh3vjJnUEz2hHPAYUmuxjLG9`, was also blocked and is superseded. Neither attempt is a usable review URL.
 
