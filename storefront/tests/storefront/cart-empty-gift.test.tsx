@@ -32,8 +32,8 @@ it("preserves eligible gifts but removes them when the last paid item is removed
   expect(screen.getByText("Your cart is empty.")).toBeInTheDocument();
 });
 
-it("uses the $150 fallback and replaces a stale gift only when the basket qualifies", () => {
-  localStorage.setItem("ecl_cart_v1", JSON.stringify([{ ...paid, unitPrice: 75 }, gift]));
+it("uses the $200 fallback and replaces a stale gift only when the basket qualifies", () => {
+  localStorage.setItem("ecl_cart_v1", JSON.stringify([{ ...paid, unitPrice: 199.99 }, gift]));
   render(<CartProvider stock={{ "bacteriostatic-water": 5 }}><CartContents /></CartProvider>);
   expect(screen.queryByRole("link", { name: "Bacteriostatic Water" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Increase quantity" }));

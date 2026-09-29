@@ -45,12 +45,12 @@ export interface StoreSettings {
 export const DEFAULT_SETTINGS: StoreSettings = {
   announcementItems: [
     "Research use only — check available batch documentation",
-    "Free standard $100+ · express $200+",
+    "Free standard $150+ · express $250+",
     "Order preparation after payment confirmation",
     "Bank transfer details provided after checkout",
   ],
-  freeShippingThreshold: 100,
-  giftThreshold: 150,
+  freeShippingThreshold: 150,
+  giftThreshold: 200,
   supportEmail: "eclpeptides@gmail.com",
   legalName: "",
   abn: "",
@@ -70,7 +70,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   standardShippingCents: 1000,
   expressShippingEnabled: true,
   expressShippingCents: 1500,
-  expressFreeThreshold: 200,
+  expressFreeThreshold: 250,
 };
 
 const KEYS = {
