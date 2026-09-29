@@ -6,6 +6,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: ECLWordmark;
+  src: url('/fonts/manrope-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+}
+
 /* The selected navy direction. All rules stay inside its review shell. */
 .rebrand {
   --rb-bg: #fbfcfd;
@@ -59,11 +67,11 @@ body:has(.rebrand) { background: #fbfcfd; }
 .rebrand .rb-announcement a { display: inline-flex; align-items: center; gap: 8px; }
 .rebrand .rb-header { position: sticky; top: 0; z-index: 40; background: #fbfcfd; border-bottom: 1px solid var(--rb-line); }
 .rebrand .rb-header-inner { display: flex; align-items: center; justify-content: space-between; height: 90px; gap: 26px; }
-.rebrand .rb-brand { display: inline-flex; align-items: center; gap: 13px; flex-shrink: 0; width: fit-content; }
-.rebrand .rb-brand img { display: block; width: 38px; height: auto; }
-.rebrand .rb-brand-type { display: flex; flex-direction: column; gap: 8px; line-height: 1; }
-.rebrand .rb-brand-type strong { font-size: 13px; font-weight: 650; letter-spacing: .15em; white-space: nowrap; }
-.rebrand .rb-brand-type > span { font-size: 9px; letter-spacing: .22em; color: var(--rb-muted); }
+.rebrand .rb-brand { display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; width: fit-content; color: #245cff; }
+.rebrand .rb-brand-mark { display: block; width: 48px; height: 48px; flex-shrink: 0; background: currentColor; -webkit-mask: url('/brand/ecl-cobalt-symbol.png') center / contain no-repeat; mask: url('/brand/ecl-cobalt-symbol.png') center / contain no-repeat; }
+.rebrand .rb-brand-type { display: flex; flex-direction: column; gap: 8px; line-height: 1; font-family: ECLWordmark, Arial, sans-serif; }
+.rebrand .rb-brand-type strong { font-size: 16px; font-weight: 750; letter-spacing: .045em; white-space: nowrap; }
+.rebrand .rb-brand-type > span { font-size: 8px; font-weight: 600; letter-spacing: .19em; }
 .rebrand .rb-desktop-nav { display: flex; gap: 30px; align-items: center; }
 .rebrand .rb-desktop-nav a { padding: 13px 0; font-size: 14px; font-weight: 450; position: relative; }
 .rebrand .rb-desktop-nav a::after { content: ''; position: absolute; left: 0; right: 0; bottom: 6px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .2s; }
@@ -209,7 +217,7 @@ body:has(.rebrand) { background: #fbfcfd; }
 .rebrand .rb-footer-grid p, .rebrand .rb-footer-grid nav a, .rebrand .rb-footer-grid .rb-support-email { color: #bccedc; font-size: 12px; line-height: 1.85; }
 .rebrand .rb-footer-grid nav a { padding-block: 5px; }
 .rebrand .rb-footer-grid nav a:hover, .rebrand .rb-footer .rb-support-email:hover { color: white; }
-.rebrand .rb-brand-footer .rb-brand-type > span { color: #b3c9da; }
+.rebrand .rb-brand-footer { color: #fff; }
 .rebrand .rb-footer-brand > p { margin-top: 23px; max-width: 26ch; }
 .rebrand .rb-location { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-top: 20px; color: #b3c9da; }
 .rebrand .rb-footer-contact .rb-support-email { padding-top: 0; min-height: 35px; }
@@ -283,10 +291,10 @@ body:has(.rebrand) { background: #fbfcfd; }
   .rebrand .rb-announcement a { display: none; }
   .rebrand .rb-header-inner { height: 74px; gap: 12px; }
   .rebrand .rb-brand { gap: 9px; }
-  .rebrand .rb-brand img { width: 32px; }
+  .rebrand .rb-brand-mark { width: 38px; height: 38px; }
   .rebrand .rb-brand-type { gap: 7px; }
-  .rebrand .rb-brand-type strong { font-size: 10px; letter-spacing: .115em; }
-  .rebrand .rb-brand-type > span { font-size: 7px; letter-spacing: .17em; }
+  .rebrand .rb-brand-type strong { font-size: 11.5px; letter-spacing: .035em; }
+  .rebrand .rb-brand-type > span { font-size: 6.5px; letter-spacing: .17em; }
   .rebrand .rb-header-actions { gap: 5px; }
   .rebrand .rb-search { display: none; }
   .rebrand .rb-bag { gap: 5px; }
@@ -357,8 +365,8 @@ body:has(.rebrand) { background: #fbfcfd; }
   .rebrand .rb-footer-grid { grid-template-columns: 1fr 1fr; gap: 30px 20px; padding-block: 35px; }
   .rebrand .rb-footer-brand { grid-column: 1 / -1; padding-bottom: 4px; }
   .rebrand .rb-footer-brand > p { max-width: 35ch; font-size: 13px; }
-  .rebrand .rb-brand-footer img { width: 38px; }
-  .rebrand .rb-brand-footer .rb-brand-type strong { font-size: 12px; }
+  .rebrand .rb-brand-footer .rb-brand-mark { width: 44px; height: 44px; }
+  .rebrand .rb-brand-footer .rb-brand-type strong { font-size: 14px; }
   .rebrand .rb-brand-footer .rb-brand-type > span { font-size: 8px; }
   .rebrand .rb-footer-grid nav a { min-height: 38px; padding-block: 8px; font-size: 12px; }
   .rebrand .rb-footer-grid h3 { margin-bottom: 12px; }
