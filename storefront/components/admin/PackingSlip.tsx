@@ -2,6 +2,7 @@ import { formatAud } from "@/lib/format";
 import type { OrderFulfilment } from "@/lib/admin/fulfilment";
 import type { OrderDetail } from "@/lib/admin/order-queries";
 import { orderItemVariantIdentity } from "@/lib/admin/order-item-identity";
+import { orderShippingMethod } from "@/lib/admin/order-shipping";
 
 const cents = (c: number) => formatAud(c / 100);
 
@@ -23,6 +24,7 @@ export default function PackingSlip({
 }) {
   const shippable = order.status === "cancelled" || order.status === "refunded" ? [] : order.items.map(it => ({...it, packQty: Math.max(0,it.qty-(it.refunded_qty ?? 0))})).filter(it=>it.packQty>0);
   const addr = order.shipping_address ?? {};
+  const shipping = orderShippingMethod(order.shipping_address);
   return (
     <section className={pageBreak ? "break-after-page" : ""}>
       <header className="flex items-start justify-between border-b-2 border-black pb-4">
@@ -37,6 +39,11 @@ export default function PackingSlip({
           </p>
         </div>
       </header>
+
+      <section aria-label="Shipping method" className="mt-4 border-2 border-black px-4 py-2 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-600">Shipping method</p>
+        <p className="text-lg font-black tracking-wider">{shipping.label}</p>
+      </section>
 
       <div className="mt-6 grid grid-cols-2 gap-6 text-sm">
         <div>
