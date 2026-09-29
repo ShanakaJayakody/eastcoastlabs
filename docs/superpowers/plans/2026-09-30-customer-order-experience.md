@@ -10,7 +10,7 @@
 
 **Spec:** [Proposed design](../specs/2026-09-30-customer-order-experience-design.md).
 
-**Status:** Draft prepared at the user's request for brainstorming/research/planning. Product work has not started. Suggested interfaces below become implementation contracts only after design review.
+**Status:** Approved for execution on 2026-09-30. Implemented in `codex/customer-order-experience`; staging/provider checks and public activation are tracked in `storefront/docs/CUSTOMER-ORDERS.md`.
 
 ## Global constraints
 

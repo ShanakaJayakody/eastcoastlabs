@@ -6,6 +6,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { formatAud } from "@/lib/format";
 import { instructionsForOrder, isPaymentMethod, referenceForOrderNumber } from "@/lib/payments";
 import PaymentInstructionsPanel from "@/components/PaymentInstructions";
+import { customerOrdersEnabled } from "@/lib/customer-orders/flags";
+import { orderViewPath } from "@/lib/customer-orders/tokens";
 import PaymentStatusPoller from "@/components/PaymentStatusPoller";
 
 export const metadata: Metadata = {
@@ -41,7 +43,7 @@ export default async function PayPage({ params, searchParams }: {
   const { data: order, error: orderError } = await db
     .from("orders")
     .select(
-      "id, order_number, status, total_cents, payment_method, payment_reference, payment_expires_at, paid_at",
+      "id, order_number, status, total_cents, payment_method, payment_reference, payment_expires_at, paid_at, order_access_version",
     )
     .eq("id", id)
     .maybeSingle();
@@ -133,6 +135,7 @@ export default async function PayPage({ params, searchParams }: {
         </div>
       )}
 
+      {customerOrdersEnabled() && <div className="mt-6"><Link href={orderViewPath(order.id, order.order_access_version)} className="inline-block rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-accent-ink">View your order</Link></div>}
       {/* ---- Order summary ---- */}
       <div className="mt-6 rounded-xl border border-line bg-surface p-5">
         <h2 className="mb-3 text-sm font-semibold text-fg">Your order</h2>

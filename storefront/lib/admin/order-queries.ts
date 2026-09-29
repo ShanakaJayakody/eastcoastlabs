@@ -174,6 +174,7 @@ export interface OrderDetail {
   payment_method: string | null;
   payment_ref: string | null;
   tracking_number: string | null;
+  carrier_code?: string | null;
   notes: string | null;
   stock_settled: boolean;
   refunded_cents: number;

@@ -12,6 +12,7 @@ import {workflowChecks} from './postgres-workflow-checks.mjs';
 import {fulfilmentChecks} from './postgres-fulfilment-checks.mjs';
 import {recoveryChecks} from './postgres-recovery-checks.mjs';
 import {operationsChecks} from './postgres-operations-checks.mjs';
+import {customerOrderChecks} from './postgres-customer-orders-checks.mjs';
 import {customerChecks} from './postgres-customer-checks.mjs';
 import {overdueOrderChecks} from './postgres-overdue-order-checks.mjs';
 
@@ -57,7 +58,7 @@ try {
   }
   url.pathname = `/${database}`;
   db = await connect(url, 'ecl-audit-control');
-  await db.query('create schema storage; create table storage.buckets(id text primary key,name text,public boolean)');
+  await db.query('create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage; create table storage.buckets(id text primary key,name text,public boolean)');
   const migrations = readdirSync('supabase/migrations').filter(file => file.endsWith('.sql')).sort();
   for (const file of migrations) {
     try { await db.query(readFileSync(`supabase/migrations/${file}`, 'utf8')); }
@@ -94,6 +95,7 @@ try {
   function orderInput(variant, overrides = {}) { return { email: `${randomUUID()}@example.test`, idempotencyKey: randomUUID(), items: [{ variantId: variant, qty: 1 }], shippingCents: 500, paymentExpiryHours: 48, ...overrides }; }
   const create = (client, input) => scalar(client, 'select commerce_create_order($1::jsonb) result', [JSON.stringify(input)]);
   const operation = (client, id, action, options = {}) => scalar(client, 'select commerce_order_operation($1,$2,$3::jsonb) result', [id, action, JSON.stringify(options)]);
+  await customerOrderChecks({db,a,b,check,race,fixture,create,orderInput});
   let refundOrder;
   await check('concurrent checkout retry commits one order and one stock reservation', async () => {
     const variant = await fixture();

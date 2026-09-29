@@ -13,7 +13,7 @@ beforeAll(async () => {
     create role anon;
     create role authenticated;
     create role service_role bypassrls;
-    create schema storage;
+    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage;
     create table storage.buckets(id text primary key,name text,public boolean);
   `);
   for (const file of readdirSync("supabase/migrations").filter((name) => name.endsWith(".sql")).sort()) {

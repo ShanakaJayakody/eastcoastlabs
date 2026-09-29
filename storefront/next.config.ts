@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     WOO_CHECKOUT_BASE,
     // Emergency fallback: "1" restores the legacy WooCommerce checkout hand-off.
     USE_WOO_CHECKOUT: process.env.USE_WOO_CHECKOUT ?? "",
+    NEXT_PUBLIC_CUSTOMER_ACCOUNTS_ENABLED: process.env.CUSTOMER_ACCOUNTS_ENABLED ?? "",
   },
   // Enables forbidden()/unauthorized() so the admin can return a real 403 to an
   // authenticated-but-not-allow-listed user (see lib/admin/auth.ts).
@@ -24,7 +25,7 @@ const nextConfig: NextConfig = {
     authInterrupts: true,
   },
   async headers() {
-    return ["/cart-recovery/:path*", "/pay/:path*", "/checkout/:path*", "/leave-a-review", "/subscribe/:path*", "/api/unsubscribe"].map((source) => ({
+    return ["/orders/:path*", "/account/:path*", "/cart-recovery/:path*", "/pay/:path*", "/checkout/:path*", "/leave-a-review", "/subscribe/:path*", "/api/unsubscribe"].map((source) => ({
       source,
       headers: [
         { key: "Cache-Control", value: "private, no-store, max-age=0" },
