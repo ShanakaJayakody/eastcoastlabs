@@ -61,9 +61,9 @@ ${supportHours ? `<p style="margin:6px 0 0;color:${c.muted};font-size:13px;line-
 <tr><td class="email-padding" style="padding:30px 36px 26px;border-bottom:1px solid ${c.line};">
 <table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr>
 <td width="48" valign="middle" style="width:48px;"><a href="${EMAIL_SITE}" style="text-decoration:none;"><img src="${EMAIL_SITE}/brand/ecl-cobalt-symbol.png" alt="East Coast Labs" width="48" height="48" style="display:block;width:48px;height:48px;border:0;color:${c.brand};font-size:10px;"></a></td>
-<td valign="middle" style="padding-left:12px;"><a href="${EMAIL_SITE}" style="display:inline-block;color:${c.brand};text-decoration:none;">
-<span style="font-family:${FONT};font-size:16px;line-height:24px;font-weight:700;letter-spacing:0.6px;">EAST COAST LABS</span><br>
-<span style="font-size:9px;line-height:18px;font-weight:600;letter-spacing:1.5px;color:${c.brand};">RESEARCH PEPTIDES</span></a></td>
+<td valign="middle" style="padding-left:12px;"><a href="${EMAIL_SITE}" style="display:inline-block;color:#000000;text-decoration:none;">
+<span style="font-family:${FONT};font-size:16px;line-height:24px;font-weight:700;letter-spacing:0.6px;color:#000000;">EAST COAST LABS</span><br>
+<span style="font-size:9px;line-height:18px;font-weight:600;letter-spacing:1.5px;color:#000000;">RESEARCH PEPTIDES</span></a></td>
 </tr></table>
 </td></tr>
 <tr><td class="email-padding" style="padding:32px 36px 36px;font-family:${FONT};font-size:16px;line-height:1.7;color:${c.ink};overflow-wrap:break-word;word-wrap:break-word;">

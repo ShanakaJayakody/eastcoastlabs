@@ -1,6 +1,6 @@
 # East Coast Labs email identity
 
-All 25 application email types use the selected navy identity: white message panels, soft blue surroundings, navy text and actions, the revamped cobalt ECL symbol and wordmark, and readable system fonts. The shared renderer is `lib/email/layout.ts`; customer templates are in `lib/email/templates.ts`. Keep layout, typography, button and footer changes in the shared renderer so the collection stays consistent.
+All 25 application email types use the selected navy identity: white message panels, soft blue surroundings, navy text and actions, the revamped cobalt ECL symbol with black logo wording, and readable system fonts. The shared renderer is `lib/email/layout.ts`; customer templates are in `lib/email/templates.ts`. Keep layout, typography, button and footer changes in the shared renderer so the collection stays consistent.
 
 Customer messages include the configured support address and support hours. Marketing messages retain their recipient-specific unsubscribe link. Copy should explain the message's purpose, the next action and relevant dates plainly. Use current settings or direct readers to current product information for prices and shipping benefits. Do not add unsupported testing, speed, outcome or scarcity claims.
 
