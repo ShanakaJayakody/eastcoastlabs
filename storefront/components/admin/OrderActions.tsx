@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { confirmPayment, correctTracking, advanceStatus, cancel, addNote, reinstate } from "@/app/admin/(dashboard)/orders/actions";
+import { confirmPayment, correctTracking, advanceStatus, cancel, addNote, reinstate, deleteOrder } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
 import RefundReview from "./RefundReview";
 import type { OrderStatus, ReinstateLineCheck } from "@/lib/admin/orders";
@@ -37,7 +37,8 @@ export default function OrderActions({
 
   const reinstatementAttempt=useRef<{signature:string;key:string}|null>(null);
   const reinstateKey=(toPaid:boolean)=>{const signature=JSON.stringify({toPaid,paymentRef});if(reinstatementAttempt.current?.signature!==signature)reinstatementAttempt.current={signature,key:crypto.randomUUID()};return reinstatementAttempt.current.key;};
-  const [confirming,setConfirming]=useState<"refund"|"cancel"|null>(null);
+  const [confirming,setConfirming]=useState<"refund"|"cancel"|"delete"|null>(null);
+  const [deleteConfirmation,setDeleteConfirmation]=useState("");
   const [restock,setRestock]=useState(false);
   const [notifyTracking,setNotifyTracking]=useState(false);
 
@@ -71,6 +72,35 @@ export default function OrderActions({
         <p>This updates the order record. Money is not transferred; return any money owed through your bank separately. Cancellation does not send a refund confirmation.</p>
         {status!=='pending' && <label className="mt-3 flex gap-2"><input type="checkbox" checked={restock} onChange={e=>setRestock(e.target.checked)}/>Restore remaining units to sellable stock only if physically returned or still on hand.</label>}
       </>} />
+      {orderNumber && <ConfirmModal
+        open={confirming==='delete'}
+        title={`Permanently delete ${orderNumber}?`}
+        confirmLabel="Permanently delete"
+        tone="danger"
+        pending={pending}
+        confirmDisabled={deleteConfirmation!==orderNumber}
+        onCancel={()=>{setConfirming(null);setDeleteConfirmation("");}}
+        onConfirm={()=>start(async()=>{
+          const result=await deleteOrder(orderId,deleteConfirmation);
+          if(!result.ok){toast.error(result.error??"Action failed");return;}
+          setConfirming(null);
+          toast.success(`${orderNumber} permanently deleted`);
+          router.push("/admin/orders");
+        })}
+        body={<div className="space-y-3">
+          <p>This permanently removes the order from active customer, fulfilment, and reporting views. It cannot be undone.</p>
+          <p>Paid stock is not returned to inventory. Refund, stock, legacy-pricing, and audit evidence is retained.</p>
+          <label className="block text-xs font-medium text-fg">
+            Type {orderNumber} to confirm
+            <input
+              value={deleteConfirmation}
+              onChange={event=>setDeleteConfirmation(event.target.value)}
+              autoComplete="off"
+              className={`${field} mt-1`}
+            />
+          </label>
+        </div>}
+      />}
       {(status==='shipped'||status==='completed') && <div className="space-y-2"><label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><button disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking),'Tracking updated')}>Save tracking correction</button></div>}
 
       {status === "cancelled" && (
@@ -223,6 +253,17 @@ export default function OrderActions({
           Add note
         </button>
       </div>
+
+      {orderNumber && <div className="border-t border-line pt-3">
+        <button
+          type="button"
+          disabled={pending}
+          onClick={()=>{setDeleteConfirmation("");setConfirming("delete");}}
+          className={`${btn} w-full border border-red-500/30 text-red-400 hover:bg-red-500/10`}
+        >
+          Delete order
+        </button>
+      </div>}
     </div>
   );
 }
