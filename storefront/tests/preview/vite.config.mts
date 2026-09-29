@@ -14,6 +14,7 @@ export default defineConfig({
   {find:'@/app/(store)/checkout/actions',replacement:local('./actions.ts')},
   {find:'@/lib/env',replacement:local('./env.ts')},
   {find:'next/navigation',replacement:local('./navigation.ts')},
+  {find:'next/web-vitals',replacement:local('./web-vitals.ts')},
   {find:'next/link',replacement:local('./link.tsx')},
   {find:'next/image',replacement:local('./image.tsx')},
   {find:'@',replacement:root},
