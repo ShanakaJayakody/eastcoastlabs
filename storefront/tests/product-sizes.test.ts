@@ -7,7 +7,7 @@ const actor = 'operator@example.test';
 const tiers = (price: number) => [{ pack_size: 1, label: '1 vial', price_cents: price }, { pack_size: 3, label: '3-pack', price_cents: price * 3 }];
 beforeAll(async () => {
   db = new PGlite();
-  await db.exec('create role anon; create role authenticated; create role service_role bypassrls; create schema storage; create table storage.buckets(id text primary key,name text,public boolean);');
+  await db.exec('create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage; create table storage.buckets(id text primary key,name text,public boolean);');
   for (const file of readdirSync('supabase/migrations').filter(f => f.endsWith('.sql')).sort()) await db.exec(readFileSync(`supabase/migrations/${file}`, 'utf8'));
   await db.query('select admin_create_product($1,$2)', [JSON.stringify({ name: 'Size fixture', slug: 'size-fixture', sku: 'SIZE', status: 'active', variants: tiers(1000), initialStock: 9 }), actor]);
 });

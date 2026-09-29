@@ -1,4 +1,5 @@
 /** Navy brand email templates. Shared public logo; no template-level tracking. */
+import { orderEmailSummary } from "./order-summary";
 import {recoveryLink} from "@/lib/recovery-token";
 import { paymentPath, createOrderAccessToken } from "@/lib/order-access";
 import type { EmailTemplate } from "@/lib/admin/email";
@@ -94,14 +95,15 @@ function productNames(payload: Record<string, unknown>): string | null {
   return `${names.slice(0, -1).map(esc).join(", ")} and ${esc(names[names.length - 1])}`;
 }
 
-export async function renderTemplate(
+async function renderLegacyTemplate(
   template: EmailTemplate,
   payload: Record<string, unknown>,
+  enrichment?: {html:string;text:string},
 ): Promise<{ subject: string; html: string }> {
   const settings = await getSettings();
   const SUPPORT_EMAIL = settings.supportEmail;
   const shell = (preheader: string, body: string, unsubscribeUrl?: string) => emailShell({
-    preheader, body, unsubscribeUrl, supportEmail: settings.supportEmail,
+    preheader, body: body + (enrichment?.html ?? ""), unsubscribeUrl, supportEmail: settings.supportEmail,
     supportHours: settings.supportHours, audience: template.startsWith("admin_") ? "admin" : "customer",
   });
   switch (template) {
@@ -155,9 +157,10 @@ export async function renderTemplate(
            </p>
            ${
              instructions
-               ? instructionsTable(instructions) + notesList(instructions.notes)
+               ? instructionsTable(instructions) + notesList(enrichment ? instructions.notes.filter(note => !note.startsWith("We hold your order for ")) : instructions.notes)
                : `<p style="${styles.paragraph}">Please contact us using the details below for help with payment.</p>`
            }
+           ${enrichment ? `<p style="${styles.paragraph}">Your reservation ends <strong>${esc(paymentDeadline(payload))}</strong>. If you have already transferred, no further payment is needed. Contact us if it arrives after this deadline.</p>` : ""}
            ${payButton(payUrl, "View payment details")}`,
         ),
       };
@@ -559,4 +562,19 @@ export async function renderTemplate(
     default:
       return { subject: "East Coast Labs", html: shell("", `<p style="${styles.paragraph}">Notification.</p>`) };
   }
+}
+
+export async function renderTemplate(template: EmailTemplate, payload: Record<string, unknown>): Promise<{subject:string;html:string;text?:string;replyTo?:string}> {
+  const enrichment=orderEmailSummary(template,payload);
+  const result=await renderLegacyTemplate(template,payload,enrichment??undefined);
+  if (!enrichment) return result;
+  const settings=await getSettings();
+  // Text is generated from the exact rendered message, preserving bank details,
+  // deadlines, and all event-specific wording when HTML is unavailable.
+  const text=result.html.replace(/<head[\s\S]*?<\/head>/gi,'').replace(/<style[\s\S]*?<\/style>/gi,'')
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,(_,href:string,body:string)=>`${body}: ${href}`)
+    .replace(/<(br\s*\/?|\/p|\/div|\/tr|\/h[1-6]|\/li)>/gi,'\n').replace(/<[^>]+>/g,' ')
+    .replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'")
+    .replace(/[ \t]+/g,' ').replace(/ *\n */g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  return {...result,text,replyTo:settings.supportEmail};
 }

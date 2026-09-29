@@ -7,7 +7,7 @@ const phone = '61400000001';
 const recipient = { contactId: 1, name: 'Alex', phone };
 beforeAll(async () => {
   db = new PGlite();
-  await db.exec('create role anon; create role authenticated; create role service_role bypassrls; create schema storage; create table storage.buckets(id text primary key,name text,public boolean)');
+  await db.exec('create role anon; create role authenticated; create role service_role bypassrls; create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz);create schema storage; create table storage.buckets(id text primary key,name text,public boolean)');
   for (const file of readdirSync('supabase/migrations').filter(f => f.endsWith('.sql')).sort())
     await db.exec(readFileSync(`supabase/migrations/${file}`, 'utf8'));
 });

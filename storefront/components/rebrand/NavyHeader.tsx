@@ -10,6 +10,7 @@ import { useUI } from '@/lib/ui-context';
 import NavyBrand from './NavyBrand';
 
 const navigation = [
+  ...(process.env.NEXT_PUBLIC_CUSTOMER_ACCOUNTS_ENABLED === "1" ? [{ href: "/account/orders", label: "My orders" }] : []),
   { href: '/shop', label: 'Shop' },
   { href: '/stacks', label: 'Stacks' },
   { href: '/lab-results', label: 'Lab reports' },
