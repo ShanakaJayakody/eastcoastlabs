@@ -4,15 +4,23 @@ import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import type {OrderFulfilment,LotCatalog,FulfilmentLine} from '@/lib/admin/fulfilment';
 import {saveLotAssignments} from '@/app/admin/(dashboard)/orders/fulfilment-actions';
+import {orderItemVariantIdentity} from '@/lib/admin/order-item-identity';
 function PoolAssignments({line,orderId,editable,catalog}:{line:FulfilmentLine;orderId:string;editable:boolean;catalog:LotCatalog}){
  const id=useId(),router=useRouter(),[pending,start]=useTransition(),[error,setError]=useState(''),[saved,setSaved]=useState(false);
  const lots=catalog.lots.filter(l=>l.poolId===line.poolId);
+ const pool=catalog.pools.find(candidate=>candidate.id===line.poolId);
+ const identity=orderItemVariantIdentity(line.variantLabel,pool?.sizeLabel);
  return <form className="space-y-3 rounded-lg border border-line p-3" onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);setError('');setSaved(false);start(async()=>{
   try{const result=await saveLotAssignments(orderId,line.itemId,line.poolId,lots.map(l=>({lotId:l.id,units:Number(data.get(l.id))})).filter(l=>l.units>0),String(data.get('evidence')));
    if(!result.ok)setError(result.error);else{setSaved(true);router.refresh()}
   }catch{setError('Connection failed. Reload the current assignments before retrying.')}
  })}}>
-  <h4 className="font-medium">{line.productName} · {line.variantLabel} · {line.poolName} pool</h4>
+  <h4 className="flex flex-wrap items-center gap-2 font-medium">
+   <span>{line.productName}</span>
+   {identity.sizeLabel&&<span className="rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-sm font-bold text-accent-2">{identity.sizeLabel}</span>}
+   {identity.detailLabel&&<span className="text-sm font-normal text-muted">· {identity.detailLabel}</span>}
+   <span className="text-sm font-normal text-muted">· {line.poolName} pool</span>
+  </h4>
   <p className="text-sm">{line.requiredUnits} physical units required · {line.allocatedUnits} assigned</p>
   <p className="text-sm text-muted">{line.unallocatedUnits} unallocated physical units</p>
   {line.allocatedUnits>line.requiredUnits&&<p role="alert" className="text-sm text-warn">Assignments exceed the remaining packing quantity. Verify returned physical units and reduce assignments before dispatch.</p>}
