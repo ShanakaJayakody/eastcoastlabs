@@ -11,7 +11,7 @@ const apply=process.argv.includes('--apply');
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
 if(!url||!key)throw new Error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for the intended environment.');
 const db=createClient(url,key,{auth:{persistSession:false}});
-const vite=await createServer({root,configFile:false,envDir:false,server:{middlewareMode:true,watch:null},resolve:{alias:[{find:'server-only',replacement:path.join(root,'tests/helpers/server-only.ts')}]}});
+const vite=await createServer({root,configFile:false,envDir:false,cacheDir:path.join(root,"node_modules/.vite-customer-media"),server:{middlewareMode:true,watch:null},resolve:{alias:[{find:'server-only',replacement:path.join(root,'tests/helpers/server-only.ts')}]}});
 let prepared=0,skipped=0;
 try {
  const {prepareProductMedia}=await vite.ssrLoadModule('/lib/product-media.ts');

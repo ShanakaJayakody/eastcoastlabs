@@ -5,6 +5,7 @@ const local = (file:string) => fileURLToPath(new URL(file, import.meta.url));
 const port = Number(process.env.PREVIEW_PORT ?? 4174);
 export default defineConfig({
  root: local('.'),
+ cacheDir: `${root}node_modules/.vite-browser-preview`,
  publicDir: `${root}public`,
  define: {"process.env": "{}"},
  resolve: {alias:[

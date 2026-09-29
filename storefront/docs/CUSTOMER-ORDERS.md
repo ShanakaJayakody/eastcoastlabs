@@ -54,6 +54,24 @@ Monitor outbox failed/dead counts, provider delivery/bounce events, aggregate OT
 
 ## Verification record
 
-Pre-review integration: 1,073 unit/database tests passed, production build and lint passed; six customer browser/accessibility checks passed across 320px, 390px and desktop. Thirteen private-response header checks passed. Disposable native PostgreSQL checks include ownership, OTP throttling/leases, existing two-worker email claims, commerce concurrency and backup restoration. See the final task response/commit for final counts after review.
+Final local verification after independent review and integration with main: **1,087 tests in 178 files**, **31 native PostgreSQL checks**, **15 browser/accessibility checks** (including six customer checks across 320px, 390px and desktop), and **13 private-response header checks** passed. Typecheck, lint, production build and route JavaScript budgets passed. PostgreSQL covered concurrent ownership claims, OTP request/verification leases, email workers, commerce concurrency and backup restoration.
+
+The fresh reviewer found two important issues, both reproduced with failing tests and fixed: child sizes now require size-tagged artwork instead of inheriting a parent's photo; initial payment email now shows the stored absolute Melbourne deadline in HTML and plain text. One cosmetic item remains: dispatch emails repeat tracking above and below the CTA. Existing eligibility rejects stale shipment notifications. Preview runners use separate caches after a mixed-preview run exposed stale Vite dependencies.
 
 Outstanding external release evidence: configured staging project, Auth SMTP/shared template, Resend tracking/DNS settings, actual Gmail/Apple Mail/Outlook receipt rendering and production rollout/monitoring. These are release gates, not claims of completed verification.
+
+## Implementation decisions and tradeoffs
+
+Recorded in execution order for future maintainers:
+
+1. Work in an isolated feature worktree from committed main. Concurrent workspace work was preserved; later main commits were merged into this branch and their navigation retained. Cost: the branch must stay current before integration.
+2. Treat SMTP/provider configuration, real inbox rendering and staging/public activation as external release gates. Cost: local passing checks cannot establish production readiness on their own.
+3. Introduce access-version and carrier columns with snapshot storage so event DTOs capture both atomically. Cost: schema-first rollout is required even while the UI flags are disabled.
+4. Retain removed product assets instead of deleting files that historical receipts may reference. Cost: additional storage until an audited retention cleanup exists.
+5. Use opaque hashed customer sessions after Supabase OTP, separate from admin cookies. Cost: an indexed session lookup and regular expired-record cleanup; current verified email/ban state is checked on every read.
+6. Put private pages in a dedicated minimal layout with no marketing/analytics components. Cost: a small extra branded shell to maintain.
+7. Always use worker v3 to freeze optional text/Reply-To, even after rolling back the enrichment flag. Cost: keep compatible workers running until outstanding messages are drained/reconciled.
+8. Load purchased item rows for at most 20 history orders, displaying four thumbnails per card. Cost: unusually large orders cause higher server query payload; optimize to a dedicated compact history query if measured usage warrants it.
+9. Keep external configuration and activation unclaimed until the staging destination and controlled mailbox are supplied. Cost: provider adjustments may still be necessary.
+10. The reviewer excluded uncommitted `.gitignore` and migration-doc edits; the author checked the narrow generated-preview ignore and four-migration release pointer. Cost: operational documentation should be followed and reviewed during rollout.
+11. Merge the committed main changes that landed during implementation into the feature branch; resolve the sole header conflict by keeping current navigation plus the gated My orders entry. Cost: a fresh combined verification, recorded above. Main's working files remain untouched.
