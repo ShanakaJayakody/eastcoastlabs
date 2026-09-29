@@ -27,14 +27,14 @@ it.each([0,1000])('keeps the cart, product, announcement and policy consistent w
       <section aria-label="Cart"><CartContents/></section>
     </CartProvider>
   </>);
-  const expected = rate === 0 ? 'Standard shipping included' : 'Standard shipping $10.00 · free from $100.00';
+  const expected = rate === 0 ? 'Standard shipping included' : 'Standard shipping $10.00 · free from $150.00';
   for (const area of ['Policy','Product reassurance','Cart']) {
     const region=within(screen.getByRole('region',{name:area}));
     expect(region.getAllByText(expected,{exact:false})[0]).toBeVisible();
     expect(region.queryByText(/express/i)).toBeNull();
   }
   const announcement=screen.getByRole('region',{name:'Announcement'});
-  expect(announcement).toHaveTextContent(rate === 0 ? 'Standard shipping included' : 'Free standard $100+');
+  expect(announcement).toHaveTextContent(rate === 0 ? 'Standard shipping included' : 'Free standard $150+');
   expect(announcement).not.toHaveTextContent('$500');
   expect(quoteShipping(5000, settings)[0].cents).toBe(rate);
   const cart=within(screen.getByRole('region',{name:'Cart'}));

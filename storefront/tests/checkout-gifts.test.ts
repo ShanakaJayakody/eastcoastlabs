@@ -51,18 +51,18 @@ it('removes only the threshold gift after a discount takes the basket below elig
   expect(original.giftApplied).toBe(true);
 });
 
-it.each([[14999,false],[15000,true],[15001,true]])('enforces the $150 gift threshold at %s cents',async(price,eligible)=>{
-  fixtures.threshold=150;
+it.each([[19999,false],[20000,true],[20001,true]])('enforces the $200 gift threshold at %s cents',async(price,eligible)=>{
+  fixtures.threshold=200;
   fixtures.paidPrice=price as number;
   const cart=await resolveCart([{key:'sample',slug:'sample',variantLabel:'1 vial',quantity:1},gift]);
   expect(cart.giftApplied).toBe(eligible);
   expect(cart.lines.filter(line=>line.isGift)).toHaveLength(eligible?1:0);
 });
 
-it('removes the $150 gift when discounts bring goods to $149.99',async()=>{
-  fixtures.threshold=150;
-  fixtures.paidPrice=15000;
+it('removes the $200 gift when discounts bring goods to $199.99',async()=>{
+  fixtures.threshold=200;
+  fixtures.paidPrice=20000;
   const cart=await resolveCart([{key:'sample',slug:'sample',variantLabel:'1 vial',quantity:1}]);
-  expect(checkout.applyGiftThreshold(cart,15000,15000).giftApplied).toBe(true);
-  expect(checkout.applyGiftThreshold(cart,14999,15000).giftApplied).toBe(false);
+  expect(checkout.applyGiftThreshold(cart,20000,20000).giftApplied).toBe(true);
+  expect(checkout.applyGiftThreshold(cart,19999,20000).giftApplied).toBe(false);
 });
