@@ -40,6 +40,7 @@ export default function Footer({ supportEmail = "eclpeptides@gmail.com",legalNam
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-2">Explore</p>
             <ul className="mt-3 space-y-2 text-sm">
+              {process.env.NEXT_PUBLIC_CUSTOMER_ACCOUNTS_ENABLED === "1" && <li><Link href="/account/orders" className="text-fg-2 hover:text-accent">My orders</Link></li>}
               <li><Link href="/shop" className="text-fg-2 hover:text-accent">Shop</Link></li>
               <li><Link href="/stacks" className="text-fg-2 hover:text-accent">Research Stacks</Link></li>
               <li><Link href="/lab-results" className="text-fg-2 hover:text-accent">Lab Results</Link></li>

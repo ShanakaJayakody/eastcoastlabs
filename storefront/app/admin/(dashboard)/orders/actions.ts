@@ -106,11 +106,12 @@ export async function advanceStatus(
   orderId: string,
   to: OrderStatus,
   trackingNumber?: string,
+  carrierCode?: string | null,
 ): Promise<ActionResult> {
   const session = await requireAdmin(); assertPreviewWritable();
   if (!["processing", "shipped", "completed"].includes(to)) return { ok: false, error: "Use the dedicated reviewed order action." };
   try {
-    await setStatus(orderId, to, { actor: session.email, trackingNumber: trackingNumber?.trim() || undefined });
+    await setStatus(orderId, to, { actor: session.email, trackingNumber: trackingNumber?.trim() || undefined, ...(carrierCode !== undefined ? { carrierCode } : {}) });
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin");
@@ -267,10 +268,10 @@ export async function addNote(orderId: string, message: string): Promise<ActionR
   }
 }
 
-export async function correctTracking(orderId:string,trackingNumber:string,notify=false):Promise<ActionResult>{
+export async function correctTracking(orderId:string,trackingNumber:string,notify=false,carrierCode?:string|null):Promise<ActionResult>{
  const session=await requireAdmin(); assertPreviewWritable();
  try{
-  await updateOrderTracking(orderId,trackingNumber,{actor:session.email,notify});
+  await updateOrderTracking(orderId,trackingNumber,{actor:session.email,notify,...(carrierCode!==undefined?{carrierCode}:{})});
   revalidatePath(`/admin/orders/${orderId}`);revalidatePath("/admin/orders");return {ok:true};
  }catch(err){return fail(err);}
 }

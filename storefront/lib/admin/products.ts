@@ -151,12 +151,16 @@ function firstImage(images: RawProduct["images"]): string | null {
   return typeof src === "string" ? src : null;
 }
 
-export async function listProducts(opts: { search?: string; lowStockOnly?: boolean } = {}): Promise<ProductListRow[]> {
+export async function listProducts(opts: { search?: string; lowStockOnly?: boolean; requireStockFor?: readonly string[] } = {}): Promise<ProductListRow[]> {
   const { data, error } = await adminDb().from("products").select(SELECT_PRODUCT).order("name");
   if (error) throw new Error(`listProducts: ${error.message}`);
 
   let rows: ProductListRow[] = (data as unknown as RawProduct[]).map((p) => {
     const raw = p.product_variants ?? [];
+    if(opts.requireStockFor?.some(slug=>p.slug===slug||p.slug.startsWith(slug+'-size-'))){
+      if(!raw.length||raw.some(v=>!v.inventory||![v.inventory.on_hand,v.inventory.reserved,v.inventory.low_stock_threshold].every(Number.isFinite)))
+        throw new Error(`Stock inventory or threshold unavailable for ${p.slug}`);
+    }
     const pool = poolOf(raw);
     const variants = raw
       .map((v) => mapVariant(v, pool))

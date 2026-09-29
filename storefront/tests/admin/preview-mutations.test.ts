@@ -5,6 +5,7 @@ vi.mock('@/lib/admin/db',()=>({adminDb:sideEffect}));
 vi.mock('@/lib/admin/orders',()=>({markPaid:sideEffect,setStatus:sideEffect,reinstateOrder:sideEffect,cancelOrder:sideEffect,updateOrderTracking:sideEffect,updatePendingOrderItemQty:sideEffect,removeOrderItem:sideEffect}));
 vi.mock('@/lib/admin/refunds',()=>({quoteRefund:sideEffect,commitReviewedRefund:sideEffect,settleRefund:sideEffect}));
 vi.mock('@/lib/admin/fulfilment',()=>({registerStockLot:sideEffect,allocateOrderLots:sideEffect,previewCarrierCsv:sideEffect,commitCarrierRows:sideEffect}));
+vi.mock('@/lib/admin/daily-sms',()=>({smsRpc:sideEffect,runDailyAdminSms:sideEffect}));
 vi.mock('next/cache',()=>({revalidatePath:sideEffect}));
 beforeEach(()=>{vi.stubEnv('VERCEL_ENV','preview');sideEffect.mockClear();});
 afterEach(()=>vi.unstubAllEnvs());
@@ -15,6 +16,7 @@ const loaders:Record<string,()=>Promise<unknown>>={
   'orders/fulfilment-actions':()=>import('@/app/admin/(dashboard)/orders/fulfilment-actions'),
   'customers/actions':()=>import('@/app/admin/(dashboard)/customers/actions'),
   'creators/actions':()=>import('@/app/admin/(dashboard)/creators/actions'),
+  'settings/admin-sms-actions':()=>import('@/app/admin/(dashboard)/settings/admin-sms-actions'),
 };
 it.each([
   ['orders/actions','confirmPayment',['test']],
@@ -25,6 +27,9 @@ it.each([
   ['orders/fulfilment-actions','previewCarrier',['order,tracking']],
   ['customers/actions','sendStageNow',['person@example.test','welcome',0]],
   ['creators/actions','reviewCreatorApplication',[{id:'test',expectedRevision:0,status:'accepted',notes:''}]],
+  ['settings/admin-sms-actions','saveAdminSmsSettings',[{enabled:true,startHour:8}]],
+  ['settings/admin-sms-actions','previewAdminSms',[]],
+  ['settings/admin-sms-actions','testAdminSms',['61400000001','00000000-0000-0000-0000-000000000001']],
 ])('blocks direct action %s:%s independently of middleware',async(module,name,args)=>{
   const actions=await loaders[module]() as Record<string,(...args:unknown[])=>Promise<unknown>>;
   await expect(actions[name](...args)).rejects.toThrow(/read.only/i);

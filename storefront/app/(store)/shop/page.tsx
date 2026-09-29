@@ -9,7 +9,6 @@ import { getComingSoonProducts } from "@/lib/coming-soon";
 import ComingSoonShelf from "@/components/ComingSoonShelf";
 import type { CardProduct } from "@/components/ProductCard";
 import { withRebrandImages } from '@/lib/rebrand-imagery';
-import { parseRebrandVariant } from '@/lib/rebrand-navigation';
 
 export const metadata: Metadata = {
   alternates: { canonical: "/shop" },
@@ -21,8 +20,8 @@ export const metadata: Metadata = {
 // Live catalog is fetched server-side (works despite CORS) with a 5-min revalidate.
 export const revalidate = 300;
 
-export default async function ShopPage({ searchParams }: { searchParams?: Promise<{ rebrand?: string | string[] }> }) {
-  const imageVariant = parseRebrandVariant((await searchParams)?.rebrand);
+export default async function ShopPage() {
+  const imageVariant = 'v2' as const;
   const [{ products }, comingSoon] = await Promise.all([
     getCatalog(),
     getComingSoonProducts(),

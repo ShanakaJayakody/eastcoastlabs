@@ -31,12 +31,12 @@ try{
   try{const response=await fetch(`${base}/cart-recovery`,{redirect:'manual',signal:AbortSignal.timeout(1000)});await response.body?.cancel();ready=true;break;}catch{await delay(100);}
  }
  assert(ready,'Owned production server did not become ready');
- const routes=['/cart-recovery','/cart-recovery?token=synthetic-invalid','/checkout','/checkout/thank-you','/pay/synthetic-invalid','/leave-a-review','/subscribe/confirm','/api/unsubscribe'];
+ const routes=['/account/sign-in','/account/orders','/orders/access?token=invalid','/orders/invalid','/cart-recovery','/cart-recovery?token=synthetic-invalid','/checkout','/checkout/thank-you','/pay/synthetic-invalid','/leave-a-review','/subscribe/confirm','/api/unsubscribe'];
  for(const route of [...routes,'/api/operations/health']){
   assert(!exited,'Owned production server stopped during header verification');
   const response=await fetch(`${base}${route}`,{redirect:'manual',signal:AbortSignal.timeout(10000)});
   await response.body?.cancel();
-  const expectedStatus=route==='/api/operations/health'?503:route==='/pay/synthetic-invalid'?404:200;
+  const expectedStatus=route==='/orders/access?token=invalid'?303:route==='/account/orders'?307:route==='/orders/invalid'?404:route==='/api/operations/health'?503:route==='/pay/synthetic-invalid'?404:200;
   assert.equal(response.status,expectedStatus,`${route}: unexpected HTTP status`);
   const cache=response.headers.get('cache-control')||'',robots=response.headers.get('x-robots-tag')||'';
   assert(cache.includes('private')&&cache.includes('no-store'),`${route}: missing private/no-store Cache-Control`);
@@ -44,7 +44,7 @@ try{
   if(route!=='/api/operations/health')assert.equal(response.headers.get('referrer-policy'),'no-referrer',`${route}: missing no-referrer policy`);
   console.log(`PASS ${route}: HTTP ${response.status}, private response headers`);
  }
- console.log('9 private response checks passed; owned loopback production server only');
+ console.log('13 private response checks passed; owned loopback production server only');
 }finally{
  if(!exited){child.kill('SIGTERM');await Promise.race([closed,delay(5000,undefined,{ref:false})]);if(!exited){child.kill('SIGKILL');await closed;}}
 }

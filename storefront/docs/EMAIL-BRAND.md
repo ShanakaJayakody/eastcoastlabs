@@ -4,6 +4,16 @@ All 25 application email types use the selected navy identity: white message pan
 
 Customer messages include the configured support address and support hours. Marketing messages retain their recipient-specific unsubscribe link. Copy should explain the message's purpose, the next action and relevant dates plainly. Use current settings or direct readers to current product information for prices and shipping benefits. Do not add unsupported testing, speed, outcome or scarcity claims.
 
+## Customer voice and Telegram
+
+Customer copy is warm, straightforward and attentive: a friendly greeting, a clear reason for the email, useful next steps, and a sign-off from the East Coast Labs team. Thank customers without forced familiarity or pressure to order again. Ask for honest feedback regardless of the experience; never make help conditional on a review or describe an admin-completed order as proven delivered.
+
+Every customer email includes a fixed support link to [@eclpeptides](https://t.me/eclpeptides), alongside email support. Telegram copy offers 24/7 support with the qualification “Response times may vary.” Ask customers to message privately about orders and not post payment or personal details in the community.
+
+Welcome and generally subscribed retention emails also invite customers into the community for promos, updates and shared experiences. Transactional emails, confirmation requests, saved-cart reminders and back-in-stock notifications keep Telegram support-only: narrow consent to cart or stock notifications is not a general marketing subscription. Admin emails do not receive the customer Telegram invitation. The retired review-reminder template remains retired.
+
+Payment copy uses the order's stored reservation deadline, including when receipt enrichment is unavailable, with the payment page as the fallback. Existing receipt photos, exact sizes, totals, private order links, carrier tracking, enriched plain-text alternatives and Reply-To are preserved. This copy update does not change event triggers or delivery eligibility.
+
 ## Coverage
 
 - Subscription and saved-cart confirmations.
@@ -29,7 +39,7 @@ Open `http://127.0.0.1:3116/`. Select any template and switch between desktop, 3
 
 The generator substitutes sample settings, forces a preview-only signing key, does not load environment files, and never calls a settings getter backed by the database. It neither sends email nor writes outbox records. Addresses ending in `.test`, payment details, tokens and order numbers are samples. Gallery email links are inactive. Do not commit generated previews.
 
-The emails use inline styles, presentation tables and an Outlook width wrapper. Every header loads the exact revamped symbol from `https://www.eastcoastlabs.com.au/brand/ecl-cobalt-symbol.png`, with explicit dimensions and alt text. The adjacent wordmark is live text, so identification and content remain available with remote images disabled. The public logo is the only image request; no external fonts or new tracking were added. Browser previews verify layout; they do not simulate every Gmail, Apple Mail or Outlook version or forced dark mode. Actual inbox testing remains a release check with an explicitly authorised test recipient.
+The emails use inline styles, presentation tables and an Outlook width wrapper. Every header loads the exact revamped symbol from `https://www.eastcoastlabs.com.au/brand/ecl-cobalt-symbol.png`, with explicit dimensions and alt text. The adjacent wordmark is live text, so identification and content remain available with remote images disabled. Enriched order receipts also include eligible product images; this copy update adds no image requests, external fonts or tracking. Browser previews verify layout; they do not simulate every Gmail, Apple Mail or Outlook version or forced dark mode. Actual inbox testing remains a release check with an explicitly authorised test recipient.
 
 ## Release behavior
 

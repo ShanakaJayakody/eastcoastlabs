@@ -79,3 +79,13 @@ Historical migration files include embedded initial data and data transformation
 Run `npm run test:postgres` locally with Docker available. It creates labelled disposable PostgreSQL, migrates synthetic fixtures, tests contention, restores a backup into a second disposable database, and removes the databases and owned container on exit. It does not read project env files. CI supplies its loopback PostgreSQL service explicitly; do not point this test at an operational database.
 
 The action pins were resolved from the documented v7 tags of [actions/checkout](https://github.com/actions/checkout) and [actions/setup-node](https://github.com/actions/setup-node). Update them through a reviewed dependency change.
+
+## Customer order experience (2026-09-30)
+
+Apply the four additive `20260930` migrations in filename order before deploying
+this feature's worker. They add immutable line-image snapshots, customer OTP/session
+and ownership records, and optional frozen email fields. They do not backfill
+notifications or send account invitations. Follow
+[CUSTOMER-ORDERS.md](CUSTOMER-ORDERS.md) for provider readiness, image preparation,
+flags, privacy checks and rollback. Preserve the new worker when rolling back
+feature flags so already-frozen text and Reply-To remain identical on retries.
