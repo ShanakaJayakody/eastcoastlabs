@@ -38,7 +38,7 @@ export interface NavItem {
 
 /** Single source of truth for the sidebar and the ⌘K command palette. */
 export const NAV: NavItem[] = [
-  { label: "Dashboard", href: "/admin", icon: LayoutDashboard, group: "Today" },
+  { label: "Today", href: "/admin", icon: LayoutDashboard, group: "Today" },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart, group: "Today" },
   { label: "Fulfilment", href: "/admin/fulfilment", icon: Timer, group: "Today" },
   { label: "Products", href: "/admin/products", icon: Package, group: "Catalogue" },
@@ -56,3 +56,19 @@ export const NAV: NavItem[] = [
   { label: "Automation", href: "/admin/automation", icon: Mail, group: "System" },
   { label: "Settings", href: "/admin/settings", icon: Settings, group: "System" },
 ];
+
+export type Workspace = {id:string;label:string;href:string;routes:readonly string[]};
+export const WORKSPACES: Workspace[] = [
+  {id:'today',label:'Today',href:'/admin',routes:['/admin']},
+  {id:'orders',label:'Orders',href:'/admin/orders',routes:['/admin/orders']},
+  {id:'catalogue',label:'Catalogue',href:'/admin/products',routes:['/admin/products','/admin/stock','/admin/pipeline','/admin/coas']},
+  {id:'customers',label:'Customers',href:'/admin/customers',routes:['/admin/customers','/admin/recovery','/admin/reviews']},
+  {id:'marketing',label:'Marketing',href:'/admin/creators',routes:['/admin/creators','/admin/discounts','/admin/email-templates']},
+  {id:'reports',label:'Reports',href:'/admin/reports',routes:['/admin/reports','/admin/fulfilment']},
+  {id:'settings',label:'Settings',href:'/admin/settings',routes:['/admin/settings','/admin/automation','/admin/audit']},
+];
+export function workspaceForPath(pathname:string):Workspace {
+  return WORKSPACES.flatMap(workspace=>workspace.routes.map(route=>({route,workspace})))
+    .sort((a,b)=>b.route.length-a.route.length)
+    .find(({route})=>pathname===route || (route!=='/admin' && pathname.startsWith(route+'/')))?.workspace ?? WORKSPACES[0];
+}
