@@ -9,7 +9,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ replace, refresh }) }));
 import CustomerDetails from "@/components/admin/CustomerDetails";
 const customer = { email: "buyer@example.test", name: "Original Name", phone: "0400000000", address: { line1: "10 Street", suburb: "Melbourne", state: "VIC", postcode: "3000", country: "AU" }, version: 0 };
 afterEach(cleanup);
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => { vi.resetAllMocks(); });
 
 it("keeps drafts after refresh and failure, then navigates to the saved email", async () => {
   const { rerender } = render(<CustomerDetails customer={customer} />);
@@ -23,6 +23,8 @@ it("keeps drafts after refresh and failure, then navigates to the saved email", 
   expect(await screen.findByRole("alert")).toHaveTextContent("Email already in use");
   expect(screen.getByLabelText("Email")).toHaveValue("correct@example.test");
   expect(replace).not.toHaveBeenCalled();
+  // The error can render before React finishes the saving transition.
+  await waitFor(() => expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled());
   save.mockResolvedValueOnce({ ok: true, message: "Customer details saved.", email: "correct@example.test", version: 1 });
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(replace).toHaveBeenCalledWith("/admin/customers/correct%40example.test"));
