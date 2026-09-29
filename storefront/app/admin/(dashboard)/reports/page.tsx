@@ -5,6 +5,7 @@ import { AlertTriangle } from "lucide-react";
 import { requireAdmin } from "@/lib/admin/auth";
 import {
   parseRevenueScale,
+  revenueWindow,
   windowMeta,
   type RevenueScale,
   type WindowMeta,
@@ -13,6 +14,7 @@ import { productPerformance, fulfilmentFunnel, emailPerformance, cohorts, contri
 import { formatAud } from "@/lib/format";
 import PeriodNav from "@/components/admin/PeriodNav";
 import Badge from "@/components/admin/Badge";
+import RevenueChart from "@/components/admin/RevenueChart";
 import { Bar } from "@/components/admin/Skeleton";
 
 export const metadata: Metadata = { title: "Reports — ECL Admin" };
@@ -22,6 +24,7 @@ const cents = (c: number | null) => c==null?"Unknown":formatAud(c / 100);
 const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 1000) / 10}%` : "—");
 
 const TABS = [
+  { id: "revenue", label: "Revenue & profit" },
   { id: "products", label: "Products" },
   { id: "contribution", label: "Contribution" },
   { id: "funnel", label: "Funnel" },
@@ -72,7 +75,7 @@ export default async function ReportsPage({
       </div>
 
       {/* Cohorts are a lifetime view — a period stepper would be meaningless. */}
-      {tab !== "cohorts" && (
+      {tab !== "cohorts" && tab !== "revenue" && (
         <section className="admin-card rounded-xl p-4">
           <PeriodNav
             meta={meta}
@@ -82,6 +85,7 @@ export default async function ReportsPage({
       )}
 
       <Suspense key={`${tab}:${meta.scale}:${meta.anchor}`} fallback={<ReportSkeleton />}>
+        {tab === "revenue" && <FinancialReport scale={sp.scale} at={sp.at}/>}
         {tab === "products" && <ProductsReport meta={meta} />}
         {tab === "contribution" && <ContributionReport meta={meta} />}
         {tab === "funnel" && <FunnelReport meta={meta} />}
@@ -90,6 +94,10 @@ export default async function ReportsPage({
       </Suspense>
     </div>
   );
+}
+
+async function FinancialReport({scale,at}:{scale?:string;at?:string}){
+ return <section className="admin-card overflow-hidden rounded-2xl"><RevenueChart initial={await revenueWindow({scale:parseRevenueScale(scale),anchor:at})}/></section>;
 }
 
 /* -------------------------------- products -------------------------------- */
