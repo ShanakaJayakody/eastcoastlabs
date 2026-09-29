@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -42,7 +43,7 @@ export interface SettingsInput {
 }
 
 export async function saveSettings(input: SettingsInput): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
 
   const bounded = (n: number) => Number.isFinite(n) && n >= 0 && n <= 1_000_000;
   if (![input.standardShippingCents, input.expressShippingCents].every(n => bounded(n) && Number.isInteger(n)))

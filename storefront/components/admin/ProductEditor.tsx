@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -283,14 +284,14 @@ export default function ProductEditor({
           >
             <ExternalLink size={14} /> View
           </a>
-          <button
+          <AdminWriteButton
             disabled={pending || dirty}
             onClick={duplicate}
             title={dirty ? "Save or discard your draft before duplicating" : undefined}
             className="flex items-center gap-1.5 rounded-lg border border-line-2 bg-surface px-3 py-1.5 text-sm text-fg-2 transition hover:text-fg disabled:opacity-50"
           >
             <Copy size={14} /> Duplicate
-          </button>
+          </AdminWriteButton>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -536,7 +537,7 @@ export default function ProductEditor({
                       className={`${field} max-w-[140px]`}
                       aria-label="Cost per vial"
                     />
-                    <button
+                    <AdminWriteButton
                       disabled={pending}
                       onClick={() =>
                         start(async () => {
@@ -553,7 +554,7 @@ export default function ProductEditor({
                       className={`${btn} border border-line-2 bg-surface-2 text-fg`}
                     >
                       Set
-                    </button>
+                    </AdminWriteButton>
                     {product.unit_cost_cents != null && (
                       <span className="text-xs text-muted-2">
                         Stock on hand at cost:{" "}
@@ -590,7 +591,7 @@ export default function ProductEditor({
                       className={`${field} max-w-[130px]`}
                     />
                   </label>
-                  <button
+                  <AdminWriteButton
                     disabled={pending || !Number(launchPrice)}
                     onClick={() =>
                       start(async () => {
@@ -608,7 +609,7 @@ export default function ProductEditor({
                     className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
                   >
                     Create tiers &amp; go live
-                  </button>
+                  </AdminWriteButton>
                 </div>
                 <p className="text-xs text-muted-2">
                   3-pack and 6-pack prices are filled in at the standard 10% / 20% pack discount —
@@ -729,7 +730,7 @@ export default function ProductEditor({
             >
               Discard
             </button>
-            <button
+            <AdminWriteButton
               disabled={pending || !dirty}
               onClick={saveAll}
               className={`${btn} px-5 ${
@@ -741,7 +742,7 @@ export default function ProductEditor({
               }`}
             >
               {pending ? "Saving…" : "Save"}
-            </button>
+            </AdminWriteButton>
           </div>
         </div>
       </div>

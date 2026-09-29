@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useMemo, useState, useRef } from "react";
 import { Toaster } from "sonner";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -9,16 +8,28 @@ import { CommandPalette, type CommandItem } from "./CommandPalette";
 import { NAV } from "@/lib/admin/nav";
 import { signOut } from "@/lib/admin/auth-actions";
 import { searchAdmin } from "@/app/admin/search-actions";
+import {AdminThemeProvider,useAdminTheme,type AdminTheme} from './AdminThemeProvider';
+import {AdminReadOnlyContext} from './AdminReadOnlyContext';
+import SectionNav from './SectionNav';
+import {useDialogFocus} from './useDialogFocus';
+import './admin-workspace.css';
 
-export default function AdminShell({
+export default function AdminShell(props:{email:string;children:React.ReactNode;initialTheme?:AdminTheme;readOnly?:boolean}) {
+  return <AdminThemeProvider initialTheme={props.initialTheme}><AdminReadOnlyContext.Provider value={props.readOnly??false}><WorkspaceShell {...props}/></AdminReadOnlyContext.Provider></AdminThemeProvider>;
+}
+function WorkspaceShell({
   email,
   children,
+  readOnly,
 }: {
   email: string;
   children: React.ReactNode;
+  readOnly?:boolean;
 }) {
   const [navOpen, setNavOpen] = useState(false);
-  const pathname = usePathname();
+  const {theme}=useAdminTheme();
+  const navRef=useRef<HTMLElement>(null);
+  useDialogFocus(navOpen,navRef,()=>setNavOpen(false));
 
   const paletteItems: CommandItem[] = useMemo(() => {
     // The palette mirrors the sidebar's grouping, so muscle memory transfers.
@@ -148,8 +159,7 @@ export default function AdminShell({
   }, []);
 
   return (
-    <div className="admin-theme min-h-screen bg-ink text-fg">
-      <div className="admin-aurora" aria-hidden />
+    <div className="admin-theme admin-workspace min-h-screen bg-ink text-fg" data-admin-theme={theme}>
 
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden lg:flex">
@@ -163,7 +173,7 @@ export default function AdminShell({
             className="absolute inset-0 bg-ink/70 backdrop-blur-sm"
             onClick={() => setNavOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0">
+          <aside ref={navRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Navigation" className="absolute inset-y-0 left-0">
             <Sidebar
               email={email}
               showClose
@@ -174,16 +184,17 @@ export default function AdminShell({
         </div>
       )}
 
-      <div className="relative z-10 lg:pl-64">
+      <div className="admin-workspace-content relative z-10">
         <Topbar onOpenNav={() => setNavOpen(true)} />
-        {/* Keyed by route so every navigation gets the entrance animation */}
-        <main key={pathname} className="admin-enter mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        {readOnly&&<div className="admin-preview-notice" role="note">Preview · real store data · read-only</div>}
+        <SectionNav/>
+        <main className="admin-workspace-main">
           {children}
         </main>
       </div>
 
       <CommandPalette items={paletteItems} onSearch={searchAdmin} />
-      <Toaster theme="dark" position="top-right" richColors />
+      <Toaster theme={theme} position="top-right" richColors />
     </div>
   );
 }

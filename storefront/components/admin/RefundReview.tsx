@@ -6,10 +6,12 @@ import {formatAud} from '@/lib/format';
 import type {RefundQuote,RefundSelection} from '@/lib/admin/refunds';
 import {previewRefund,commitRefund} from '@/app/admin/(dashboard)/orders/refund-actions';
 import ConfirmModal from './ConfirmModal';
+import {useAdminReadOnly} from './AdminReadOnlyContext';
 const cents=(amount:number)=>formatAud(amount/100);
 /** Mount a fresh dialog for each selection. A retry retains its reviewed token/key. */
 export default function RefundReview({orderId,selection,onClose,onSuccess}:{orderId:string;selection:RefundSelection;onClose:()=>void;onSuccess?:()=>void}){
  const router=useRouter();
+ const readOnly=useAdminReadOnly();
  const [pending,start]=useTransition();
  const [restock,setRestock]=useState(false);
  const [quote,setQuote]=useState<RefundQuote|null>(null);
@@ -30,7 +32,7 @@ export default function RefundReview({orderId,selection,onClose,onSuccess}:{orde
    else {setError(result.error);if(result.stale){setQuote(null);key.current=null}}
   }catch{setError('The request could not be confirmed. Retry to check the same operation.')}
  })}
- return <ConfirmModal open title="Review refund" confirmLabel={quote?'Record refund':'Preview refund'} tone="danger" pending={pending} onConfirm={submit} onCancel={onClose} body={<>
+ return <ConfirmModal open title="Review refund" confirmDisabled={readOnly} confirmLabel={quote?'Record refund':'Preview refund'} tone="danger" pending={pending} onConfirm={submit} onCancel={onClose} body={<>
   <p>This records a refund. Money is not transferred; return money through your bank separately. A refund record email is queued for the customer.</p>
   <label className="mt-3 flex gap-2"><input type="checkbox" disabled={pending} checked={restock} onChange={e=>{setRestock(e.target.checked);setQuote(null);key.current=null;setError('')}}/>Restore selected units to sellable stock only if physically returned or still on hand.</label>
   {quote && <div className="mt-3 space-y-1 border-t border-line pt-3">

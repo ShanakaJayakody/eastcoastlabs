@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { prepareProductMedia } from "@/lib/product-media";
 import { revalidatePath } from "next/cache";
@@ -55,7 +56,7 @@ function revalidateProduct(slug: string) {
 }
 
 export async function saveProduct(slug: string, patch: ProductPatch): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     await updateProduct(slug, patch, session.email);
     revalidateProduct(slug);
@@ -77,7 +78,7 @@ export async function createProductAction(input: {
   initialStock?: number;
   status: "active" | "draft";
 }): Promise<ActionResult & { slug?: string }> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!input.name?.trim()) return { ok: false, error: "Product name is required." };
   if (!Number.isFinite(input.singlePriceAud) || input.singlePriceAud <= 0) {
     return { ok: false, error: "Enter a 1-vial price." };
@@ -121,7 +122,7 @@ export async function addTiersAction(
     activate?: boolean;
   },
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!Number.isFinite(input.singlePriceAud) || input.singlePriceAud <= 0) {
     return { ok: false, error: "Enter a 1-vial price." };
   }
@@ -155,7 +156,7 @@ export async function addTiersAction(
 
 /** Clone an existing product as a draft — fastest path to a near-identical SKU. */
 export async function duplicateProductAction(slug: string): Promise<ActionResult & { slug?: string }> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const created = await duplicateProduct(slug, session.email);
     revalidateProduct(created.slug);
@@ -181,7 +182,7 @@ export async function saveProductAll(
   variants: { id: string; priceAud: number; threshold: number }[],
   version?: number,
 ): Promise<ActionResult & {version?:number}> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (patch.name != null && (!patch.name.trim() || patch.name.length > 300)) return {ok:false,error:"Product name is required (maximum 300 characters)."};
   for (const v of variants) {
     if (!Number.isFinite(v.priceAud) || v.priceAud < 0 || v.priceAud > 1_000_000 || !Number.isInteger(v.threshold) || v.threshold < 0 || v.threshold > 1_000_000)
@@ -201,7 +202,7 @@ export async function addProductSize(slug: string, input: {
   currentLabel?: string; label: string; singlePriceAud: number;
   pack3PriceAud?: number; pack6PriceAud?: number; initialStock: number;
 }): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!input.label.trim() || input.label.trim().length > 40) return {ok:false,error:'Enter a size, such as 20 mg or 3 ml (maximum 40 characters).'};
   if (!Number.isFinite(input.singlePriceAud) || input.singlePriceAud <= 0 || input.singlePriceAud > 1_000_000) return {ok:false,error:'Enter a valid single-vial price.'};
   if (!Number.isInteger(input.initialStock) || input.initialStock < 0 || input.initialStock > 1_000_000) return {ok:false,error:'Opening stock must be a whole number from 0 to 1,000,000.'};
@@ -223,7 +224,7 @@ export async function saveProductSize(parentSlug: string, input: {
   id: string; label: string; enabled: boolean; version: number;
   variants: {id:string;priceAud:number;threshold:number}[];
 }): Promise<ActionResult & {version?:number}> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!input.label.trim() || input.label.trim().length > 40 || !Number.isSafeInteger(input.version)) return {ok:false,error:'Enter a size label and refresh the product before saving.'};
   if (input.variants.some(v=>!Number.isFinite(v.priceAud) || v.priceAud<0 || v.priceAud>1_000_000 || !Number.isInteger(v.threshold) || v.threshold<0 || v.threshold>1_000_000)) return {ok:false,error:'Enter valid prices and stock thresholds.'};
   try {
@@ -244,7 +245,7 @@ export async function saveVariantPrice(
   priceAud: number,
   compareAtAud?: number | null,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!Number.isFinite(priceAud) || priceAud < 0) return { ok: false, error: "Invalid price." };
   try {
     await updateVariant(
@@ -268,7 +269,7 @@ export async function saveThreshold(
   variantId: string,
   threshold: number,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     await setLowStockThreshold(variantId, Math.round(threshold), session.email);
     revalidateProduct(slug);
@@ -288,7 +289,7 @@ export async function adjustStock(
   /** Optional purchase price per vial (AUD) — only meaningful on a receipt. */
   unitCostAud?: number | null,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!Number.isInteger(qty) || qty===0 || Math.abs(qty)>1_000_000) return {ok:false,error:"Enter a whole nonzero quantity within 1,000,000."};
   if (!REASONS.includes(reason)) return {ok:false,error:"Choose a reason."};
   if(unitCostAud!=null && (!Number.isFinite(unitCostAud)||unitCostAud<0||unitCostAud>1_000_000)) return {ok:false,error:"Enter a valid receipt cost."};
@@ -310,7 +311,7 @@ export async function adjustStock(
 }
 
 export async function reverseReceipt(slug:string,receiptId:string):Promise<ActionResult>{
- const session=await requireAdmin();
+ const session=await requireAdmin(); assertPreviewWritable();
  try{const {error}=await adminDb().rpc("admin_reverse_receipt",{p_receipt:receiptId,p_actor:session.email});if(error)throw new Error(error.message);revalidateProduct(slug);return {ok:true,message:"Receipt quantity and valuation reversed. Previously sent notifications cannot be recalled."};}catch(err){return fail(err);}
 }
 
@@ -323,7 +324,7 @@ export async function fetchMovements(variantId: string, receiptsOnly = false): P
 
 /** Manually set a product's cost per vial (no receipt involved). */
 export async function saveUnitCost(slug: string, unitCostAud: number | null): Promise<ActionResult> {
-  await requireAdmin();
+  await requireAdmin(); assertPreviewWritable();
   if (unitCostAud != null && (!Number.isFinite(unitCostAud) || unitCostAud < 0)) {
     return { ok: false, error: "Enter a valid cost." };
   }
@@ -345,7 +346,7 @@ export async function bulkAdjustStock(
   qty: number,
   reason: MovementReason,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!variantIds.length) return { ok: false, error: "Nothing selected." };
   if (!Number.isFinite(qty) || qty === 0) return { ok: false, error: "Enter a non-zero quantity." };
   if (!REASONS.includes(reason)) return { ok: false, error: "Choose a reason." };
@@ -360,7 +361,7 @@ export async function bulkAdjustStock(
 
 /** Bulk: percentage price change across selected variants. */
 export async function bulkPriceChange(variantIds: string[], pct: number): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!variantIds.length) return { ok: false, error: "Nothing selected." };
   if (!Number.isFinite(pct) || pct === 0) return { ok: false, error: "Enter a non-zero percentage." };
   if (pct < -90 || pct > 500) return { ok: false, error: "Percentage out of safe range." };
@@ -383,7 +384,7 @@ export interface ImageResult extends ActionResult {
 /** Upload an image to the public product-images bucket and append it to the
  *  product's images array. */
 export async function uploadProductImage(slug: string, formData: FormData): Promise<ImageResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose an image file." };
   if (!file.type.startsWith("image/")) return { ok: false, error: "File must be an image." };
@@ -415,7 +416,7 @@ export async function uploadProductImage(slug: string, formData: FormData): Prom
 }
 
 export async function removeProductImage(slug: string, src: string): Promise<ImageResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const product = await getProductBySlug(slug);
     if (!product) return { ok: false, error: "Product not found." };
@@ -434,7 +435,7 @@ export async function removeProductImage(slug: string, src: string): Promise<Ima
 }
 
 export async function reorderProductImages(slug: string, orderedSrcs: string[]): Promise<ImageResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const product = await getProductBySlug(slug);
     if (!product) return { ok: false, error: "Product not found." };

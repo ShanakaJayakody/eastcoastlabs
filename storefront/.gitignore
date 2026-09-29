@@ -30,6 +30,7 @@ next-env.d.ts
 .vercel
 .next-verify/
 .next-redesign-build/
+.next-*/
 
 # browser acceptance artifacts
 /playwright-report/

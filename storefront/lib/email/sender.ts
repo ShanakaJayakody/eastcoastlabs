@@ -1,4 +1,5 @@
 import "server-only";
+import {assertPreviewWritable} from "@/lib/admin/preview-policy";
 import { Resend } from "resend";
 import { adminDb } from "@/lib/admin/db";
 import { renderTemplate } from "./templates";
@@ -80,11 +81,13 @@ async function deliverClaimed(rows: OutboxRow[]) {
   return { sent, failed, cancelled };
 }
 export async function sendImmediately(rowId: string): Promise<{ sent: number; failed: number; cancelled: number }> {
+  assertPreviewWritable();
   const { data, error } = await adminDb().rpc("claim_email_outbox", { p_limit: 1, p_id: rowId });
   if (error) throw new Error(`Cannot claim email: ${error.message}`);
   return deliverClaimed((data ?? []) as OutboxRow[]);
 }
 export async function drainOutbox(limit = 50): Promise<{ sent: number; failed: number; cancelled: number }> {
+  assertPreviewWritable();
   // Claim one at a time so a slow provider cannot let later rows in a batch
   // expire their leases before this worker starts them.
   let sent=0, failed=0, cancelled=0;
@@ -101,6 +104,7 @@ export async function drainOutbox(limit = 50): Promise<{ sent: number; failed: n
 /** Prioritise newly committed order email after the HTTP response. Cron also
  * discovers these rows if the request worker exits before its callback runs. */
 export async function dispatchOrderEmails(orderId: string): Promise<void> {
+  assertPreviewWritable();
   const { data, error } = await adminDb().from("email_outbox").select("id")
     .eq("payload->>order_id", orderId).in("status", ["queued", "failed"]).order("created_at").limit(10);
   if (error) throw new Error(`Cannot read order notifications: ${error.message}`);

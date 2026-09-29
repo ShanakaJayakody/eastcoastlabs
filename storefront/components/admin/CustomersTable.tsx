@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -186,21 +187,21 @@ export default function CustomersTable({ rows }: { rows: PersonRow[] }) {
               aria-label="Tag to apply"
               className="w-32 rounded-lg border border-line bg-ink-2 px-3 py-2 text-sm text-fg outline-none focus:border-accent"
             />
-            <button
+            <AdminWriteButton
               disabled={pending || !tag.trim()}
               onClick={() => setConfirming("tag")}
               className="flex items-center gap-1.5 rounded-lg border border-line-2 bg-surface px-3 py-2 text-sm text-fg-2 transition hover:text-fg disabled:opacity-40"
             >
               <Tag size={15} /> Tag
-            </button>
-            <button
+            </AdminWriteButton>
+            <AdminWriteButton
               disabled={pending || stillSubscribed.length === 0}
               onClick={() => setConfirming("unsubscribe")}
               className="flex items-center gap-1.5 rounded-lg bg-red-500/90 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:opacity-40"
             >
               <MailX size={15} />
               {pending ? "Working…" : `Unsubscribe ${stillSubscribed.length}`}
-            </button>
+            </AdminWriteButton>
           </div>
         </div>
       </div>

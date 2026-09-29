@@ -2,6 +2,7 @@ import "server-only";
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "./auth";
+import { assertPreviewWritable } from "./preview-policy";
 import { adminDb } from "./db";
 import type { ApplicationStatus, CreatorApplicationRow } from "@/lib/creators/types";
 import { creatorStatusLabel, type CreatorAdminActionResult, type ReviewCreatorApplicationInput } from "@/lib/creators/admin";
@@ -163,6 +164,7 @@ export async function getCreatorApplication(id: string): Promise<CreatorApplicat
 
 export async function reviewCreatorApplication(input: ReviewCreatorApplicationInput): Promise<CreatorAdminActionResult> {
   const session = await requireAdmin();
+  assertPreviewWritable();
   const valid = reviewInput(input);
   if (typeof valid === "string") return { ok: false, error: valid };
 

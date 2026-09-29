@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -315,13 +316,13 @@ export default function SettingsForm({
           <p className="mt-3 text-xs text-muted">Returns notes supplement the published policy; they cannot remove applicable consumer guarantees.</p>
         </section>
 
-        <button
+        <AdminWriteButton
           disabled={pending}
           onClick={save}
           className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
         >
           {pending ? "Saving…" : "Save settings"}
-        </button>
+        </AdminWriteButton>
       </div>
 
       <div className="space-y-4">

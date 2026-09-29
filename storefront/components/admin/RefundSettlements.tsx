@@ -1,4 +1,5 @@
 'use client';
+import AdminWriteButton from "./AdminWriteButton";
 import {useRef,useState,useTransition} from 'react';
 import {useRouter} from 'next/navigation';
 import {formatAud} from '@/lib/format';
@@ -24,7 +25,7 @@ export default function RefundSettlements({orderId,refundedCents,settlements}:{o
    <label className="block">Transfer reference<input required disabled={pending} maxLength={200} value={reference} onChange={e=>setReference(e.target.value)} className={field}/></label>
    <label className="block">Transfer date<input required disabled={pending} type="date" value={date} onChange={e=>setDate(e.target.value)} className={field}/></label>
    <label className="flex gap-2"><input type="checkbox" disabled={pending} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>I have already made this transfer and checked the reference and amount.</label>
-   <button disabled={!valid||pending} className="rounded-lg bg-accent px-3 py-2 text-accent-ink disabled:opacity-50">{pending?'Recording…':'Record completed transfer'}</button>
+   <AdminWriteButton disabled={!valid||pending} className="rounded-lg bg-accent px-3 py-2 text-accent-ink disabled:opacity-50">{pending?'Recording…':'Record completed transfer'}</AdminWriteButton>
   </form>}
   {error&&<p role="alert" className="text-warn">{error}</p>}{saved&&<p role="status">Completed transfer recorded.</p>}
  </section>;

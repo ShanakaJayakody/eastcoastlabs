@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -8,7 +9,7 @@ import { parseCustomerDetails } from "@/lib/admin/customer-details";
 export async function saveCustomerDetails(email: string, input: unknown, version: number): Promise<
   { ok: true; message: string; email: string; version: number } | { ok: false; message: string }
 > {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const details = parseCustomerDetails(input);
   if (!details || typeof email !== "string" || !Number.isSafeInteger(version) || version < 0) {
     return { ok: false, message: "Enter a valid email and customer details." };

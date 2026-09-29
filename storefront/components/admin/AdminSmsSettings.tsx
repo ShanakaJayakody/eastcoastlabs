@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import AdminWriteButton from './AdminWriteButton';
 import { saveAdminSmsSettings, previewAdminSms, testAdminSms } from '@/app/admin/(dashboard)/settings/admin-sms-actions';
 import type { AdminSmsSettings as Settings, SmsOutboxRow, SmsRecipient } from '@/lib/sms/types';
 
@@ -36,11 +37,11 @@ export default function AdminSmsSettings({settings,history,serverEnabled,error}:
       <label className="text-sm">Melbourne delivery hour <select aria-label="Melbourne delivery hour" className="ml-2 rounded border border-slate-300 p-2" value={hour} onChange={e=>setHour(Number(e.target.value))} disabled={busy||!settings}>
         {Array.from({length:20},(_,h)=><option key={h} value={h}>{String(h).padStart(2,'0')}:00–{String(h+1).padStart(2,'0')}:00</option>)}
       </select></label>
-      <button type="button" onClick={save} disabled={busy||!settings} className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-50">Save SMS settings</button>
+      <AdminWriteButton type="button" onClick={save} disabled={busy||!settings} className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white disabled:opacity-50">Save SMS settings</AdminWriteButton>
     </div>
     <p className="text-xs text-slate-500">Delivery follows Melbourne daylight saving. A delayed job can catch up within four hours of the selected start time. Each director receives at most one scheduled update per day.</p>
     <div className="flex flex-wrap items-center gap-3">
-      <button type="button" onClick={refresh} disabled={busy} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Refresh live preview</button>
+      <AdminWriteButton type="button" onClick={refresh} disabled={busy} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Refresh live preview</AdminWriteButton>
       <a href="https://app.mobilemessage.com.au" target="_blank" rel="noreferrer" className="text-sm underline">Manage ECL Directors in Mobile Message</a>
     </div>
     {preview&&<div className="space-y-3">
@@ -51,7 +52,7 @@ export default function AdminSmsSettings({settings,history,serverEnabled,error}:
         <label className="text-sm">Test recipient <select aria-label="Test recipient" value={phone} onChange={e=>{setPhone(e.target.value);setTestId(null)}} disabled={busy} className="ml-2 rounded border border-slate-300 p-2">
           <option value="">Choose one director</option>{preview.recipients.map(r=><option key={r.phone} value={r.phone}>{r.name||r.phone}</option>)}
         </select></label>
-        <button type="button" onClick={test} disabled={busy||!phone||!serverEnabled} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Send one test SMS</button>
+        <AdminWriteButton type="button" onClick={test} disabled={busy||!phone||!serverEnabled} className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:opacity-50">Send one test SMS</AdminWriteButton>
       </div>
       <p className="text-xs text-slate-500">A test uses SMS credits and is separate from the scheduled daily update.</p>
     </div>}

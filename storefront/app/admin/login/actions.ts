@@ -3,6 +3,8 @@
 import { createSupabaseServerClient } from "@/lib/admin/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { logAudit } from "@/lib/admin/audit";
+import { adminAuthOrigin } from "@/lib/admin/preview-origin";
+import { isReadOnlyPreview } from "@/lib/admin/preview-policy";
 
 export interface ActionResult {
   ok: boolean;
@@ -12,7 +14,7 @@ export interface ActionResult {
 const adminCallbackUrl = () =>
   new URL(
     "/admin/auth/callback",
-    process.env.NEXT_PUBLIC_SITE_URL || "https://www.eastcoastlabs.com.au",
+    adminAuthOrigin(),
   ).toString();
 
 async function isAllowListed(email: string): Promise<boolean> {
@@ -64,7 +66,7 @@ export async function verifyOtp(email: string, token: string): Promise<ActionRes
     type: "email",
   });
   if (error) return { ok: false, error: error.message };
-  await logAudit({ actor: clean, action: "login" });
+  if (!isReadOnlyPreview()) await logAudit({ actor: clean, action: "login" });
   return { ok: true };
 }
 
@@ -78,6 +80,6 @@ export async function exchangeMagicLinkCode(code: string): Promise<ActionResult>
   if (error) return { ok: false, error: error.message };
 
   const email = data.user?.email?.toLowerCase();
-  if (email) await logAudit({ actor: email, action: "login" });
+  if (email && !isReadOnlyPreview()) await logAudit({ actor: email, action: "login" });
   return { ok: true };
 }
