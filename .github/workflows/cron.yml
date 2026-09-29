@@ -45,6 +45,7 @@ jobs:
           - abandoned-carts   # stage 1 wants ~1h, not ~24h
           - payment-ops       # 4h/24h payment reminders + 48h expiry
           - overdue-orders    # admin priority alerts after 24h in an order queue
+          - admin-sms         # Melbourne-time daily director update, deduplicated
     steps:
       - name: Call ${{ matrix.endpoint }}
         env:
