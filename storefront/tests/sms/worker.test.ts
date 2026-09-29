@@ -14,7 +14,7 @@ let enabled=true;
 let now:Date;
 beforeAll(async()=>{
   db=new PGlite();
-  await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema storage;create table storage.buckets(id text primary key,name text,public boolean)');
+  await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz);create schema storage;create table storage.buckets(id text primary key,name text,public boolean)');
   for(const f of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort())await db.exec(readFileSync(`supabase/migrations/${f}`,'utf8'));
   const [{morning}]=(await db.query<{morning:string}>("select (((now() at time zone 'Australia/Melbourne')::date)::text||' 08:10 Australia/Melbourne')::timestamptz::text morning")).rows;
   now=new Date(morning);
