@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ import { bulkConfirmPayment, bulkReinstate } from "@/app/admin/(dashboard)/order
 import type { OrderSort } from "@/lib/admin/order-queries";
 import StatusBadge from "./StatusBadge";
 import ConfirmModal from "./ConfirmModal";
+import OrderQuickView from "./OrderQuickView";
 
 const cents = (c: number) => formatAud(c / 100);
 
@@ -57,6 +59,7 @@ export default function OrdersTable({
   query?: { status?: string; q?: string; from?: string; to?: string };
 }) {
   const router = useRouter();
+  const [previewId,setPreviewId]=useState<string|null>(null);
   const [pending, start] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkResults,setBulkResults] = useState<{id:string;error:string}[]>([]);
@@ -80,7 +83,7 @@ export default function OrdersTable({
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       // A dialog owns the keyboard while it is open — otherwise Enter would
       // navigate away from the very confirmation being read.
-      if (confirming !== null) return;
+      if (confirming !== null || previewId !== null) return;
       const target = event.target as HTMLElement | null;
       // Buttons and links are excluded too: Enter on a focused control is the
       // browser activating it, and preventDefault here would swallow that and
@@ -119,7 +122,7 @@ export default function OrdersTable({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
     // `toggle` is stable in behaviour; rows and cursor are the real inputs.
-  }, [rows, cursor, router, confirming]);
+  }, [rows, cursor, router, confirming, previewId]);
 
   // A shorter page after filtering must not leave the cursor past the end.
   useEffect(() => {
@@ -204,13 +207,14 @@ export default function OrdersTable({
 
   return (
     <>
+      {previewId&&<OrderQuickView orderId={previewId} onClose={()=>setPreviewId(null)}/>}
       {bulkResults.length>0 && <section aria-label="Bulk operation failures" className="mb-4 rounded-xl border border-warn p-4 text-sm">
         <h3 className="font-semibold">{bulkResults.length} orders need attention</h3>
         <p>Failed orders remain selected. Review the reason, then use the bulk action to retry selected eligible orders.</p>
         <ul>{bulkResults.map(f=><li key={f.id}><Link href={`/admin/orders/${f.id}`} className="underline">{rows.find(r=>r.id===f.id)?.order_number ?? f.id}</Link> — {f.error}</li>)}</ul>
         <button onClick={()=>rememberFailures([])} className="mt-2 underline">Dismiss results</button>
       </section>}
-      <div className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="admin-orders-table overflow-auto rounded-xl border border-line bg-surface">
         <table className="w-full text-sm">
           <thead className="border-b border-line bg-ink-2 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
@@ -284,6 +288,7 @@ export default function OrdersTable({
                   >
                     {o.order_number}
                   </Link>
+                  <button type="button" className="order-quick-trigger" onClick={e=>{e.stopPropagation();setPreviewId(o.id);}}>Quick view<span className="sr-only"> {o.order_number}</span></button>
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-fg-2">{o.customer_name || "—"}</span>
@@ -363,23 +368,23 @@ export default function OrdersTable({
               <Printer size={15} /> Print slips
             </button>
             {reinstatableSelected.length > 0 && (
-              <button
+              <AdminWriteButton
                 disabled={pending}
                 onClick={() => setConfirming("reinstate")}
                 className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-110 disabled:opacity-50"
               >
                 <RotateCcw size={15} /> Reinstate {reinstatableSelected.length} &amp; mark paid
-              </button>
+              </AdminWriteButton>
             )}
             {payableSelected.length > 0 && (
-              <button
+              <AdminWriteButton
                 disabled={pending}
                 onClick={() => setConfirming("pay")}
                 className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
               >
                 <BadgeCheck size={15} />
                 {pending ? "Working…" : `Mark ${payableSelected.length} paid`}
-              </button>
+              </AdminWriteButton>
             )}
             {shippableSelected.length > 0 && (
               <Link href="/admin/orders/fulfilment" className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink">

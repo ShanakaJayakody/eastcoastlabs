@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -21,7 +22,7 @@ export interface DiscountInput {
 }
 
 export async function createDiscount(input: DiscountInput): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const code = input.code.trim().toUpperCase();
   if (!/^[A-Z0-9_-]{3,32}$/.test(code))
     return { ok: false, error: "Code must be 3–32 chars (A–Z, 0–9, - or _)." };
@@ -63,7 +64,7 @@ export async function createDiscount(input: DiscountInput): Promise<ActionResult
 }
 
 export async function toggleDiscount(code: string, active: boolean): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const { error } = await adminDb().from("discounts").update({ active }).eq("code", code);
     if (error) throw new Error(error.message);
@@ -81,7 +82,7 @@ export async function toggleDiscount(code: string, active: boolean): Promise<Act
 }
 
 export async function deleteDiscount(code: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const normalizedCode = code.trim().toUpperCase();
   try {
     const db = adminDb();

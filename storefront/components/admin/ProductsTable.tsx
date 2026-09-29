@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
@@ -360,7 +361,7 @@ export default function ProductsTable({ products, adminName }: { products: Produ
                                         className="w-20 rounded-md border border-accent bg-ink-2 px-1.5 py-0.5 text-right text-xs text-fg outline-none"
                                       />
                                     ) : (
-                                      <button
+                                      <AdminWriteButton
                                         onClick={() => {
                                           setEditingPrice(v.id);
                                           setPriceDraft((v.price_cents / 100).toFixed(2));
@@ -372,7 +373,7 @@ export default function ProductsTable({ products, adminName }: { products: Produ
                                           size={10}
                                           className="text-muted-2 group-hover:text-accent"
                                         />
-                                      </button>
+                                      </AdminWriteButton>
                                     )}
                                   </td>
                                   <td
@@ -436,13 +437,13 @@ export default function ProductsTable({ products, adminName }: { products: Produ
               </option>
             ))}
           </select>
-          <button
+          <AdminWriteButton
             disabled={pending || !qty || poolIds.length === 0 || selectedProducts.some(p=>p.sizeOptions?.length)}
             onClick={applyBulkStock}
             className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-ink disabled:opacity-50"
           >
             Apply stock
-          </button>
+          </AdminWriteButton>
           <span className="rounded-md bg-accent/10 px-2 py-1 text-xs text-fg-2">Stock by <strong className="text-fg">{adminName || "Name not set"}</strong></span>
           <span className="mx-1 h-4 w-px bg-line-2" />
           <input
@@ -452,13 +453,13 @@ export default function ProductsTable({ products, adminName }: { products: Produ
             aria-label="Bulk price percentage"
             className={`${field} w-24`}
           />
-          <button
+          <AdminWriteButton
             disabled={pending || !pct || variantIds.length === 0}
             onClick={() => setConfirmReprice(true)}
             className="rounded-lg border border-line-2 bg-surface px-3 py-1.5 text-sm text-fg-2 hover:text-fg disabled:opacity-50"
           >
             Reprice
-          </button>
+          </AdminWriteButton>
           {poolIds.length < selected.size && (
             <span className="text-xs text-muted">
               {selectedProducts.some(p=>p.sizeOptions?.length) ? 'Manage sized products individually to choose the correct stock.' : `${selected.size - poolIds.length} without stock`}

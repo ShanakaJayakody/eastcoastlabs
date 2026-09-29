@@ -8,8 +8,13 @@
 **/.next
 **/.next-verify
 **/.next-redesign-build
+**/.next-*
 **/node_modules
 **/*.tsbuildinfo
+**/.env*
+.superpowers/
+.worktrees/
+docs/admin-revamp/evidence/
 
 # Coverage artifacts
 **/*.profraw

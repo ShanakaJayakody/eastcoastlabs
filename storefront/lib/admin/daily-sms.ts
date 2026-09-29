@@ -1,5 +1,6 @@
 import 'server-only';
 import { adminDb } from './db';
+import { assertPreviewWritable } from './preview-policy';
 import { listProducts } from './products';
 import { briefRecipients } from './daily-brief';
 import { queueEmail } from './email';
@@ -51,6 +52,7 @@ async function alertUnresolved(now:Date) {
   if(count)await queueAdminSmsAlert('unresolved',now);
 }
 export async function runDailyAdminSms(now=new Date(),options:SmsRunOptions={}):Promise<Record<string,unknown>> {
+  assertPreviewWritable();
   const enabled=()=>process.env.ADMIN_SMS_ENABLED==='true';
   if(!options.dry&&enabled()){
     await smsRpc('reconcile_admin_sms',{});

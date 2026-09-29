@@ -12,6 +12,7 @@
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createPreviewDataFetch } from "./admin/preview-fetch";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -28,7 +29,7 @@ export function hasSupabase(): boolean {
 export function supabasePublic(): SupabaseClient | null {
   if (!URL || !ANON) return null;
   if (!publicClient) {
-    publicClient = createClient(URL, ANON, { auth: { persistSession: false } });
+    publicClient = createClient(URL, ANON, { auth: { persistSession: false }, global: {fetch:createPreviewDataFetch(URL,fetch)} });
   }
   return publicClient;
 }
@@ -37,7 +38,7 @@ export function supabasePublic(): SupabaseClient | null {
 export function supabaseAdmin(): SupabaseClient | null {
   if (!URL || !SERVICE_ROLE) return null;
   if (!adminClient) {
-    adminClient = createClient(URL, SERVICE_ROLE, { auth: { persistSession: false } });
+    adminClient = createClient(URL, SERVICE_ROLE, { auth: { persistSession: false }, global: {fetch:createPreviewDataFetch(URL,fetch)} });
   }
   return adminClient;
 }

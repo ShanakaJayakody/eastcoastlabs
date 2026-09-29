@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 /**
  * The interactive half of Customer 360 and the recovery centre.
@@ -92,7 +93,7 @@ function ControlButton({
   tone?: "default" | "danger";
 }) {
   return (
-    <button
+    <AdminWriteButton
       type="button"
       onClick={onClick}
       disabled={disabled}
@@ -104,7 +105,7 @@ function ControlButton({
     >
       <Icon size={13} />
       {children}
-    </button>
+    </AdminWriteButton>
   );
 }
 
@@ -277,7 +278,7 @@ export function EmailRowAction({
   const isCancel = status === "queued";
   return (
     <>
-      <button
+      <AdminWriteButton
         type="button"
         disabled={pending}
         onClick={() => setOpen(true)}
@@ -285,7 +286,7 @@ export function EmailRowAction({
       >
         {isCancel ? <X size={11} /> : <RotateCw size={11} />}
         {isCancel ? "Cancel" : "Retry"}
-      </button>
+      </AdminWriteButton>
       <ConfirmModal
         open={open}
         title={isCancel ? "Cancel this queued email?" : "Retry this failed email?"}
@@ -372,13 +373,13 @@ export function NoteComposer({ email }: { email: string }) {
         placeholder="Add a note…"
         className="flex-1 rounded-lg border border-line bg-ink-2 px-3 py-2 text-sm text-fg outline-none focus:border-accent"
       />
-      <button
+      <AdminWriteButton
         type="submit"
         disabled={pending || !value.trim()}
         className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-accent-ink disabled:opacity-50"
       >
         {pending ? "Saving…" : "Add"}
-      </button>
+      </AdminWriteButton>
     </form>
   );
 }

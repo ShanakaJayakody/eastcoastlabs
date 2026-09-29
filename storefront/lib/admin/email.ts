@@ -75,9 +75,10 @@ export async function queueEmail(opts: {
 
 /** Count of pending notifications — surfaced on the dashboard. */
 export async function queuedEmailCount(): Promise<number> {
-  const { count } = await adminDb()
+  const { count, error } = await adminDb()
     .from("email_outbox")
     .select("*", { count: "exact", head: true })
     .in("status", ["queued", "failed", "sending", "dead"]);
+  if(error)throw new Error(`Email count unavailable: ${error.message}`);
   return count ?? 0;
 }

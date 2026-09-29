@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -230,13 +231,13 @@ export default function ManualOrderForm({ variants }: { variants: VariantOption[
             </p>
           </dl>
 
-          <button
+          <AdminWriteButton
             disabled={pending || !picked.length}
             onClick={submit}
             className={`${btn} mt-4 w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             {pending ? "Creating…" : markPaidNow ? "Create & mark paid" : "Create order"}
-          </button>
+          </AdminWriteButton>
         </div>
       </aside>
     </div>

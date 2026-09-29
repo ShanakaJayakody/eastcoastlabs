@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -259,13 +260,13 @@ export default function StockDrawer({
               </div>
             )}
 
-            <button
+            <AdminWriteButton
               disabled={pending || !qty || !reason}
               onClick={apply}
               className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-50"
             >
               {pending ? "Saving…" : reason === "received" ? "Receive stock" : "Save stock change"}
-            </button>
+            </AdminWriteButton>
             <p className="text-xs text-muted">Stock updates immediately when you save.</p>
           </fieldset>
 

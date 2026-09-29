@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -168,14 +169,14 @@ export default function ActionQueue({ queue }: { queue: AttentionQueue }) {
 
                 <div className="mt-2.5 pl-11 sm:mt-0 sm:pl-0">
                   {item.action ? (
-                    <button
+                    <AdminWriteButton
                       type="button"
                       disabled={pending}
                       onClick={() => setConfirming(item)}
                       className="w-full rounded-lg border border-line-2 px-2.5 py-2 text-xs font-medium text-fg-2 transition hover:border-accent/40 hover:bg-surface-2 hover:text-fg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] sm:w-auto sm:py-1.5"
                     >
                       {item.action.label}
-                    </button>
+                    </AdminWriteButton>
                   ) : (
                     <Link
                       href={item.href}

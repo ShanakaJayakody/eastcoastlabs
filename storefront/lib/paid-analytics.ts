@@ -1,4 +1,5 @@
 import 'server-only';
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 import { adminDb } from '@/lib/admin/db';
 
 interface ClaimedAnalytics { id:string;lease_token:string;payload:unknown }
@@ -70,6 +71,7 @@ async function deliver(row:ClaimedAnalytics,endpoint:string):Promise<DeliveryRes
 /** Optional worker. Purchase retries retain identity/time; refunds never retry
  * an ambiguous transport or expired claim. Acceptance is transport only. */
 export async function drainPaidAnalytics(limit=25) {
+  assertPreviewWritable();
   const counts={accepted:0,failed:0,dead:0,disabled:false};
   const secret=process.env.GA4_API_SECRET?.trim();const measurement=process.env.NEXT_PUBLIC_GA4_ID?.trim();
   if(!secret||!measurement||!/^G-[A-Z0-9]+$/.test(measurement))return {...counts,disabled:true};

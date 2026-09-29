@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -28,7 +29,7 @@ function fail(err: unknown): ActionResult {
 
 /** Confirm a bank-transfer/manual payment: → paid, decrements stock, emails receipt. */
 export async function confirmPayment(orderId: string, paymentRef?: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     await markPaid(orderId, { actor: session.email, paymentRef: paymentRef?.trim() || undefined });
     revalidatePath(`/admin/orders/${orderId}`);
@@ -53,7 +54,7 @@ export async function reinstate(
   orderId: string,
   opts: { toPaid?: boolean; paymentRef?: string; idempotencyKey?:string } = {},
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     await reinstateOrder(orderId, {
       actor: session.email,
@@ -81,7 +82,7 @@ export async function reinstate(
 export async function bulkReinstate(
   orderIds: string[],
 ): Promise<ActionResult & { done: number; failed: { id: string; error: string }[] }> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   let done = 0;
   const failed: { id: string; error: string }[] = [];
 
@@ -107,7 +108,7 @@ export async function advanceStatus(
   trackingNumber?: string,
   carrierCode?: string | null,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!["processing", "shipped", "completed"].includes(to)) return { ok: false, error: "Use the dedicated reviewed order action." };
   try {
     await setStatus(orderId, to, { actor: session.email, trackingNumber: trackingNumber?.trim() || undefined, ...(carrierCode !== undefined ? { carrierCode } : {}) });
@@ -131,7 +132,7 @@ export async function bulkAdvanceStatus(
   orderIds: string[],
   to: OrderStatus,
 ): Promise<ActionResult & { moved?: number; failed?: {id:string;error:string}[] }> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!orderIds.length) return { ok: false, error: "No orders selected." };
   if (!["processing", "shipped", "completed"].includes(to)) return { ok: false, error: "Use the dedicated reviewed order action." };
 
@@ -160,7 +161,7 @@ export async function bulkAdvanceStatus(
 export async function bulkConfirmPayment(
   orderIds: string[],
 ): Promise<ActionResult & { moved?: number; failed?: {id:string;error:string}[] }> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   if (!orderIds.length) return { ok: false, error: "No orders selected." };
 
   const failed: {id:string;error:string}[] = [];
@@ -184,7 +185,7 @@ export async function bulkConfirmPayment(
 
 /** Edit a line's quantity on a still-pending order (server-priced, stock-safe). */
 export async function editItemQty(orderId: string, itemId: string, newQty: number): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     await updatePendingOrderItemQty(orderId, itemId, newQty, { actor: session.email });
     revalidatePath(`/admin/orders/${orderId}`);
@@ -196,7 +197,7 @@ export async function editItemQty(orderId: string, itemId: string, newQty: numbe
 
 /** Remove a line entirely from a still-pending order. */
 export async function removeItem(orderId: string, itemId: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     await removeOrderItem(orderId, itemId, { actor: session.email });
     revalidatePath(`/admin/orders/${orderId}`);
@@ -207,7 +208,7 @@ export async function removeItem(orderId: string, itemId: string): Promise<Actio
 }
 
 export async function cancel(orderId: string, restock = false): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     await cancelOrder(orderId, { actor: session.email, restock });
     revalidatePath(`/admin/orders/${orderId}`);
@@ -220,7 +221,7 @@ export async function cancel(orderId: string, restock = false): Promise<ActionRe
 
 /** Permanently remove an order after an exact order-number confirmation. */
 export async function deleteOrder(orderId: string, confirmation: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const { error } = await adminDb().rpc("admin_delete_order", {
       p_order: orderId,
@@ -242,7 +243,7 @@ export async function deleteOrder(orderId: string, confirmation: string): Promis
 
 /** Internal note — appears in the order timeline. */
 export async function addNote(orderId: string, message: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const text = message.trim();
   if (!text) return { ok: false, error: "Note is empty." };
   try {
@@ -268,7 +269,7 @@ export async function addNote(orderId: string, message: string): Promise<ActionR
 }
 
 export async function correctTracking(orderId:string,trackingNumber:string,notify=false,carrierCode?:string|null):Promise<ActionResult>{
- const session=await requireAdmin();
+ const session=await requireAdmin(); assertPreviewWritable();
  try{
   await updateOrderTracking(orderId,trackingNumber,{actor:session.email,notify,...(carrierCode!==undefined?{carrierCode}:{})});
   revalidatePath(`/admin/orders/${orderId}`);revalidatePath("/admin/orders");return {ok:true};

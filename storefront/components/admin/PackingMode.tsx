@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -264,7 +265,7 @@ export default function PackingMode({
       </section>
 
       <div className="sticky bottom-0 -mx-4 border-t border-line bg-ink/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
-        <button
+        <AdminWriteButton
           type="button"
           disabled={pending || !tracking.trim()}
           onClick={() => setConfirming(true)}
@@ -276,7 +277,7 @@ export default function PackingMode({
         >
           <CheckCircle2 size={17} />
           {pending ? "Working…" : allPacked ? "Packed — mark shipped" : "Mark shipped anyway"}
-        </button>
+        </AdminWriteButton>
         {!allPacked && shippable.length > 0 && (
           <p className="mt-2 text-center text-xs text-muted-2">
             {shippable.length - packed.size} item

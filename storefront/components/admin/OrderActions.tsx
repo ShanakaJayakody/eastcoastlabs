@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -110,7 +111,7 @@ export default function OrderActions({
           </label>
         </div>}
       />}
-      {(status==='shipped'||status==='completed') && <div className="space-y-2">{carrierField}<label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><button disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking,carrier||null),'Tracking updated')}>Save tracking correction</button></div>}
+      {(status==='shipped'||status==='completed') && <div className="space-y-2">{carrierField}<label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><AdminWriteButton disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking,carrier||null),'Tracking updated')}>Save tracking correction</AdminWriteButton></div>}
 
       {status === "cancelled" && (
         <div className="space-y-2 rounded-lg border border-line-2 bg-ink-2/50 p-3">
@@ -142,7 +143,7 @@ export default function OrderActions({
             />
           )}
 
-          <button
+          <AdminWriteButton
             disabled={pending || !canReinstate}
             onClick={() =>
               run(
@@ -153,8 +154,8 @@ export default function OrderActions({
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Reinstate &amp; mark paid
-          </button>
-          <button
+          </AdminWriteButton>
+          <AdminWriteButton
             disabled={pending || !canReinstate}
             onClick={() =>
               run(
@@ -165,7 +166,7 @@ export default function OrderActions({
             className={`${btn} w-full border border-line-2 bg-surface-2 text-fg-2 hover:text-fg`}
           >
             Reinstate as awaiting payment
-          </button>
+          </AdminWriteButton>
         </div>
       )}
 
@@ -180,13 +181,13 @@ export default function OrderActions({
             onChange={(e) => setPaymentRef(e.target.value)}
             className={field}
           />
-          <button
+          <AdminWriteButton
             disabled={pending}
             onClick={() => run(() => confirmPayment(orderId, paymentRef), "Payment confirmed — stock decremented")}
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Confirm payment
-          </button>
+          </AdminWriteButton>
         </div>
       )}
 
@@ -200,44 +201,44 @@ export default function OrderActions({
             onChange={(e) => setTracking(e.target.value)}
             className={field}
           />
-          <button
+          <AdminWriteButton
             disabled={pending || !tracking.trim()}
             onClick={() => run(() => advanceStatus(orderId, "shipped", tracking, carrier || null), "Marked shipped — dispatch email queued")}
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Mark shipped {tracking ? "with tracking" : ""}
-          </button>
+          </AdminWriteButton>
           <p className="text-xs text-muted">A tracking number is required and will be included in the dispatch email.</p>
         </div>
       ) : null}
 
       {next && next.to !== "shipped" && (
-        <button
+        <AdminWriteButton
           disabled={pending}
           onClick={() => run(() => advanceStatus(orderId, next.to), `Order ${next.to}`)}
           className={`${btn} w-full border border-line-2 bg-surface-2 text-fg hover:brightness-110`}
         >
           {next.label}
-        </button>
+        </AdminWriteButton>
       )}
 
       {!closed && (
         <div className="flex gap-2 border-t border-line pt-3">
-          {status!=="pending" && <button
+          {status!=="pending" && <AdminWriteButton
             disabled={pending}
             onClick={() => {setRestock(false);setConfirming("refund");}}
             className={`${btn} flex-1 border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20`}
           >
             Record refund
-          </button>}
+          </AdminWriteButton>}
           {(status === "pending" || status === "paid") && (
-            <button
+            <AdminWriteButton
               disabled={pending}
               onClick={() => {setRestock(false);setConfirming("cancel");}}
               className={`${btn} flex-1 border border-line-2 text-muted hover:text-fg`}
             >
               Cancel
-            </button>
+            </AdminWriteButton>
           )}
         </div>
       )}
@@ -250,7 +251,7 @@ export default function OrderActions({
           onChange={(e) => setNote(e.target.value)}
           className={field}
         />
-        <button
+        <AdminWriteButton
           disabled={pending || !note.trim()}
           onClick={() =>
             run(async () => {
@@ -262,18 +263,18 @@ export default function OrderActions({
           className={`${btn} w-full border border-line-2 bg-surface-2 text-fg-2 hover:text-fg`}
         >
           Add note
-        </button>
+        </AdminWriteButton>
       </div>
 
       {orderNumber && <div className="border-t border-line pt-3">
-        <button
+        <AdminWriteButton
           type="button"
           disabled={pending}
           onClick={()=>{setDeleteConfirmation("");setConfirming("delete");}}
           className={`${btn} w-full border border-red-500/30 text-red-400 hover:bg-red-500/10`}
         >
           Delete order
-        </button>
+        </AdminWriteButton>
       </div>}
     </div>
   );

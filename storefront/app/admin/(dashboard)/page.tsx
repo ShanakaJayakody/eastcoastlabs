@@ -1,201 +1,95 @@
-import { Suspense } from "react";
-import Link from "next/link";
-import {
-  PackageCheck,
-  BellRing,
-  Star,
-  FlaskConical,
-  Mail,
-  AlertTriangle,
-  Clock,
-  ShoppingCart,
-} from "lucide-react";
-import { requireAdmin } from "@/lib/admin/auth";
-import { supabaseAdmin } from "@/lib/supabase";
-import { orderMetrics, parseRevenueScale, revenueWindow } from "@/lib/admin/order-queries";
-import { lowStockVariants } from "@/lib/admin/products";
-import { anomalyNudges, attentionQueue, dailyCounts } from "@/lib/admin/attention";
-import { queuedEmailCount } from "@/lib/admin/email";
-import { listAbandonedCarts, abandonedCartCount } from "@/lib/admin/cart-recovery";
-import { formatAud } from "@/lib/format";
-import StatCard from "@/components/admin/StatCard";
-import RevenueChart from "@/components/admin/RevenueChart";
-import ActionQueue from "@/components/admin/ActionQueue";
-import Nudges from "@/components/admin/Nudges";
-import Badge from "@/components/admin/Badge";
-import { Bar } from "@/components/admin/Skeleton";
-
-export const dynamic = "force-dynamic";
-
-interface AuditRow {
-  actor_email: string;
-  action: string;
-  created_at: string;
+import {Suspense} from 'react';
+import Link from 'next/link';
+import {ArrowUpRight,BellRing,Star,FlaskConical,Mail} from 'lucide-react';
+import {requireAdmin} from '@/lib/admin/auth';
+import {supabaseAdmin} from '@/lib/supabase';
+import {adminDb} from '@/lib/admin/db';
+import {lowStockVariants} from '@/lib/admin/products';
+import {anomalyNudges,attentionQueue} from '@/lib/admin/attention';
+import {queuedEmailCount} from '@/lib/admin/email';
+import {listAbandonedCarts} from '@/lib/admin/cart-recovery';
+import {getOverviewRevenue} from '@/lib/admin/overview/queries';
+import type {OverviewRange} from '@/lib/admin/overview/types';
+import {dailyQuote} from '@/lib/admin/daily-quote';
+import {formatAud} from '@/lib/format';
+import DailyQuote from '@/components/admin/overview/DailyQuote';
+import RevenueOverview from '@/components/admin/overview/RevenueOverview';
+import ProgressHighlight from '@/components/admin/overview/ProgressHighlight';
+import OpenWork from '@/components/admin/overview/OpenWork';
+import OverviewSection,{SectionFailure} from '@/components/admin/overview/OverviewSection';
+import ActionQueue from '@/components/admin/ActionQueue';
+import Nudges from '@/components/admin/Nudges';
+import Badge from '@/components/admin/Badge';
+import '@/components/admin/overview/overview.css';
+export const dynamic='force-dynamic';
+interface AuditRow{actor_email:string;action:string;created_at:string}
+const cents=(c:number)=>formatAud(c/100);
+function Loading({title}:{title:string}){return <div className="overview-loading" role="status">Loading {title}…</div>;}
+export default async function AdminDashboard({searchParams}:{searchParams:Promise<{range?:string;from?:string;to?:string}>}){
+ await requireAdmin();const sp=await searchParams,now=new Date();
+ const range:OverviewRange=sp.range==='custom'?{kind:'custom',from:sp.from??'',to:sp.to??''}:{kind:sp.range==='today'||sp.range==='month'?sp.range:'week'};
+ return <div className="admin-today">
+  <div className="today-heading"><DailyQuote initial={dailyQuote(now)}/><Link className="overview-button" href="/admin/orders">Open orders <ArrowUpRight size={17}/></Link></div>
+  <OverviewSection title="Operational alerts"><Suspense fallback={null}><NudgeSection/></Suspense></OverviewSection>
+  <div className="overview-grid">
+   <div className="overview-revenue"><OverviewSection title="Paid revenue"><Suspense fallback={<Loading title="revenue"/>}><RevenueSection range={range} now={now}/></Suspense></OverviewSection></div>
+   <div className="overview-highlight"><OverviewSection title="Month summary"><Suspense fallback={<Loading title="month summary"/>}><HighlightSection now={now}/></Suspense></OverviewSection></div>
+   <div className="overview-work"><OverviewSection title="Open work"><Suspense fallback={<Loading title="open work"/>}><WorkSection/></Suspense></OverviewSection></div>
+  </div>
+  <OverviewSection title="Oldest paid orders"><Suspense fallback={<Loading title="orders"/>}><OldestOrders/></Suspense></OverviewSection>
+  <details className="overview-secondary"><summary>Payments, reviews & restock priorities</summary><OverviewSection title="Priorities"><Suspense fallback={<Loading title="priorities"/>}><AttentionSection/></Suspense></OverviewSection></details>
+  <details className="overview-secondary"><summary>Recovery, pipeline & recent activity</summary><OverviewSection title="Activity"><Suspense fallback={<Loading title="activity"/>}><PanelsSection/></Suspense></OverviewSection></details>
+ </div>;
 }
-
-const cents = (c: number) => formatAud(c / 100);
-
-/**
- * The dashboard streams independent sibling sections.
- *
- * They are siblings on purpose: each Suspense boundary resolves independently,
- * so the work queue paints as soon as its own queries land instead of waiting
- * on the slowest read on the page. Shared catalogue data goes through
- * `listAllProducts`, which is request-cached, so parallel sections still cost
- * one database round trip between them.
- */
-export default async function AdminDashboard({
-  searchParams,
-}: {
-  searchParams: Promise<{ scale?: string; at?: string }>;
-}) {
-  const sp = await searchParams;
-  const session = await requireAdmin();
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-lg font-semibold text-fg">
-          Welcome back{session.name ? `, ${session.name}` : ""}
-        </h2>
-        <p className="mt-1 text-sm text-muted">Here&apos;s what needs you today.</p>
-      </div>
-
-      <Suspense fallback={<QueueSkeleton />}>
-        <AttentionSection />
-      </Suspense>
-
-      {/* Its own boundary: nudges scan 30 days of orders and email events, and
-          should never hold up the work queue above them. */}
-      <Suspense fallback={null}>
-        <NudgeSection />
-      </Suspense>
-
-      <Suspense fallback={<ChartSkeleton />}>
-        <RevenueSection scale={sp.scale} at={sp.at} />
-      </Suspense>
-
-      <Suspense fallback={<TilesSkeleton />}>
-        <TilesSection />
-      </Suspense>
-
-      <Suspense fallback={<PanelsSkeleton />}>
-        <PanelsSection />
-      </Suspense>
-    </div>
-  );
+async function RevenueSection({range,now}:{range:OverviewRange;now:Date}){try{return <RevenueOverview initial={await getOverviewRevenue(range,now)}/>;}catch{return <SectionFailure title="Paid revenue"/>;}}
+async function HighlightSection({now}:{now:Date}){try{return <ProgressHighlight month={await getOverviewRevenue({kind:'month'},now)}/>;}catch{return <SectionFailure title="Month summary"/>;}}
+async function NudgeSection(){try{return <Nudges nudges={await anomalyNudges()}/>;}catch{return <SectionFailure title="Operational alerts"/>;}}
+async function AttentionSection(){try{return <ActionQueue queue={await attentionQueue()}/>;}catch{return <SectionFailure title="Priorities"/>;}}
+async function WorkSection(){
+ try{
+  const db=adminDb();
+  const [paid,pending,stock]=await Promise.all([db.from('orders').select('id',{count:'exact',head:true}).in('status',['paid','processing']),db.from('orders').select('id',{count:'exact',head:true}).eq('status','pending'),lowStockVariants()]);
+  if(paid.error||pending.error)throw Error('Queue count unavailable');
+  return <OpenWork counts={{toFulfil:paid.count??0,pendingPayment:pending.count??0,lowStock:stock.length}}/>;
+ }catch{return <SectionFailure title="Open work"/>;}
 }
-
-/* ---------------------------------- work --------------------------------- */
-
-async function AttentionSection() {
-  const queue = await attentionQueue();
-  return <ActionQueue queue={queue} />;
+async function OldestOrders(){
+ try{
+  const {data,error}=await adminDb().from('orders').select('id,order_number,customer_name,status,total_cents,paid_at,created_at').in('status',['paid','processing']).order('paid_at',{ascending:true,nullsFirst:false}).order('created_at',{ascending:true}).order('id',{ascending:true}).limit(5);
+  if(error)throw error;
+  return <section className="oldest-orders"><header><h2>Ready to move</h2><Link href="/admin/orders?status=to_fulfil">View all orders →</Link></header><p className="queue-definition">Oldest payment first · orders without a payment timestamp follow by creation date.</p>
+   {!data?.length?<p className="queue-empty">No paid orders waiting for dispatch.</p>:<div className="overview-table-scroll"><table><thead><tr><th>Order</th><th>Customer</th><th>Payment recorded</th><th>Status</th><th>Total</th></tr></thead><tbody>{data.map(o=><tr key={o.id}><td><Link href={`/admin/orders/${o.id}`}>{o.order_number}</Link></td><td>{o.customer_name||'—'}</td><td>{o.paid_at?new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Melbourne',dateStyle:'medium'}).format(new Date(o.paid_at)):'Not recorded'}</td><td><Badge tone="info">{o.status}</Badge></td><td>{cents(o.total_cents)}</td></tr>)}</tbody></table></div>}
+  </section>;
+ }catch{return <SectionFailure title="Oldest paid orders"/>;}
 }
-
-async function NudgeSection() {
-  return <Nudges nudges={await anomalyNudges()} />;
-}
-
-/* --------------------------------- money --------------------------------- */
-
-async function RevenueSection({ scale, at }: { scale?: string; at?: string }) {
-  const window = await revenueWindow({ scale: parseRevenueScale(scale), anchor: at });
-  return (
-    <section className="admin-card overflow-hidden rounded-2xl">
-      <RevenueChart initial={window} />
-    </section>
-  );
-}
-
-/* --------------------------------- tiles --------------------------------- */
-
-async function TilesSection() {
-  const [metrics, lowStock, abandonedCount, daily] = await Promise.all([
-    orderMetrics(),
-    lowStockVariants(),
-    abandonedCartCount(1),
-    dailyCounts(),
-  ]);
-
-  return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <Link href="/admin/orders?status=paid">
-        <StatCard
-          label="To fulfil"
-          value={String(metrics.toFulfil)}
-          sub="Paid orders awaiting dispatch · line shows daily intake"
-          icon={PackageCheck}
-          tone="accent"
-          interactive
-          series={daily.paidOrders.points}
-          delta={daily.paidOrders.delta}
-        />
-      </Link>
-      <Link href="/admin/orders?status=pending">
-        <StatCard
-          label="Awaiting payment"
-          value={String(metrics.pendingPayment)}
-          sub="Bank transfer not yet confirmed · line shows daily intake"
-          icon={Clock}
-          interactive
-          series={daily.pendingOrders.points}
-          delta={daily.pendingOrders.delta}
-          invertDelta
-        />
-      </Link>
-      {/* No sparkline: nothing records what stock levels were on past days. */}
-      <Link href="/admin/products?low=1">
-        <StatCard
-          label="Low stock"
-          value={String(lowStock.length)}
-          sub="Variants at or below threshold"
-          icon={AlertTriangle}
-          tone={lowStock.length > 0 ? "warn" : "default"}
-          interactive
-        />
-      </Link>
-      <Link href="/admin/recovery">
-        <StatCard
-          label="Abandoned carts"
-          value={String(abandonedCount)}
-          sub="Idle 1h+ · line shows carts left daily"
-          icon={ShoppingCart}
-          interactive
-          series={daily.abandonedCarts.points}
-          delta={daily.abandonedCarts.delta}
-          invertDelta
-        />
-      </Link>
-    </div>
-  );
-}
-
-/* -------------------------------- panels --------------------------------- */
 
 async function PanelsSection() {
+  try{return await PanelData();}catch{return <SectionFailure title="Activity"/>;}
+}
+async function PanelData() {
   const admin = supabaseAdmin();
+  if(!admin)throw new Error('Activity unavailable');
 
   const tableCount = async (table: string): Promise<number> => {
-    if (!admin) return 0;
-    const { count } = await admin.from(table).select("*", { count: "exact", head: true });
+    const { count, error } = await admin.from(table).select("*", { count: "exact", head: true });
+    if(error)throw new Error('Activity count unavailable');
     return count ?? 0;
   };
   const pendingReviewCount = async (): Promise<number> => {
-    if (!admin) return 0;
-    const { count } = await admin
+    const { count, error } = await admin
       .from("reviews")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending");
+    if(error)throw new Error('Review count unavailable');
     return count ?? 0;
   };
   const recentActivity = async (): Promise<AuditRow[]> => {
-    if (!admin) return [];
-    const { data } = await admin
+    const { data, error } = await admin
       .from("admin_audit_log")
       .select("actor_email, action, created_at")
       .order("created_at", { ascending: false })
       .limit(8);
+    if(error)throw new Error('Recent activity unavailable');
     return (data ?? []) as AuditRow[];
   };
 
@@ -359,82 +253,6 @@ async function PanelsSection() {
           )}
         </div>
       </section>
-    </div>
-  );
-}
-
-/* ------------------------------- skeletons -------------------------------- */
-
-function QueueSkeleton() {
-  return (
-    <section className="admin-card rounded-2xl">
-      <div className="border-b border-line px-4 py-3">
-        <Bar className="h-4 w-24" />
-      </div>
-      <div className="divide-y divide-line">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3">
-            <Bar className="h-8 w-8 rounded-lg" />
-            <div className="flex-1 space-y-1.5">
-              <Bar className="h-3 w-48" />
-              <Bar className="h-2.5 w-32" />
-            </div>
-            <Bar className="h-7 w-24 rounded-lg" />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ChartSkeleton() {
-  return (
-    <section className="admin-card rounded-2xl p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <Bar className="h-3 w-16" />
-          <Bar className="h-8 w-40" />
-          <Bar className="h-3 w-32" />
-        </div>
-        <Bar className="h-9 w-48 rounded-xl" />
-      </div>
-      <Bar className="mt-6 h-[240px] w-full rounded-lg" />
-    </section>
-  );
-}
-
-function TilesSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="admin-card space-y-3 rounded-xl p-4">
-          <Bar className="h-3 w-20" />
-          <Bar className="h-7 w-12" />
-          <Bar className="h-2.5 w-28" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PanelsSkeleton() {
-  return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="admin-card space-y-3 rounded-xl p-4 lg:col-span-2">
-        <Bar className="h-4 w-24" />
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Bar key={i} className="h-8 w-full" />
-        ))}
-      </div>
-      <div className="space-y-6">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="admin-card space-y-3 rounded-xl p-4">
-            <Bar className="h-4 w-24" />
-            <Bar className="h-5 w-full" />
-            <Bar className="h-5 w-full" />
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

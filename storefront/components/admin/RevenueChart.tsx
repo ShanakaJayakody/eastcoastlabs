@@ -96,13 +96,14 @@ function labelStrideFor(scale: RevenueScale, count: number): number {
 
 /** The URL mirrors the view so a period can be linked or refreshed into. The
  *  default view (current month) keeps a clean /admin. */
-function urlFor(win: RevenueWindow): string {
-  if (win.isCurrent && win.scale === "month") return window.location.pathname;
-  const p = new URLSearchParams();
-  p.set("scale", win.scale);
+export function revenueChartUrl(win: RevenueWindow): string {
+  const p = new URLSearchParams(window.location.search);
+  p.delete("scale");p.delete("at");
+  if (win.scale !== "month") p.set("scale", win.scale);
   if (!win.isCurrent) p.set("at", win.anchor);
-  return `${window.location.pathname}?${p.toString()}`;
+  return `${window.location.pathname}${p.size?'?'+p.toString():''}`;
 }
+const urlFor=revenueChartUrl;
 
 /** Percent change, or null when the prior period has nothing to divide by. */
 function ratio(current: number | null, previous: number | null): number | null {

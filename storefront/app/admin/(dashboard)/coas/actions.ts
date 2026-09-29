@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -15,7 +16,7 @@ const BUCKET = "coa";
 
 /** Create/update a COA batch, optionally uploading the PDF to the public `coa` bucket. */
 export async function saveCoaBatch(formData: FormData): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
 
   const batchId = String(formData.get("batch_id") ?? "").trim();
   const compound = String(formData.get("compound") ?? "").trim();
@@ -77,7 +78,7 @@ export async function saveCoaBatch(formData: FormData): Promise<ActionResult> {
 }
 
 export async function deleteCoaBatch(batchId: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   try {
     const { error } = await adminDb().from("coa_batches").delete().eq("batch_id", batchId);
     if (error) throw new Error(error.message);

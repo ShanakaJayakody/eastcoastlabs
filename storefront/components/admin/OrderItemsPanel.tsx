@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -103,31 +104,31 @@ export default function OrderItemsPanel({
                 {editable && (
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
-                      <button
+                      <AdminWriteButton
                         disabled={pending}
                         onClick={() => run(() => editItemQty(orderId, it.id, it.qty - 1))}
                         className={`${btn} border border-line-2 text-fg-2`}
                         aria-label="Decrease quantity"
                       >
                         <Minus size={12} />
-                      </button>
+                      </AdminWriteButton>
                       <span className="w-6 text-center text-fg-2">{it.qty}</span>
-                      <button
+                      <AdminWriteButton
                         disabled={pending}
                         onClick={() => run(() => editItemQty(orderId, it.id, it.qty + 1))}
                         className={`${btn} border border-line-2 text-fg-2`}
                         aria-label="Increase quantity"
                       >
                         <Plus size={12} />
-                      </button>
-                      <button
+                      </AdminWriteButton>
+                      <AdminWriteButton
                         disabled={pending}
                         onClick={() => setRemoving(it)}
                         className="ml-1 text-muted hover:text-red-400"
                         aria-label="Remove item"
                       >
                         <X size={13} />
-                      </button>
+                      </AdminWriteButton>
                     </div>
                   </td>
                 )}
@@ -170,13 +171,13 @@ export default function OrderItemsPanel({
       {refundable && anySelected && (
         <div className="flex items-center justify-between border-t border-line bg-ink-2 px-4 py-3">
           <span className="text-sm text-fg-2">Refund total: the selected quantities</span>
-          <button
+          <AdminWriteButton
             disabled={pending}
             onClick={() => setConfirmRefund(true)}
             className={`${btn} bg-accent px-3 py-1.5 text-accent-ink hover:brightness-95`}
           >
             Refund selected
-          </button>
+          </AdminWriteButton>
         </div>
       )}
 
