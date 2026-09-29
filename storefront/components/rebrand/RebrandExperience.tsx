@@ -14,6 +14,7 @@ import { directions, questions } from "./content";
 import { rebrandHref } from "@/lib/rebrand-navigation";
 import NavyBrand from "./NavyBrand";
 import NavyHeader from "./NavyHeader";
+import ProductFinder from "./ProductFinder";
 
 export interface RebrandProps {
   variant: "v2";
@@ -98,16 +99,16 @@ function CollectionSection({
         <div className="rb-section-heading">
           <div>
             <p className="rb-eyebrow">The peptide collection</p>
-            <h2 id="rb-collection-title">{directions[variant].rangeTitle}</h2>
+            <h2 id="rb-collection-title">Find your research peptide.</h2>
           </div>
           <Link href={rebrandHref('/shop', variant)} className="rb-text-link">
             View all peptides <ArrowUpRight size={17} />
           </Link>
         </div>
         <p className="rb-section-description">
-          Explore the range by research area. Each product shows its available
-          sizes, current price and stock status.
+          Search the collection. Compare sizes. Find the details you need.
         </p>
+        <ProductFinder products={products} variant={variant} />
         <div className="rb-filters" role="group" aria-label="Filter by research area">
           <button
             type="button"

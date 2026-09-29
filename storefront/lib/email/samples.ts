@@ -1,3 +1,4 @@
+import { emailShell, emailButton, EMAIL_STYLES } from "./layout";
 import type { EmailTemplate } from "@/lib/admin/email";
 
 /**
@@ -44,7 +45,7 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
       { id: "order_refunded", name: "Order refunded", trigger: "Refund issued in admin" },
       { id: "payment_instructions", name: "Payment instructions", trigger: "Order placed (unpaid)" },
       { id: "payment_reminder", name: "Payment reminder", trigger: "Unpaid at +4h, then +24h" },
-      { id: "payment_expiring", name: "Final payment warning", trigger: "~4h before the hold expires" },
+      { id: "payment_expiring", name: "Payment deadline reminder", trigger: "~4h before the hold expires" },
       { id: "payment_expired", name: "Payment expired", trigger: "Hold window elapsed" },
     ],
   },
@@ -60,7 +61,7 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
     label: "Welcome series",
     templates: [
       { id: "welcome_1", name: "Welcome 1 — code", trigger: "Subscribed (immediate)" },
-      { id: "welcome_3", name: "Welcome 3 — pack pricing", trigger: "Subscribed +4 days" },
+      { id: "welcome_3", name: "Welcome 3 — pack options", trigger: "Subscribed +4 days" },
     ],
   },
   {
@@ -99,7 +100,7 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
     case "admin_order_overdue":
       return { order_id: "00000000-0000-0000-0000-000000000000", order_number: "ECL-1042", customer_name: "Sample Customer", amount_cents: 24900, queue: "to_fulfil", hours_waiting: 25 };
     case "admin_daily_brief":
-      return {subject:"East Coast Labs — sample daily brief",html:"<!doctype html><html><body><h1>Daily operations brief</h1><p>Sample preview: 2 paid orders await dispatch; no failed jobs.</p></body></html>"};
+      return {subject:"East Coast Labs — sample daily brief",html:emailShell({preheader:"Your daily operations brief",audience:"admin",body:`<h1 style="${EMAIL_STYLES.heading}">Your daily operations brief</h1><p style="${EMAIL_STYLES.paragraph}">Sample preview: 2 paid orders await dispatch; no failed jobs.</p>${emailButton("https://www.eastcoastlabs.com.au/admin","Open the dashboard")}`})};
     case "cart_recovery_confirmation":
       return {recovery_request_id:"00000000-0000-0000-0000-000000000000"};
     case "subscription_confirmation":
@@ -129,7 +130,7 @@ export function samplePayload(template: EmailTemplate): Record<string, unknown> 
         payment_method: "payid",
         reference: "ECL1042",
         amount_cents: 24900,
-        hours_left: 18,
+        payment_expires_at: "2026-10-01T02:00:00Z",
       };
     case "abandoned_cart":
     case "abandoned_cart_2":

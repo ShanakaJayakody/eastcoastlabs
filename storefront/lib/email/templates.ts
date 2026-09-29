@@ -1,4 +1,4 @@
-/** Plain, on-brand HTML email templates. No client tracking, no external assets. */
+/** Navy brand email templates. Shared public logo; no template-level tracking. */
 import {recoveryLink} from "@/lib/recovery-token";
 import { paymentPath, createOrderAccessToken } from "@/lib/order-access";
 import type { EmailTemplate } from "@/lib/admin/email";
@@ -6,32 +6,10 @@ import { formatAud } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { buildInstructions, isPaymentMethod, type PaymentInstructions } from "@/lib/payments";
 
-const ACCENT = "#2fd4c8";
-const INK = "#080b10";
-const FG = "#e7ebf2";
+import { EMAIL_COLORS, EMAIL_SITE as SITE, EMAIL_STYLES as styles, emailShell, emailButton as payButton, escapeEmailHtml as esc } from "./layout";
 
-function shell(preheader: string, body: string, unsubscribeUrl?: string): string {
-  return `<!doctype html><html><body style="margin:0;padding:0;background:${INK};font-family:-apple-system,Segoe UI,Roboto,sans-serif;">
-<span style="display:none;max-height:0;overflow:hidden;">${preheader}</span>
-<table role="presentation" width="100%" style="background:${INK};padding:32px 0;">
-<tr><td align="center">
-<table role="presentation" width="480" style="background:#121821;border:1px solid #232c38;border-radius:12px;padding:32px;color:${FG};">
-<tr><td>
-<div style="font-weight:700;font-size:16px;letter-spacing:0.05em;color:${ACCENT};margin-bottom:24px;">EAST COAST LABS</div>
-${body}
-<div style="margin-top:32px;padding-top:16px;border-top:1px solid #232c38;font-size:11px;color:#667085;">
-Research use only — not for human or animal consumption. East Coast Labs, Australia.${
-    unsubscribeUrl
-      ? `<br/><a href="${unsubscribeUrl}" style="color:#667085;text-decoration:underline;">Unsubscribe from marketing emails</a>`
-      : ""
-  }
-</div>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body></html>`;
-}
+const ACCENT = EMAIL_COLORS.accent;
+const FG = EMAIL_COLORS.ink;
 
 /** Unsubscribe URL from a marketing sweep's payload, if the sweep supplied one. */
 const unsubOf = (payload: Record<string, unknown>): string | undefined =>
@@ -41,27 +19,23 @@ const unsubOf = (payload: Record<string, unknown>): string | undefined =>
 
 const cents = (c: number) => formatAud(c / 100);
 
-const SITE = "https://www.eastcoastlabs.com.au";
-
-/** Monitored support inbox — the same address the site footer publishes. */
-
 /** Payment details as a two-column table — the same fields the pay page shows. */
 function instructionsTable(ins: PaymentInstructions): string {
   const rows = ins.fields
     .map(
       (f) => `<tr>
-        <td style="padding:8px 12px 8px 0;color:#8b96a8;font-size:13px;white-space:nowrap;">${esc(f.label)}</td>
-        <td style="padding:8px 0;color:${FG};font-size:15px;font-weight:600;${
+        <th scope="row" align="left" valign="top" width="36%" style="padding:12px 12px 12px 0;color:${EMAIL_COLORS.muted};font-size:14px;line-height:1.5;font-weight:400;">${esc(f.label)}</th>
+        <td valign="top" style="padding:12px 0;color:${FG};font-size:15px;line-height:1.5;font-weight:600;overflow-wrap:anywhere;word-break:break-word;${
           f.mono ? "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0.02em;" : ""
         }">${esc(f.value)}</td>
       </tr>`,
     )
     .join("");
-  return `<table role="presentation" style="width:100%;margin:16px 0;background:#0d131b;border:1px solid #232c38;border-radius:8px;padding:8px 16px;">${rows}</table>`;
+  return `<table aria-label="Payment details" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;width:100%;margin:24px 0;background:${EMAIL_COLORS.background};border:1px solid ${EMAIL_COLORS.line};border-radius:8px;padding:8px 16px;">${rows}</table>`;
 }
 
 function notesList(notes: string[]): string {
-  return `<ul style="color:#8b96a8;font-size:13px;line-height:1.7;padding-left:18px;margin:12px 0 0;">
+  return `<ul style="color:${EMAIL_COLORS.muted};font-size:14px;line-height:1.7;padding-left:18px;margin:16px 0 0;">
     ${notes.map((n) => `<li style="margin:6px 0;">${esc(n)}</li>`).join("")}
   </ul>`;
 }
@@ -89,12 +63,6 @@ function paymentDeadline(payload: Record<string, unknown>): string {
     : "at the deadline shown on your payment page";
 }
 
-const payButton = (url: string, label: string) =>
-  `<a href="${url}" style="display:inline-block;margin-top:20px;background:${ACCENT};color:${INK};font-weight:600;padding:11px 22px;border-radius:8px;text-decoration:none;font-size:14px;">${label}</a>`;
-
-const esc = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
 const withParam = (url: string, key: string, value: string) =>
   `${url}${url.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(value)}`;
 
@@ -104,13 +72,13 @@ const withParam = (url: string, key: string, value: string) =>
  * review", and it carries the rating across so the form opens half-finished.
  */
 const starRow = (reviewUrl: string) =>
-  `<table role="presentation" style="margin:20px 0;"><tr>${[1, 2, 3, 4, 5]
+  `<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:20px 0;"><tr>${[1, 2, 3, 4, 5]
     .map(
       (n) =>
-        `<td style="padding-right:6px;"><a href="${withParam(reviewUrl, "rating", String(n))}" style="display:inline-block;width:40px;height:40px;line-height:40px;text-align:center;font-size:20px;text-decoration:none;color:${ACCENT};background:#0d131b;border:1px solid #232c38;border-radius:8px;">&#9733;</a></td>`,
+        `<td style="padding:0 ${n === 5 ? 0 : 4}px 0 0;"><a href="${esc(withParam(reviewUrl, "rating", String(n)))}" aria-label="Rate your order ${n} out of 5" style="display:inline-block;width:42px;height:42px;line-height:42px;text-align:center;font-size:20px;text-decoration:none;color:${ACCENT};background:${EMAIL_COLORS.background};border:1px solid ${EMAIL_COLORS.line};border-radius:4px;">&#9733;</a></td>`,
     )
     .join("")}</tr></table>
-   <div style="color:#8b96a8;font-size:12px;margin-top:-8px;">Tap a star to open the form with your rating filled in.</div>`;
+   <div style="color:${EMAIL_COLORS.muted};font-size:14px;margin-top:-8px;">Tap a star to open the form with your rating filled in.</div>`;
 
 /**
  * The products from the order, prose-joined and escaped — or null when the sweep
@@ -132,6 +100,10 @@ export async function renderTemplate(
 ): Promise<{ subject: string; html: string }> {
   const settings = await getSettings();
   const SUPPORT_EMAIL = settings.supportEmail;
+  const shell = (preheader: string, body: string, unsubscribeUrl?: string) => emailShell({
+    preheader, body, unsubscribeUrl, supportEmail: settings.supportEmail,
+    supportHours: settings.supportHours, audience: template.startsWith("admin_") ? "admin" : "customer",
+  });
   switch (template) {
     case "admin_order_overdue": {
       const awaitingPayment = payload.queue === "awaiting_payment";
@@ -142,13 +114,13 @@ export async function renderTemplate(
         ? "Check the transfer and confirm payment if it has cleared, or follow up with the customer. Fulfil the order as soon as payment is confirmed."
         : "Pack and dispatch this order as soon as possible, then record its tracking details.";
       const subject = `[PRIORITY] ${number} overdue — ${label}`;
-      return { subject, html: shell(esc(subject),
-        `<h1 style="font-size:20px;">Overdue order requires attention</h1>
-        <p><strong>${esc(number)}</strong> has been in <strong>${label}</strong> for <strong>${hours} hours</strong>, exceeding the 24-hour action window.</p>
-        <p>${esc(String(payload.customer_name || "Customer"))} · ${cents(Number(payload.amount_cents) || 0)}</p>
-        <p>${action}</p>
+      return { subject, html: shell(subject,
+        `<h1 style="${styles.heading}">Overdue order requires attention</h1>
+        <p style="${styles.paragraph}"><strong>${esc(number)}</strong> has been in <strong>${label}</strong> for <strong>${hours} hours</strong>, exceeding the 24-hour action window.</p>
+        <p style="${styles.paragraph}">${esc(String(payload.customer_name || "Customer"))} · ${cents(Number(payload.amount_cents) || 0)}</p>
+        <p style="${styles.paragraph}">${action}</p>
         ${payButton(`${SITE}/admin/orders/${encodeURIComponent(String(payload.order_id ?? ""))}`, "Review order")}
-        <p style="font-size:12px;color:#8b96a8;">Sent to all active admins. Reminders repeat every 24 hours while the order remains in this queue. Check the order for its latest status before taking action.</p>`) };
+        <p style="font-size:14px;color:${EMAIL_COLORS.muted};">Sent to all active admins. Reminders repeat every 24 hours while the order remains in this queue. Check the order for its latest status before taking action.</p>`) };
     }
     case "admin_daily_brief": {
       if (typeof payload.subject !== "string" || typeof payload.html !== "string") throw new Error("Invalid daily brief");
@@ -157,13 +129,16 @@ export async function renderTemplate(
     case "cart_recovery_confirmation": {
       const url = recoveryLink(String(payload.recovery_request_id ?? ""));
       return {subject:"Confirm your saved cart link",html:shell("Confirm your cart link and reminders.",
-        `<h1 style="font-size:20px;">Your cart link</h1><p>Use this link within 24 hours and press Confirm and restore to request up to three reminders at 1 hour, 24 hours and 72 hours after confirmation if still eligible. This does not subscribe you to the newsletter. Your restore link expires seven days after your request. Ignore this email if you did not request it.</p>${payButton(url,"Confirm and restore cart")}`)};
+        `<h1 style="${styles.heading}">Confirm your saved cart</h1>
+        <p style="${styles.paragraph}">Use this link within 24 hours and select Confirm and restore to save your cart and request reminders.</p>
+        <p style="${styles.paragraph}">You may receive up to three reminders, at 1 hour, 24 hours and 72 hours after confirmation if still eligible. This does not subscribe you to the newsletter. Your restore link expires seven days after your request.</p>
+        <p style="${styles.muted}">If you did not request this, you can ignore this email.</p>${payButton(url,"Confirm and restore cart")}`)};
     }
     case "subscription_confirmation": {
       const url = String(payload.confirmation_url ?? "");
       if (!url.startsWith(`${SITE}/subscribe/confirm?token=`)) throw new Error("Invalid confirmation link");
       return { subject: "Confirm your East Coast Labs subscription", html: shell("Confirm your email subscription.",
-        `<h1 style="font-size:20px;">Confirm your subscription</h1><p>Use this link within 24 hours to receive our email updates. If you did not request this, ignore this email.</p>${payButton(url, "Confirm subscription")}`) };
+        `<h1 style="${styles.heading}">Confirm your subscription</h1><p style="${styles.paragraph}">Use this link within 24 hours to receive our email updates. If you did not request this, ignore this email.</p>${payButton(url, "Confirm subscription")}`) };
     }
     case "payment_instructions": {
       const orderNumber = String(payload.order_number ?? "");
@@ -173,15 +148,15 @@ export async function renderTemplate(
         subject: `Payment details for ${orderNumber} — ${amount}`,
         html: shell(
           `Transfer ${amount} to complete order ${orderNumber}.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Your order is reserved — here's how to pay</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Order <strong style="font-family:monospace;">${orderNumber}</strong> is held for you. Transfer
-             <strong>${amount}</strong> using the details below and we'll dispatch as soon as it lands.
+          `<h1 style="${styles.heading}">Your order is reserved</h1>
+           <p style="${styles.paragraph}">
+             Order <strong style="font-family:monospace;">${esc(orderNumber)}</strong> is held for you. Transfer
+             <strong>${amount}</strong> using the details below. We'll prepare your order once payment is confirmed.
            </p>
            ${
              instructions
                ? instructionsTable(instructions) + notesList(instructions.notes)
-               : `<p style="color:#c3ccd9;font-size:14px;line-height:1.6;">Reply to this email and we'll send your payment details.</p>`
+               : `<p style="${styles.paragraph}">Please contact us using the details below for help with payment.</p>`
            }
            ${payButton(payUrl, "View payment details")}`,
         ),
@@ -197,22 +172,22 @@ export async function renderTemplate(
         subject: `Reminder: ${orderNumber} is waiting for payment`,
         html: shell(
           `We're still holding ${orderNumber} for you.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Still holding your order</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             We haven't seen a transfer for <strong style="font-family:monospace;">${orderNumber}</strong> yet.
+          `<h1 style="${styles.heading}">Still holding your order</h1>
+           <p style="${styles.paragraph}">
+             We haven't yet confirmed payment for <strong style="font-family:monospace;">${esc(orderNumber)}</strong>.
              Your reservation ends <strong>${deadline}</strong>,
-             then they go back on sale.
+             after which the items are made available for other orders.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Already paid? Ignore this — some transfers take a few hours to appear, and a first PayID
+           <p style="${styles.paragraph}">
+             If you have already paid, no further payment is needed. Some transfers take a few hours to appear, and a first PayID
              payment to a new payee can be held by your bank for up to 24 hours.
            </p>
            ${
              instructions
                ? instructionsTable(instructions)
-               : `<p style="color:#c3ccd9;font-size:14px;">Reply to this email for payment details.</p>`
+               : `<p style="${styles.paragraph}">Please contact us using the details below for help with payment.</p>`
            }
-           ${payButton(payUrl, `Pay ${amount}`)}`,
+           ${payButton(payUrl, `View payment details — ${amount}`)}`,
         ),
       };
     }
@@ -223,30 +198,27 @@ export async function renderTemplate(
       const amount = cents(Number(payload.amount_cents ?? 0));
       const deadline = paymentDeadline(payload);
       return {
-        // The last thing we send before the reservation goes. It has to read as
-        // a deadline, not a third polite reminder — the two earlier nudges
-        // already used up the polite register.
         subject: `Payment deadline for ${orderNumber}`,
         html: shell(
           `${orderNumber}: reservation ends ${deadline}.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Your order is about to be released</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             <strong style="font-family:monospace;">${orderNumber}</strong> is still unpaid. We're holding
+          `<h1 style="${styles.heading}">Your payment deadline is approaching</h1>
+           <p style="${styles.paragraph}">
+             <strong style="font-family:monospace;">${esc(orderNumber)}</strong> is still unpaid. We're holding
              your items until <strong>${deadline}</strong>.
              After that the order is cancelled and the stock goes back on sale — we can't promise it
              will still be there afterwards.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Already paid? Nothing to do — transfers can take a few hours to show up, and a first
+           <p style="${styles.paragraph}">
+             If you have already paid, no further payment is needed. Transfers can take a few hours to appear, and a first
              PayID payment to a new payee can be held by your bank for up to 24 hours. If it lands
-             late, reply to this email so we can check availability and resolve your payment.
+             after the deadline, please contact us so we can check availability and help with your payment.
            </p>
            ${
              instructions
                ? instructionsTable(instructions)
-               : `<p style="color:#c3ccd9;font-size:14px;">Reply to this email for payment details.</p>`
+               : `<p style="${styles.paragraph}">Please contact us using the details below for help with payment.</p>`
            }
-           ${payButton(payUrl, `Pay ${amount} now`)}`,
+           ${payButton(payUrl, `View payment details — ${amount}`)}`,
         ),
       };
     }
@@ -257,16 +229,15 @@ export async function renderTemplate(
         subject: `Order ${orderNumber} released`,
         html: shell(
           `${orderNumber} has been released.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">We've released your order</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             We didn't receive payment for <strong style="font-family:monospace;">${orderNumber}</strong>, so the
-             stock has gone back on sale. If you already sent a transfer, reply to this email so we can check it.
+          `<h1 style="${styles.heading}">We've released your order</h1>
+           <p style="${styles.paragraph}">
+             We didn't receive payment for <strong style="font-family:monospace;">${esc(orderNumber)}</strong>, so the
+             items are available for other orders. If you have already sent a transfer, please contact us so we can check it.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Still want it? Ordering again takes a minute — or reply to this email if your transfer is
-             on its way and we'll sort it out.
+           <p style="${styles.paragraph}">
+             You can place a new order using the link below. If your transfer is still processing, please contact us before ordering again.
            </p>
-           ${payButton(`${SITE}/shop`, "Back to the shop")}`,
+           ${payButton(`${SITE}/shop`, "Browse the range")}`,
         ),
       };
     }
@@ -279,10 +250,10 @@ export async function renderTemplate(
         subject: `Order confirmed — ${orderNumber}`,
         html: shell(
           `Your order ${orderNumber} is confirmed.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Thanks — your order is in</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Order <strong style="font-family:monospace;">${orderNumber}</strong> is confirmed and paid. You'll get
-             another note the moment it ships, with your tracking number.
+          `<h1 style="${styles.heading}">Your order is confirmed</h1>
+           <p style="${styles.paragraph}">
+             Order <strong style="font-family:monospace;">${esc(orderNumber)}</strong> is confirmed and paid. You'll get
+             a dispatch email with tracking details once your order has shipped.
            </p>`,
         ),
       };
@@ -294,9 +265,9 @@ export async function renderTemplate(
         subject: `Shipped — ${orderNumber}`,
         html: shell(
           `${orderNumber} is on its way.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Your order has shipped</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Order <strong style="font-family:monospace;">${orderNumber}</strong> is on its way in discreet packaging.
+          `<h1 style="${styles.heading}">Your order has shipped</h1>
+           <p style="${styles.paragraph}">
+             Order <strong style="font-family:monospace;">${esc(orderNumber)}</strong> is on its way in discreet packaging.
              ${tracking ? `<br/>Tracking: <strong style="font-family:monospace;">${esc(tracking)}</strong>` : ""}
            </p>`,
         ),
@@ -309,26 +280,26 @@ export async function renderTemplate(
         subject: `Refund recorded — ${orderNumber}`,
         html: shell(
           `A refund for ${orderNumber} has been recorded.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Refund recorded</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+          `<h1 style="${styles.heading}">Refund recorded</h1>
+           <p style="${styles.paragraph}">
              ${amount ? `${amount} has` : "A refund has"} been recorded for order
-             <strong style="font-family:monospace;">${orderNumber}</strong>. Please reply to this email if you need confirmation of the bank transfer.
+             <strong style="font-family:monospace;">${esc(orderNumber)}</strong>. Please contact us if you need confirmation of the bank transfer.
            </p>`,
         ),
       };
     }
     case "back_in_stock": {
       const name = String(payload.product_name ?? "This product");
-      const url = String(payload.url ?? "/shop");
+      const url = typeof payload.url === "string" && /^\/product\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.url) ? payload.url : "/shop";
       return {
         subject: `${name} is back in stock`,
         html: shell(
           `${name} is back in stock.`,
-          `<h1 style="font-size:20px;margin:0 0 8px;">Back in stock</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             <strong>${name}</strong>${payload.variant_label ? ` (${payload.variant_label})` : ""} is back in stock.
+          `<h1 style="${styles.heading}">Back in stock</h1>
+           <p style="${styles.paragraph}">
+             <strong>${esc(name)}</strong>${payload.variant_label ? ` (${esc(String(payload.variant_label))})` : ""} is back in stock.
            </p>
-           ${payButton(`${SITE}${url}`, "Shop now")}`,
+           ${payButton(`${SITE}${url}`, "View current availability")}`,
           unsubOf(payload),
         ),
       };
@@ -339,96 +310,93 @@ export async function renderTemplate(
         .map((l) => `<li style="margin:4px 0;">${esc(l.name ?? "Item")} × ${l.quantity ?? 1}</li>`)
         .join("");
       return {
-        subject: "You left something in your cart",
+        subject: "Your saved cart at East Coast Labs",
         html: shell(
-          "You left something in your cart.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Still thinking it over?</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">Your cart is saved and ready:</p>
-           <ul style="color:#c3ccd9;font-size:14px;padding-left:20px;">${lines}</ul>
-           <a href="${recoveryLink(String(payload.recovery_request_id ?? ""))}" style="display:inline-block;margin-top:16px;background:${ACCENT};color:${INK};font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;">Complete your order</a>`,
+          "Review your saved items whenever you are ready.",
+          `<h1 style="${styles.heading}">Your saved cart</h1>
+           <p style="${styles.paragraph}">Your cart is saved and ready:</p>
+           <ul style="${styles.list}">${lines}</ul>
+           ${payButton(recoveryLink(String(payload.recovery_request_id ?? "")), "Return to your cart")}`,
           unsubOf(payload),
         ),
       };
     }
     case "abandoned_cart_2": {
       return {
-        subject: "Still thinking it over?",
+        subject: "A reminder about your saved cart",
         html: shell(
-          "Your cart is still saved — here's why researchers choose us.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Doing your due diligence? Good.</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+          "Your saved items and useful ordering information.",
+          `<h1 style="${styles.heading}">A little more information</h1>
+           <p style="${styles.paragraph}">
              Your cart is still saved. Here's what to know before you decide:
            </p>
-           <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
+           <ul style="${styles.list}">
              <li>Dispatched from Australia after payment confirmation</li>
              <li>Plain, discreet packaging and billing on every order</li>
              <li>Free standard shipping from ${cents(Math.round(settings.freeShippingThreshold * 100))}</li>
            </ul>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+           <p style="${styles.paragraph}">
              Pick up where you left off whenever you're ready.
            </p>
-           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Complete your order")}`,
+           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Return to your cart")}`,
           unsubOf(payload),
         ),
       };
     }
     case "abandoned_cart_3": {
       return {
-        subject: "Last note about your saved cart",
+        subject: "Your final saved-cart reminder",
         html: shell(
-          "We'll stop reminding you after this one.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Last call on your cart</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+          "Your saved-cart link expires seven days after your request.",
+          `<h1 style="${styles.heading}">Your final cart reminder</h1>
+           <p style="${styles.paragraph}">
              This is the last reminder for this cart. Your restore link expires seven days after you requested it.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+           <p style="${styles.paragraph}">
              Review current prices and availability at checkout.
            </p>
-           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Complete your order")}`,
+           ${payButton(`${recoveryLink(String(payload.recovery_request_id ?? ""))}`, "Return to your cart")}`,
           unsubOf(payload),
         ),
       };
     }
     case "welcome_1": {
       return {
-        subject: "Your 10% off code is inside",
+        subject: "Welcome to East Coast Labs — your first-order code",
         html: shell(
           "Welcome to East Coast Labs — research peptides dispatched from Australia.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Welcome — here's your code</h1>
-           <div style="margin:16px 0;background:#0d131b;border:1px solid #232c38;border-radius:8px;padding:16px;text-align:center;">
+          `<h1 style="${styles.heading}">Welcome to East Coast Labs</h1>
+           <div style="margin:16px 0;background:${EMAIL_COLORS.background};border:1px solid ${EMAIL_COLORS.line};border-radius:8px;padding:16px;text-align:center;">
              <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;font-weight:700;letter-spacing:0.1em;color:${ACCENT};">WELCOME10</span>
-             <div style="color:#8b96a8;font-size:12px;margin-top:6px;">10% off your first order</div>
+             <div style="color:${EMAIL_COLORS.muted};font-size:14px;margin-top:6px;">10% off your first order</div>
            </div>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             We do things differently from most peptide suppliers:
+           <p style="${styles.paragraph}">
+             Thank you for joining us. Here is some useful information for your first order:
            </p>
-           <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
+           <ul style="${styles.list}">
              <li>Dispatched from Australia after payment confirmation</li>
              <li>Plain, discreet packaging and billing on every order</li>
              <li>Free standard shipping from ${cents(Math.round(settings.freeShippingThreshold * 100))}</li>
            </ul>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             No fabricated reviews. No fake sale prices. No "limited time" pressure tactics. Just
-             straightforward research peptides, dispatched fast.
+           <p style="${styles.paragraph}">
+             Explore the range, check available product documentation and contact us if you have questions before ordering.
            </p>
-           ${payButton(`${SITE}/shop`, "Shop bestsellers")}`,
+           ${payButton(`${SITE}/shop`, "Explore the range")}`,
           unsubOf(payload),
         ),
       };
     }
     case "welcome_3": {
       return {
-        subject: "Most-ordered peptides — with per-vial savings",
+        subject: "A guide to pack options at East Coast Labs",
         html: shell(
-          "Buy in 3 or 6-vial packs and save up to 20% per vial.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Pack pricing, explained</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Every peptide is available in 1-vial, 3-pack, and 6-pack options — the more you buy, the less you
-             pay per vial. 3-packs save 10% per vial; 6-packs save 20% and include free bacteriostatic water
-             and free Express Post.
+          "Compare the available pack sizes and current pricing before ordering.",
+          `<h1 style="${styles.heading}">Pack pricing, explained</h1>
+           <p style="${styles.paragraph}">
+             Available pack sizes and per-vial pricing are shown on each product page. Compare the options to find the quantity that suits your research requirements.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Your <strong style="font-family:monospace;">WELCOME10</strong> code still works on any of them.
+           <p style="${styles.paragraph}">
+             If you have not placed your first order yet, you can enter <strong style="font-family:monospace;">WELCOME10</strong> at checkout. Any eligible discount and shipping benefits will be shown before you confirm your order.
            </p>
            ${payButton(`${SITE}/shop`, "Browse the range")}`,
           unsubOf(payload),
@@ -438,20 +406,20 @@ export async function renderTemplate(
     case "arrival_checkin": {
       const orderNumber = String(payload.order_number ?? "");
       return {
-        subject: `Did ${orderNumber} arrive OK?`,
+        subject: `Checking in on order ${orderNumber}`,
         html: shell(
           "Checking in after dispatch — let us know if you need help.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Did everything arrive OK?</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Order <strong style="font-family:monospace;">${orderNumber}</strong> shipped recently. If anything is
-             missing, damaged, or still hasn't turned up, tell us and we'll sort it out.
+          `<h1 style="${styles.heading}">How was your delivery?</h1>
+           <p style="${styles.paragraph}">
+             Order <strong style="font-family:monospace;">${esc(orderNumber)}</strong> shipped recently. If anything is
+             missing, damaged or has not arrived, please contact us so we can help.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             If everything arrived safely, there's nothing else you need to do. Thank you for your order.
+           <p style="${styles.paragraph}">
+             If everything arrived as expected, there is nothing you need to do. Thank you for ordering with East Coast Labs.
            </p>
            ${payButton(
              `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Problem with order ${orderNumber}`)}`,
-             "Something's not right",
+             "Contact us about your order",
            )}`,
           unsubOf(payload),
         ),
@@ -465,25 +433,24 @@ export async function renderTemplate(
         subject: "How was your order from East Coast Labs?",
         html: shell(
           "Did everything arrive OK? Let us know and share your honest review.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Did everything arrive OK?</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             We're checking in on order <strong style="font-family:monospace;">${orderNumber}</strong>${
+          `<h1 style="${styles.heading}">Did everything arrive OK?</h1>
+           <p style="${styles.paragraph}">
+             We're checking in on order <strong style="font-family:monospace;">${esc(orderNumber)}</strong>${
                bought ? ` — ${bought} —` : ""
              }. Has everything arrived safely? If anything is missing, damaged, or still on its way,
              <a href="mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Help with order ${orderNumber}`)}" style="color:${ACCENT};">contact us</a> so we can help.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+           <p style="${styles.paragraph}">
              We'd also value your honest review of your experience — all feedback is welcome. We're specifically interested in:
            </p>
-           <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
+           <ul style="${styles.list}">
              <li>Dispatch speed — did your order arrive when expected?</li>
              <li>Packaging — was it discreet and secure?</li>
              <li>Overall experience — would you order again?</li>
            </ul>
            ${starRow(reviewUrl)}
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Every review helps other researchers make informed decisions. We never edit or remove reviews
-             based on rating — honest feedback only.
+           <p style="${styles.paragraph}">
+             Your feedback helps us improve our service and helps other researchers make informed decisions. We welcome honest feedback about your ordering experience.
            </p>
            ${payButton(reviewUrl, "Leave a review")}`,
           unsubOf(payload),
@@ -494,16 +461,15 @@ export async function renderTemplate(
       const reviewUrl = `${SITE}/leave-a-review?token=${createOrderAccessToken(String(payload.order_id ?? ""), "review")}`;
       const bought = productNames(payload);
       return {
-        subject: "One question, 30 seconds",
+        subject: "A final invitation to review your order",
         html: shell(
-          "Would you order from us again? Tap a star.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">One question before we leave you alone</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             We asked a couple of weeks ago and didn't hear back, which is completely fine. If you have
-             thirty seconds, though: how was ${bought ? `the ${bought}` : "your order"}?
+          "Share your experience of ordering from East Coast Labs.",
+          `<h1 style="${styles.heading}">Your feedback is welcome</h1>
+           <p style="${styles.paragraph}">
+             If you have received your order and would like to share your experience, we would value your feedback on ${bought ? `your order of ${bought}` : "your order"}.
            </p>
            ${starRow(reviewUrl)}
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+           <p style="${styles.paragraph}">
              A single sentence is plenty. This is the last time we'll ask about this order.
            </p>`,
           unsubOf(payload),
@@ -513,19 +479,15 @@ export async function renderTemplate(
     case "review_thank_you": {
       const rating = Number(payload.rating ?? 0);
       return {
-        subject: "Thanks for the review",
+        subject: "Thank you for your feedback",
         html: shell(
           "Your review is with our team — here's what happens next.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Thank you — that genuinely helps</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Your ${rating >= 1 && rating <= 5 ? `${rating}-star ` : ""}review is with our team. We screen
-             for spam and nothing else — we don't edit or drop reviews based on what they say — so it
-             should appear on the product page shortly.
+          `<h1 style="${styles.heading}">Thank you for your review</h1>
+           <p style="${styles.paragraph}">
+             Your ${rating >= 1 && rating <= 5 ? `${rating}-star ` : ""}review is with our team for moderation. Thank you for taking the time to share your ordering experience.
            </p>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Most people find us because someone they trust pointed them here. If you know another
-             researcher weighing up suppliers, forwarding this email is the most useful thing you can do
-             for them — and for us.
+           <p style="${styles.paragraph}">
+             Your feedback helps us understand what went well and where we can improve. If there is anything unresolved with your order, please contact us using the details below.
            </p>
            ${payButton(`${SITE}/shop`, "Browse the range")}`,
           unsubOf(payload),
@@ -542,9 +504,9 @@ export async function renderTemplate(
         subject: "Your reorder reminder",
         html: shell(
           "A reminder to review your research supply needs.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Planning another research order?</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">Here are the items from your previous order. Choose what your research requires; this reminder does not assume how much you have used.</p>
-           ${lines ? `<ul style="color:#c3ccd9;font-size:14px;padding-left:20px;">${lines}</ul>` : ""}
+          `<h1 style="${styles.heading}">Planning another research order?</h1>
+           <p style="${styles.paragraph}">Here are the items from your previous order. Choose what your research requires; this reminder does not assume how much you have used.</p>
+           ${lines ? `<ul style="${styles.list}">${lines}</ul>` : ""}
            ${payButton(`${SITE}/shop`, "Browse current availability")}`,
           unsubOf(payload),
         ),
@@ -552,50 +514,49 @@ export async function renderTemplate(
     }
     case "winback_60": {
       return {
-        subject: "What's new at East Coast Labs",
+        subject: "Explore the East Coast Labs range",
         html: shell(
-          "New compounds + pack options.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Since your last order</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">We haven't seen you in a while. Here's what's new:</p>
-           <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
-             <li>Bulk pack pricing on every peptide — save up to 20% per vial in 6-packs</li>
+          "Review current availability, pack sizes and pricing.",
+          `<h1 style="${styles.heading}">Since your last order</h1>
+           <p style="${styles.paragraph}">If you are planning another research order, you can review the current range and available pack options.</p>
+           <ul style="${styles.list}">
+             <li>Compare available pack sizes and per-vial pricing on each product page</li>
              <li>Free standard shipping from ${cents(Math.round(settings.freeShippingThreshold * 100))} · dispatch from Australia after payment confirmation</li>
            </ul>
-           ${payButton(`${SITE}/shop`, "Shop now")}`,
+           ${payButton(`${SITE}/shop`, "View current availability")}`,
           unsubOf(payload),
         ),
       };
     }
     case "winback_90": {
       return {
-        subject: "10% off — come back and restock",
+        subject: "Your next order at East Coast Labs — 10% off",
         html: shell(
           "Code RESTOCK10 for 10% off your next order.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Welcome back — 10% off</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+          `<h1 style="${styles.heading}">Welcome back — 10% off</h1>
+           <p style="${styles.paragraph}">
              Use code <strong style="font-family:monospace;">RESTOCK10</strong> for 10% off your next order.
            </p>
-           ${payButton(`${SITE}/shop`, "Shop peptides")}`,
+           ${payButton(`${SITE}/shop`, "Browse the range")}`,
           unsubOf(payload),
         ),
       };
     }
     case "second_purchase_nudge": {
       return {
-        subject: "Time to reorder?",
+        subject: "Planning your next research order?",
         html: shell(
-          "It's been about a month — reordering takes a minute.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">Thanks for your first order</h1>
-           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             It's been about a month since your first order with us. Reordering takes a minute, and
-             dispatch follows payment confirmation.
+          "Browse current availability when you are ready to order again.",
+          `<h1 style="${styles.heading}">Thanks for your first order</h1>
+           <p style="${styles.paragraph}">
+             Thank you for choosing East Coast Labs. When you are ready to plan another research order, you can review current availability and pack options using the link below.
            </p>
-           ${payButton(`${SITE}/shop`, "Reorder now")}`,
+           ${payButton(`${SITE}/shop`, "Browse the range")}`,
           unsubOf(payload),
         ),
       };
     }
     default:
-      return { subject: "East Coast Labs", html: shell("", "<p>Notification.</p>") };
+      return { subject: "East Coast Labs", html: shell("", `<p style="${styles.paragraph}">Notification.</p>`) };
   }
 }

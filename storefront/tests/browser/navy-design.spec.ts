@@ -23,6 +23,8 @@ test('navy page fits the viewport and keeps product, report and brand links acce
  }
  await expect(page.locator('.rb-header .rb-brand-mark')).toHaveCSS('background-color','rgb(36, 92, 255)');
  await expect(page.locator('.rb-footer .rb-brand-mark')).toHaveCSS('background-color','rgb(255, 255, 255)');
+ await expect(page.locator('.rb-header .rb-brand-type')).toHaveCSS('color','rgb(21, 46, 70)');
+ await expect(page.locator('.rb-footer .rb-brand-type')).toHaveCSS('color','rgb(255, 255, 255)');
  await expect(page.getByRole('link',{name:'Retatrutide',exact:true})).toHaveAttribute('href','/product/retatrutide?rebrand=v2');
  await page.getByRole('button',{name:'Metabolic research',exact:true}).click();
  await expect(page.getByRole('link',{name:'Retatrutide',exact:true})).toBeVisible();
