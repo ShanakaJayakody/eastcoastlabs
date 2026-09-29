@@ -37,6 +37,18 @@ test('navy layout fits before the brand font is available',async({page})=>{
  expect(layout.width,JSON.stringify(layout)).toBeLessThanOrEqual(layout.viewport);
 });
 
+test('tablet hero keeps its copy above the vials',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='desktop','Tablet widths are checked once.');
+ for(const width of [770,900,1100]){
+  await page.setViewportSize({width,height:1000});
+  await page.evaluate(()=>document.fonts.ready.then(()=>undefined));
+  const copy=await page.locator('.rb-hero-copy').boundingBox();
+  const art=await page.locator('.rb-hero-art').boundingBox();
+  // The upper 30% of the photograph is empty background, above the vial caps.
+  expect(copy!.y+copy!.height,`Hero copy at ${width}px`).toBeLessThanOrEqual(art!.y+art!.height*.3);
+ }
+});
+
 test('navy cart keeps its compact heading and readable primary action',async({page})=>{
  await page.getByRole('button',{name:'Open shopping bag, 0 items',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'Shopping cart'});

@@ -265,6 +265,16 @@ body:has(.rebrand) { background: #fbfcfd; }
   .rebrand .rb-trust-grid strong { display: inline; }
   .rebrand .rb-evidence-grid { gap: 40px; }
 }
+@media (min-width: 761px) and (max-width: 1100px) {
+  .rebrand .rb-hero-inner { min-height: 0; padding-block: 56px 400px; align-items: flex-start; }
+  .rebrand .rb-hero-copy { width: 100%; max-width: 620px; padding: 0; }
+  .rebrand .rb-hero h1 { font-size: 48px; max-width: 620px; }
+  .rebrand .rb-quality-break { display: none; }
+  .rebrand .rb-intro { max-width: 52ch; }
+  .rebrand .rb-hero-art { left: auto; right: 0; width: min(140%, 1000px); }
+  .rebrand .rb-hero-art img { object-position: right bottom; }
+  .rebrand .rb-hero-shade { background: linear-gradient(180deg, #10283f 0%, #10283f 48%, rgb(16 40 63 / .9) 56%, transparent 72%, rgb(16 40 63 / .2) 100%); }
+}
 @media (max-width: 760px) {
   .rebrand .rb-container { width: calc(100% - 44px); }
   .rebrand .rb-section { padding-block: 65px; scroll-margin-top: 88px; }
