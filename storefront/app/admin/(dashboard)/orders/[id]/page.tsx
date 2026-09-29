@@ -17,6 +17,8 @@ import { formatAud } from "@/lib/format";
 import StatusBadge from "@/components/admin/StatusBadge";
 import OrderActions from "@/components/admin/OrderActions";
 import OrderItemsPanel from "@/components/admin/OrderItemsPanel";
+import ShippingMethodIndicator from "@/components/admin/ShippingMethodIndicator";
+import { orderShippingMethod } from "@/lib/admin/order-shipping";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const stockCheck =
     order.status === "cancelled" ? await reinstateStockCheck(id) : undefined;
   const addr = order.shipping_address ?? {};
+  const shipping = orderShippingMethod(order.shipping_address);
 
   return (
     <div className="space-y-6">
@@ -56,6 +59,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
           <Printer size={15} /> Packing slip
         </Link>
       </div>
+
+      <ShippingMethodIndicator method={shipping} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -140,7 +145,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
         {/* Sidebar */}
         <div className="space-y-4">
-          <OrderActions hasRefunds={order.refunded_cents>0 || order.items.some(item=>item.refunded_qty>0)} orderNumber={order.order_number} remainingRefundCents={Math.max(0,order.total_cents-order.refunded_cents)} trackingNumber={order.tracking_number} carrierCode={order.carrier_code} orderId={order.id} status={order.status} stockCheck={stockCheck} />
+          <OrderActions shippingMethod={shipping} hasRefunds={order.refunded_cents>0 || order.items.some(item=>item.refunded_qty>0)} orderNumber={order.order_number} remainingRefundCents={Math.max(0,order.total_cents-order.refunded_cents)} trackingNumber={order.tracking_number} carrierCode={order.carrier_code} orderId={order.id} status={order.status} stockCheck={stockCheck} />
 
           <section className="rounded-xl border border-line bg-surface p-4 text-sm">
             <h3 className="mb-2 text-sm font-semibold text-fg">Customer</h3>
@@ -156,7 +161,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
           <section className="rounded-xl border border-line bg-surface p-4 text-sm">
             <h3 className="mb-2 text-sm font-semibold text-fg">Shipping</h3>
-            <address className="not-italic text-fg-2">
+            <ShippingMethodIndicator method={shipping} compact />
+            <address className="mt-2 not-italic text-fg-2">
               {addr.line1}
               {addr.line2 ? <>, {addr.line2}</> : null}
               <br />

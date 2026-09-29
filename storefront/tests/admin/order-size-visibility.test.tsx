@@ -33,17 +33,28 @@ it('leaves ordinary non-sized pack labels unchanged',()=>{
  expect(orderItemVariantIdentity('100 pack',null)).toEqual({sizeLabel:null,detailLabel:'100 pack'});
 });
 
-it('maps the linked product size onto a historical order item',async()=>{
+it('loads the ordered variant size when physical stock claims create a second variant relationship',async()=>{
  const order={id:'order',order_number:'ECL-1'};
  const orderItem={...item,size_label:undefined,product_variants:{products:{size_label:'20 mg'}}};
  adminDb.mockReturnValue({from:(table:string)=>{
   if(table==='orders')return {select:()=>({eq:()=>({maybeSingle:async()=>({data:order,error:null})})})};
-  if(table==='order_items')return {select:(columns:string)=>({eq:async()=>({data:columns.includes('product_variants(products(size_label))')?[orderItem]:[],error:null})})};
+  if(table==='order_items')return {select:(columns:string)=>({eq:async()=>columns.includes('product_variants!order_items_variant_id_fkey(products(size_label))')
+   ? {data:[orderItem],error:null}
+   : {data:null,error:{code:'PGRST201',message:'More than one relationship found for order_items and product_variants'}}})};
   return {select:()=>({eq:()=>({order:async()=>({data:[],error:null})})})};
  }});
  const result=await getOrder('order');
  expect(result?.items[0]?.size_label).toBe('20 mg');
  expect(result?.items[0]).not.toHaveProperty('product_variants');
+});
+
+it.each(['order_items','order_events'])('does not silently replace a failed %s query with an empty list',async failedTable=>{
+ adminDb.mockReturnValue({from:(table:string)=>{
+  if(table==='orders')return {select:()=>({eq:()=>({maybeSingle:async()=>({data:{id:'order'},error:null})})})};
+  const result=table===failedTable?{data:null,error:{message:'Database unavailable'}}:{data:[],error:null};
+  return {select:()=>({eq:()=>table==='order_events'?{order:async()=>result}:Promise.resolve(result)})};
+ }});
+ await expect(getOrder('order')).rejects.toThrow('Database unavailable');
 });
 
 it('makes the ordered strength prominent while reviewing an order',()=>{
