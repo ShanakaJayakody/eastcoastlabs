@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ArrowUpRight, Menu, Search, ShoppingBag, X } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { useCart } from '@/lib/cart-context';
@@ -10,8 +11,8 @@ import NavyBrand from './NavyBrand';
 
 const navigation = [
   ...(process.env.NEXT_PUBLIC_CUSTOMER_ACCOUNTS_ENABLED === "1" ? [{ href: "/account/orders", label: "My orders" }] : []),
-  { href: '/shop?rebrand=v2', label: 'Shop' },
-  { href: '/stacks?rebrand=v2', label: 'Stacks' },
+  { href: '/shop', label: 'Shop' },
+  { href: '/stacks', label: 'Stacks' },
   { href: '/lab-results', label: 'Lab reports' },
   { href: '/learn', label: 'Learn' },
   { href: '/creators', label: 'Creators' },
@@ -20,6 +21,10 @@ const navigation = [
 
 export default function NavyHeader() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const homepage = pathname === '/';
+  const active = (href: string) => pathname === href || pathname?.startsWith(`${href}/`) || (href === '/shop' && /^\/(product|collections)\//.test(pathname ?? ''));
+  useEffect(() => setOpen(false), [pathname]);
   const { itemCount, ready } = useCart();
   const { openCart } = useUI();
   return <>
@@ -27,17 +32,17 @@ export default function NavyHeader() {
     <div className="rb-announcement">
       <div className="rb-container rb-announcement-inner">
         <span>Australian owned. Shipped from Australia.</span>
-        <a href="#standards">Original lab reports, open to you <ArrowUpRight size={13} aria-hidden /></a>
+        <Link href={homepage ? '#standards' : '/lab-results'}>Original lab reports, open to you <ArrowUpRight size={13} aria-hidden /></Link>
       </div>
     </div>
     <header className="rb-header">
       <div className="rb-container rb-header-inner">
         <NavyBrand />
         <nav className="rb-desktop-nav" aria-label="Main navigation">
-          {navigation.map(item => <Link key={item.href} href={item.href}>{item.label}</Link>)}
+          {navigation.map(item => <Link key={item.href} href={item.href} aria-current={active(item.href) ? 'page' : undefined}>{item.label}</Link>)}
         </nav>
         <div className="rb-header-actions">
-          <a className="rb-icon-button rb-search" href="#homepage-product-search" aria-label="Search peptides" onClick={event => {
+          <a className="rb-icon-button rb-search" href={homepage ? '#homepage-product-search' : '/shop#catalog-search'} aria-label="Search peptides" onClick={event => {
             const search = document.getElementById('homepage-product-search');
             if (search) { event.preventDefault(); search.focus(); }
           }}><Search size={21} strokeWidth={1.5} aria-hidden /></a>
@@ -51,9 +56,9 @@ export default function NavyHeader() {
     <Modal open={open} onClose={() => setOpen(false)} label="Navigation menu" className="rb-menu-panel absolute inset-0">
       <div className="rb-menu-top"><NavyBrand onNavigate={() => setOpen(false)} /><button className="rb-icon-button" type="button" onClick={() => setOpen(false)} aria-label="Close menu"><X size={24} /></button></div>
       <nav id="rb-mobile-menu" aria-label="Mobile navigation">
-        {navigation.map(item => <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>{item.label}<ArrowUpRight size={21} aria-hidden /></Link>)}
-        <a href="#collection" onClick={() => setOpen(false)}>Explore this page<ArrowUpRight size={21} aria-hidden /></a>
-        <a href="#ordering" onClick={() => setOpen(false)}>Ordering & delivery<ArrowUpRight size={21} aria-hidden /></a>
+        {navigation.map(item => <Link key={item.href} href={item.href} aria-current={active(item.href) ? 'page' : undefined} onClick={() => setOpen(false)}>{item.label}<ArrowUpRight size={21} aria-hidden /></Link>)}
+        {homepage && <a href="#collection" onClick={() => setOpen(false)}>Explore this page<ArrowUpRight size={21} aria-hidden /></a>}
+        <Link href={homepage ? '#ordering' : '/shipping'} onClick={() => setOpen(false)}>Ordering & delivery<ArrowUpRight size={21} aria-hidden /></Link>
       </nav>
       <p>East Coast Labs · Australian owned<br />For laboratory research only.</p>
     </Modal>

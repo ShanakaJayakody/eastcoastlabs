@@ -1,6 +1,10 @@
 import {createRoot} from 'react-dom/client';
 import {useState} from 'react';
 import '../../app/globals.css';
+import '../../app/(store)/editorial.css';
+import NavyStoreShell from '../../components/rebrand/NavyStoreShell';
+import NavyMessageShell from '../../components/rebrand/NavyMessageShell';
+import {getCollections} from '../../lib/collections';
 import CartRecoveryRestore from '../../components/CartRecoveryRestore';
 import CheckoutForm from '../../components/CheckoutForm';
 import BuyBox from '../../components/BuyBox';
@@ -31,6 +35,7 @@ function Preview(){
  function load(){clear();addLine({key:'900001:single:once',productId:900001,slug:'synthetic-compound',name:'Synthetic Research Compound',variantLabel:'1 vial',unitPrice:45},1);}
  const creator=<CreatorLanding supportEmail="support@example.test" application={<CreatorApplicationForm submit={submitCreatorApplication}/>}/>;
  const mainClass=page==='creators'?'min-w-0 flex-1':'mx-auto w-full max-w-5xl px-4 py-8';
+ const content=<div className={mainClass}> {page==='stock-management-admin'?<StockManagementFixture/>:page==='stock-admin'?<StockFixture/>:page==='customer-admin'?<CustomerFixture/>:page==='sizes'||page==='sizes-admin'?<SizeFixture admin={page==='sizes-admin'}/>:page==='creators'?creator:page==='recovery'?<><h1 className="text-2xl font-bold">Restore your cart</h1><CartRecoveryRestore token={'a'.repeat(43)}/></>:page==='checkout'?<><h1 className="text-2xl font-bold">Checkout preview</h1><CheckoutForm/></>:<><h1 className="mb-6 text-2xl font-bold">Synthetic compound · 4 vials available</h1><BuyBox product={{id:900001,name:'Synthetic Research Compound',slug:'synthetic-compound',sku:'SYNTHETIC'}} tiers={tiers} singlePriceMinor="4500" minorUnit={2} available={4}/></>}</div>;
  return <>{!bare&&<div className="border-b border-line bg-surface p-4 text-sm">
   <p className="font-semibold text-accent">Isolated audit preview — synthetic data only</p>
   <p className="my-2 text-muted">No production connection, payment or email. Use fixture controls below; refreshing preserves only this local preview cart.</p>
@@ -38,8 +43,8 @@ function Preview(){
   <label className="mt-3 block">Quote simulation<select value={mode} onChange={e=>{const m=e.target.value as QuoteMode;setMode(m);setQuoteMode(m);}} className="ml-2 rounded border border-line bg-ink p-2"><option value="normal">Normal</option><option value="failure">Fail requests</option><option value="delayed">Delay 20 seconds</option><option value="higher-price">Higher price</option></select></label>
   <label className="mt-3 block">Creator submission simulation<select value={creatorSubmission} onChange={e=>{const m=e.target.value as CreatorMode;setCreatorSubmission(m);setCreatorMode(m);}} className="ml-2 rounded border border-line bg-ink p-2"><option value="success">Success</option><option value="unavailable">Unavailable</option><option value="rate-limited">Rate limited</option><option value="field-error">Field error</option></select></label>
   <p className="mt-2 text-xs text-muted">{lines.length} cart lines. After changing simulation, use Refresh order total or change shipping in checkout.</p>
- </div>}<div className={dossier?'theme-paper flex min-h-screen flex-col bg-ink text-fg':'flex min-h-screen flex-col'}>{page.endsWith('-admin')?null:dossier?<DossierHeader/>:<Header/>}<main id="main-content" tabIndex={-1} className={mainClass}>
- {page==='stock-management-admin'?<StockManagementFixture/>:page==='stock-admin'?<StockFixture/>:page==='customer-admin'?<CustomerFixture/>:page==='sizes'||page==='sizes-admin'?<SizeFixture admin={page==='sizes-admin'}/>:page==='creators'?creator:page==='recovery'?<><h1 className="text-2xl font-bold">Restore your cart</h1><CartRecoveryRestore token={'a'.repeat(43)}/></>:page==='checkout'?<><h1 className="text-2xl font-bold">Checkout preview</h1><CheckoutForm/></>:<><h1 className="mb-6 text-2xl font-bold">Synthetic compound · 4 vials available</h1><BuyBox product={{id:900001,name:'Synthetic Research Compound',slug:'synthetic-compound',sku:'SYNTHETIC'}} tiers={tiers} singlePriceMinor="4500" minorUnit={2} available={4}/></>}
- </main><CartDrawer/></div></>;
+ </div>}{page==='recovery'?<NavyMessageShell>{content}</NavyMessageShell>:!page.endsWith('-admin')&&!params.has('header')?<NavyStoreShell collections={getCollections()} supportEmail="support@example.test">{content}</NavyStoreShell>:<div className={dossier?'theme-paper flex min-h-screen flex-col bg-ink text-fg':'flex min-h-screen flex-col'}>{page.endsWith('-admin')?null:dossier?<DossierHeader/>:<Header/>}<main id="main-content" tabIndex={-1} className="min-w-0 flex-1">
+{content}
+ </main><CartDrawer/></div>}</>;
 }
 createRoot(document.getElementById('root')!).render(<CartProvider stock={stock} prices={prices}><UIProvider><Preview/></UIProvider></CartProvider>);

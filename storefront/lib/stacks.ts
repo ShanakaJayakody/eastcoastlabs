@@ -8,6 +8,8 @@
  * add-to-cart interaction.
  */
 
+import type {RebrandVariant} from '@/components/rebrand/content';
+import {getRebrandImage} from './rebrand-imagery';
 import stacksData from "@/data/stacks.json";
 import { cache } from "react";
 import { getCatalog } from "./catalog";
@@ -50,7 +52,7 @@ interface RawStack {
 
 const RAW = (stacksData as unknown as { stacks: RawStack[] }).stacks;
 
-export const getStacks = cache(async function getStacks(): Promise<ResolvedStack[]> {
+export const getStacks = cache(async function getStacks(imageVariant?: RebrandVariant): Promise<ResolvedStack[]> {
   const { products } = await getCatalog();
   const bySlug = new Map(products.map((p) => [p.slug, p]));
 
@@ -74,7 +76,7 @@ export const getStacks = cache(async function getStacks(): Promise<ResolvedStack
       components.push({
         slug,
         name: `${product.name}${originalSize ? ` · ${originalSize.label}` : ''}`,
-        image: product.images?.[0]?.src,
+        image: (imageVariant ? getRebrandImage(slug, imageVariant, originalSize?.label)?.src : undefined) ?? product.images?.[0]?.src,
         singleVial: Number(product.prices.price) / 100,
         available: originalSize ? originalSize.available : product.is_in_stock === false ? 0 : product.available,
       });

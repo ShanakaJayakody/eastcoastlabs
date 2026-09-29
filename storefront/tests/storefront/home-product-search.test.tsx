@@ -2,6 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import NavyStoreShell from '@/components/rebrand/NavyStoreShell';
 import RebrandExperience from '@/components/rebrand/RebrandExperience';
 import ShopFilterGrid from '@/components/ShopFilterGrid';
 import { CartProvider } from '@/lib/cart-context';
@@ -11,12 +12,13 @@ import { searchProducts } from '../fixtures/product-search';
 
 // Navigation is a framework boundary; retain real links for pointer selection.
 const navigation=vi.hoisted(()=>({push:vi.fn()}));
-vi.mock('next/navigation',()=>({useRouter:()=>navigation}));
+vi.mock('next/navigation',()=>({useRouter:()=>navigation,usePathname:()=>'/'}));
+vi.mock('next/web-vitals',()=>({useReportWebVitals:()=>{}}));
 beforeEach(()=>{history.replaceState({},'', '/2');navigation.push.mockClear();});
 afterEach(cleanup);
 
 function homepage(products=searchProducts){
-  return render(<CartProvider stock={{}}><UIProvider><RebrandExperience variant="v2" products={products} collections={[]} records={[]} report={labReports[0]} productReports={[]} reportCount={1} supportEmail="support@example.test"/></UIProvider></CartProvider>);
+  return render(<CartProvider stock={{}}><UIProvider><NavyStoreShell collections={[]} supportEmail="support@example.test"><RebrandExperience variant="v2" products={products} collections={[]} records={[]} report={labReports[0]} productReports={[]} reportCount={1} supportEmail="support@example.test"/></NavyStoreShell></UIProvider></CartProvider>);
 }
 
 it('searches beyond the featured four and ranks the exact name before blends',()=>{
