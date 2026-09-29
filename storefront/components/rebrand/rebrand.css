@@ -70,6 +70,7 @@ body:has(.rebrand) { background: #fbfcfd; }
 .rebrand .rb-brand { display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; width: fit-content; color: #245cff; }
 .rebrand .rb-brand-mark { display: block; width: 48px; height: 48px; flex-shrink: 0; background: currentColor; -webkit-mask: url('/brand/ecl-cobalt-symbol.png') center / contain no-repeat; mask: url('/brand/ecl-cobalt-symbol.png') center / contain no-repeat; }
 .rebrand .rb-brand-type { display: flex; flex-direction: column; gap: 8px; line-height: 1; font-family: ECLWordmark, Arial, sans-serif; }
+.rebrand .rb-brand:not(.rb-brand-footer) .rb-brand-type { color: #152e46; }
 .rebrand .rb-brand-type strong { font-size: 16px; font-weight: 750; letter-spacing: .045em; white-space: nowrap; }
 .rebrand .rb-brand-type > span { font-size: 8px; font-weight: 600; letter-spacing: .19em; }
 .rebrand .rb-desktop-nav { display: flex; gap: 30px; align-items: center; }
