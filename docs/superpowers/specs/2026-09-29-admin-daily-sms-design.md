@@ -1,18 +1,18 @@
 # Daily admin SMS with Mobile Message
 
-Status: implementation in progress after the user accepted the five-line preview and asked for daily automation. Production sending remains paused during validation.
+Status: implemented and deployed. The user authorized activation from 30 September 2026, with the daily 08:00–09:00 Australia/Melbourne delivery window. Production enablement is verified separately during rollout.
 
 ## Intent
 
 Send the contacts in the user's Mobile Message **ECL Directors** list a concise daily business and fulfilment update. Use Mobile Message and the existing business-summary calculations. Customer SMS automation is a separate future project and is excluded from this release.
 
-The preceding in-chat A-to-Z outline supplies the product requirements. The user has identified ECL Directors as the authoritative recipient source. Read-only API verification found list ID `28556` with four contacts/four unique Australian mobile numbers: Ahmed Omer, Aized Omer, Shanaka Jayakody and Usayd Omer. The proposed 08:00–09:00 Australia/Melbourne delivery window is awaiting confirmation. Duplicate phone numbers receive only one daily message.
+The preceding in-chat A-to-Z outline supplies the product requirements. The user has identified ECL Directors as the authoritative recipient source. Read-only API verification found four contacts with four unique Australian mobile numbers. Duplicate phone numbers receive only one daily message. Recipient details belong in the provider account and protected delivery records.
 
 ## Configuration and access
 
 - Store the API username, API password, approved sender and webhook signing secret in server-only environment variables. Never put them in source control, browser payloads, logs or this document.
 - `ADMIN_SMS_ENABLED=false` is the deployment gate. Missing configuration fails closed.
-- Configure `MOBILE_MESSAGE_ADMIN_LIST_ID=28556`. Fully paginate `GET /v1/list-contacts`, validate Australian mobiles and normalize to `614xxxxxxxx`. Manage membership in Mobile Message; no email-to-phone mapping is required.
+- Configure `MOBILE_MESSAGE_ADMIN_LIST_ID` with the verified ECL Directors list ID. Fully paginate `GET /v1/list-contacts`, validate Australian mobiles and normalize to `614xxxxxxxx`. Manage membership in Mobile Message; no email-to-phone mapping is required.
 - Membership authorizes these internal SMS updates. Dashboard access continues to use the existing admin allowlist; adding an SMS contact does not grant platform access.
 - Add an admin SMS settings singleton with a default-paused switch, the proposed Melbourne delivery window, and an audit trail for changes.
 - Active admin session checks protect settings, previews and manual tests. Display provider-list membership read-only with a link to manage it in Mobile Message.
@@ -25,24 +25,24 @@ The user's 30 September clarification replaces the earlier compact summary. Pres
 
 ```text
 Daily ECL Director Update:
-Yesterday's Revenue: $2,086.03
-Overdue Orders to fulfil: 0
-Monthly Revenue: $21,325.68
+Yesterday's Revenue: $1,240.01
+Overdue Orders to fulfil: 3
+Monthly Revenue: $15,234.56
 Low Stock: Alc Swabs, Sema, Tesa, SS31, IGF
 ```
 
-The example is a read-only production snapshot at 00:06 Melbourne time on 30 September 2026, not a sent SMS. Generate fresh values for every daily run; never store these amounts as defaults.
+All figures and stock states in this example are synthetic test data. Generate fresh values from the platform for every daily run; never store these examples as defaults.
 
 - Yesterday's Revenue: use the dashboard's `revenueWindow({scale:'day',anchor:yesterday})` revenue total for the previous Melbourne calendar day. Revenue is the sum of recorded paid-order totals by `paid_at`, in AUD, consistent with the dashboard. Refunds are reported separately by the dashboard and are not silently subtracted here.
 - Overdue Orders to fulfil: count every current paid/processing order whose `action_queue_entered_at` is more than 24 hours before the run. Use an exact database count, not the capped attention queue display. Never include unpaid orders in this figure.
 - Monthly Revenue: use the dashboard's revenue total for the current Melbourne calendar month through the run. At the month boundary this starts a new month, while Yesterday's Revenue still refers to the preceding day.
-- Low Stock: query current admin stock thresholds on every run and deduplicate product names across pack variants. Preserve the requested short names and order: Bac Water (`bacteriostatic-water`), Alc Swabs (`alcohol-swabs`), Sema (`semaglutide`), Tesa (`tesamorelin`), SS31 (`ss-31`), IGF (`igf`). Include only products currently at or below an admin threshold. Sema never matches Semax. Use `None` when no watched product is low. Bac Water was not flagged in the snapshot above and is therefore absent from that example.
+- Low Stock: query current admin stock thresholds on every run and deduplicate product names across pack variants. Preserve the requested short names and order: Bac Water (`bacteriostatic-water`), Alc Swabs (`alcohol-swabs`), Sema (`semaglutide`), Tesa (`tesamorelin`), SS31 (`ss-31`), IGF (`igf`). Include only products currently at or below an admin threshold. Sema never matches Semax. Use `None` when no watched product is low.
 
 The six named products are the current working scope, following the user's supplied template. An optional clarification is pending on whether to expand this line to every low-stock product. Do not treat the provided names as permanently low stock. Missing data or a missing watched product must stop generation with a visible error, never silently become zero or `None`.
 
 Render amounts with an AUD dollar sign, thousands separators and two decimals. Keep ASCII apostrophes and GSM-safe plain text. Do not add a date, paid-order count, total-to-pack count, payment follow-ups or dashboard link to the SMS; those were superseded by the exact requested format. Record reporting dates in delivery metadata and the admin preview instead.
 
-Allow up to two SMS segments so the exact format stays intact. The snapshot above is 157 GSM septets and fits one segment; adding `Bac Water, ` makes it 168 septets and requires two. Calculate GSM septets, use 160 for a single segment and 153 per concatenated segment, and show the actual count in the preview. Set `max_parts=2`, disable Unicode and URL shortening explicitly. Never truncate required lines, round away cents or silently omit low-stock products to fit one segment. Reject an over-limit body with an operational alert; revisit the cap if the user expands the product scope.
+Allow up to two SMS segments so the exact format stays intact. The synthetic example above is 157 GSM septets and fits one segment; adding `Bac Water, ` makes it 168 septets and requires two. Calculate GSM septets, use 160 for a single segment and 153 per concatenated segment, and show the actual count in the preview. Set `max_parts=2`, disable Unicode and URL shortening explicitly. Never truncate required lines, round away cents or silently omit low-stock products to fit one segment. Reject an over-limit body with an operational alert; revisit the cap if the user expands the product scope.
 
 ## Schedule and delivery
 
@@ -77,8 +77,8 @@ The user's unrelated working changes must remain intact. Use an isolated worktre
 4. Verify admin-only controls and cron authorization; run the existing suite, typecheck, lint and build.
 5. Prepare a matching database/application release with production sending paused and unrelated work excluded.
 6. Configure the signed delivery webhook after the endpoint exists.
-7. Send an explicitly requested test to the confirmed recipients and reconcile delivery and credits.
-8. Activate only after the delivery window and test results are confirmed, using the already-verified recipient list. Verify the first automatic run separately from the manual test.
+7. Verify production previews and signed callbacks without sending a test SMS. Send a manual test only when explicitly requested.
+8. Enable the authorized daily schedule using the verified recipient list. Verify the first automatic run and its delivery reports separately from activation.
 
 ## Work completed before implementation
 
