@@ -126,7 +126,7 @@ it('rechecks the current queue and active recipient at delivery without requirin
   await db.exec("update admin_users set active=false where email='alex@example.test'");
   expect(await reason()).toMatch(/admin.*active/i);
   await db.exec("update admin_users set active=true where email='alex@example.test'");
-  await db.query("update orders set status='shipped' where id=$1", [id]);
+  await db.query("update orders set status='shipped',tracking_number='OVERDUE-TEST-TRACK' where id=$1", [id]);
   expect(await reason()).toMatch(/no longer overdue/i);
   const claimed = (await db.query<{ lease_token: string }>('select * from claim_email_outbox(1,$1)', [rows[0].id])).rows[0];
   expect((await db.query('select authorize_email_delivery($1,$2) allowed', [rows[0].id, claimed.lease_token])).rows[0]).toEqual({ allowed: false });

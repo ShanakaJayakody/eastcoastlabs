@@ -3,7 +3,6 @@
 import { checkoutFieldErrors, type CheckoutFieldErrors } from "@/lib/checkout-fields";
 import { verifiedRecoveryEpisode } from "@/lib/recovery-consent";
 import { validCheckoutLines as validateLines, normalizeCheckoutLines } from "@/lib/checkout-lines";
-import { after } from "next/server";
 import { createHash } from "node:crypto";
 import { applyGiftThreshold, resolveCart, type ClientCartLine, type ResolvedCartLine } from "@/lib/checkout";
 import { createOrder, findCheckoutReplay, type CreatedOrder } from "@/lib/admin/orders";
@@ -154,10 +153,6 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     // Email intent is inserted by the commerce transaction. Provider delivery
     // belongs to the outbox worker and cannot turn a committed order into a failure.
     await markCartRecovered(email, order.orderId, recoveryEpisodeId).catch(() => console.error("Checkout recovery attribution awaits investigation"));
-    try { after(async () => {
-      const { dispatchOrderEmails } = await import("@/lib/email/sender");
-      await dispatchOrderEmails(order.orderId).catch(() => console.error("Order email awaits outbox retry"));
-    }); } catch { /* Durable intent remains available to the cron worker. */ }
     return success(order, resolved.warnings);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

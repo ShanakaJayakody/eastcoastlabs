@@ -13,7 +13,7 @@ export async function overdueOrderChecks({ db, a, b, check, race }) {
     const queued = await db.query("select * from email_outbox where template='admin_order_overdue' and payload->>'order_id'=$1", [id]);
     assert.equal(queued.rowCount, admins);
     assert.equal(new Set(queued.rows.map(row => row.to_email)).size, admins);
-    await db.query("update orders set status='shipped' where id=$1", [id]);
+    await db.query("update orders set status='shipped',tracking_number='OVERDUE-TEST-TRACK' where id=$1", [id]);
     const eligibility = await db.query("select email_delivery_ineligible(e) reason from email_outbox e where template='admin_order_overdue' and payload->>'order_id'=$1", [id]);
     assert(eligibility.rows.every(row => /no longer overdue/i.test(row.reason)));
   });

@@ -34,7 +34,7 @@ it('previews CSV, selects valid rows only and reports stale per-row outcomes wit
  commitCarrier.mockResolvedValue({ok:true,rows:[{token:'a',orderNumber:'A',ok:false,error:'CARRIER_PREVIEW_STALE'}]});render(<CarrierImport/>);
  fireEvent.change(screen.getByLabelText('Carrier CSV'),{target:{value:'order_number,tracking_number\nA,TA\nB,TB'}});fireEvent.click(screen.getByRole('button',{name:'Preview carrier rows'}));
  await screen.findByText('Order is not shippable');expect(screen.getByLabelText('Select B')).toBeDisabled();
- fireEvent.click(screen.getByLabelText('Select A'));fireEvent.click(screen.getByLabelText('Queue shipping notifications'));fireEvent.click(screen.getByRole('button',{name:'Commit selected rows'}));
+ fireEvent.click(screen.getByLabelText('Select A'));fireEvent.click(screen.getByLabelText('Also email tracking corrections for already shipped orders'));fireEvent.click(screen.getByRole('button',{name:'Commit selected rows'}));
  await screen.findByText('CARRIER_PREVIEW_STALE');expect(commitCarrier).toHaveBeenCalledWith(['a'],true);expect(screen.getByRole('button',{name:'Commit selected rows'})).toBeDisabled();
 });
 it('prints assigned physical lots and explicit unallocated units without inferring a certificate',async()=>{

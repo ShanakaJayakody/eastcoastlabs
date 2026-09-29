@@ -160,12 +160,13 @@ export default function OrderActions({
             className={field}
           />
           <button
-            disabled={pending}
-            onClick={() => run(() => advanceStatus(orderId, "shipped", tracking), "Marked shipped — customer emailed")}
+            disabled={pending || !tracking.trim()}
+            onClick={() => run(() => advanceStatus(orderId, "shipped", tracking), "Marked shipped — dispatch email queued")}
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Mark shipped {tracking ? "with tracking" : ""}
           </button>
+          <p className="text-xs text-muted">A tracking number is required and will be included in the dispatch email.</p>
         </div>
       ) : null}
 

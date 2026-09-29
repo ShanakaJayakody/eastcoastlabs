@@ -50,7 +50,7 @@ export default async function CustomerDetailPage({
   const { summary, orders, cart, notes, waitlist } = person;
   const suppressed = summary.unsubscribedAt !== null;
 
-  const cards: SequenceCardData[] = sequences.map((s) => {
+  const cards: (SequenceCardData & { key: string })[] = sequences.map((s) => {
     const next = s.stages.find((st) => st.state === "next");
     const steps: StepperStep[] = s.stages.map((st) => ({
       label: st.label,
@@ -60,6 +60,7 @@ export default async function CustomerDetailPage({
       detail: st.outboxStatus === "failed" ? "send failed" : null,
     }));
     return {
+      key: `${s.id}-${s.orderId ?? s.anchorKey ?? "customer"}`,
       id: s.id,
       label: s.label,
       active: s.active,
@@ -124,7 +125,7 @@ export default async function CustomerDetailPage({
         ) : (
           <div className="space-y-3">
             {cards.map((c) => (
-              <SequenceCard key={`${c.id}-${c.label}`} email={email} data={c} />
+              <SequenceCard key={c.key} email={email} data={c} />
             ))}
           </div>
         )}

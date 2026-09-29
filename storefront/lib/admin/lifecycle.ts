@@ -1,5 +1,4 @@
 import "server-only";
-import { createOrderAccessToken } from "@/lib/order-access";
 
 /**
  * Marketing lifecycle sweeps — the Resend-native replacement for a Klaviyo flow
@@ -25,9 +24,7 @@ import { adminDb } from "./db";
 import { readAll } from "./read-all";
 import { queueEmail, type EmailTemplate } from "./email";
 import {
-  isTransactional,
   replenishmentRelatedId,
-  reviewRelatedId,
   reviewThanksRelatedId,
   secondPurchaseRelatedId,
   welcomeRelatedId,
@@ -39,7 +36,6 @@ import { reorderItems, type ReorderItem } from "./reorder";
 import { pausedEmailsFor } from "./overrides";
 import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 
-const SITE = "https://www.eastcoastlabs.com.au";
 const DAY_MS = 86_400_000;
 
 const daysSince = (iso: string) => (Date.now() - new Date(iso).getTime()) / DAY_MS;
@@ -74,43 +70,6 @@ interface MarketingSend {
   payload?: Record<string, unknown>;
   relatedType: string;
   relatedId: string;
-}
-
-/**
- * Slugs of products that are consumables rather than the thing a researcher
- * would review — syringes, swabs, the starter kit. An order containing only
- * these gets the arrival check-in but never a review ask: "rate your alcohol
- * swabs" produces nothing anyone reads.
- *
- * Read from `products.categories` so adding an accessory in the admin is enough;
- * an empty result means every order is treated as reviewable. A failed read
- * stops the sweep so missing catalogue data cannot trigger unwanted requests.
- */
-async function accessorySlugs(): Promise<Set<string>> {
-  const data = await readAll((start,end)=>adminDb().from("products").select("slug").contains("categories", JSON.stringify(["accessory"])).order("id").range(start,end));
-  return new Set((data ?? []).map((p) => (p as { slug: string }).slug));
-}
-
-/**
- * Emails that received any NON-transactional email in the last `days` days.
- * Used to make a low-priority touch yield rather than land on the same day as a
- * higher-priority one — the "one flow email per person per day" rule, applied at
- * the only place it currently bites.
- */
-async function recentMarketingRecipients(emails: string[], days: number): Promise<Set<string>> {
-  const unique = [...new Set(emails)];
-  if (!unique.length) return new Set();
-  const since=isoDaysAgo(days);
-  const data = await readChunks(unique,(ids,start,end)=>adminDb()
-    .from("email_outbox")
-    .select("to_email, template")
-    .in("to_email", ids)
-    .gte("created_at", since).order("id").range(start,end));
-  return new Set(
-    ((data ?? []) as { to_email: string; template: EmailTemplate }[])
-      .filter((r) => !isTransactional(r.template))
-      .map((r) => r.to_email),
-  );
 }
 
 /**
@@ -201,112 +160,10 @@ interface FulfilledOrderRow {
   shipped_at: string;
 }
 
-interface ReviewOrderRow extends FulfilledOrderRow {
-  order_items: { product_slug: string; product_name: string }[];
-}
-
-/** The review form URL for an order — the emails append &rating=N per star. */
-const reviewUrlFor = (order: FulfilledOrderRow) =>
-  `${SITE}/leave-a-review?token=${createOrderAccessToken(order.id, "review")}`;
-
-/**
- * Post-purchase review sequence — three touches off shipped_at.
- *
- * Stage order is the whole point. The arrival check-in at day 5 gives a bad
- * delivery somewhere to go BEFORE we ask for a public rating, so problems arrive
- * as support tickets rather than one-star reviews. We are not filtering
- * sentiment: whatever the review says gets published, and the check-in goes to
- * every fulfilled order regardless of what's in it.
- *
- * Only the two review asks are gated on the order actually containing something
- * reviewable (a peptide, not just syringes) and on no review existing yet.
- * Refunded and cancelled orders never appear here at all — the status filter
- * excludes them, which is deliberate: asking someone you refunded to rate you is
- * the fastest way to earn the rating you deserve for asking.
- */
+/** Compatibility entry point for older cron callers. Completion notifications
+ * are inserted by the status transaction and dispatched after that response. */
 export async function sweepPostPurchase(): Promise<{ queued: number }> {
-  const db = adminDb();
-  const since=isoDaysAgo(45);
-  const data = await readAll((start,end)=>db
-    .from("orders")
-    .select(
-      "id, order_number, customer_email, created_at, shipped_at, order_items(product_slug, product_name)",
-    )
-    .in("status", ["shipped", "completed"])
-    .eq("refunded_cents", 0)
-    .not("shipped_at", "is", null)
-    .gte("shipped_at", since)
-    .order("shipped_at").order("id").range(start,end));
-  const orders = (data ?? []) as unknown as ReviewOrderRow[];
-  if (!orders.length) return { queued: 0 };
-
-  const [reviewRows, accessories] = await Promise.all([
-    readChunks(orders.map((o)=>o.id),(ids,start,end)=>db.from("reviews").select("order_id").in("order_id",ids).order("id").range(start,end)),
-    accessorySlugs(),
-  ]);
-  const reviewed = new Set((reviewRows ?? []).map((r) => (r as { order_id: string }).order_id));
-
-  /** Products worth reviewing — accessories alone aren't social proof. */
-  const reviewableItems = (order: ReviewOrderRow) =>
-    (order.order_items ?? []).filter((i) => !accessories.has(i.product_slug));
-
-  // The reminder is the one touch at real risk of colliding with another
-  // sequence, so it yields
-  // to any marketing email this person received in the last three days.
-  const reminderCandidates = orders.filter((o) => {
-    const age = daysSince(o.shipped_at);
-    return age >= 24 && age < 35;
-  });
-  const recentlyEmailed = await recentMarketingRecipients(
-    reminderCandidates.map((o) => o.customer_email),
-    3,
-  );
-
-  const sends: MarketingSend[] = [];
-  for (const order of orders) {
-    const age = daysSince(order.shipped_at);
-    const relatedId = reviewRelatedId(order.id);
-
-    if (age >= 5 && age < 10) {
-      sends.push({
-        to: order.customer_email,
-        template: "arrival_checkin",
-        payload: { order_number: order.order_number, order_id:order.id, shipped_at:order.shipped_at },
-        relatedType: "order",
-        relatedId,
-      });
-      continue;
-    }
-
-    const items = reviewableItems(order);
-    if (!items.length || reviewed.has(order.id)) continue;
-    const payload = {
-      order_number: order.order_number,
-      shipped_at:order.shipped_at,
-      review_url: reviewUrlFor(order),
-      order_id: order.id,
-      products: [...new Set(items.map((i) => i.product_name))],
-    };
-
-    if (age >= 14 && age < 21) {
-      sends.push({
-        to: order.customer_email,
-        template: "post_purchase_review",
-        payload,
-        relatedType: "order",
-        relatedId,
-      });
-    } else if (age >= 24 && age < 35 && !recentlyEmailed.has(order.customer_email)) {
-      sends.push({
-        to: order.customer_email,
-        template: "post_purchase_review_reminder",
-        payload,
-        relatedType: "order",
-        relatedId,
-      });
-    }
-  }
-  return { queued: await queueMarketing(sends, "post_purchase_review") };
+  return { queued: 0 };
 }
 
 interface ReviewRow {

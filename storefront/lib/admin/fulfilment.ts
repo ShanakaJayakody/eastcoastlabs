@@ -1,6 +1,7 @@
 import 'server-only';
 import {adminDb} from './db';
 import {parseCarrierCsv} from './carrier-csv';
+import {scheduleCarrierEmails} from '@/lib/email/dispatch';
 export interface LotAssignment {lotId:string;lotCode:string;units:number;coa:{batchId:string;url:string}|null}
 export interface FulfilmentLine {itemId:string;productName:string;variantLabel:string;poolId:string;poolName:string;requiredUnits:number;allocatedUnits:number;unallocatedUnits:number;allocations:LotAssignment[]}
 export interface OrderFulfilment {orderId:string;editable:boolean;status:string;lines:FulfilmentLine[]}
@@ -23,4 +24,8 @@ export const getLotCatalog=()=>rpc<LotCatalog>('admin_lot_catalog');
 export const registerStockLot=(input:{poolId:string;code:string;units:number;receiptId:string|null;coaId:string|null;evidence:string},actor:string)=>rpc<string>('admin_register_stock_lot',{p_pool:input.poolId,p_code:input.code,p_units:input.units,p_receipt:input.receiptId,p_coa:input.coaId,p_evidence:input.evidence,p_actor:actor});
 export const allocateOrderLots=(orderId:string,itemId:string,poolId:string,assignments:{lotId:string;units:number}[],evidence:string,actor:string)=>rpc<{allocatedUnits:number;unallocatedUnits:number}>('admin_allocate_order_lots',{p_order:orderId,p_item:itemId,p_pool:poolId,p_assignments:assignments,p_evidence:evidence,p_actor:actor});
 export const previewCarrierCsv=(csv:string)=>rpc<CarrierPreview[]>('admin_preview_carrier',{p_rows:parseCarrierCsv(csv)});
-export const commitCarrierRows=(tokens:string[],notify:boolean,actor:string)=>rpc<CarrierOutcome[]>('admin_commit_carrier',{p_tokens:tokens,p_notify:notify,p_actor:actor});
+export async function commitCarrierRows(tokens:string[],notify:boolean,actor:string):Promise<CarrierOutcome[]> {
+ const rows=await rpc<CarrierOutcome[]>('admin_commit_carrier',{p_tokens:tokens,p_notify:notify,p_actor:actor});
+ scheduleCarrierEmails(rows.filter(row=>row.ok).map(row=>row.token));
+ return rows;
+}

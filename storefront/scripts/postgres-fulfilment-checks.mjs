@@ -27,7 +27,7 @@ export async function fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderIn
   assert.equal(Number(await scalar(db,'select sum(units) result from order_lot_allocations where lot_id=$1',[lot])),2);
   assert.equal(await scalar(db,'select on_hand result from inventory where variant_id=$1',[pool]),0);
  });
- await check('carrier token replay changes tracking once without opted-out email',async()=>{
+ await check('carrier token replay sends exactly one first-shipment email even with tracking-correction notifications off',async()=>{
   const pool=await fixture(1),order=await create(db,orderInput(pool));await operation(db,order.orderId,'paid');
   const preview=await scalar(db,'select admin_preview_carrier($1) result',[JSON.stringify([{orderNumber:order.orderNumber,trackingNumber:'SYNTHETIC-TRACK-123'}])]);
   assert(preview[0].token,JSON.stringify(preview));
@@ -35,12 +35,12 @@ export async function fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderIn
   const results=await race('select id from orders where id=$1 for update',[order.orderId],()=>commit(a),()=>commit(b));
   assert(results.every(r=>r.status==='fulfilled'&&r.value[0].ok));
   assert.equal(await scalar(db,`select count(*)::int result from commerce_events where order_id=$1 and kind='shipped'`,[order.orderId]),1);
-  assert.equal(await scalar(db,`select count(*)::int result from email_outbox where payload->>'order_id'=$1 and template='order_shipped'`,[order.orderId]),0);
+  assert.equal(await scalar(db,`select count(*)::int result from email_outbox where payload->>'order_id'=$1 and template='order_shipped'`,[order.orderId]),1);
   assert.deepEqual((await db.query('select status,tracking_number from orders where id=$1',[order.orderId])).rows[0],{status:'shipped',tracking_number:'SYNTHETIC-TRACK-123'});
  });
  await check('carrier preview holds its displayed state against a concurrent manual tracking change',async()=>{
   const pool=await fixture(1),order=await create(db,orderInput(pool));
-  await operation(db,order.orderId,'paid');await operation(db,order.orderId,'shipped');
+  await operation(db,order.orderId,'paid');await operation(db,order.orderId,'shipped',{trackingNumber:'SYN-CSV-RACE'});
   const original=await scalar(db,"select pg_get_functiondef('admin_preview_carrier(jsonb)'::regprocedure) result");
   const read=/select \* into o from orders where order_number=n(?: for update)?;/;
   assert(read.test(original),'Test barrier must follow the preview order read');
@@ -70,8 +70,8 @@ export async function fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderIn
    await waitForBlock(manualPid,previewPid);
    await db.query('commit');
    const rows=await preview;await manual;
-   assert.equal(rows[0].currentTracking,null);assert(rows[0].token);
-   assert.equal(await scalar(db,"select state->>'tracking' result from carrier_previews where token=$1",[rows[0].token]),null);
+   assert.equal(rows[0].currentTracking,'SYN-CSV-RACE');assert(rows[0].token);
+   assert.equal(await scalar(db,"select state->>'tracking' result from carrier_previews where token=$1",[rows[0].token]),'SYN-CSV-RACE');
    const result=await scalar(db,'select admin_commit_carrier($1,false,$2) result',[JSON.stringify([rows[0].token]),'audit@example.test']);
    assert.equal(result[0].ok,false);assert.match(result[0].error,/CARRIER_PREVIEW_STALE/);
    assert.equal(await scalar(db,'select tracking_number result from orders where id=$1',[order.orderId]),'SYN-MANUAL-RACE');
@@ -80,5 +80,14 @@ export async function fulfilmentChecks({db,a,b,scalar,check,race,fixture,orderIn
    await Promise.allSettled([preview,manual].filter(Boolean));
    await db.query(original);
   }
+ });
+ await check('concurrent completion commits one immediate review intent with a stable completion timestamp',async()=>{
+  const pool=await fixture(1),order=await create(db,orderInput(pool));
+  await operation(db,order.orderId,'paid');await operation(db,order.orderId,'shipped',{trackingNumber:'SYN-COMPLETE-RACE'});
+  const results=await race('select id from orders where id=$1 for update',[order.orderId],()=>operation(a,order.orderId,'completed'),()=>operation(b,order.orderId,'completed'));
+  assert(results.every(r=>r.status==='fulfilled'));
+  assert.equal(results.filter(r=>r.value.changed).length,1);
+  assert.equal(await scalar(db,"select count(*)::int result from email_outbox where payload->>'order_id'=$1 and template='post_purchase_review'",[order.orderId]),1);
+  assert.equal(await scalar(db,"select (e.payload->>'completed_at')::timestamptz=o.completed_at result from email_outbox e join orders o on o.id::text=e.payload->>'order_id' where o.id=$1 and e.template='post_purchase_review'",[order.orderId]),true);
  });
 }

@@ -395,7 +395,7 @@ async function buildPayload(
     }
     case "post_purchase_review": {
       const order = person.orders.find((o) => o.id === state.orderId);
-      if (!order) return null;
+      if (!order || order.status !== "completed" || !order.completed_at) return null;
       const { data } = await adminDb()
         .from("order_items")
         .select("product_name")
@@ -407,6 +407,7 @@ async function buildPayload(
         order_number: order.order_number,
         products,
         order_id: order.id,
+        completed_at: order.completed_at,
       };
     }
     case "review_thank_you": {

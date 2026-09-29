@@ -7,14 +7,14 @@ vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from:(table:string)=>{
 }})}));
 vi.mock('@/lib/admin/email',()=>({queueEmail:m.queue}));
 vi.mock('@/lib/email/unsubscribe',()=>({unsubscribeUrl:m.unsubscribe}));
-import {sweepWelcomeSeries,sweepPostPurchase,sweepReviewThankYou,sweepReplenishment,sweepWinback,sweepSecondPurchaseNudge} from '@/lib/admin/lifecycle';
+import {sweepWelcomeSeries,sweepReviewThankYou,sweepReplenishment,sweepWinback,sweepSecondPurchaseNudge} from '@/lib/admin/lifecycle';
 const subscribers=['new@example.test','duplicate@example.test'].map(email=>({email,source:'footer',created_at:new Date(Date.now()-5*86400000).toISOString()}));
 beforeEach(()=>{vi.stubEnv("REORDER_REMINDER_DAYS","21");
  vi.clearAllMocks();m.unsubscribe.mockReturnValue('https://example.test/unsubscribe');
  m.read.mockImplementation((table:string,columns:string)=>({data:table==='subscribers'&&columns.includes('source')?subscribers:[],error:null}));
  m.queue.mockResolvedValue(null);
 });
-it.each([sweepWelcomeSeries,sweepPostPurchase,sweepReviewThankYou,sweepReplenishment,sweepWinback,sweepSecondPurchaseNudge].map(sweep=>[sweep.name,sweep] as const))('surfaces recipient lookup errors from %s',async (_name,sweep)=>{
+it.each([sweepWelcomeSeries,sweepReviewThankYou,sweepReplenishment,sweepWinback,sweepSecondPurchaseNudge].map(sweep=>[sweep.name,sweep] as const))('surfaces recipient lookup errors from %s',async (_name,sweep)=>{
  m.read.mockReturnValue({data:null,error:{message:'database unavailable'}});
  await expect(sweep()).rejects.toThrow(/database unavailable/);
 });
@@ -30,13 +30,5 @@ it('counts only inserted outbox rows, not deduplicated queue attempts',async()=>
 it('reports missing unsubscribe signing configuration as a failed job',async()=>{
  m.unsubscribe.mockReturnValue(null);
  await expect(sweepWelcomeSeries()).rejects.toThrow(/unsubscribe/i);
-});
-it('sends valid JSON to the accessory category lookup',async()=>{
- const shipped_at=new Date(Date.now()-6*86400000).toISOString();
- m.read.mockImplementation((table:string)=>({data:table==='orders'?[{id:'order',order_number:'ECL-1',customer_email:'buyer@example.test',created_at:shipped_at,shipped_at,order_items:[{product_slug:'sample',product_name:'Sample'}]}]:[],error:null}));
-
- await sweepPostPurchase();
-
- expect(m.contains).toHaveBeenCalledWith('products','categories',JSON.stringify(['accessory']));
 });
 it('does not inspect recipients or infer pack depletion when reorder timing is disabled',async()=>{vi.stubEnv('REORDER_REMINDER_DAYS','');expect(await sweepReplenishment()).toEqual({queued:0});expect(m.read).not.toHaveBeenCalled();vi.unstubAllEnvs();});

@@ -16,6 +16,7 @@ import { adminDb } from "./db";
 import { getSettings } from "@/lib/settings";
 import type { ResolvedCartLine } from "@/lib/checkout";
 import type { OrderAttribution } from "@/lib/attribution";
+import { scheduleOrderEmails } from '@/lib/email/dispatch';
 
 export type OrderStatus =
   | "pending"
@@ -118,6 +119,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreatedOrder
   });
   if (error) throw new Error(`createOrder: ${error.message}`);
   if (!data?.orderId) throw new Error("createOrder: missing committed order");
+  scheduleOrderEmails(data.orderId);
   return data as CreatedOrder;
 }
 
@@ -142,6 +144,7 @@ async function operation(orderId: string, action: string, options: object = {}):
   });
   if (error) throw new Error(`${action}: ${error.message}`);
   if (!data) throw new Error(`${action}: missing operation result`);
+  scheduleOrderEmails(orderId);
   return data as OperationResult;
 }
 
@@ -179,9 +182,9 @@ export const AUTO_COMPLETE_DAYS = 10;
  * shipped orders to say so, which left the queue permanently misleading about
  * what still needed attention.
  *
- * Ten days is a claim about delivery, not about satisfaction — refunds stay
- * possible from `completed`, so nothing is taken away from the customer by
- * closing the order. Anything already refunded or cancelled is untouched
+ * Ten days is an administrative cutoff, not evidence of carrier delivery —
+ * the completion email asks whether the parcel arrived, never asserts it did.
+ * Refunds stay possible from `completed`. Anything already refunded or cancelled is untouched
  * because it is no longer `shipped`.
  *
  * Goes through setStatus so each order still gets its event and audit line: an

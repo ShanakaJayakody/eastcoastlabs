@@ -297,7 +297,7 @@ export async function renderTemplate(
           `<h1 style="font-size:20px;margin:0 0 8px;">Your order has shipped</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
              Order <strong style="font-family:monospace;">${orderNumber}</strong> is on its way in discreet packaging.
-             ${tracking ? `<br/>Tracking: <strong style="font-family:monospace;">${tracking}</strong>` : ""}
+             ${tracking ? `<br/>Tracking: <strong style="font-family:monospace;">${esc(tracking)}</strong>` : ""}
            </p>`,
         ),
       };
@@ -447,7 +447,7 @@ export async function renderTemplate(
              missing, damaged, or still hasn't turned up, tell us and we'll sort it out.
            </p>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             All good? Nothing to do. We'll be in touch once more in a couple of weeks to ask how we did.
+             If everything arrived safely, there's nothing else you need to do. Thank you for your order.
            </p>
            ${payButton(
              `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Problem with order ${orderNumber}`)}`,
@@ -464,12 +464,16 @@ export async function renderTemplate(
       return {
         subject: "How was your order from East Coast Labs?",
         html: shell(
-          "Share your experience — honest feedback only.",
-          `<h1 style="font-size:20px;margin:0 0 8px;">How did we do?</h1>
+          "Did everything arrive OK? Let us know and share your honest review.",
+          `<h1 style="font-size:20px;margin:0 0 8px;">Did everything arrive OK?</h1>
            <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
-             Your order <strong style="font-family:monospace;">${orderNumber}</strong>${
+             We're checking in on order <strong style="font-family:monospace;">${orderNumber}</strong>${
                bought ? ` — ${bought} —` : ""
-             } shipped recently. If you have received it, we'd value your honest review. We're specifically interested in:
+             }. Has everything arrived safely? If anything is missing, damaged, or still on its way,
+             <a href="mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Help with order ${orderNumber}`)}" style="color:${ACCENT};">contact us</a> so we can help.
+           </p>
+           <p style="color:#c3ccd9;font-size:14px;line-height:1.6;">
+             We'd also value your honest review of your experience — all feedback is welcome. We're specifically interested in:
            </p>
            <ul style="color:#c3ccd9;font-size:14px;line-height:1.8;padding-left:20px;">
              <li>Dispatch speed — did your order arrive when expected?</li>

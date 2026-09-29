@@ -195,12 +195,6 @@ export async function attentionQueue(limit = 8): Promise<AttentionQueue> {
       // Straight into packing mode: for an order waiting to be packed, that is
       // the screen the operator actually wants.
       href: `/admin/orders/${row.id}/pack`,
-      action: {
-        verb: "ship",
-        label: "Mark shipped",
-        targetId: row.id,
-        consequence: `Order #${row.order_number} moves to shipped and a dispatch email goes to ${row.customer_email}. Add tracking on the order page first if you have it.`,
-      },
     });
   }
 

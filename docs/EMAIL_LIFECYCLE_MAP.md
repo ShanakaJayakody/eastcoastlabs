@@ -1,5 +1,7 @@
 # East Coast Labs — Complete Email Lifecycle Map
 
+> **29 September 2026 implementation update:** order emails are event-driven: creation → payment instructions; Paid → confirmation; Shipped → tracking email; Completed → combined arrival/review request (subject to existing consent). See the [order-email audit and rollout notes](audits/2026-09-29-ORDER-EMAIL-LIFECYCLE.md). The older strategy map below is not the current production scheduling specification.
+
 > Every email a customer could receive, mapped to lifecycle stage, trigger, timing, and goal.
 > Status legend: ✅ built (copy deck + trigger defined) · 🟡 partial (transactional template exists, no flow) · ⬜ gap
 >

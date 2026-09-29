@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { ArrowUpDown, BadgeCheck, Printer, RotateCcw, Truck } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import type { OrderListRow } from "@/lib/admin/order-queries";
-import { bulkAdvanceStatus, bulkConfirmPayment, bulkReinstate } from "@/app/admin/(dashboard)/orders/actions";
+import { bulkConfirmPayment, bulkReinstate } from "@/app/admin/(dashboard)/orders/actions";
 import type { OrderSort } from "@/lib/admin/order-queries";
 import StatusBadge from "./StatusBadge";
 import ConfirmModal from "./ConfirmModal";
@@ -62,7 +62,7 @@ export default function OrdersTable({
   const [bulkResults,setBulkResults] = useState<{id:string;error:string}[]>([]);
   useEffect(()=>{try{const saved=JSON.parse(sessionStorage.getItem("admin-order-bulk-failures")??"[]");if(Array.isArray(saved) && saved.every(r=>typeof r.id==="string" && typeof r.error==="string")){setBulkResults(saved);setSelected(new Set(saved.map(r=>r.id)));}}catch{}},[]);
   const rememberFailures=(failed:{id:string;error:string}[])=>{setBulkResults(failed);setSelected(new Set(failed.map(f=>f.id)));try{sessionStorage.setItem("admin-order-bulk-failures",JSON.stringify(failed));}catch{}};
-  const [confirming, setConfirming] = useState<"ship" | "pay" | "reinstate" | null>(null);
+  const [confirming, setConfirming] = useState<"pay" | "reinstate" | null>(null);
   // -1 means "nothing focused yet"; the first j or k lands on the first row.
   const [cursor, setCursor] = useState(-1);
   const rowsRef = useRef<(HTMLTableRowElement | null)[]>([]);
@@ -165,26 +165,6 @@ export default function OrdersTable({
       rememberFailures(res.failed ?? ids.map(id=>({id,error:res.error ?? "Unknown result"})));
       if (res.ok) {
         toast.success(`${res.moved} order${res.moved === 1 ? "" : "s"} marked paid`);
-        if (res.failed?.length) {
-          toast.error(
-            `${res.failed.length} order${res.failed.length === 1 ? "" : "s"} did not move — see the results below`,
-          );
-        }
-        router.refresh();
-      } else {
-        toast.error(res.error ?? "Bulk update failed");
-      }
-    });
-  }
-
-  function markShipped() {
-    const ids = shippableSelected.map((r) => r.id);
-    start(async () => {
-      const res = await bulkAdvanceStatus(ids, "shipped");
-      setConfirming(null);
-      rememberFailures(res.failed ?? ids.map(id=>({id,error:res.error ?? "Unknown result"})));
-      if (res.ok) {
-        toast.success(`${res.moved} order${res.moved === 1 ? "" : "s"} marked shipped`);
         if (res.failed?.length) {
           toast.error(
             `${res.failed.length} order${res.failed.length === 1 ? "" : "s"} did not move — see the results below`,
@@ -402,14 +382,9 @@ export default function OrdersTable({
               </button>
             )}
             {shippableSelected.length > 0 && (
-              <button
-                disabled={pending}
-                onClick={() => setConfirming("ship")}
-                className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-50"
-              >
-                <Truck size={15} />
-                {pending ? "Working…" : `Mark ${shippableSelected.length} shipped`}
-              </button>
+              <Link href="/admin/orders/fulfilment" className="flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink">
+                <Truck size={15} /> Import tracking to ship
+              </Link>
             )}
           </div>
         </div>
@@ -420,9 +395,7 @@ export default function OrdersTable({
         title={
           confirming === "pay"
             ? "Mark these orders paid?"
-            : confirming === "reinstate"
-              ? "Reinstate these cancelled orders?"
-              : "Mark these orders shipped?"
+            : "Reinstate these cancelled orders?"
         }
         body={
           confirming === "pay" ? (
@@ -436,7 +409,7 @@ export default function OrdersTable({
                 transfers you have actually seen land.
               </p>
             </>
-          ) : confirming === "reinstate" ? (
+          ) : (
             <>
               <p className="font-medium text-fg">
                 {reinstatableSelected.length} cancelled order
@@ -448,32 +421,18 @@ export default function OrdersTable({
                 items have since sold out is skipped and reported back — the rest still go through.
               </p>
             </>
-          ) : (
-            <>
-              <p className="font-medium text-fg">
-                {shippableSelected.length} order{shippableSelected.length === 1 ? "" : "s"}
-              </p>
-              <p className="mt-1.5 text-muted">
-                Each customer gets a dispatch email. Tracking numbers can only be attached one order
-                at a time, so orders sent here go out without one.
-              </p>
-            </>
           )
         }
         confirmLabel={
           confirming === "pay"
             ? "Mark paid"
-            : confirming === "reinstate"
-              ? "Reinstate & mark paid"
-              : "Mark shipped"
+            : "Reinstate & mark paid"
         }
         pending={pending}
         onConfirm={() =>
           confirming === "pay"
             ? markPaid()
-            : confirming === "reinstate"
-              ? reinstateSelected()
-              : markShipped()
+            : reinstateSelected()
         }
         onCancel={() => setConfirming(null)}
       />

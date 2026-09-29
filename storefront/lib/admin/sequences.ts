@@ -77,25 +77,9 @@ export const WELCOME_STAGES: StageSpec[] = [
   { label: "Welcome 3", template: "welcome_3", from: 4 * 24, until: 18 * 24 },
 ];
 
-/**
- * Post-purchase review sequence — anchored on shipped_at.
- *
- * The arrival check-in exists to route problems to support BEFORE the review ask
- * lands: a parcel that went missing produces a support ticket at day 5 rather
- * than a one-star review at day 14. That ordering, not any filtering of
- * sentiment, is what protects the rating — we publish whatever comes back.
- *
- * Reminder timing is independent of purchased pack size; no usage rate is inferred.
- */
+/** Completion has one immediate arrival/review touch, deduplicated per order. */
 export const REVIEW_STAGES: StageSpec[] = [
-  { label: "Arrival check-in", template: "arrival_checkin", from: 5 * 24, until: 10 * 24 },
-  { label: "Review request", template: "post_purchase_review", from: 14 * 24, until: 21 * 24 },
-  {
-    label: "Review reminder",
-    template: "post_purchase_review_reminder",
-    from: 24 * 24,
-    until: 35 * 24,
-  },
+  { label: "Arrival and review request", template: "post_purchase_review", from: 0, until: 7 * 24 },
 ];
 
 /** Thank-you + soft referral ask — anchored on the review's own created_at. */
@@ -179,12 +163,8 @@ export const welcomeRelatedId = (email: string, stage: number): string =>
   `${email}:welcome:${stage}`;
 
 /**
- * Shared by ALL THREE review stages. The outbox unique index is
- * (to_email, template, related_id) and each stage has a distinct template, so
- * one id per order still gives each touch its own once-only guarantee — while
- * keeping the scheme byte-identical to what already shipped, so review requests
- * sent before the sequence grew are still recognised as sent instead of
- * re-firing.
+ * Completion identity shared with the SQL event trigger. Keep the historical
+ * identity so an already-sent review request is never sent again at completion.
  */
 export const reviewRelatedId = (orderId: string): string => `${orderId}:pp:review`;
 

@@ -99,6 +99,7 @@ interface OrderRow {
   total_cents: number;
   created_at: string;
   shipped_at: string | null;
+  completed_at: string | null;
   payment_reminders_sent: number | null;
   payment_expires_at: string | null;
   customer_name: string | null;
@@ -128,7 +129,7 @@ export async function loadPerson(email: string) {
     db
       .from("orders")
       .select(
-        "id, order_number, status, total_cents, created_at, shipped_at, payment_reminders_sent, payment_expires_at, customer_name, shipping_address",
+        "id, order_number, status, total_cents, created_at, shipped_at, completed_at, payment_reminders_sent, payment_expires_at, customer_name, shipping_address",
       )
       .eq("customer_email", clean)
       .order("created_at", { ascending: false }).order("id", { ascending: false }),
@@ -136,7 +137,7 @@ export async function loadPerson(email: string) {
     db.from("cart_sessions").select("*").eq("email", clean).maybeSingle(),
     db
       .from("email_outbox")
-      .select("id, template, related_id, status, created_at, sent_at, error, delivery_email")
+      .select("id, template, related_id, status, created_at, sent_at, error, delivery_email, payload")
       .eq("to_email", clean)
       .order("created_at", { ascending: false })
       .limit(300),
@@ -192,7 +193,7 @@ export async function loadPerson(email: string) {
     historyEmails,
     orders: orderRows,
     cart: (cart ?? null) as CartSessionRow | null,
-    outbox: (outbox ?? []) as (OutboxLookupRow & { error?: string | null; delivery_email?: string | null })[],
+    outbox: (outbox ?? []) as (OutboxLookupRow & { error?: string | null; delivery_email?: string | null; payload?: { completed_at?: string } })[],
     pausedSequences: new Set(
       ((overrides ?? []) as { sequence: string }[]).map((o) => o.sequence),
     ),
@@ -316,21 +317,21 @@ export async function deriveSequenceState(person: LoadedPerson): Promise<Sequenc
     .filter((o) => FULFILLED.includes(o.status) && o.shipped_at)
     .sort((a, b) => b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id))[0];
 
-  if (latestFulfilled?.shipped_at) {
-    const reviewStages = deriveStages(
-      REVIEW_STAGES,
-      latestFulfilled.shipped_at,
-      () => reviewRelatedId(latestFulfilled.id),
-      outbox,
-    );
-    push(
-      "post_purchase_review",
-      latestFulfilled.shipped_at,
-      reviewStages,
-      `${latestFulfilled.order_number} shipped ${shortAgo(latestFulfilled.shipped_at)}`,
-      { orderId: latestFulfilled.id },
-    );
+  // Each completed order has its own immediate email, including customers
+  // with several orders. Historical completions are not predicted or replayed.
+  for (const order of orders.filter(o => o.status === "completed" && o.completed_at)) {
+    const related = outbox.filter(row => row.related_id === reviewRelatedId(order.id));
+    const completion = related.find(row => row.payload?.completed_at && Date.parse(row.payload.completed_at) === Date.parse(order.completed_at!));
+    // A legacy day-5 arrival message must not hide this completion's review
+    // status; conversely, a previous review must not hide a new check-in.
+    const checkin = completion ? completion.template === "arrival_checkin"
+      : !related.some(row => row.template === "post_purchase_review") && related.some(row => row.template === "arrival_checkin");
+    const stages = checkin ? [{ ...REVIEW_STAGES[0], label: "Arrival check-in", template: "arrival_checkin" as const }] : REVIEW_STAGES;
+    push("post_purchase_review", order.completed_at!, deriveStages(stages, order.completed_at, () => reviewRelatedId(order.id), outbox),
+      `${order.order_number} completed ${shortAgo(order.completed_at!)}`, { orderId: order.id });
+  }
 
+  if (latestFulfilled?.shipped_at) {
     const days=reorderReminderDays();
     const newer=orders.some(o=>o.status!=="cancelled"&&o.created_at>latestFulfilled.created_at);
     if(days==null) {

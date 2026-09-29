@@ -66,12 +66,12 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   {
     label: "Post-purchase & retention",
     templates: [
-      { id: "arrival_checkin", name: "Arrival check-in", trigger: "Shipped +5 days" },
-      { id: "post_purchase_review", name: "Review request", trigger: "Shipped +14 days" },
+      { id: "arrival_checkin", name: "Arrival check-in", trigger: "Order completed — already reviewed or accessories only" },
+      { id: "post_purchase_review", name: "Arrival and review request", trigger: "Shipped → Completed (immediate)" },
       {
         id: "post_purchase_review_reminder",
         name: "Review reminder",
-        trigger: "Shipped +24 days, no review yet",
+        trigger: "Retired — preview of historical emails only",
       },
       { id: "review_thank_you", name: "Review thank-you", trigger: "Review submitted +1 day" },
       { id: "replenishment", name: "Replenishment", trigger: "Configured dispatch reminder; disabled by default" },

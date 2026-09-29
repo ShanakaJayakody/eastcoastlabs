@@ -12,7 +12,7 @@ import {sendStageNow,suppressMarketing,stopCartRecovery} from '@/app/admin/(dash
 import {samplePayload} from '@/lib/email/samples';
 const orderId='31a1e654-4577-4176-99d8-255613de2911';
 const episodeId='41a1e654-4577-4176-99d8-255613de2911';
-beforeEach(()=>{vi.clearAllMocks();m.queue.mockResolvedValue('outbox');m.rpc.mockResolvedValue({data:{payload:{cart:[],subtotal_cents:1000,recovery_episode_id:episodeId,recovery_request_id:orderId},related_id:episodeId+':1'},error:null});m.person.mockResolvedValue({summary:{unsubscribedAt:null},orders:[{id:orderId,order_number:'ECL-1'}],cart:{current_episode_id:episodeId,cart:[],subtotal_cents:1000}});});
+beforeEach(()=>{vi.clearAllMocks();m.queue.mockResolvedValue('outbox');m.rpc.mockResolvedValue({data:{payload:{cart:[],subtotal_cents:1000,recovery_episode_id:episodeId,recovery_request_id:orderId},related_id:episodeId+':1'},error:null});m.person.mockResolvedValue({summary:{unsubscribedAt:null},orders:[{id:orderId,order_number:'ECL-1',status:'completed',completed_at:'2026-09-29T00:00:00Z'}],cart:{current_episode_id:episodeId,cart:[],subtotal_cents:1000}});});
 it.each(['post_purchase_review','post_purchase_review_reminder'])('binds manual %s to an order identity, never a caller-supplied review URL',async template=>{
  m.states.mockResolvedValue([{id:'post_purchase_review',orderId,stages:[{stage:1,state:'next',label:'Review',template,relatedId:'review-key'}]}]);
  expect((await sendStageNow('buyer@example.test','post_purchase_review',1)).ok).toBe(true);

@@ -102,7 +102,8 @@ export default function PackingMode({
 
   const ship = () =>
     start(async () => {
-      const result = await advanceStatus(order.id, "shipped", tracking.trim() || undefined);
+      if (!tracking.trim()) { toast.error("Enter a tracking number before shipping."); return; }
+      const result = await advanceStatus(order.id, "shipped", tracking.trim());
       if (!result.ok) {
         toast.error(result.error ?? "Couldn't mark it shipped");
         return;
@@ -235,8 +236,7 @@ export default function PackingMode({
           Tracking number
         </label>
         <p className="mt-0.5 text-xs text-muted">
-          Optional, but it goes in the dispatch email — adding it here saves answering
-          &ldquo;where is my order&rdquo; later.
+          Required. The customer receives this tracking number in their dispatch email.
         </p>
         <input
           id="tracking"
@@ -250,7 +250,7 @@ export default function PackingMode({
       <div className="sticky bottom-0 -mx-4 border-t border-line bg-ink/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
         <button
           type="button"
-          disabled={pending}
+          disabled={pending || !tracking.trim()}
           onClick={() => setConfirming(true)}
           className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-semibold transition disabled:opacity-50 ${
             allPacked
@@ -288,7 +288,7 @@ export default function PackingMode({
             </p>
             <p className="mt-1.5 text-muted">
               A dispatch email goes to {order.customerEmail}
-              {tracking.trim() ? ` with tracking ${tracking.trim()}` : " with no tracking number"}.
+              {` with tracking ${tracking.trim()}`}.
               {!allPacked && shippable.length > 0 && (
                 <>
                   {" "}
