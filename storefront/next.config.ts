@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     authInterrupts: true,
   },
   async headers() {
-    return ["/cart-recovery/:path*", "/pay/:path*", "/checkout/:path*", "/leave-a-review", "/subscribe/:path*", "/api/unsubscribe"].map((source) => ({
+    return ["/admin/:path*", "/cart-recovery/:path*", "/pay/:path*", "/checkout/:path*", "/leave-a-review", "/subscribe/:path*", "/api/unsubscribe"].map((source) => ({
       source,
       headers: [
         { key: "Cache-Control", value: "private, no-store, max-age=0" },

@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { logAudit } from "@/lib/admin/audit";
 import { NextRequest } from "next/server";
 
 const { exchangeCodeForSession, getUser, signInWithOtp } = vi.hoisted(() => ({
@@ -34,6 +35,7 @@ vi.mock("@supabase/ssr", () => ({
 }));
 
 describe("admin magic-link sign-in", () => {
+  afterEach(() => vi.unstubAllEnvs());
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.eastcoastlabs.com.au");
@@ -97,5 +99,13 @@ describe("admin magic-link sign-in", () => {
     const result = exchange ? await exchange("auth-code") : undefined;
     expect(result).toEqual({ ok: true });
     expect(exchangeCodeForSession).toHaveBeenCalledWith("auth-code");
+    expect(logAudit).toHaveBeenCalled();
+  });
+
+  it("does not insert business audit records on preview login", async () => {
+    vi.stubEnv("VERCEL_ENV", "preview");
+    const { exchangeMagicLinkCode } = await import("@/app/admin/login/actions");
+    await expect(exchangeMagicLinkCode("auth-code")).resolves.toEqual({ ok: true });
+    expect(logAudit).not.toHaveBeenCalled();
   });
 });
