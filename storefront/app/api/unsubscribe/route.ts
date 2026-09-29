@@ -12,13 +12,15 @@ export const dynamic = "force-dynamic";
 
 function page(title: string, body: string, status = 200): NextResponse {
   return new NextResponse(
-    `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} — East Coast Labs</title></head>
-<body style="margin:0;background:#080b10;color:#e7ebf2;font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;">
-<div style="max-width:420px;padding:40px 24px;text-align:center;">
-<div style="font-weight:700;letter-spacing:0.05em;color:#2fd4c8;margin-bottom:24px;">EAST COAST LABS</div>
-<h1 style="font-size:20px;margin:0 0 12px;">${title}</h1>
-<p style="color:#8b96a8;font-size:14px;line-height:1.6;">${body}</p>
-</div></body></html>`,
+    `<!doctype html><html lang="en-AU"><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="theme-color" content="#112b43"><title>${title} — East Coast Labs</title>
+<style>@font-face{font-family:RebrandSans;src:url('/fonts/commissioner-latin.woff2') format('woff2');font-display:swap}a:focus-visible{outline:3px solid #5d91bd;outline-offset:5px}</style></head>
+<body style="margin:0;background:#fbfcfd;color:#152e46;font-family:RebrandSans,Segoe UI,Arial,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;">
+<main style="max-width:440px;padding:48px 24px;text-align:center;">
+<a href="/" style="display:inline-block;font-weight:700;letter-spacing:0.05em;color:#152e46;margin-bottom:32px;text-decoration:none;">EAST COAST LABS</a>
+<h1 style="font-size:30px;font-weight:500;letter-spacing:-.03em;line-height:1.2;margin:0 0 16px;">${title}</h1>
+<p style="color:#536577;font-size:16px;line-height:1.7;">${body}</p>
+<a href="/contact" style="display:inline-block;margin-top:24px;color:#275b88;text-underline-offset:4px;">Contact us</a>
+</main></body></html>`,
     { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } },
   );
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { inter, newsreader, plexMono } from "@/lib/fonts";
 import { getSettings } from "@/lib/settings";
 import { CREATOR_PRIVACY_VERSION } from "@/lib/creators/content";
 import styles from "../creators.module.css";
@@ -15,8 +14,8 @@ export const metadata: Metadata = {
 export default async function CreatorPrivacyPage() {
   const settings = await getSettings();
   return (
-    <div className={`${inter.variable} ${newsreader.variable} ${plexMono.variable}`}>
-      <main className={`${styles.root} ${styles.privacyPage}`}>
+    <>
+      <div className={`${styles.root} ${styles.privacyPage}`}>
         <article className={styles.privacyArticle}>
           <p className={styles.kicker}>Creator Privacy Notice</p>
           <h1>How we handle creator applications</h1>
@@ -57,7 +56,7 @@ export default async function CreatorPrivacyPage() {
             <Link href="/creators">Return to Creator Collective</Link>
           </p>
         </article>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

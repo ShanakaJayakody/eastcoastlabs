@@ -3,9 +3,9 @@ import { normalizeAustralianMobile, renderAdminSms, smsSegments, selectLowStockN
 
 it('preserves all five required fields, AUD cents and independently measured segment count',()=>{
   const text=renderAdminSms({reportDate:'2026-09-29',asOf:'2026-09-29T22:00:00Z',month:'2026-09',
-    yesterdayRevenueCents:208603,monthRevenueCents:2132568,overdueFulfilment:0,
+    yesterdayRevenueCents:124001,monthRevenueCents:1523456,overdueFulfilment:3,
     lowStockNames:['Alc Swabs','Sema','Tesa','SS31','IGF']});
-  expect(text).toBe("Daily ECL Director Update:\nYesterday's Revenue: $2,086.03\nOverdue Orders to fulfil: 0\nMonthly Revenue: $21,325.68\nLow Stock: Alc Swabs, Sema, Tesa, SS31, IGF");
+  expect(text).toBe("Daily ECL Director Update:\nYesterday's Revenue: $1,240.01\nOverdue Orders to fulfil: 3\nMonthly Revenue: $15,234.56\nLow Stock: Alc Swabs, Sema, Tesa, SS31, IGF");
   expect(smsSegments(text)).toBe(1);
   expect(smsSegments(text.replace('Low Stock: ','Low Stock: Bac Water, '))).toBe(2);
 });

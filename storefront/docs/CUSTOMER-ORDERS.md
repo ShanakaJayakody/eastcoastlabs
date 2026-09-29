@@ -1,6 +1,6 @@
 # Customer orders and email receipts
 
-Implemented behind three independent flags. Guest checkout remains unchanged. Public rollout has **not** been performed by this implementation task.
+Implemented behind three independent flags. Guest checkout remains unchanged. Production rollout was authorized on 30 September 2026 and is being performed separately from the local implementation verification below.
 
 ## Customer experience
 
@@ -75,3 +75,15 @@ Recorded in execution order for future maintainers:
 9. Keep external configuration and activation unclaimed until the staging destination and controlled mailbox are supplied. Cost: provider adjustments may still be necessary.
 10. The reviewer excluded uncommitted `.gitignore` and migration-doc edits; the author checked the narrow generated-preview ignore and four-migration release pointer. Cost: operational documentation should be followed and reviewed during rollout.
 11. Merge the committed main changes that landed during implementation into the feature branch; resolve the sole header conflict by keeping current navigation plus the gated My orders entry. Cost: a fresh combined verification, recorded above. Main's working files remain untouched.
+
+## Production preparation — 30 September 2026
+
+The four previously unapplied customer migrations were renamed to `20260930110000` through `20260930115000` to follow the already-live director SMS migration. All 49 existing ledger hashes matched; a private local backup was taken before the four migrations were applied. Service-only function grants and customer-table RLS were verified afterward.
+
+Published 41 immutable catalogue image pairs and reviewed size-tagged GHK-CU 50 mg and Retatrutide 20 mg artwork. The only remaining empty image belongs to a coming-soon product without purchasable variants. Historical order snapshots and queued messages were not rewritten.
+
+Resend sending SPF/DKIM are verified, and domain open/click tracking is disabled. Its pre-existing failed receiving-MX check concerns inbound mail; inbound routing was retained. No DMARC TXT record was found during release inspection. Supabase custom SMTP now uses a domain-restricted, send-only Resend key, `smtp.resend.com:465`, a 60-second resend interval and East Coast Labs sender identity. The shared confirmation and magic-link templates use [the checked-in sign-in template](email/supabase-sign-in.html); both contain the OTP, while the existing production admin callback retains its link. Provider-controlled test addresses verified new-user and returning-user delivery without messaging customers. Real inbox/client rendering remains a separate check.
+
+Supabase Cron job `ecl-customer-auth-cleanup` runs daily at 16:00 UTC, removing expired/idle customer sessions and challenges older than seven days. No public cleanup RPC was added.
+
+The release retains later director SMS and sitewide Navy deployments. The only storefront merge conflict retained current clean shop/stacks URLs and the gated My orders navigation entry.

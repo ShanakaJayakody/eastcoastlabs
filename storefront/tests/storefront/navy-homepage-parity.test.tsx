@@ -3,26 +3,27 @@ import '@testing-library/jest-dom/vitest';
 import {afterEach, expect, it, vi} from 'vitest';
 import {cleanup, fireEvent, render, screen, within} from '@testing-library/react';
 import RebrandExperience from '@/components/rebrand/RebrandExperience';
-import NavyFooter from '@/components/rebrand/NavyFooter';
+import NavyStoreShell from '@/components/rebrand/NavyStoreShell';
 import {CartProvider} from '@/lib/cart-context';
 import {UIProvider} from '@/lib/ui-context';
 import {getCollections} from '@/lib/collections';
 import {labReports} from '@/lib/lab-reports';
 import {searchProducts} from '../fixtures/product-search';
 
-vi.mock('next/navigation',()=>({useRouter:()=>({push:vi.fn()}),usePathname:()=>'/2'}));
+vi.mock('next/navigation',()=>({useRouter:()=>({push:vi.fn()}),usePathname:()=>'/'}));
 vi.mock('next/web-vitals',()=>({useReportWebVitals:()=>{}}));
-afterEach(cleanup);
+afterEach(() => {cleanup(); vi.unstubAllGlobals();});
+window.matchMedia=vi.fn().mockReturnValue({matches:false});
 
 function homepage(){
  const products=searchProducts.map(product=>product.slug==='retatrutide'?{...product,images:[{src:'/images/rebrand/vials/v2/retatrutide.webp',alt:'Retatrutide vial'}]}:product);
- return render(<CartProvider stock={{}}><UIProvider><RebrandExperience variant="v2" products={products} collections={getCollections()} records={[]} report={labReports[0]} productReports={[]} reportCount={1} supportEmail="support@example.test"><NavyFooter collections={getCollections()} supportEmail="support@example.test" /></RebrandExperience></UIProvider></CartProvider>);
+ return render(<CartProvider stock={{}}><UIProvider><NavyStoreShell collections={getCollections()} supportEmail="support@example.test"><RebrandExperience variant="v2" products={products} collections={getCollections()} records={[]} report={labReports[0]} productReports={[]} reportCount={1} supportEmail="support@example.test"/></NavyStoreShell></UIProvider></CartProvider>);
 }
 
 it('makes the existing storefront destinations available from both navigation menus',()=>{
  homepage();
  const desktop=screen.getByRole('navigation',{name:'Main navigation'});
- for(const [label,href] of [['Shop','/shop?rebrand=v2'],['Stacks','/stacks?rebrand=v2'],['Lab reports','/lab-results'],['Learn','/learn'],['Creators','/creators'],['About','/about']]){
+ for(const [label,href] of [['Shop','/shop'],['Stacks','/stacks'],['Lab reports','/lab-results'],['Learn','/learn'],['Creators','/creators'],['About','/about']]){
   expect(within(desktop).getByRole('link',{name:label})).toHaveAttribute('href',href);
  }
  fireEvent.click(screen.getByRole('button',{name:'Open menu'}));

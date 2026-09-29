@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCatalog } from "@/lib/catalog";
 import { getCollection, getCollections } from "@/lib/collections";
+import {withRebrandImages} from '@/lib/rebrand-imagery';
 import ProductCard from "@/components/ProductCard";
 import { decorateCards } from "@/lib/storefront-catalog";
 import ResearchDisclaimer from "@/components/ResearchDisclaimer";
@@ -40,9 +41,9 @@ export default async function CollectionPage({
 
   const { products } = await getCatalog();
   const bySlug = new Map(products.map((p) => [p.slug, p]));
-  const items = await decorateCards(
+  const items = (await decorateCards(
     collection.products.map((s) => bySlug.get(s)).filter((p) => p != null),
-  );
+  )).map(product => withRebrandImages(product, 'v2'));
   const others = getCollections().filter((c) => c.slug !== collection.slug);
 
   return (

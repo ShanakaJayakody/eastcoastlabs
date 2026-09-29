@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StacksPage() {
-  const stacks = await getStacks();
+  const stacks = await getStacks('v2');
 
   return (
     <div className="ecl-interior-page ecl-stacks-page mx-auto max-w-6xl px-4 py-12">

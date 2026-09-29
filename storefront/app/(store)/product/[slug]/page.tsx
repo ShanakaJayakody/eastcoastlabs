@@ -25,7 +25,7 @@ import { getGuideForCompound } from "@/lib/guides";
 import ProductDescription, { decodeProductEntities } from '@/components/ProductDescription';
 import { buildProductJsonLd, serializeProductJsonLd } from '@/lib/product-jsonld';
 import { withRebrandImages } from '@/lib/rebrand-imagery';
-import { parseRebrandVariant, rebrandHref } from '@/lib/rebrand-navigation';
+import { rebrandHref } from '@/lib/rebrand-navigation';
 import ProductFacts from '@/components/ProductFacts';
 
 export const revalidate = 300;
@@ -42,7 +42,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const source = await getCatalogProduct(slug);
   if (!source) return { title: "Product not found" };
-  const product = withRebrandImages(source);
+  const product = withRebrandImages(source, 'v2');
   const desc = stripHtml(product.short_description || product.description).slice(0, 160);
   return {
     title: product.seo_title || product.name,
@@ -59,7 +59,7 @@ export async function generateMetadata({
 export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams?: Promise<{ size?: string; rebrand?: string | string[] }> }) {
   const { slug } = await params;
   const query = await searchParams;
-  const imageVariant = parseRebrandVariant(query?.rebrand);
+  const imageVariant = 'v2' as const;
   const source = await getCatalogProduct(slug);
   if (!source) notFound();
   if (source.canonicalSlug) redirect(rebrandHref(`/product/${source.canonicalSlug}?size=${encodeURIComponent(slug)}`, imageVariant));

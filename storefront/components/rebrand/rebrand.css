@@ -14,7 +14,7 @@
   font-display: swap;
 }
 
-/* The selected navy direction. All rules stay inside its review shell. */
+/* The selected navy direction. All rules stay inside the public Navy shell. */
 .rebrand {
   --rb-bg: #fbfcfd;
   --rb-ink: #152e46;
@@ -46,16 +46,16 @@
 }
 body:has(.rebrand) { background: #fbfcfd; }
 .rebrand *, .rebrand *::before, .rebrand *::after { box-sizing: border-box; }
-.rebrand :where(h1, h2, h3, p) { margin: 0; }
-.rebrand :where(.rb-header, main, .rb-footer, .rb-announcement, .rb-menu-panel) a { color: inherit; text-decoration: none; }
-.rebrand :where(button, input, summary) { font: inherit; }
+.rebrand :where(.rb-home, .rb-footer) :where(h1, h2, h3, p) { margin: 0; }
+.rebrand :where(.rb-header, .rb-home, .rb-footer, .rb-announcement, .rb-menu-panel) a { color: inherit; text-decoration: none; }
+.rebrand :where(.rb-header, .rb-home, .rb-footer, .rb-menu-panel) :where(button, input, summary) { font: inherit; }
 .rebrand :where(button, summary) { cursor: pointer; }
-.rebrand :where(.rb-header, main, .rb-footer, .rb-menu-panel) button { color: inherit; }
+.rebrand :where(.rb-header, .rb-home, .rb-footer, .rb-menu-panel) button { color: inherit; }
 .rebrand :is(a, button, summary, input):focus-visible { outline: 3px solid #5d91bd; outline-offset: 5px; }
-.rebrand :where(main, .rb-footer) :where(h1, h2, h3) { font-family: inherit; }
-.rebrand :where(main, .rb-footer) :where(h1, h2) { font-weight: 480; letter-spacing: -.035em; line-height: 1.13; text-wrap: balance; }
-.rebrand :where(main, .rb-footer) h2 { font-size: clamp(32px, 3.2vw, 46px); }
-.rebrand :where(main, .rb-footer) h3 { font-size: 19px; line-height: 1.35; font-weight: 560; letter-spacing: -.018em; }
+.rebrand :where(.rb-home, .rb-footer) :where(h1, h2, h3) { font-family: inherit; }
+.rebrand :where(.rb-home, .rb-footer) :where(h1, h2) { font-weight: 480; letter-spacing: -.035em; line-height: 1.13; text-wrap: balance; }
+.rebrand :where(.rb-home, .rb-footer) h2 { font-size: clamp(32px, 3.2vw, 46px); }
+.rebrand :where(.rb-home, .rb-footer) h3 { font-size: 19px; line-height: 1.35; font-weight: 560; letter-spacing: -.018em; }
 .rebrand svg { flex-shrink: 0; }
 .rebrand .rb-container { width: min(1320px, calc(100% - 112px)); margin-inline: auto; }
 .rebrand .rb-section { padding-block: 100px; scroll-margin-top: 100px; }
@@ -133,16 +133,17 @@ body:has(.rebrand) { background: #fbfcfd; }
 .rebrand .rb-filters button:hover:not([aria-pressed='true']) { background: #eaf1f6; border-color: #9fb4c6; }
 .rebrand .rb-products { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
 .rebrand .rb-product-with-report { min-width: 0; display: flex; flex-direction: column; }
-.rebrand .rb-products .ecl-product-card { border: 1px solid #dbe4ec; border-radius: 4px; background: #fff; flex: 1; box-shadow: none; }
-.rebrand .rb-products .ecl-product-card:hover { border-color: #9fb7ca; }
-.rebrand .rb-products .ecl-product-image { border-bottom: 1px solid #e4ebf1; }
-.rebrand .rb-products .ecl-product-details { padding: 22px 18px 18px; gap: 7px; }
-.rebrand .rb-products .ecl-product-details h3 { font-size: 21px; line-height: 1.25; font-weight: 530; letter-spacing: -.025em; }
-.rebrand .rb-products .ecl-product-details p { font-size: 13px; line-height: 1.55; }
-.rebrand .rb-products .ecl-product-details > p { font-size: 10px; letter-spacing: .045em; color: var(--rb-muted); }
-.rebrand .rb-products .ecl-product-details a[href*='size='] { display: inline-flex; min-height: 36px; padding: 6px 9px; border: 1px solid var(--rb-line); border-radius: 2px; font-size: 12px; }
-.rebrand .rb-products .ecl-product-details a[href*='size=']:hover { background: var(--rb-soft); }
-.rebrand .rb-products .ecl-stock-label { top: 12px; left: 12px; background: #fff; border: 1px solid #d8e4e9; color: #385649; font-size: 10px; line-height: 1.5; font-weight: 450; padding: 4px 9px; }
+.rebrand.navy-store .ecl-product-card { border: 1px solid #dbe4ec; border-radius: 4px; background: #fff; flex: 1; box-shadow: none; }
+.rebrand.navy-store .ecl-product-card:hover { border-color: #9fb7ca; }
+.rebrand.navy-store .ecl-product-image { border: 0; border-bottom: 1px solid #e4ebf1; background: #f6f9fc; aspect-ratio: 1; border-radius: 0; }
+.rebrand.navy-store .ecl-product-image img { padding: 0; }
+.rebrand.navy-store .ecl-product-details { padding: 22px 18px 18px; gap: 7px; }
+.rebrand.navy-store .ecl-product-details h3 { font-size: 21px; line-height: 1.25; font-weight: 530; letter-spacing: -.025em; }
+.rebrand.navy-store .ecl-product-details p { font-size: 13px; line-height: 1.55; }
+.rebrand.navy-store .ecl-product-details > p { font-size: 10px; letter-spacing: .045em; color: var(--rb-muted); }
+.rebrand.navy-store .ecl-product-details a[href*='size='] { display: inline-flex; min-height: 36px; padding: 6px 9px; border: 1px solid var(--rb-line); border-radius: 2px; font-size: 12px; }
+.rebrand.navy-store .ecl-product-details a[href*='size=']:hover { background: var(--rb-soft); }
+.rebrand.navy-store .ecl-stock-label { top: 12px; left: 12px; background: #fff; border: 1px solid #d8e4e9; color: #385649; font-size: 10px; line-height: 1.5; font-weight: 450; padding: 4px 9px; }
 .rebrand .rb-product-report { padding: 16px 2px 0; color: var(--rb-muted); font-size: 12px; line-height: 1.6; }
 .rebrand .rb-product-report > span { display: flex; align-items: center; gap: 7px; color: var(--rb-ink); font-weight: 520; margin-bottom: 4px; }
 .rebrand .rb-product-report small { display: block; font-size: 10px; }
@@ -246,8 +247,9 @@ body:has(.rebrand) { background: #fbfcfd; }
   .rebrand .rb-trust-grid > a > svg:last-child { display: none; }
   .rebrand .rb-trust-grid strong { font-size: 13px; }
   .rebrand .rb-products { gap: 16px; }
-  .rebrand .rb-products .ecl-product-details { padding: 18px 14px; }
-  .rebrand .rb-products .ecl-product-details h3 { font-size: 19px; }
+  .rebrand.navy-store .ecl-product-image img { padding: 0; }
+.rebrand.navy-store .ecl-product-details { padding: 18px 14px; }
+  .rebrand.navy-store .ecl-product-details h3 { font-size: 19px; }
   .rebrand .rb-evidence-grid { gap: 55px; }
   .rebrand .rb-about-grid { gap: 50px; }
   .rebrand .rb-ordering-grid article { padding-inline: 25px; }
@@ -287,7 +289,7 @@ body:has(.rebrand) { background: #fbfcfd; }
 @media (max-width: 760px) {
   .rebrand .rb-container { width: calc(100% - 44px); }
   .rebrand .rb-section { padding-block: 65px; scroll-margin-top: 88px; }
-  .rebrand :where(main, .rb-footer) h2 { font-size: 34px; }
+  .rebrand :where(.rb-home, .rb-footer) h2 { font-size: 34px; }
   .rebrand .rb-announcement-inner { justify-content: center; min-height: 32px; font-size: 10px; }
   .rebrand .rb-announcement a { display: none; }
   .rebrand .rb-header-inner { height: 74px; gap: 12px; }
@@ -328,12 +330,13 @@ body:has(.rebrand) { background: #fbfcfd; }
   .rebrand .rb-filters { margin: 26px 0 22px; gap: 7px; }
   .rebrand .rb-filters button { padding: 10px 12px; font-size: 11px; }
   .rebrand .rb-products { gap: 25px 12px; }
-  .rebrand .rb-products .ecl-product-details { padding: 16px 12px 12px; gap: 6px; }
-  .rebrand .rb-products .ecl-product-details h3 { font-size: 19px; }
-  .rebrand .rb-products .ecl-product-details p { font-size: 11px; }
-  .rebrand .rb-products .ecl-product-details > p { font-size: 9px; }
-  .rebrand .rb-products .ecl-product-details a[href*='size='] { padding: 7px 9px; min-height: 38px; font-size: 11px; }
-  .rebrand .rb-products .ecl-stock-label { top: 8px; left: 8px; font-size: 9px; padding: 3px 6px; }
+  .rebrand.navy-store .ecl-product-image img { padding: 0; }
+.rebrand.navy-store .ecl-product-details { padding: 16px 12px 12px; gap: 6px; }
+  .rebrand.navy-store .ecl-product-details h3 { font-size: 19px; }
+  .rebrand.navy-store .ecl-product-details p { font-size: 11px; }
+  .rebrand.navy-store .ecl-product-details > p { font-size: 9px; }
+  .rebrand.navy-store .ecl-product-details a[href*='size='] { padding: 7px 9px; min-height: 38px; font-size: 11px; }
+  .rebrand.navy-store .ecl-stock-label { top: 8px; left: 8px; font-size: 9px; padding: 3px 6px; }
   .rebrand .rb-product-report { font-size: 11px; padding-top: 12px; }
   .rebrand .rb-product-report small { font-size: 9px; }
   .rebrand .rb-range-note { display: block; font-size: 10px; margin-top: 24px; }
@@ -382,7 +385,8 @@ body:has(.rebrand) { background: #fbfcfd; }
   .rebrand .rb-hero .rb-actions { gap: 10px; }
   .rebrand .rb-hero .rb-button { padding-inline: 14px; gap: 12px; }
   .rebrand .rb-hero-report-link { font-size: 11px; }
-  .rebrand .rb-products .ecl-product-details { padding: 13px 10px; }
+  .rebrand.navy-store .ecl-product-image img { padding: 0; }
+.rebrand.navy-store .ecl-product-details { padding: 13px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .rebrand *, .rebrand *::before, .rebrand *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
@@ -397,7 +401,7 @@ body:has(.rebrand) { background: #fbfcfd; }
 @media (max-width: 760px) {
   .rebrand .rb-quality-break { display: none; }
   .rebrand .rb-research-note { font-size: 11px; }
-  .rebrand .rb-products .ecl-product-details p { font-size: 12px; }
-  .rebrand .rb-products .ecl-product-details > p { font-size: 10px; }
+  .rebrand.navy-store .ecl-product-details p { font-size: 12px; }
+  .rebrand.navy-store .ecl-product-details > p { font-size: 10px; }
   .rebrand .rb-filters button { font-size: 12px; }
 }
