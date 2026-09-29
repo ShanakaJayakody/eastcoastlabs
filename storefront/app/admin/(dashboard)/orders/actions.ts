@@ -217,6 +217,28 @@ export async function cancel(orderId: string, restock = false): Promise<ActionRe
   }
 }
 
+/** Permanently remove an order after an exact order-number confirmation. */
+export async function deleteOrder(orderId: string, confirmation: string): Promise<ActionResult> {
+  const session = await requireAdmin();
+  try {
+    const { error } = await adminDb().rpc("admin_delete_order", {
+      p_order: orderId,
+      p_confirmation: confirmation,
+      p_actor: session.email,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin");
+    revalidatePath("/admin/customers");
+    revalidatePath("/admin/reports");
+    revalidatePath("/admin/stock");
+    revalidatePath("/admin/fulfilment");
+    return { ok: true };
+  } catch (err) {
+    return fail(err);
+  }
+}
+
 /** Internal note — appears in the order timeline. */
 export async function addNote(orderId: string, message: string): Promise<ActionResult> {
   const session = await requireAdmin();

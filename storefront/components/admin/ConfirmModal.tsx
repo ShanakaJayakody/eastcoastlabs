@@ -12,6 +12,7 @@ export default function ConfirmModal({
   confirmLabel,
   tone = "default",
   pending = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }: {
@@ -21,6 +22,7 @@ export default function ConfirmModal({
   confirmLabel: string;
   tone?: "default" | "danger";
   pending?: boolean;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -68,7 +70,7 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={pending}
+            disabled={pending || confirmDisabled}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${confirmClass}`}
           >
             {pending ? "Working…" : confirmLabel}
