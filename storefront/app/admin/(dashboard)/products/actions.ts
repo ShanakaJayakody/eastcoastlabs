@@ -1,5 +1,6 @@
 "use server";
 
+import { prepareProductMedia } from "@/lib/product-media";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
 import {
@@ -393,15 +394,16 @@ export async function uploadProductImage(slug: string, formData: FormData): Prom
     if (!product) return { ok: false, error: "Product not found." };
 
     const db = adminDb();
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const path = `${slug}/${Date.now()}.${ext}`;
-    const { error: upErr } = await db.storage
-      .from(IMAGE_BUCKET)
-      .upload(path, await file.arrayBuffer(), { contentType: file.type, upsert: false });
-    if (upErr) throw new Error(upErr.message);
-
+    const media = await prepareProductMedia(Buffer.from(await file.arrayBuffer()));
+    const path = `${slug}/${media.digest}.jpg`;
+    const emailPath = `${slug}/${media.digest}-email.jpg`;
+    for (const [assetPath, bytes] of [[path, media.image], [emailPath, media.thumbnail]] as const) {
+      const { error } = await db.storage.from(IMAGE_BUCKET).upload(assetPath, bytes, { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" });
+      if (error && !/already exists|duplicate/i.test(error.message)) throw new Error(error.message);
+    }
     const publicUrl = db.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
-    const images = [...product.images, { src: publicUrl, alt: product.name }];
+    const emailUrl = db.storage.from(IMAGE_BUCKET).getPublicUrl(emailPath).data.publicUrl;
+    const images = [...product.images, { src: publicUrl, email_src: emailUrl, alt: product.name }];
     await setProductImages(slug, images, session.email);
 
     revalidatePath(`/admin/products/${slug}`);
@@ -420,13 +422,8 @@ export async function removeProductImage(slug: string, src: string): Promise<Ima
     const images = product.images.filter((img) => img.src !== src);
     await setProductImages(slug, images, session.email);
 
-    // Best-effort storage cleanup — path is the part of the public URL after the bucket name.
-    const marker = `/${IMAGE_BUCKET}/`;
-    const idx = src.indexOf(marker);
-    if (idx !== -1) {
-      const path = src.slice(idx + marker.length);
-      await adminDb().storage.from(IMAGE_BUCKET).remove([path]).catch(() => {});
-    }
+    // Removing a catalogue image must not break old receipts or already-sent emails.
+    // Retain immutable public assets; retention cleanup is a separate audited job.
 
     revalidatePath(`/admin/products/${slug}`);
     revalidatePath(`/product/${slug}`);
