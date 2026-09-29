@@ -1,7 +1,7 @@
 # ECL admin — approved visual direction, integrated preview design
 
 Date: 30 September 2026.
-Status: visual direction approved; integration and preview-data review required before application changes.
+Status: visual direction and integration scope approved; owner selected real store data on 30 September 2026. Detailed implementation plan awaiting review.
 
 ## Intent
 
@@ -53,12 +53,11 @@ Two alternatives were considered: hosting the existing mockup would not provide 
 
 Read-only checks confirmed the existing Vercel project is `eastcoastlabs`, with Next.js rooted at `storefront` and Node 22. The CLI account can inspect it. On 30 September, `vercel env ls preview` returned no preview variables.
 
-The owner needs to choose the preview data boundary before credentials are connected:
+**Selected: real data, read-only review.** The owner's reply “real store data” selects the read-only real-data option presented in the preceding review. Authenticated live reads are permitted; business writes from the preview are not. Block mutations on the server, not merely in the interface. Keep service-role credentials out of the client and preserve the normal admin allow-list. Test mutation flows against isolated fixtures, not customer records.
 
-1. **Recommended: isolated test environment.** A separate non-production database/auth configuration with synthetic records. Working admin controls can be tested without touching customer records. Disable real email, SMS, payment and carrier integrations; no live cron execution. Use an existing isolated environment if available. Creating a new paid service/project needs separate approval.
-2. **Real data, read-only review.** Authenticated live reads, with every preview mutation blocked on the server, not merely hidden in the interface. Keep production credentials out of the client and preserve the normal admin allow-list. Test real mutation flows against isolated fixtures, not customer records. This adds an explicit preview-only write-protection layer and requires approval to connect live data.
+Connect only the required Supabase URL, public key and server-side service credential to this guarded preview. Do not copy the production environment wholesale or enable payment, carrier, email/SMS, analytics or cron credentials. Read-only refers to business data: normal user-initiated admin authentication/session refresh is permitted, including the requested sign-in code email. Skip preview login/logout entries in the store's audit table rather than creating business audit records during review.
 
-No production credentials will be copied automatically. Do not weaken login, deployment protection or allow-list checks to make a preview reachable. Do not create or purchase infrastructure without approval.
+Do not weaken login, deployment protection or allow-list checks to make a preview reachable. Do not create or purchase infrastructure without approval.
 
 Deploy a clean, scoped checkout to Vercel's preview environment, from the repository root using the existing project. Do not upload unrelated documents, research, local outputs or secrets from the shared working directory. Do not use `--prod`, promote an alias, merge to main or change production environment settings.
 
