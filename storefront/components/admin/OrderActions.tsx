@@ -8,6 +8,8 @@ import { confirmPayment, correctTracking, advanceStatus, cancel, addNote, reinst
 import ConfirmModal from "./ConfirmModal";
 import RefundReview from "./RefundReview";
 import type { OrderStatus, ReinstateLineCheck } from "@/lib/admin/orders";
+import type { OrderShippingMethod } from "@/lib/admin/order-shipping";
+import ShippingMethodIndicator from "./ShippingMethodIndicator";
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
   paid: { to: "processing", label: "Start packing" },
@@ -19,6 +21,7 @@ export default function OrderActions({
   orderId,
   status,
   stockCheck,
+  shippingMethod,
   orderNumber, trackingNumber, carrierCode, hasRefunds=false,
 }: {
   orderId: string;
@@ -28,6 +31,7 @@ export default function OrderActions({
   trackingNumber?:string|null;
   carrierCode?:string|null;
   status: OrderStatus;
+  shippingMethod?: OrderShippingMethod;
   /** Line-by-line availability, supplied only for cancelled orders. */
   stockCheck?: ReinstateLineCheck[];
 }) {
@@ -71,6 +75,7 @@ export default function OrderActions({
   return (
     <div className="space-y-4 rounded-xl border border-line bg-surface p-4">
       <h3 className="text-sm font-semibold text-fg">Actions</h3>
+      {shippingMethod && <ShippingMethodIndicator method={shippingMethod} compact />}
       {confirming==='refund' && <RefundReview orderId={orderId} selection={null} onClose={()=>setConfirming(null)}/>}
       <ConfirmModal open={confirming==='cancel'} title={`Cancel order · ${orderNumber ?? orderId}`} confirmLabel="Cancel order" tone="danger" pending={pending} onCancel={()=>setConfirming(null)} onConfirm={()=>run(()=>cancel(orderId,restock),'Order cancellation recorded')} body={<>
         <p>This updates the order record. Money is not transferred; return any money owed through your bank separately. Cancellation does not send a refund confirmation.</p>

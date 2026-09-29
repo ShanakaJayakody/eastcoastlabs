@@ -4,12 +4,13 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowRight, Check, CheckCircle2, Printer, Truck, X } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Printer, X } from "lucide-react";
 import { formatAud } from "@/lib/format";
 import { orderItemVariantIdentity } from "@/lib/admin/order-item-identity";
 import { orderShippingMethod } from "@/lib/admin/order-shipping";
 import { advanceStatus } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
+import ShippingMethodIndicator from "./ShippingMethodIndicator";
 
 const cents = (c: number) => formatAud(c / 100);
 
@@ -95,9 +96,6 @@ export default function PackingMode({
   const allPacked = shippable.length > 0 && shippable.every((i) => packed.has(i.id));
   const lines = addressLines(order.address);
   const shipping = orderShippingMethod(order.address);
-  const shippingTone = shipping.id === "express"
-    ? "border-warn/60 bg-warn/10 text-warn"
-    : "border-accent/40 bg-accent/10 text-accent-2";
 
   const toggle = (id: string) =>
     setPacked((s) => {
@@ -157,18 +155,7 @@ export default function PackingMode({
         </div>
       </div>
 
-      <section
-        aria-label="Shipping method"
-        className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 ${shippingTone}`}
-      >
-        <Truck aria-hidden="true" className="shrink-0" size={24} strokeWidth={2.5} />
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest opacity-80">
-            Shipping method
-          </p>
-          <p className="text-lg font-black tracking-wide">{shipping.label}</p>
-        </div>
-      </section>
+      <ShippingMethodIndicator method={shipping} />
 
       {/* Items — big tap targets, because this is done standing at a bench. */}
       <section className="admin-card overflow-hidden rounded-2xl">
@@ -244,9 +231,7 @@ export default function PackingMode({
       <section className="admin-card rounded-xl p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-semibold text-fg">Ship to</h3>
-          <span className={`rounded-md border px-2 py-1 text-xs font-bold tracking-wide ${shippingTone}`}>
-            {shipping.label}
-          </span>
+          <ShippingMethodIndicator method={shipping} compact />
         </div>
         {lines.length > 0 ? (
           <address className="mt-2 not-italic text-sm leading-relaxed text-fg-2">

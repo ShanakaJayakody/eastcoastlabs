@@ -211,11 +211,11 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
   if (error) throw new Error(`getOrder: ${error.message}`);
   if (!order) return null;
 
-  const [{ data: items }, { data: events }] = await Promise.all([
+  const [{ data: items, error: itemsError }, { data: events, error: eventsError }] = await Promise.all([
     db
       .from("order_items")
       .select(
-        "id, variant_id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents, refunded_qty, refunded_cents, product_variants(products(size_label))",
+        "id, variant_id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents, refunded_qty, refunded_cents, product_variants!order_items_variant_id_fkey(products(size_label))",
       )
       .eq("order_id", id),
     db
@@ -224,6 +224,8 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
       .eq("order_id", id)
       .order("created_at", { ascending: true }),
   ]);
+  if (itemsError) throw new Error(`getOrder items: ${itemsError.message}`);
+  if (eventsError) throw new Error(`getOrder events: ${eventsError.message}`);
 
   return {
     ...(order as unknown as OrderDetail),
