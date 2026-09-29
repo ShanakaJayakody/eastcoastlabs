@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowRight, Check, CheckCircle2, Printer, X } from "lucide-react";
 import { formatAud } from "@/lib/format";
+import { orderItemVariantIdentity } from "@/lib/admin/order-item-identity";
 import { advanceStatus } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
 
@@ -15,6 +16,7 @@ export interface PackItem {
   id: string;
   productName: string | null;
   variantLabel: string | null;
+  sizeLabel?: string | null;
   sku: string | null;
   qty: number;
   refundedQty: number;
@@ -170,6 +172,7 @@ export default function PackingMode({
           {shippable.map((item) => {
             const isPacked = packed.has(item.id);
             const qty = item.qty - item.refundedQty;
+            const identity = orderItemVariantIdentity(item.variantLabel, item.sizeLabel);
             return (
               <button
                 key={item.id}
@@ -191,11 +194,16 @@ export default function PackingMode({
                   {qty}
                 </span>
                 <span className={`min-w-0 flex-1 ${isPacked ? "opacity-40" : ""}`}>
-                  <span className="block truncate text-sm font-medium text-fg">
-                    {item.productName}
+                  <span className="flex flex-wrap items-center gap-2 text-fg">
+                    <span className="truncate text-base font-semibold">{item.productName}</span>
+                    {identity.sizeLabel && (
+                      <span className="shrink-0 rounded-md border border-accent/50 bg-accent/10 px-2 py-0.5 text-sm font-bold text-accent-2">
+                        {identity.sizeLabel}
+                      </span>
+                    )}
                   </span>
                   <span className="block truncate text-xs text-muted">
-                    {item.variantLabel}
+                    {identity.detailLabel}
                     {item.sku && <span className="font-mono"> · {item.sku}</span>}
                   </span>
                 </span>

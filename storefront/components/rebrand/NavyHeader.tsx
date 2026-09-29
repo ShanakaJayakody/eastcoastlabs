@@ -9,9 +9,12 @@ import { useUI } from '@/lib/ui-context';
 import NavyBrand from './NavyBrand';
 
 const navigation = [
-  { href: '#collection', label: 'Research peptides' },
-  { href: '#standards', label: 'Lab reports' },
-  { href: '#about', label: 'About us' },
+  { href: '/shop?rebrand=v2', label: 'Shop' },
+  { href: '/stacks?rebrand=v2', label: 'Stacks' },
+  { href: '/lab-results', label: 'Lab reports' },
+  { href: '/learn', label: 'Learn' },
+  { href: '/creators', label: 'Creators' },
+  { href: '/about', label: 'About' },
 ];
 
 export default function NavyHeader() {
@@ -30,7 +33,7 @@ export default function NavyHeader() {
       <div className="rb-container rb-header-inner">
         <NavyBrand />
         <nav className="rb-desktop-nav" aria-label="Main navigation">
-          {navigation.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}
+          {navigation.map(item => <Link key={item.href} href={item.href}>{item.label}</Link>)}
         </nav>
         <div className="rb-header-actions">
           <a className="rb-icon-button rb-search" href="#homepage-product-search" aria-label="Search peptides" onClick={event => {
@@ -47,9 +50,9 @@ export default function NavyHeader() {
     <Modal open={open} onClose={() => setOpen(false)} label="Navigation menu" className="rb-menu-panel absolute inset-0">
       <div className="rb-menu-top"><NavyBrand onNavigate={() => setOpen(false)} /><button className="rb-icon-button" type="button" onClick={() => setOpen(false)} aria-label="Close menu"><X size={24} /></button></div>
       <nav id="rb-mobile-menu" aria-label="Mobile navigation">
-        {navigation.map(item => <a key={item.href} href={item.href} onClick={() => setOpen(false)}>{item.label}<ArrowUpRight size={21} /></a>)}
-        <Link href="/shop?rebrand=v2" onClick={() => setOpen(false)}>All peptides<ArrowUpRight size={21} /></Link>
-        <a href="#ordering" onClick={() => setOpen(false)}>Ordering & delivery<ArrowUpRight size={21} /></a>
+        {navigation.map(item => <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>{item.label}<ArrowUpRight size={21} aria-hidden /></Link>)}
+        <a href="#collection" onClick={() => setOpen(false)}>Explore this page<ArrowUpRight size={21} aria-hidden /></a>
+        <a href="#ordering" onClick={() => setOpen(false)}>Ordering & delivery<ArrowUpRight size={21} aria-hidden /></a>
       </nav>
       <p>East Coast Labs · Australian owned<br />For laboratory research only.</p>
     </Modal>

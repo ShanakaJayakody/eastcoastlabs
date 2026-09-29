@@ -1,0 +1,74 @@
+/* Homepage parity, within the selected navy design. */
+.rebrand .rb-desktop-nav { gap: clamp(16px, 2vw, 28px); }
+.rebrand .rb-desktop-nav a { white-space: nowrap; }
+.rebrand .rb-explorer { background: var(--rb-soft); border-block: 1px solid var(--rb-line); }
+.rebrand .rb-explorer-intro { color: var(--rb-muted); font-size: 14px; line-height: 1.8; max-width: 37ch; }
+.rebrand .rb-explorer-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(40px, 6vw, 88px); margin-top: 48px; align-items: center; }
+.rebrand .rb-area-preview { margin: 0; padding: 30px; background: #f9fbfd; border: 1px solid #d1dee7; border-radius: 3px; min-width: 0; }
+.rebrand .rb-area-preview > .rb-eyebrow { margin: 0; font-size: 10px; }
+.rebrand .rb-area-image { position: relative; height: 330px; display: grid; place-items: center; color: var(--rb-accent); }
+.rebrand .rb-area-image img { object-fit: contain; padding: 22px; mix-blend-mode: multiply; }
+.rebrand .rb-area-preview figcaption { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 20px; border-top: 1px solid var(--rb-line); font-size: 18px; }
+.rebrand .rb-area-preview figcaption span:last-child { font-size: 10px; color: var(--rb-muted); text-align: right; }
+.rebrand .rb-area-list { border-top: 1px solid #c2d1dd; }
+.rebrand .rb-area-row { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #c2d1dd; }
+.rebrand .rb-area-row button { border: 0; background: transparent; text-align: left; display: flex; align-items: baseline; gap: 21px; flex: 1; min-width: 0; padding: 23px 6px; }
+.rebrand .rb-area-number { font-size: 11px; color: var(--rb-muted); }
+.rebrand .rb-area-row strong { display: block; font-size: clamp(18px, 1.8vw, 24px); font-weight: 480; letter-spacing: -.025em; line-height: 1.3; }
+.rebrand .rb-area-row small { display: block; color: var(--rb-muted); font-size: 12px; line-height: 1.6; margin-top: 6px; }
+.rebrand .rb-area-row > a { display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0; border: 1px solid #a6bacb; border-radius: 50%; transition: background .2s, color .2s; }
+.rebrand .rb-area-row.is-active strong { color: var(--rb-accent); }
+.rebrand .rb-area-row.is-active > a, .rebrand .rb-area-row > a:hover { color: #fff; background: var(--rb-ink); border-color: var(--rb-ink); }
+.rebrand .rb-area-note { margin-top: 22px; font-size: 12px; line-height: 1.7; color: var(--rb-muted); }
+.rebrand .rb-library { background: #183750; color: #f8fbff; }
+.rebrand .rb-library-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 80px; align-items: center; }
+.rebrand .rb-library .rb-eyebrow { color: #b5cdde; }
+.rebrand .rb-library-grid > div > p:not(.rb-eyebrow) { color: #d1dfeb; font-size: 16px; line-height: 1.8; max-width: 46ch; margin-bottom: 26px; }
+.rebrand .rb-newsletter { display: grid; grid-template-columns: 1.1fr 1fr; gap: 80px; align-items: center; padding: 24px 0 64px; border-bottom: 1px solid #38516a; }
+.rebrand .rb-newsletter h2 { font-size: clamp(32px, 3.2vw, 46px); }
+.rebrand .rb-newsletter h2 + p { max-width: 40ch; margin-top: 20px; color: #bccedc; font-size: 14px; line-height: 1.8; }
+.rebrand .rb-newsletter form { gap: 10px; }
+.rebrand .rb-newsletter input { background: #fff; color: var(--rb-ink); border: 1px solid #c5d2df; min-height: 52px; border-radius: 2px; padding: 13px 16px; font-size: 14px; }
+.rebrand .rb-newsletter input::placeholder { color: var(--rb-muted); opacity: 1; }
+.rebrand .rb-newsletter button { min-height: 52px; padding: 13px 23px; border: 1px solid #b7cede; background: #e1edf5; color: #152e46; border-radius: 2px; font-size: 13px; font-weight: 550; }
+.rebrand .rb-newsletter-form > p:last-child { color: #bccedc; font-size: 12px; line-height: 1.8; margin-top: 14px; }
+.rebrand .rb-newsletter-form > p:last-child a { text-decoration: underline; text-underline-offset: 3px; }
+.rebrand .rb-newsletter [role='status'] { color: #c1e8d1; font-size: 15px; }
+.rebrand .rb-newsletter [role='alert'] { color: #ffc9b1; font-size: 13px; }
+.rebrand .rb-footer-grid { grid-template-columns: 1.25fr .8fr 1fr 1fr; gap: 40px; }
+.rebrand .rb-footer-grid nav a { min-height: 44px; display: flex; align-items: center; padding-block: 8px; }
+.rebrand .rb-footer-support { border-top: 1px solid #38516a; padding-block: 30px; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.rebrand .rb-footer-support h3 { font-size: 16px; }
+.rebrand .rb-footer-support p { color: #bccedc; font-size: 12px; }
+.rebrand .rb-footer-support .rb-support-email { color: #e2edf5; font-size: 14px; padding-block: 6px; min-height: 38px; }
+.rebrand .rb-footer-disclaimer { color: #bccedc; font-size: 12px; line-height: 1.8; max-width: 90ch; margin: 6px 0 26px; }
+@media (max-width: 1100px) {
+  .rebrand .rb-desktop-nav { display: none; }
+  .rebrand .rb-menu-toggle { display: inline-flex; }
+  .rebrand .rb-explorer-grid { gap: 35px; }
+  .rebrand .rb-area-preview { padding: 23px; }
+  .rebrand .rb-area-image { height: 300px; }
+  .rebrand .rb-library-grid, .rebrand .rb-newsletter { gap: 44px; }
+  .rebrand .rb-footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+  .rebrand .rb-footer-brand { grid-column: 1 / -1; }
+  .rebrand .rb-footer-brand > p { max-width: 45ch; }
+}
+@media (max-width: 760px) {
+  .rebrand .rb-explorer-intro { margin-top: 22px; }
+  .rebrand .rb-explorer-grid { grid-template-columns: 1fr; gap: 26px; margin-top: 30px; }
+  .rebrand .rb-area-preview { padding: 22px; }
+  .rebrand .rb-area-image { height: 230px; }
+  .rebrand .rb-area-image img { padding: 14px; }
+  .rebrand .rb-area-row button { padding-block: 20px; gap: 14px; }
+  .rebrand .rb-area-row strong { font-size: 20px; }
+  .rebrand .rb-area-row small { font-size: 12px; }
+  .rebrand .rb-library-grid, .rebrand .rb-newsletter { grid-template-columns: 1fr; gap: 28px; }
+  .rebrand .rb-library-grid > div > p:not(.rb-eyebrow) { font-size: 14px; }
+  .rebrand .rb-library .rb-button { padding-inline: 18px; font-size: 12px; gap: 16px; }
+  .rebrand .rb-newsletter { padding: 6px 0 38px; }
+  .rebrand .rb-newsletter form { flex-direction: column; }
+  .rebrand .rb-newsletter input { width: 100%; }
+  .rebrand .rb-footer-grid { grid-template-columns: 1fr 1fr; gap: 30px 20px; }
+  .rebrand .rb-footer-support { display: block; }
+  .rebrand .rb-footer-support > .rb-text-link { margin-top: 24px; font-size: 12px; }
+}

@@ -75,6 +75,7 @@ export default async function PackPage({ params }: { params: Promise<{ id: strin
           id: i.id,
           productName: i.product_name,
           variantLabel: i.variant_label,
+          sizeLabel: i.size_label,
           sku: i.sku,
           qty: i.qty,
           refundedQty: i.refunded_qty,
