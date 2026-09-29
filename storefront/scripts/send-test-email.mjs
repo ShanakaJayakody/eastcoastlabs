@@ -1,20 +1,18 @@
 /**
- * Send one real email through the production outbox path, to prove the Phase C
- * chain end-to-end: queue -> Resend -> provider_message_id recorded -> webhook
- * -> email_events -> journey chips.
- *
- * Deliberately goes through email_outbox + the Resend SDK exactly as the app
- * does, rather than calling Resend directly — a test that bypasses the seam it
- * is meant to prove tells you nothing.
+ * Legacy manual delivery diagnostic. Sends a real message directly via Resend
+ * and records an outbox row; it does NOT exercise the leased production sender.
+ * Only run against an explicitly authorised recipient. For visual review without
+ * sending messages or touching the database, use `npm run preview:emails`.
  *
  * Usage (from storefront/):
- *   node scripts/send-test-email.mjs <email> [template]
+ *   node --experimental-strip-types scripts/send-test-email.mjs <email> [template]
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { emailShell, emailButton, EMAIL_STYLES } from "../lib/email/layout.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 for (const line of (await readFile(path.join(here, "..", ".env.local"), "utf8")).split("\n")) {
@@ -25,7 +23,7 @@ for (const line of (await readFile(path.join(here, "..", ".env.local"), "utf8"))
 const to = (process.argv[2] || "").trim().toLowerCase();
 const template = process.argv[3] || "welcome_1";
 if (!to.includes("@")) {
-  console.error("✗ usage: node scripts/send-test-email.mjs <email> [template]");
+  console.error("✗ usage: node --experimental-strip-types scripts/send-test-email.mjs <email> [template]");
   process.exit(1);
 }
 
@@ -57,23 +55,13 @@ if (queueError) {
 console.log(`→ queued outbox row ${row.id}`);
 
 const subject = "East Coast Labs — delivery tracking test";
-const html = `
-  <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px">
-    <h2 style="margin:0 0 12px">Delivery tracking test</h2>
-    <p style="color:#444;line-height:1.6">
-      This message exists to prove the admin's email tracking works end to end.
-      Opening it should register an <strong>opened</strong> event, and clicking the
-      link below should register a <strong>clicked</strong> event — both visible on
-      this address's page in the admin.
-    </p>
-    <p style="margin:24px 0">
-      <a href="https://www.eastcoastlabs.com.au/shop"
-         style="background:#0f766e;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">
-        Click to register a click event
-      </a>
-    </p>
-    <p style="color:#888;font-size:12px">Sent from the admin as a one-off test. Nothing is wrong.</p>
-  </div>`;
+const html = emailShell({
+  preheader: "East Coast Labs delivery tracking test",
+  audience: "admin",
+  body: `<h1 style="${EMAIL_STYLES.heading}">Delivery tracking test</h1>
+    <p style="${EMAIL_STYLES.paragraph}">This is a one-off email delivery test. If tracking is enabled in Resend, opening this email or following the link below can record an event in the admin.</p>
+    ${emailButton("https://www.eastcoastlabs.com.au/shop", "Check the website link")}`,
+});
 
 const { data: sent, error: sendError } = await resend.emails.send({ from: FROM, to, subject, html });
 if (sendError) {

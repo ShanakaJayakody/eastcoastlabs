@@ -17,6 +17,6 @@ it.each([
   expect(email.html).toContain('25 hours');
   expect(email.html).toMatch(action);
   expect(email.html).toContain('https://www.eastcoastlabs.com.au/admin/orders/00000000-0000-0000-0000-000000000001');
-  expect(email.html).not.toContain('<img');
+  expect(email.html).not.toContain('<img src=x');
   expect(email.html).not.toContain('Unsubscribe');
 });
