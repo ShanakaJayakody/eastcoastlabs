@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -76,22 +77,22 @@ export default function ReviewModeration({
       </p>
       <div className="flex gap-2 pt-1">
         {r.status !== "published" && (
-          <button
+          <AdminWriteButton
             disabled={pending}
             onClick={() => run(() => setReviewStatus(r.id, "published"))}
             className={`${btn} flex items-center gap-1.5 bg-accent text-accent-ink hover:brightness-95`}
           >
             <Check size={14} /> Publish
-          </button>
+          </AdminWriteButton>
         )}
         {r.status !== "rejected" && (
-          <button
+          <AdminWriteButton
             disabled={pending}
             onClick={() => run(() => setReviewStatus(r.id, "rejected"))}
             className={`${btn} flex items-center gap-1.5 border border-line-2 text-muted hover:text-fg`}
           >
             <X size={14} /> Reject
-          </button>
+          </AdminWriteButton>
         )}
       </div>
     </div>
@@ -104,12 +105,12 @@ export default function ReviewModeration({
           {pendingReviews.length} awaiting moderation · {reviews.filter((r) => r.status === "published").length}{" "}
           published
         </p>
-        <button
+        <AdminWriteButton
           onClick={() => setShowAdd((v) => !v)}
           className={`${btn} flex items-center gap-1.5 border border-line-2 bg-surface text-fg-2 hover:text-fg`}
         >
           <Plus size={15} /> Add a review
-        </button>
+        </AdminWriteButton>
       </div>
 
       {showAdd && (
@@ -173,7 +174,7 @@ export default function ReviewModeration({
             />
             Verified buyer
           </label>
-          <button
+          <AdminWriteButton
             disabled={pending}
             onClick={() =>
               run(async () => {
@@ -188,7 +189,7 @@ export default function ReviewModeration({
             className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
           >
             Save & publish
-          </button>
+          </AdminWriteButton>
         </section>
       )}
 

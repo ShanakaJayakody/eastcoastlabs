@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -289,13 +290,13 @@ export default function NewProductForm({ adminName }: { adminName?: string | nul
           </p>
         </section>
 
-        <button
+        <AdminWriteButton
           disabled={pending}
           onClick={submit}
           className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-ink transition hover:brightness-95 disabled:opacity-50"
         >
           {pending ? "Creating…" : "Create product"}
-        </button>
+        </AdminWriteButton>
         <p className="text-center text-xs text-muted-2">
           You&apos;ll land in the full editor to add images and description.
         </p>

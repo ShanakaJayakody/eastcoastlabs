@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -65,16 +66,16 @@ function SizeRow({ size, parentSlug, disabled, onStock }: {
         <summary className="cursor-pointer text-xs text-muted hover:text-fg">Cost per vial · {size.unit_cost_cents==null?'not set':formatAud(size.unit_cost_cents/100)}</summary>
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <label className="text-xs text-muted"><span className="mb-1.5 block">Cost per vial (AUD)</span><input aria-label={`${size.size_label || 'Current size'} cost per vial`} type="number" min="0" max="1000000" step="0.01" value={cost} onChange={e=>setCost(e.target.value)} className={field}/></label>
-          <button type="button" className={button} onClick={()=>start(async()=>{
+          <AdminWriteButton type="button" className={button} onClick={()=>start(async()=>{
             const result=await saveUnitCost(size.slug,cost.trim()===''?null:Number(cost));
             if(result.ok){toast.success('Cost saved');router.refresh();}else toast.error(result.error ?? 'Could not save cost');
-          })}>Set cost</button>
+          })}>Set cost</AdminWriteButton>
         </div>
         <p className="mt-2 text-xs text-muted">Saves immediately for this size. No stock quantities change.</p>
       </details>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
         <label className="flex items-center gap-2 text-xs text-muted"><input type="checkbox" className="accent-[var(--color-accent)]" checked={form.enabled} onChange={e=>setForm({...form,enabled:e.target.checked})}/>Show this size on the store</label>
-        <button type="button" className={`${button} ${dirty?'border-accent bg-accent text-accent-ink':''}`} disabled={!dirty || pending || disabled || !form.label.trim()} onClick={save}>{pending?'Saving…':'Save size'}</button>
+        <AdminWriteButton type="button" className={`${button} ${dirty?'border-accent bg-accent text-accent-ink':''}`} disabled={!dirty || pending || disabled || !form.label.trim()} onClick={save}>{pending?'Saving…':'Save size'}</AdminWriteButton>
       </div>
     </fieldset>
   </div>;
@@ -109,7 +110,7 @@ export default function ProductSizesEditor({ product, sizes, disabled=false, adm
   return <section id="sizes" className="scroll-mt-40 rounded-xl border border-line bg-surface">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
       <div><h3 className="text-sm font-semibold text-fg">Sizes &amp; pricing</h3><p className="mt-1 text-xs text-muted">One product page. A separate price and stock count for each size.</p></div>
-      <button type="button" className={`${button} inline-flex items-center gap-1.5`} disabled={disabled || pending || !product.variants.length} onClick={()=>setAdding(true)}><Plus size={14}/>Add size</button>
+      <AdminWriteButton type="button" className={`${button} inline-flex items-center gap-1.5`} disabled={disabled || pending || !product.variants.length} onClick={()=>setAdding(true)}><Plus size={14}/>Add size</AdminWriteButton>
     </div>
     <div className="space-y-3 p-5">
       {disabled && <p role="status" className="text-xs text-warn">Save or discard your product details before changing sizes.</p>}
@@ -127,7 +128,7 @@ export default function ProductSizesEditor({ product, sizes, disabled=false, adm
         {includePacks && <div className="grid gap-3 sm:grid-cols-2">{([3,6] as const).map(pack=><label key={pack} className="text-xs text-muted"><span className="mb-1.5 block">{pack}-pack price (AUD)</span><input aria-label={`New size ${pack}-pack price`} type="number" min="0.01" step="0.01" value={packPrice(pack)} onChange={e=>setOverrides({...overrides,[pack]:e.target.value})} className={field}/><span className="mt-1 block">{overrides[pack]===undefined?`Suggested ${pack===3?'10':'20'}% pack saving · editable`:'Custom price'}</span></label>)}</div>}
         <p className="text-sm text-fg-2">Opening stock recorded by <strong className="text-fg">{adminName || 'Name not set'}</strong></p>
         <p className="text-xs text-muted">Adding a size saves it and records its opening stock immediately.</p>
-        <div className="flex justify-end gap-2"><button type="button" className={button} onClick={()=>setAdding(false)}>Cancel</button><button type="button" className={`${button} border-accent bg-accent text-accent-ink`} disabled={pending || disabled || !label.trim() || !Number(single) || (!product.size_label && !currentLabel.trim())} onClick={add}>{pending?'Adding…':'Add size & save'}</button></div>
+        <div className="flex justify-end gap-2"><button type="button" className={button} onClick={()=>setAdding(false)}>Cancel</button><AdminWriteButton type="button" className={`${button} border-accent bg-accent text-accent-ink`} disabled={pending || disabled || !label.trim() || !Number(single) || (!product.size_label && !currentLabel.trim())} onClick={add}>{pending?'Adding…':'Add size & save'}</AdminWriteButton></div>
       </fieldset>}
     </div>
     <StockDrawer target={target} onClose={()=>setStockSize(null)} adminName={adminName}/>

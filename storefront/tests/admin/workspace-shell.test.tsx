@@ -10,6 +10,7 @@ afterEach(cleanup);
 it('provides a themed read-only shell and restores focus from the mobile dialog',()=>{
  render(<AdminShell email="admin@example.test" readOnly><p>Dashboard</p></AdminShell>);
  expect(screen.getByText('Preview · real store data · read-only')).toBeTruthy();
+ expect(screen.getByLabelText('Search admin')).toBeTruthy();
  const open=screen.getByLabelText('Open menu');open.focus();fireEvent.click(open);
  const dialog=screen.getByRole('dialog',{name:'Navigation'});
  expect(dialog.contains(document.activeElement)).toBe(true);

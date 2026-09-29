@@ -25,7 +25,7 @@ export default function RevenueOverview({initial}:{initial:RevenueOverviewData})
   }catch{if(ticket===request.current)setError('Could not refresh revenue. Showing the last successful result.');}
   finally{if(ticket===request.current)setBusy(false);}
  },[]);
- useEffect(()=>{const pop=()=>{void change(rangeFromParams(new URLSearchParams(window.location.search)),false);};window.addEventListener('popstate',pop);return()=>{request.current++;window.removeEventListener('popstate',pop);};},[change]);
+ useEffect(()=>{const sequence=request;const pop=()=>{void change(rangeFromParams(new URLSearchParams(window.location.search)),false);};window.addEventListener('popstate',pop);return()=>{sequence.current++;window.removeEventListener('popstate',pop);};},[change]);
  const diff=data.totalCents-data.previousTotalCents;
  return <section className="revenue-stage" aria-labelledby="paid-revenue-heading" aria-busy={busy}>
   <div className="revenue-toolbar"><div className="revenue-title"><h2 id="paid-revenue-heading"><span/>Paid revenue</h2><button aria-label="About paid revenue" aria-expanded={help} onClick={()=>setHelp(!help)}><CircleHelp size={17}/></button></div>

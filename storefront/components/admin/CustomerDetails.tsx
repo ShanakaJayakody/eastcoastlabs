@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -54,11 +55,11 @@ export default function CustomerDetails({ customer }: { customer: CustomerContac
     <section className="admin-card rounded-xl p-4" aria-labelledby={`${id}-title`}>
       <div className="flex items-center justify-between gap-3">
         <h3 id={`${id}-title`} className="text-sm font-semibold text-fg">Customer details</h3>
-        {!editing && <button type="button" onClick={() => {
+        {!editing && <AdminWriteButton type="button" onClick={() => {
           setDraft(draftFor(customer)); setRevision(customer.version); setError(null); setEditing(true);
         }} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-fg-2 hover:border-accent">
           <Pencil size={13} /> Edit details
-        </button>}
+        </AdminWriteButton>}
       </div>
       {editing ? (
         <form onSubmit={event => { event.preventDefault(); submit(); }} className="mt-4 space-y-4">
@@ -83,7 +84,7 @@ export default function CustomerDetails({ customer }: { customer: CustomerContac
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
           <div className="flex justify-end gap-2">
             <button type="button" disabled={pending} onClick={() => { setEditing(false); setError(null); }} className="rounded-lg border border-line px-3 py-2 text-xs font-medium text-fg-2 disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={pending} className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-accent-ink disabled:opacity-50">{pending ? "Saving…" : "Save changes"}</button>
+            <AdminWriteButton type="submit" disabled={pending} className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-accent-ink disabled:opacity-50">{pending ? "Saving…" : "Save changes"}</AdminWriteButton>
           </div>
         </form>
       ) : (

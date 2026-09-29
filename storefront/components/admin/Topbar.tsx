@@ -46,6 +46,7 @@ export default function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
 
       <button
         onClick={openPalette}
+        aria-label="Search admin"
         className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-xs text-muted hover:border-accent/40 hover:text-fg-2 hover:shadow-[0_0_16px_-6px_rgba(55,226,212,0.5)]"
       >
         <Search size={14} />
