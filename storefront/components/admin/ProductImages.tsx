@@ -1,16 +1,18 @@
 "use client";
-import AdminWriteButton from "./AdminWriteButton";
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
+import AdminWriteButton from "./AdminWriteButton";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Upload, X, ChevronLeft, ChevronRight } from "lucide-react";
 import {
-  uploadProductImage,
+  createProductImageUpload,
+  completeProductImageUpload,
   removeProductImage,
   reorderProductImages,
 } from "@/app/admin/(dashboard)/products/actions";
+import { productImageError } from "@/lib/product-images";
 
 export default function ProductImages({
   slug,
@@ -25,15 +27,38 @@ export default function ProductImages({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const upload = (file: File) => {
-    const fd = new FormData();
-    fd.set("file", file);
+    const error = productImageError(file);
+    if (error) {
+      toast.error(error);
+      return;
+    }
     start(async () => {
-      const res = await uploadProductImage(slug, fd);
-      if (res.ok && res.images) {
-        setImages(res.images);
-        toast.success(res.message ?? "Uploaded");
-        router.refresh();
-      } else toast.error(res.error ?? "Upload failed");
+      try {
+        const upload = await createProductImageUpload(slug, { name: file.name, type: file.type, size: file.size });
+        if (!upload.ok || !upload.signedUrl || !upload.path) {
+          toast.error(upload.error ?? "Could not start the upload. Please try again.");
+          return;
+        }
+        // The scoped, temporary URL authorizes this file only; no service key
+        // or photo bytes are sent through the application server.
+        const response = await fetch(upload.signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+        if (!response.ok) {
+          toast.error("Image upload failed. Please try again.");
+          return;
+        }
+        const res = await completeProductImageUpload(slug, upload.path);
+        if (res.ok && res.images) {
+          setImages(res.images);
+          toast.success(res.message ?? "Uploaded");
+          router.refresh();
+        } else toast.error(res.error ?? "Could not save the image. Please try again.");
+      } catch {
+        toast.error("Could not upload the image. Check your connection and try again.");
+      }
     });
   };
 
@@ -64,15 +89,17 @@ export default function ProductImages({
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-fg">Images</h3>
         <AdminWriteButton
+          type="button"
           disabled={pending}
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1.5 rounded-lg border border-line-2 bg-surface-2 px-3 py-1.5 text-xs font-medium text-fg-2 transition hover:text-fg disabled:opacity-50"
         >
-          <Upload size={13} /> Upload
+          <Upload size={13} /> {pending ? "Working…" : "Upload"}
         </AdminWriteButton>
         <input
           ref={fileRef}
           type="file"
+          disabled={pending}
           accept="image/*"
           className="hidden"
           onChange={(e) => {
@@ -82,10 +109,11 @@ export default function ProductImages({
           }}
         />
       </div>
+      <p className="mb-3 text-xs text-muted">Images up to 8MB. Uploads save automatically.</p>
 
       {images.length === 0 ? (
         <p className="text-sm text-muted">
-          No images yet — this product uses its seeded catalog image, if any. Upload one to override it.
+          No images yet. Upload a product photo to show it on the website.
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
