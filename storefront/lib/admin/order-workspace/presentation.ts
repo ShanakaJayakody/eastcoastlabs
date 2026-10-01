@@ -29,4 +29,4 @@ export function defaultOrderColumns(view:OrderView):OrderColumn[]{
  if(['to_fulfil','paid','processing'].includes(view))return ['identity','items','shipping','waiting','fulfilment','total'];
  return ['identity','payment','fulfilment','shipping','placed','total'];
 }
-export function orderDate(value:string|null){return value?new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Sydney',day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(value)):'Unavailable';}
+export function orderDate(value:string|null){return value&&Number.isFinite(Date.parse(value))?new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Sydney',day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'}).format(new Date(value)):'Unavailable';}

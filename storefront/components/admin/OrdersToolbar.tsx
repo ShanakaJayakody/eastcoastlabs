@@ -1,14 +1,25 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import type {OrderColumn,OrderWorkspaceParams,WorkspaceSort} from '@/lib/admin/order-workspace/types';
+import {orderWorkspaceScopeKey} from '@/lib/admin/order-workspace/params';
 import OrderColumnsControl from './OrderColumnsControl';
 export type WorkspaceNavigate=(patch:Partial<OrderWorkspaceParams>,options?:{replace?:boolean;resetPage?:boolean})=>void;
 const SORTS:Record<WorkspaceSort,string>={waiting_seconds:'Waiting time',created_at:'Date placed',paid_at:'Payment time',order_number:'Order number',total_cents:'Order total',status:'Status'};
 export default function OrdersToolbar({params,onNavigate,pending,columns,density,onColumns,onResetColumns,onDensity}:{params:OrderWorkspaceParams;onNavigate:WorkspaceNavigate;pending:boolean;columns:OrderColumn[];density:'comfortable'|'compact';onColumns:(v:OrderColumn[])=>void;onResetColumns:()=>void;onDensity:(v:'comfortable'|'compact')=>void}){
  const [term,setTerm]=useState(params.q),[from,setFrom]=useState(params.from),[to,setTo]=useState(params.to),[discount,setDiscount]=useState(params.discount),[shipping,setShipping]=useState(params.shipping);
  const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const scope=orderWorkspaceScopeKey(params),appliedScope=useRef(scope),submittedScopes=useRef(new Set<string>());
+ useEffect(()=>{
+  if(appliedScope.current===scope)return;
+  appliedScope.current=scope;
+  // A search response must not replace text typed while that response was loading.
+  if(submittedScopes.current.delete(scope))return;
+  submittedScopes.current.clear();
+  if(timer.current)clearTimeout(timer.current);
+  setTerm(params.q);setFrom(params.from);setTo(params.to);setDiscount(params.discount);setShipping(params.shipping);
+ },[scope,params.q,params.from,params.to,params.discount,params.shipping]);
  useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current);},[]);
- function search(value:string){if(timer.current)clearTimeout(timer.current);onNavigate({q:value.trim()},{replace:true});}
+ function search(value:string){if(timer.current)clearTimeout(timer.current);timer.current=null;const q=value.trim().slice(0,200),nextScope=orderWorkspaceScopeKey({...params,q,page:1});if(nextScope!==scope)submittedScopes.current.add(nextScope);onNavigate({q},{replace:true});}
  const invalid=Boolean(from&&to&&from>to);
  return <>
   <div className="ow-toolbar">

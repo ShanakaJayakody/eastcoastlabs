@@ -32,6 +32,7 @@ begin
   select o.*,case when o.shipping_address->>'shipping_method'='express' then 'express' else 'standard' end shipping
   from orders o
   where (p_order_ids is null or o.id=any(p_order_ids))
+  and ((v_from is null and v_to is null) or isfinite(o.created_at))
   and (v_from is null or o.created_at>=v_from) and (v_to is null or o.created_at<v_to)
   and (v_discount='' or lower(coalesce(o.discount_code,''))=v_discount)
   and (v_shipping='any' or case when o.shipping_address->>'shipping_method'='express' then 'express' else 'standard' end=v_shipping)
@@ -40,8 +41,8 @@ begin
  ), enriched as (
   select o.*,i.line_count,i.ordered_units,i.remaining_units,i.summaries,
    coalesce(s.settled,0) settled,
-   (o.paid_at is not null and isfinite(o.paid_at) and o.paid_at>=o.created_at and o.paid_at<=p_as_of) paid_valid,
-   (o.shipped_at is not null and isfinite(o.shipped_at) and o.paid_at is not null and o.shipped_at>=o.paid_at and o.shipped_at<=p_as_of) shipped_valid
+   (o.paid_at is not null and isfinite(o.paid_at) and isfinite(o.created_at) and o.paid_at>=o.created_at and o.paid_at<=p_as_of) paid_valid,
+   (o.shipped_at is not null and isfinite(o.shipped_at) and o.paid_at is not null and isfinite(o.paid_at) and isfinite(o.created_at) and o.paid_at>=o.created_at and o.shipped_at>=o.paid_at and o.shipped_at<=p_as_of) shipped_valid
   from candidates o
   left join lateral (
    select count(*)::int line_count,
@@ -73,7 +74,9 @@ begin
  select e.id,e.status,jsonb_build_object(
   'id',e.id,'order_number',e.order_number,'status',e.status,'customer_name',e.customer_name,'customer_email',e.customer_email,
   'total_cents',e.total_cents,'refunded_cents',e.refunded_cents,'refund_settled_cents',e.settled,
-  'created_at',e.created_at,'paid_at',e.paid_at,'shipped_at',e.shipped_at,
+  'created_at',case when isfinite(e.created_at) then e.created_at end,
+  'paid_at',case when isfinite(e.paid_at) then e.paid_at end,
+  'shipped_at',case when isfinite(e.shipped_at) then e.shipped_at end,
   'payment_method',e.payment_method,'payment_ref',e.payment_ref,'tracking_number',e.tracking_number,
   'shipping_method',e.shipping,'destination',nullif(concat_ws(' ',coalesce(nullif(btrim(e.shipping_address->>'suburb'),''),e.shipping_address->>'city'),e.shipping_address->>'state'),''),
   'line_count',e.line_count,'items',e.summaries,'ordered_physical_units',e.ordered_units,'remaining_physical_units',e.remaining_units,

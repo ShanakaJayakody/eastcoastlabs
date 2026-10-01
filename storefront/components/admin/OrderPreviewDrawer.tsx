@@ -8,7 +8,7 @@ import type {OrderPreview,OrderWorkspaceParams} from '@/lib/admin/order-workspac
 import {OrderIssues,OrderShipping} from './OrderWorkspaceTable';
 import OrderStatusPair from './OrderStatusPair';
 import OrderQuickPayment from './OrderQuickPayment';
-interface Props {message?:string;noLongerMatches?:boolean;id:string|null;params:OrderWorkspaceParams;neighborIds:string[];onClose:()=>void;onNavigate:(id:string)=>void;onMutated:()=>void;onRestoreFocus:()=>void;}
+interface Props {message?:string;noLongerMatches?:boolean;id:string|null;params:OrderWorkspaceParams;neighborIds:string[];onClose:()=>void;onNavigate:(id:string)=>void;onMutated:(id:string)=>void;onRestoreFocus:()=>void;}
 export default function OrderPreviewDrawer({message,noLongerMatches,id,params,neighborIds,onClose,onNavigate,onMutated,onRestoreFocus}:Props){
  const dialog=useRef<HTMLDialogElement>(null),restore=useRef(onRestoreFocus);restore.current=onRestoreFocus;
  const [loaded,setLoaded]=useState<{id:string;preview?:OrderPreview;error?:string;missing?:boolean}|null>(null),[reload,setReload]=useState(0),[dirty,setDirty]=useState(false),[writing,setWriting]=useState(false),[discard,setDiscard]=useState<(()=>void)|null>(null);
@@ -45,8 +45,8 @@ export default function OrderPreviewDrawer({message,noLongerMatches,id,params,ne
     <section><h3>Shipping</h3><OrderShipping row={preview.facts}/><address className="ow-address">{['name','line1','line2','suburb','city','state','postcode','country'].map(k=>preview.order.shipping_address?.[k]?<span key={k}>{preview.order.shipping_address[k]}</span>:null)}</address>{preview.order.tracking_number&&<p className="ow-wrap">Tracking: {preview.order.tracking_number}</p>}</section>
     <section><h3>Items · {physicalQuantityLabel(preview.facts)}</h3>{preview.order.items.map(i=>{const identity=orderItemVariantIdentity(i.variant_label,i.size_label);return <div className="ow-preview-item ow-wrap" key={i.id}><p>{i.qty} × {i.product_name||'Historical item'} <strong>{identity.sizeLabel}</strong></p><p className="ow-secondary">{identity.detailLabel}{i.sku?` · ${i.sku}`:''}{i.refunded_qty?` · ${i.refunded_qty} refunded`:''}</p></div>;})}
     {preview.fulfilment.lines.length>0&&preview.order.status!=='pending'&&<p className="ow-secondary">Lot allocation: {preview.fulfilment.lines.reduce((n,l)=>n+l.allocatedUnits,0)} of {preview.fulfilment.lines.reduce((n,l)=>n+l.requiredUnits,0)} required physical units assigned. Review allocations in packing.</p>}</section>
-    <p className="ow-secondary">Placed {orderDate(preview.order.created_at)} · Sydney time</p>
-    {preview.order.status==='pending'&&<OrderQuickPayment key={id} preview={preview} onStateChange={(draft,pending)=>{setDirty(draft);setWriting(pending);}} onSuccess={()=>{setDirty(false);setWriting(false);setReload(n=>n+1);onMutated();}}/>}
+    <section><h3>Order timing</h3><p className="ow-secondary">Sydney time</p><dl><dt>Placed</dt><dd>{orderDate(preview.facts.created_at)}</dd><dt>Payment time</dt><dd>{orderDate(preview.facts.paid_at)}</dd><dt>Shipment recorded</dt><dd>{orderDate(preview.facts.shipped_at)}</dd></dl></section>
+    {preview.order.status==='pending'&&<OrderQuickPayment key={id} preview={preview} showSuccessNotice={false} onStateChange={(draft,pending)=>{setDirty(draft);setWriting(pending);}} onSuccess={()=>{setDirty(false);setWriting(false);setReload(n=>n+1);onMutated(id);}}/>}
     <details><summary>Internal notes</summary><p className="ow-wrap whitespace-pre-wrap">{preview.order.notes||'No internal notes.'}</p></details>
     <details><summary>Activity ({preview.order.events.length})</summary>{preview.order.events.map((event,i)=><p key={i} className="ow-secondary ow-wrap">{orderDate(event.created_at)} · {event.message||event.type}</p>)}</details>
    </>}

@@ -28,7 +28,7 @@ export function decodeWorkspaceRow(value:unknown):OrderWorkspaceRow {
   id:id(r.id),order_number:string(r.order_number,'order_number'),status:r.status as OrderWorkspaceRow['status'],
   customer_name:nullableString(r.customer_name,'customer_name'),customer_email:string(r.customer_email,'customer_email'),
   total_cents:integer(r.total_cents,'total_cents'),refunded_cents:integer(r.refunded_cents,'refunded_cents'),refund_settled_cents:integer(r.refund_settled_cents,'refund_settled_cents'),
-  created_at:timestamp(r.created_at,'created_at'),paid_at:r.paid_at===null?null:timestamp(r.paid_at,'paid_at'),shipped_at:r.shipped_at===null?null:timestamp(r.shipped_at,'shipped_at'),
+  created_at:r.created_at===null?null:timestamp(r.created_at,'created_at'),paid_at:r.paid_at===null?null:timestamp(r.paid_at,'paid_at'),shipped_at:r.shipped_at===null?null:timestamp(r.shipped_at,'shipped_at'),
   payment_method:nullableString(r.payment_method,'payment_method'),payment_ref:nullableString(r.payment_ref,'payment_ref'),tracking_number:nullableString(r.tracking_number,'tracking_number'),
   shipping_method:r.shipping_method,destination:nullableString(r.destination,'destination'),line_count:integer(r.line_count,'line_count'),
   items:r.items.map(value=>{const i=object(value,'item');const qty=integer(i.qty,'qty'),refunded_qty=integer(i.refunded_qty,'refunded_qty');if(refunded_qty>qty)return invalid('refunded_qty');return {id:id(i.id),product_name:nullableString(i.product_name,'product_name'),variant_label:nullableString(i.variant_label,'variant_label'),size_label:nullableString(i.size_label,'size_label'),sku:nullableString(i.sku,'sku'),qty,refunded_qty};}),

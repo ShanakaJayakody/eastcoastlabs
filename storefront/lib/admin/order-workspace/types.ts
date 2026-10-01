@@ -44,7 +44,7 @@ export interface OrderWorkspaceRow {
   total_cents: number;
   refunded_cents: number;
   refund_settled_cents: number;
-  created_at: string;
+  created_at: string | null;
   paid_at: string | null;
   shipped_at: string | null;
   payment_method: string | null;

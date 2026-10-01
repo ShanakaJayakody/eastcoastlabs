@@ -1,7 +1,9 @@
 import {PGlite} from '@electric-sql/pglite';
 import {readFileSync,readdirSync,writeFileSync} from 'node:fs';
-import {beforeAll,afterAll,beforeEach,afterEach,it,expect} from 'vitest';
+import {beforeAll,afterAll,beforeEach,afterEach,it,expect,vi} from 'vitest';
 import type {OrderWorkspacePage} from '@/lib/admin/order-workspace/types';
+vi.mock('@/lib/admin/db',()=>({adminDb:()=>({})}));
+import {decodeWorkspaceRow} from '@/lib/admin/order-workspace/queries';
 let db:PGlite;const at='2026-10-05T04:00:00Z';
 beforeAll(async()=>{db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema storage;create table storage.buckets(id text primary key,name text,public boolean)');for(const f of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort())await db.exec(readFileSync(`supabase/migrations/${f}`,'utf8'));});
 afterAll(()=>db.close());beforeEach(()=>db.exec('begin'));afterEach(()=>db.exec('rollback'));
@@ -79,4 +81,24 @@ it('keeps a deterministic UUID tie break and measures a 10000-order scope',async
  const result=await workspace();expect(result.total).toBe(10000);expect(result.rows.map(r=>r.id)).toEqual(result.rows.map(r=>r.id).sort());
  writeFileSync('/tmp/ecl-workspace-query-plan.json',JSON.stringify((await db.query("explain (analyze,buffers) select admin_order_workspace('{\"status\":\"all\",\"page\":1}', '2026-10-05T04:00:00Z')")).rows));
  writeFileSync('/tmp/ecl-workspace-item-plan.json',JSON.stringify((await db.query("explain select * from order_items where order_id='00000000-0000-4000-8000-000000000001'")).rows));
+});
+
+it('normalizes non-finite timestamps through SQL and the decoder, sorting unknowns last',async()=>{
+ const good=await order('paid',{created_at:'2026-10-01',paid_at:'2026-10-02'});
+ const badPaid=await order('paid',{paid_at:'infinity'});
+ const badCreated=await order('pending',{created_at:'-infinity'});
+ const badShipped=await order('shipped',{paid_at:'2026-10-02',shipped_at:'infinity'});
+ const invalidOrigin=await order('paid',{created_at:'-infinity',paid_at:'2026-10-02'});
+ for(const exported of [false,true]){
+  const rows=(await workspace({},exported)).rows.map(decodeWorkspaceRow);
+  expect(rows.find(r=>r.id===badPaid)).toMatchObject({paid_at:null,waiting_seconds:null,issue_keys:expect.arrayContaining(['timing_incomplete'])});
+  expect(rows.find(r=>r.id===badCreated)).toMatchObject({created_at:null,waiting_seconds:null,issue_keys:expect.arrayContaining(['timing_incomplete'])});
+  expect(rows.find(r=>r.id===badShipped)).toMatchObject({shipped_at:null,issue_keys:expect.arrayContaining(['timing_incomplete'])});
+  expect(rows.find(r=>r.id===invalidOrigin)?.waiting_seconds).toBeNull();
+ }
+ for(const dir of ['asc','desc']){
+  const placed=(await workspace({sort:'created_at',dir})).rows;expect(placed.slice(-2).every(r=>r.created_at===null)).toBe(true);
+  const paid=(await workspace({sort:'paid_at',dir})).rows;expect(paid.findIndex(r=>r.id===good)).toBeLessThan(paid.findIndex(r=>r.id===badPaid));
+ }
+ expect((await workspace({to_at:'2026-10-04'})).rows.some(r=>r.id===badCreated)).toBe(false);
 });
