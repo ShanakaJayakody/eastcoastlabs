@@ -7,6 +7,7 @@ import {parseOrderWorkspaceParams,rawOrderParams} from '@/lib/admin/order-worksp
 import {makeWorkspacePage} from '../helpers/order-workspace-fixtures';
 const nav=vi.hoisted(()=>({href:'',set:(_href:string)=>{},push:vi.fn(),replace:vi.fn(),refresh:vi.fn()}));
 vi.mock('next/navigation',()=>({useRouter:()=>({push:(href:string)=>{nav.push(href);nav.set(href);},replace:(href:string)=>{nav.replace(href);nav.set(href);},refresh:nav.refresh})}));
+vi.mock('@/app/admin/(dashboard)/orders/actions',()=>({confirmPayment:vi.fn(),bulkConfirmPayment:vi.fn(),bulkReinstate:vi.fn()}));
 import OrdersWorkspace from '@/components/admin/OrdersWorkspace';
 function renderWorkspace(query=''){nav.push.mockClear();nav.replace.mockClear();function Harness(){const [href,setHref]=useState(`/admin/orders${query}`);nav.href=href;nav.set=setHref;const params=parseOrderWorkspaceParams(rawOrderParams(new URL(href,'http://test').searchParams));return <OrdersWorkspace params={params} data={{...makeWorkspacePage(),total:80,page:params.page}} adminUserId="test"/>;}render(<Harness/>);return ()=>parseOrderWorkspaceParams(rawOrderParams(new URL(nav.href,'http://test').searchParams));}
 afterEach(()=>{cleanup();localStorage.clear();vi.useRealTimers();});
