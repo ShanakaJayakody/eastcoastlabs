@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -65,12 +66,12 @@ export default function DiscountsManager({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">{discounts.length} codes</p>
-        <button
+        <AdminWriteButton
           onClick={() => setShow((v) => !v)}
           className={`${btn} flex items-center gap-1.5 border border-line-2 bg-surface text-fg-2 hover:text-fg`}
         >
           <Plus size={15} /> New code
-        </button>
+        </AdminWriteButton>
       </div>
 
       {show && (
@@ -123,7 +124,7 @@ export default function DiscountsManager({
               />
             </div>
           </div>
-          <button
+          <AdminWriteButton
             disabled={pending || !form.code}
             onClick={() =>
               run(async () => {
@@ -145,7 +146,7 @@ export default function DiscountsManager({
             className={`${btn} bg-accent text-accent-ink hover:brightness-95`}
           >
             Create code
-          </button>
+          </AdminWriteButton>
         </section>
       )}
 
@@ -214,22 +215,22 @@ export default function DiscountsManager({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-2">
-                        <button
+                        <AdminWriteButton
                           disabled={pending}
                           onClick={() => run(() => toggleDiscount(d.code, !d.active))}
                           className="text-xs text-fg-2 hover:text-fg"
                         >
                           {d.active ? "Disable" : "Enable"}
-                        </button>
+                        </AdminWriteButton>
                         {d.kind !== "legacy_price" && (
-                          <button
+                          <AdminWriteButton
                             disabled={pending}
                             onClick={() => setDeleting(d.code)}
                             className="text-muted hover:text-red-400"
                             aria-label={`Delete ${d.code}`}
                           >
                             <Trash2 size={14} />
-                          </button>
+                          </AdminWriteButton>
                         )}
                       </div>
                     </td>

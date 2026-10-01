@@ -5,7 +5,7 @@ import type {OrderWorkspacePage} from '@/lib/admin/order-workspace/types';
 vi.mock('@/lib/admin/db',()=>({adminDb:()=>({})}));
 import {decodeWorkspaceRow} from '@/lib/admin/order-workspace/queries';
 let db:PGlite;const at='2026-10-05T04:00:00Z';
-beforeAll(async()=>{db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema storage;create table storage.buckets(id text primary key,name text,public boolean)');for(const f of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort())await db.exec(readFileSync(`supabase/migrations/${f}`,'utf8'));});
+beforeAll(async()=>{db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema storage;create table storage.buckets(id text primary key,name text,public boolean);create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz)');for(const f of readdirSync('supabase/migrations').filter(f=>f.endsWith('.sql')).sort())await db.exec(readFileSync(`supabase/migrations/${f}`,'utf8'));});
 afterAll(()=>db.close());beforeEach(()=>db.exec('begin'));afterEach(()=>db.exec('rollback'));
 async function workspace(filters:Record<string,unknown>={},exp=false){return (await db.query<{r:OrderWorkspacePage}>(`select ${exp?'admin_order_workspace_export':'admin_order_workspace'}($1::jsonb,$2) r`,[JSON.stringify({status:'all',sort:'created_at',dir:'desc',page:1,shipping:'any',...filters}),at])).rows[0].r;}
 async function order(status='pending',fields:Record<string,unknown>={}){

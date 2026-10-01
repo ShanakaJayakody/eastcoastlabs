@@ -7,7 +7,7 @@ let backfill: { order_number: string; correct: boolean }[];
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
-    create schema storage; create table storage.buckets(id text primary key,name text,public boolean);`);
+    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage; create table storage.buckets(id text primary key,name text,public boolean);`);
   for (const file of readdirSync('supabase/migrations').filter(file => file.endsWith('.sql')).sort()) {
     if (file === '20260927110000_overdue_order_reminders.sql') {
       await db.exec(`insert into orders(id,order_number,customer_email,status,created_at,paid_at) values

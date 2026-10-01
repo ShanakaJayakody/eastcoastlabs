@@ -1,10 +1,11 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
+import { assertPreviewWritable } from '@/lib/admin/preview-policy';
 import { smsRpc, runDailyAdminSms } from '@/lib/admin/daily-sms';
 
 export async function saveAdminSmsSettings(input:{enabled:boolean;startHour:number}) {
-  const session=await requireAdmin();
+  const session=await requireAdmin(); assertPreviewWritable();
   if(typeof input.enabled!=='boolean'||!Number.isInteger(input.startHour)||input.startHour<0||input.startHour>19)
     return {ok:false,error:'Choose a valid daily delivery hour between midnight and 7 pm.'};
   try {
@@ -13,12 +14,12 @@ export async function saveAdminSmsSettings(input:{enabled:boolean;startHour:numb
   } catch {return {ok:false,error:'SMS settings could not be saved.'}}
 }
 export async function previewAdminSms() {
-  await requireAdmin();
+  await requireAdmin(); assertPreviewWritable();
   try {return {ok:true,preview:await runDailyAdminSms(new Date(),{dry:true})}}
   catch {return {ok:false,error:'Preview unavailable. Check the SMS configuration, director list and business data.'}}
 }
 export async function testAdminSms(phone:string,id:string) {
-  await requireAdmin();
+  await requireAdmin(); assertPreviewWritable();
   try {
     const result=await runDailyAdminSms(new Date(),{test:{phone,id}});
     revalidatePath('/admin/settings');

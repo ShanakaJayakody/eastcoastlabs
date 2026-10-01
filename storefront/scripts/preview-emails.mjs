@@ -7,9 +7,10 @@ import { createServer } from 'vite';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const output = path.resolve(root, process.argv[2] || '../tmp/email-preview');
 // These preview tokens are deliberately unrelated to any live credentials.
+process.env.CUSTOMER_ORDER_EMAILS_ENABLED = '1';
 process.env.ORDER_ACCESS_SECRET = 'local-email-preview-only-never-use-in-production';
 const vite = await createServer({
-  root, configFile: false, envDir: false,
+  root, configFile: false, envDir: false, cacheDir: path.join(root, "node_modules/.vite-email-preview"),
   server: { middlewareMode: true, watch: null },
   resolve: { alias: [
     { find: '@/lib/settings', replacement: path.join(root, 'scripts/email-preview-settings.ts') },

@@ -3,7 +3,7 @@ import {Resend} from 'resend';
 import {adminDb} from './db';
 export type EmailOperation='cancel'|'retry'|'reconcile';
 interface FrozenMessage {
- id:string;to_email:string;rendered_tag:string|null;rendered_from:string|null;rendered_subject:string|null;rendered_html:string|null;
+ id:string;to_email:string;rendered_tag:string|null;rendered_from:string|null;rendered_subject:string|null;rendered_html:string|null;rendered_text?:string|null;rendered_reply_to?:string|null;
  provider_attempted_at:string|null;provider_message_id:string|null;status:string;lease_token:string|null;lease_expires_at:string|null;
 }
 /** Reconciliation records provider acceptance. It never sends or changes the
@@ -16,7 +16,7 @@ export async function emailOperation(id:string,action:EmailOperation,reason:stri
   if(error)throw new Error(error.message);return String(data);
  }
  if(!providerId?.trim()||providerId.length>200)throw new Error('Enter the exact provider message ID.');
- const {data:raw,error:readError}=await db.from('email_outbox').select('id,to_email,rendered_tag,rendered_from,rendered_subject,rendered_html,provider_attempted_at,provider_message_id,status,lease_token,lease_expires_at').eq('id',id).single();
+ const {data:raw,error:readError}=await db.from('email_outbox').select('id,to_email,rendered_tag,rendered_from,rendered_subject,rendered_html,rendered_text,rendered_reply_to,provider_attempted_at,provider_message_id,status,lease_token,lease_expires_at').eq('id',id).single();
  if(readError||!raw)throw new Error('Cannot read queued message.');
  const row=raw as FrozenMessage;providerId=providerId.trim();
  if(row.status==='sending'&&(!row.lease_expires_at||Date.parse(row.lease_expires_at)>Date.now()))throw new Error('Active delivery lease; wait for the worker outcome.');
@@ -31,11 +31,12 @@ export async function emailOperation(id:string,action:EmailOperation,reason:stri
  if(response.error||!response.data)throw new Error('Provider retrieval unavailable; message remains unresolved');
  const found=response.data;
  if(found.tags?.filter(tag=>tag.name==='ecl_outbox_id').length!==1||!found.tags.some(tag=>tag.name==='ecl_outbox_id'&&tag.value===row.rendered_tag)||found.id!==providerId||found.to.length!==1||found.to[0]!==row.to_email||found.from!==row.rendered_from||found.subject!==row.rendered_subject||found.html!==row.rendered_html||
+  (row.rendered_text != null && found.text !== row.rendered_text)||(row.rendered_reply_to != null && (found.reply_to?.length !== 1 || found.reply_to[0] !== row.rendered_reply_to))||
   found.cc?.length||found.bcc?.length||!['sent','delivered','delivery_delayed','bounced','complained','opened','clicked'].includes(found.last_event)||
   !Number.isFinite(Date.parse(found.created_at))||Date.parse(found.created_at)<Date.parse(row.provider_attempted_at)-300_000){
   throw new Error('Provider proof does not match the original frozen message; leave it unresolved.');
  }
  const {data,error}=await db.rpc('admin_reconcile_email',{p_id:id,p_provider_id:providerId,p_actor:actor,p_reason:reason.trim(),
-  p_snapshot:{to:row.to_email,from:row.rendered_from,subject:row.rendered_subject,html:row.rendered_html,tag:row.rendered_tag,provider_attempted_at:row.provider_attempted_at,status:row.status,lease_token:row.lease_token}});
+  p_snapshot:{...(row.rendered_text!=null?{text:row.rendered_text}:{}),...(row.rendered_reply_to!=null?{reply_to:row.rendered_reply_to}:{}),to:row.to_email,from:row.rendered_from,subject:row.rendered_subject,html:row.rendered_html,tag:row.rendered_tag,provider_attempted_at:row.provider_attempted_at,status:row.status,lease_token:row.lease_token}});
  if(error)throw new Error(error.message);return String(data);
 }

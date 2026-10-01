@@ -14,7 +14,7 @@ const rpc = async <T = unknown>(sql: string, args: unknown[] = []): Promise<T> =
 beforeAll(async () => {
   db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
-    create schema storage; create table storage.buckets(id text primary key,name text,public boolean);`);
+    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage; create table storage.buckets(id text primary key,name text,public boolean);`);
   for (const file of readdirSync('supabase/migrations').filter(f => f.endsWith('.sql') && f < feature).sort()) {
     await db.exec(readFileSync(`supabase/migrations/${file}`, 'utf8'));
   }
@@ -130,7 +130,7 @@ it('fails closed on an existing code, including case-insensitive collisions, wit
   const collisionDb = new PGlite();
   try {
     await collisionDb.exec(`create role anon; create role authenticated; create role service_role bypassrls;
-      create schema storage; create table storage.buckets(id text primary key,name text,public boolean);`);
+      create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage; create table storage.buckets(id text primary key,name text,public boolean);`);
     for (const file of readdirSync('supabase/migrations').filter(f => f.endsWith('.sql') && f < feature).sort()) {
       await collisionDb.exec(readFileSync(`supabase/migrations/${file}`, 'utf8'));
     }

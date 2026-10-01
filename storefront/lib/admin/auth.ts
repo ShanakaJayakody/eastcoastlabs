@@ -10,6 +10,7 @@ import { cache } from "react";
 import { redirect, forbidden } from "next/navigation";
 import { createSupabaseServerClient } from "./supabase-server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { assertPreviewWritable } from "./preview-policy";
 
 export interface AdminSession {
   email: string;
@@ -52,6 +53,12 @@ const resolveSession = cache(async (): Promise<AdminSession | "anon" | "forbidde
 export async function getAdminSession(): Promise<AdminSession | null> {
   const result = await resolveSession();
   return typeof result === "string" ? null : result;
+}
+
+export async function requireWritableAdmin(): Promise<AdminSession> {
+  const session=await requireAdmin();
+  assertPreviewWritable();
+  return session;
 }
 
 /**

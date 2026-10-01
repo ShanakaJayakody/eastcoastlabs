@@ -1,9 +1,10 @@
 'use server';
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 import {revalidatePath} from 'next/cache';
 import {requireAdmin} from '@/lib/admin/auth';
 import {emailOperation,type EmailOperation} from '@/lib/admin/email-operations';
 export async function operateEmail(id:string,action:EmailOperation,reason:string,providerId?:string):Promise<{ok:boolean;message?:string;error?:string}>{
- const session=await requireAdmin();
+ const session=await requireAdmin(); assertPreviewWritable();
  try{
   const status=await emailOperation(id,action,reason,session.email,providerId);
   revalidatePath('/admin/automation');

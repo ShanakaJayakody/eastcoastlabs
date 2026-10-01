@@ -1,4 +1,5 @@
 import "server-only";
+import {assertPreviewWritable} from "@/lib/admin/preview-policy";
 import { Resend } from "resend";
 import { adminDb } from "@/lib/admin/db";
 import { renderTemplate } from "./templates";
@@ -27,11 +28,12 @@ async function sendOne(row: OutboxRow): Promise<DeliveryResult> {
     const rendered = row.rendered_subject && row.rendered_html
       ? { subject: row.rendered_subject, html: row.rendered_html }
       : await renderTemplate(row.template, payload);
-    const { data: message, error: prepareError } = await adminDb().rpc("prepare_email_delivery_v2", {
+    const { data: message, error: prepareError } = await adminDb().rpc("prepare_email_delivery_v3", {
       p_id: row.id, p_lease: row.lease_token, p_subject: rendered.subject, p_html: rendered.html, p_from: FROM,
+      p_text: "text" in rendered ? rendered.text : null, p_reply_to: "replyTo" in rendered ? rendered.replyTo : null,
     });
     if (prepareError || !message?.subject || !message?.html || !message?.from || !message?.tag) return { ok: false, error: `Cannot freeze email body: ${prepareError?.message ?? "missing message"}` };
-    const { subject, html, from, tag } = message as { subject: string; html: string; from:string; tag:string };
+    const { subject, html, from, tag, text, reply_to } = message as { subject: string; html: string; from:string; tag:string; text:string|null; reply_to:string|null };
     const experiment=payload.retention_experiment as {id?:string;arm?:string}|undefined;
     const configuredDays=reorderReminderDays();
     const timingReason=row.template==='replenishment'&&(configuredDays==null||payload.reminder_days!==configuredDays)?'Reorder timing is disabled or changed':null;
@@ -49,7 +51,7 @@ async function sendOne(row: OutboxRow): Promise<DeliveryResult> {
     if (eligibilityError) return { ok: false, error: `Eligibility check failed: ${eligibilityError.message}` };
     if (!allowed) return { ok: false, cancelled: true };
     const { data, error } = await new Resend(key).emails.send(
-      { from, to: row.to_email, subject, html, tags:[{name:'ecl_outbox_id',value:tag}],
+      { from, to: row.to_email, subject, html, ...(text ? {text} : {}), ...(reply_to ? {replyTo:reply_to} : {}), tags:[{name:'ecl_outbox_id',value:tag}],
         ...(row.template === "admin_order_overdue" ? { headers: { "X-Priority": "1", "Importance": "high", "X-MSMail-Priority": "High" } } : {}),
       },
       { idempotencyKey: `ecl-outbox/${row.id}` },
@@ -79,11 +81,13 @@ async function deliverClaimed(rows: OutboxRow[]) {
   return { sent, failed, cancelled };
 }
 export async function sendImmediately(rowId: string): Promise<{ sent: number; failed: number; cancelled: number }> {
+  assertPreviewWritable();
   const { data, error } = await adminDb().rpc("claim_email_outbox", { p_limit: 1, p_id: rowId });
   if (error) throw new Error(`Cannot claim email: ${error.message}`);
   return deliverClaimed((data ?? []) as OutboxRow[]);
 }
 export async function drainOutbox(limit = 50): Promise<{ sent: number; failed: number; cancelled: number }> {
+  assertPreviewWritable();
   // Claim one at a time so a slow provider cannot let later rows in a batch
   // expire their leases before this worker starts them.
   let sent=0, failed=0, cancelled=0;
@@ -100,6 +104,7 @@ export async function drainOutbox(limit = 50): Promise<{ sent: number; failed: n
 /** Prioritise newly committed order email after the HTTP response. Cron also
  * discovers these rows if the request worker exits before its callback runs. */
 export async function dispatchOrderEmails(orderId: string): Promise<void> {
+  assertPreviewWritable();
   const { data, error } = await adminDb().from("email_outbox").select("id")
     .eq("payload->>order_id", orderId).in("status", ["queued", "failed"]).order("created_at").limit(10);
   if (error) throw new Error(`Cannot read order notifications: ${error.message}`);

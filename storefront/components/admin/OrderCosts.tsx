@@ -1,4 +1,5 @@
 'use client';
+import AdminWriteButton from "./AdminWriteButton";
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveOrderCosts } from '@/app/admin/(dashboard)/orders/cost-actions';
@@ -40,7 +41,7 @@ export default function OrderCosts({ orderId, initial }: {
    <p className="mt-2 text-xs text-muted">Enter the accountant-reconciled adjustment that converts recorded receipts, frozen COGS and the five operating expense categories to a consistent net-of-applicable-tax basis. Positive amounts reduce contribution; negative credits increase it. Exclude acquisition from this adjustment and enter acquisition expense on the resulting basis. Blank keeps contribution unknown; use 0 only when verified. Signed range: −21,474,836.48 to 21,474,836.47 AUD. No tax rate or registration is assumed.</p>
    <label className="mt-3 block text-xs text-muted">Sources and cost basis<textarea name="note" maxLength={2000} defaultValue={initial?.note ?? ''} className="mt-1 block w-full rounded border border-line bg-ink p-2 text-fg" disabled={pending}/></label>
    <label className="my-3 flex items-start gap-2 text-xs text-muted"><input type="checkbox" name="tax_basis_confirmed" defaultChecked={initial?.tax_basis_confirmed ?? false} disabled={pending}/>I verified that the entered adjustment reconciles receipts, frozen COGS and operating expenses to a consistent net-of-applicable-tax basis, and acquisition is entered on that resulting basis.</label>
-   <button type="submit" disabled={pending} className="rounded bg-accent px-3 py-2 font-medium text-ink disabled:opacity-50">{pending ? 'Saving…' : 'Save actual costs'}</button>
+   <AdminWriteButton type="submit" disabled={pending} className="rounded bg-accent px-3 py-2 font-medium text-ink disabled:opacity-50">{pending ? 'Saving…' : 'Save actual costs'}</AdminWriteButton>
    {message && <p role="status" className="mt-2 text-xs text-muted">{message}</p>}
   </form>
  </details>;

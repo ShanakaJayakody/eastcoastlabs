@@ -1,10 +1,11 @@
 'use server';
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/admin/auth';
 import { adminDb } from '@/lib/admin/db';
 import { VARIABLE_COST_FIELDS } from '@/lib/admin/economics';
 export async function saveOrderCosts(orderId: string, costs: Record<string, unknown>, revision: number) {
-    const session = await requireAdmin();
+    const session = await requireAdmin(); assertPreviewWritable();
     try {
         if (!Number.isInteger(revision) || revision < 0 || !costs || Array.isArray(costs) || typeof costs !== 'object')
             throw new Error('Invalid cost entry');

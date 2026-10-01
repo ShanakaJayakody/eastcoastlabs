@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -66,12 +67,12 @@ export default function CoaManager({
           {batches.length} published batches · shown on <span className="text-fg-2">/lab-results</span> and
           the batch verify tool
         </p>
-        <button
+        <AdminWriteButton
           onClick={() => setShow((v) => !v)}
           className={`${btn} flex items-center gap-1.5 border border-line-2 bg-surface text-fg-2 hover:text-fg`}
         >
           <Plus size={15} /> Add batch
-        </button>
+        </AdminWriteButton>
       </div>
 
       {show && (
@@ -117,9 +118,9 @@ export default function CoaManager({
               className="block w-full text-sm text-fg-2 file:mr-3 file:rounded-lg file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:text-fg-2"
             />
           </div>
-          <button disabled={pending} className={`${btn} bg-accent text-accent-ink hover:brightness-95`}>
+          <AdminWriteButton disabled={pending} className={`${btn} bg-accent text-accent-ink hover:brightness-95`}>
             {pending ? "Saving…" : "Publish batch"}
-          </button>
+          </AdminWriteButton>
         </form>
       )}
 
@@ -163,14 +164,14 @@ export default function CoaManager({
                   )}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button
+                  <AdminWriteButton
                     disabled={pending}
                     onClick={() => setDeleting(b.batch_id)}
                     className="text-muted hover:text-red-400"
                     aria-label={`Delete ${b.batch_id}`}
                   >
                     <Trash2 size={14} />
-                  </button>
+                  </AdminWriteButton>
                 </td>
               </tr>
             ))}

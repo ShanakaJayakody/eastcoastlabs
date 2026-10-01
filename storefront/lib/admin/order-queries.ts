@@ -174,6 +174,7 @@ export interface OrderDetail {
   payment_method: string | null;
   payment_ref: string | null;
   tracking_number: string | null;
+  carrier_code?: string | null;
   notes: string | null;
   stock_settled: boolean;
   refunded_cents: number;
@@ -214,7 +215,7 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
     db
       .from("order_items")
       .select(
-        "id, variant_id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents, refunded_qty, refunded_cents, product_variants(products(size_label))",
+        "id, variant_id, product_name, product_slug, variant_label, sku, unit_price_cents, qty, line_total_cents, refunded_qty, refunded_cents, product_variants!order_items_variant_id_fkey(products(size_label))",
       )
       .eq("order_id", id),
     db
@@ -223,7 +224,6 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
       .eq("order_id", id)
       .order("created_at", { ascending: true }),
   ]);
-
   if (itemsError) throw new Error(`getOrder items: ${itemsError.message}`);
   if (eventsError) throw new Error(`getOrder events: ${eventsError.message}`);
   return {

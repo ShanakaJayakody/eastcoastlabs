@@ -1,4 +1,5 @@
 'use client';
+import AdminWriteButton from "./AdminWriteButton";
 import {useId,useState,useTransition} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
@@ -28,7 +29,7 @@ function PoolAssignments({line,orderId,editable,catalog}:{line:FulfilmentLine;or
   {editable&&<fieldset disabled={pending} className="space-y-3">
    {lots.map(l=>{const current=line.allocations.find(a=>a.lotId===l.id)?.units??0;return <label key={`${l.id}-${current}`} htmlFor={`${id}-${l.id}`} className="block text-sm">{l.code} physical units<input id={`${id}-${l.id}`} name={l.id} aria-label={`${l.code} physical units`} type="number" min={0} max={Math.max(current,l.availableUnits+current)} defaultValue={current} required className="ml-3 w-24 rounded border border-line bg-bg p-2"/><span className="ml-2 text-muted">{l.availableUnits} free in lot</span></label>})}
    {!lots.length&&<p className="text-sm text-muted">Register evidenced stock lots to record assignments. This order can still be packed with explicit unallocated units.</p>}
-   {!!lots.length&&<><label htmlFor={`${id}-evidence`} className="block text-sm">Physical pick or return evidence<textarea id={`${id}-evidence`} name="evidence" required minLength={3} maxLength={2000} className="block w-full rounded border border-line bg-bg p-2"/></label><p className="text-xs text-muted">Reducing an assignment makes those lot units available again. Confirm the actual units were returned to that lot; a refund alone is not return evidence.</p><button type="submit" className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-ink">{pending?'Saving…':'Save physical assignments'}</button></>}
+   {!!lots.length&&<><label htmlFor={`${id}-evidence`} className="block text-sm">Physical pick or return evidence<textarea id={`${id}-evidence`} name="evidence" required minLength={3} maxLength={2000} className="block w-full rounded border border-line bg-bg p-2"/></label><p className="text-xs text-muted">Reducing an assignment makes those lot units available again. Confirm the actual units were returned to that lot; a refund alone is not return evidence.</p><AdminWriteButton type="submit" className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-ink">{pending?'Saving…':'Save physical assignments'}</AdminWriteButton></>}
   </fieldset>}
   {error&&<p role="alert" className="text-sm text-danger">{error}</p>}{saved&&<p role="status" className="text-sm">Physical assignments saved.</p>}
  </form>;

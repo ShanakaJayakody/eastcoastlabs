@@ -1,4 +1,5 @@
 'use client';
+import AdminWriteButton from "./AdminWriteButton";
 import {useState,useTransition} from 'react';
 import {useRouter} from 'next/navigation';
 import {operateEmail} from '@/app/admin/(dashboard)/automation/actions';
@@ -17,13 +18,13 @@ export default function EmailOperationControls({id,status,providerAttemptedAt,le
  return <div className="min-w-64 space-y-2">
   <label className="block">Operator reason<input disabled={pending} value={reason} maxLength={1000} onChange={e=>setReason(e.target.value)} className="mt-1 w-full rounded border border-line bg-ink-2 p-2"/></label>
   <div className="flex flex-wrap gap-2">
-   {!providerAttemptedAt&&!providerId&&<button className={button} disabled={disabled} onClick={()=>run('cancel')}>Cancel unsent intent</button>}
-   {['failed','dead','sending'].includes(status)&&<button className={button} disabled={disabled} onClick={()=>run('retry')}>Queue bounded retry</button>}
+   {!providerAttemptedAt&&!providerId&&<AdminWriteButton className={button} disabled={disabled} onClick={()=>run('cancel')}>Cancel unsent intent</AdminWriteButton>}
+   {['failed','dead','sending'].includes(status)&&<AdminWriteButton className={button} disabled={disabled} onClick={()=>run('retry')}>Queue bounded retry</AdminWriteButton>}
   </div>
   {(providerAttemptedAt||providerId)&&<>
    <p className="text-muted">Retry requires a safe original identity and elapsed backoff. Ambiguous sends need provider evidence.</p>
    <label className="block">Provider message ID<input disabled={pending} value={provider} maxLength={200} onChange={e=>setProvider(e.target.value)} className="mt-1 w-full rounded border border-line bg-ink-2 p-2"/></label>
-   <button className={button} disabled={disabled||!provider.trim()} onClick={()=>run('reconcile')}>Reconcile provider acceptance</button>
+   <AdminWriteButton className={button} disabled={disabled||!provider.trim()} onClick={()=>run('reconcile')}>Reconcile provider acceptance</AdminWriteButton>
   </>}
   {error&&<p role="alert" className="text-warn">{error}</p>}{message&&<p role="status">{message}</p>}
  </div>;

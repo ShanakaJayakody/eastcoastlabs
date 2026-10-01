@@ -1,105 +1,15 @@
 "use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LogOut, X } from "lucide-react";
-import { NAV, NAV_GROUPS } from "@/lib/admin/nav";
-import { signOut } from "@/lib/admin/auth-actions";
-
-function isActive(pathname: string, href: string): boolean {
-  if (href === "/admin") return pathname === "/admin";
-  return pathname === href || pathname.startsWith(href + "/");
-}
-
-export default function Sidebar({
-  email,
-  onNavigate,
-  onClose,
-  showClose,
-}: {
-  email: string;
-  onNavigate?: () => void;
-  onClose?: () => void;
-  showClose?: boolean;
-}) {
-  const pathname = usePathname();
-
-  return (
-    <div className="flex h-full w-64 flex-col border-r border-line bg-ink-2/90 backdrop-blur">
-      <div className="flex items-center justify-between px-5 py-4">
-        <Link href="/admin" onClick={onNavigate} className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent/25 bg-gradient-to-br from-accent/15 to-accent-2/10 font-mono text-sm font-bold text-accent shadow-[0_0_16px_-4px_rgba(55,226,212,0.4)]">
-            EC
-          </span>
-          <span className="text-sm font-semibold text-fg">East Coast Labs</span>
-        </Link>
-        {showClose && (
-          <button
-            onClick={onClose}
-            aria-label="Close menu"
-            className="rounded-md p-1 text-muted hover:text-fg lg:hidden"
-          >
-            <X size={18} />
-          </button>
-        )}
-      </div>
-
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
-        {NAV_GROUPS.map((group) => {
-          const items = NAV.filter((item) => item.group === group);
-          if (items.length === 0) return null;
-          return (
-            <div key={group} className="space-y-1">
-              <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-2">
-                {group}
-              </div>
-              {items.map((item) => {
-                const active = isActive(pathname, item.href);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onNavigate}
-                    data-active={active}
-                    className={`admin-nav-item group flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
-                      active
-                        ? "bg-gradient-to-r from-surface-2 to-surface font-medium text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                        : "text-fg-2 hover:bg-surface hover:text-fg"
-                    }`}
-                  >
-                    <Icon
-                      size={17}
-                      className={active ? "text-accent" : "text-muted group-hover:text-fg-2"}
-                    />
-                    <span className="flex-1">{item.label}</span>
-                    {item.phase && (
-                      <span className="rounded bg-ink px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-2">
-                        soon
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          );
-        })}
-      </nav>
-
-      <div className="border-t border-line px-3 py-3">
-        <div className="truncate px-3 pb-2 text-xs text-muted" title={email}>
-          {email}
-        </div>
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-fg-2 transition hover:bg-surface hover:text-fg"
-          >
-            <LogOut size={17} className="text-muted" />
-            Sign out
-          </button>
-        </form>
-      </div>
-    </div>
-  );
+import Link from 'next/link';
+import Image from 'next/image';
+import {usePathname} from 'next/navigation';
+import {LogOut,X} from 'lucide-react';
+import {NAV,WORKSPACES,workspaceForPath} from '@/lib/admin/nav';
+import {signOut} from '@/lib/admin/auth-actions';
+export default function Sidebar({email,onNavigate,onClose,showClose}:{email:string;onNavigate?:()=>void;onClose?:()=>void;showClose?:boolean}){
+ const active=workspaceForPath(usePathname());
+ return <div className="admin-sidebar">
+   <div className="admin-brand"><Link href="/admin" onClick={onNavigate}><Image src="/brand/ecl-cobalt-symbol.png" width={34} height={34} alt=""/><span>east coast labs<small>ADMIN WORKSPACE</small></span></Link>{showClose&&<button aria-label="Close menu" onClick={onClose}><X size={20}/></button>}</div>
+   <nav aria-label="Main navigation">{WORKSPACES.map(w=>{const Icon=NAV.find(n=>n.href===w.href)!.icon;return <Link key={w.id} href={w.href} onClick={onNavigate} aria-current={active.id===w.id?'page':undefined}><Icon size={19}/>{w.label}</Link>})}</nav>
+   <div className="admin-sidebar-account"><span title={email}>{email}</span><form action={signOut}><button type="submit"><LogOut size={17}/>Sign out</button></form></div>
+ </div>;
 }

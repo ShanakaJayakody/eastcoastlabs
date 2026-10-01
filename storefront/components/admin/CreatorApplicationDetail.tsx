@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
@@ -199,14 +200,14 @@ export default function CreatorApplicationDetail({
               )}
             </div>
           )}
-          <button
+          <AdminWriteButton
             type="button"
             onClick={save}
             disabled={pending || !review || stale}
             className={`${button} w-fit bg-accent text-accent-ink hover:brightness-95`}
           >
             {pending ? "Saving review..." : "Save review"}
-          </button>
+          </AdminWriteButton>
         </div>
       </section>
     </div>

@@ -4,7 +4,7 @@ import {beforeAll,afterAll,it,expect} from 'vitest';
 let db:PGlite;
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create role managed_probe_owner;
- create schema storage;create table storage.buckets(id text primary key,name text,public boolean);
+ create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz); create schema storage;create table storage.buckets(id text primary key,name text,public boolean);
  grant select on storage.buckets to anon;
  create table public.managed_probe(id int);alter table public.managed_probe owner to managed_probe_owner;grant truncate on public.managed_probe to anon;
  alter default privileges for role managed_probe_owner grant execute on functions to anon;

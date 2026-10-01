@@ -2,6 +2,7 @@
  * that remove stylesheets. The shared public logo is the only remote asset;
  * the wordmark remains readable text when images are blocked. */
 export const EMAIL_SITE = 'https://www.eastcoastlabs.com.au';
+export const EMAIL_TELEGRAM = 'https://t.me/eclpeptides';
 export const EMAIL_COLORS = {
   ink: '#152e46', muted: '#536577', accent: '#275b88', brand: '#245cff',
   background: '#edf3f7', paper: '#ffffff', line: '#dbe3e9',
@@ -39,12 +40,14 @@ interface EmailShellOptions {
 export function emailShell({ preheader, body, supportEmail, supportHours, unsubscribeUrl, audience = 'customer' }: EmailShellOptions): string {
   const c = EMAIL_COLORS;
   const linkStyle = `color:${c.accent};text-decoration:underline;`;
-  const contact = audience === 'customer' && supportEmail
+  const contact = audience === 'customer'
     ? `<tr><td class="email-padding" bgcolor="#f7fafc" style="padding:24px 36px;border-top:1px solid ${c.line};">
-<p style="margin:0 0 6px;color:${c.ink};font-size:15px;line-height:1.6;font-weight:600;">Here to help</p>
-<p style="margin:0;color:${c.muted};font-size:14px;line-height:1.7;">For questions about your order or our range, contact<br>
-<a href="mailto:${escapeEmailHtml(supportEmail)}" style="${linkStyle}overflow-wrap:anywhere;word-break:break-word;">${escapeEmailHtml(supportEmail)}</a>.</p>
-${supportHours ? `<p style="margin:6px 0 0;color:${c.muted};font-size:13px;line-height:1.6;">${escapeEmailHtml(supportHours)}</p>` : ''}
+<p style="margin:0 0 6px;color:${c.ink};font-size:15px;line-height:1.6;font-weight:600;">A question? We're here to help.</p>
+${supportEmail ? `<p style="margin:0;color:${c.muted};font-size:14px;line-height:1.7;">Email us at
+<a href="mailto:${escapeEmailHtml(supportEmail)}" style="${linkStyle}overflow-wrap:anywhere;word-break:break-word;">${escapeEmailHtml(supportEmail)}</a>. If it's about an order, include your order number so we can find it easily.</p>` : ''}
+${supportHours ? `<p style="margin:6px 0 0;color:${c.muted};font-size:13px;line-height:1.6;">Email support: ${escapeEmailHtml(supportHours)}</p>` : ''}
+<p style="margin:14px 0 0;color:${c.muted};font-size:14px;line-height:1.7;">Prefer Telegram? Find us at <a href="${EMAIL_TELEGRAM}" style="${linkStyle}">@eclpeptides</a> for 24/7 support. Response times may vary.</p>
+<p style="margin:6px 0 0;color:${c.muted};font-size:12px;line-height:1.6;">For help with an order, message us privately. Please don't post payment or personal details in the community.</p>
 </td></tr>` : '';
 
   return `<!doctype html>

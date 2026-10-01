@@ -159,10 +159,10 @@ export async function setOrderPaymentPlan(orderId: string, opts: { reference: st
 export async function markPaid(orderId: string, opts: OrderOperationOptions & { paymentRef?: string; paymentMethod?: string; countDiscount?: boolean } = {}): Promise<void> {
   await operation(orderId, "paid", opts);
 }
-export async function setStatus(orderId: string, to: OrderStatus, opts: OrderOperationOptions & { trackingNumber?: string } = {}): Promise<void> {
+export async function setStatus(orderId: string, to: OrderStatus, opts: OrderOperationOptions & { trackingNumber?: string; carrierCode?: string|null } = {}): Promise<void> {
   await operation(orderId, to, opts);
 }
-export async function updateOrderTracking(orderId: string, trackingNumber: string, opts: OrderOperationOptions & { notify?: boolean } = {}): Promise<void> {
+export async function updateOrderTracking(orderId: string, trackingNumber: string, opts: OrderOperationOptions & { notify?: boolean; carrierCode?: string|null } = {}): Promise<void> {
   if (trackingNumber.length > 200) throw new Error("Tracking number is too long");
   await operation(orderId, "tracking", { ...opts, trackingNumber });
 }

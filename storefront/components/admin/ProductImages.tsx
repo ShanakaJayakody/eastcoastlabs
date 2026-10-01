@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
@@ -62,13 +63,13 @@ export default function ProductImages({
     <section className="rounded-xl border border-line bg-surface p-5">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-fg">Images</h3>
-        <button
+        <AdminWriteButton
           disabled={pending}
           onClick={() => fileRef.current?.click()}
           className="flex items-center gap-1.5 rounded-lg border border-line-2 bg-surface-2 px-3 py-1.5 text-xs font-medium text-fg-2 transition hover:text-fg disabled:opacity-50"
         >
           <Upload size={13} /> Upload
-        </button>
+        </AdminWriteButton>
         <input
           ref={fileRef}
           type="file"
@@ -92,30 +93,30 @@ export default function ProductImages({
             <div key={img.src} className="group relative aspect-square overflow-hidden rounded-lg border border-line bg-ink-2">
               <Image src={img.src} alt={img.alt ?? ""} fill sizes="200px" className="object-contain p-1" />
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-ink/80 px-1 py-1 opacity-0 transition group-hover:opacity-100">
-                <button
+                <AdminWriteButton
                   disabled={pending || i === 0}
                   onClick={() => move(i, -1)}
                   className="rounded p-1 text-fg-2 hover:text-fg disabled:opacity-30"
                   aria-label="Move earlier"
                 >
                   <ChevronLeft size={13} />
-                </button>
-                <button
+                </AdminWriteButton>
+                <AdminWriteButton
                   disabled={pending}
                   onClick={() => remove(img.src)}
                   className="rounded p-1 text-fg-2 hover:text-red-400"
                   aria-label="Remove image"
                 >
                   <X size={13} />
-                </button>
-                <button
+                </AdminWriteButton>
+                <AdminWriteButton
                   disabled={pending || i === images.length - 1}
                   onClick={() => move(i, 1)}
                   className="rounded p-1 text-fg-2 hover:text-fg disabled:opacity-30"
                   aria-label="Move later"
                 >
                   <ChevronRight size={13} />
-                </button>
+                </AdminWriteButton>
               </div>
               {i === 0 && (
                 <span className="absolute left-1 top-1 rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-accent-ink">

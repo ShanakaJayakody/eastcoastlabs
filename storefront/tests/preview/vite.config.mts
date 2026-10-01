@@ -5,12 +5,14 @@ const local = (file:string) => fileURLToPath(new URL(file, import.meta.url));
 const port = Number(process.env.PREVIEW_PORT ?? 4174);
 export default defineConfig({
  root: local('.'),
+ cacheDir: `${root}node_modules/.vite-browser-preview`,
  publicDir: `${root}public`,
  define: {"process.env": "{}"},
  resolve: {alias:[
   {find:'@/app/admin/(dashboard)/orders/actions',replacement:local('./orders-workspace-adapter.ts')},
   {find:'@/lib/admin/auth-actions',replacement:local('./orders-workspace-adapter.ts')},
   {find:'@/app/admin/search-actions',replacement:local('./orders-workspace-adapter.ts')},
+  {find:'@/lib/customer-auth/actions',replacement:local('./customer-auth-actions.ts')},
   {find:'@/app/admin/(dashboard)/customers/profile-actions',replacement:local('./customer-actions.ts')},
   {find:'@/app/admin/(dashboard)/products/actions',replacement:local('./size-actions.ts')},
   {find:'@/app/cart-recovery/actions',replacement:local('./recovery-actions.ts')},

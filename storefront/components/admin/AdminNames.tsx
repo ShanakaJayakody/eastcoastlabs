@@ -1,4 +1,5 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -32,8 +33,8 @@ function NameRow({ admin }: { admin: AdminNameRow }) {
     <div className="flex gap-2">
       <input id={`admin-name-${admin.id}`} value={name} maxLength={80} disabled={pending} placeholder="e.g. Alex Chen"
         onChange={event => setName(event.target.value)} className="min-w-0 flex-1 rounded-lg border border-line bg-ink-2 px-3 py-2 text-sm text-fg outline-none focus:border-accent"/>
-      <button type="button" onClick={save} disabled={pending || !name.trim() || name.trim() === savedName}
-        className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-accent-ink disabled:opacity-50">{pending ? "Saving…" : "Save name"}</button>
+      <AdminWriteButton type="button" onClick={save} disabled={pending || !name.trim() || name.trim() === savedName}
+        className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-accent-ink disabled:opacity-50">{pending ? "Saving…" : "Save name"}</AdminWriteButton>
     </div>
   </li>;
 }

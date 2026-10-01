@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
 import { createPortal } from "react-dom";
 import { Command } from "cmdk";
+import {useAdminTheme} from './AdminThemeProvider';
 
 /**
  * A single actionable entry in the command palette.
@@ -65,6 +66,7 @@ export interface CommandPaletteProps {
 }
 
 export function CommandPalette({ items, onSearch }: CommandPaletteProps): JSX.Element {
+  const {theme}=useAdminTheme();
   const [mounted, setMounted] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
   const [query, setQuery] = useState("");
@@ -164,8 +166,9 @@ export function CommandPalette({ items, onSearch }: CommandPaletteProps): JSX.El
   const dialog = (
     <div
       role="presentation"
+      data-admin-theme={theme}
       onClick={close}
-      className="fixed inset-0 z-[100] flex items-start justify-center bg-ink/70 px-4 pt-[12vh] backdrop-blur-sm"
+      className="admin-theme fixed inset-0 z-[100] flex items-start justify-center bg-ink/70 px-4 pt-[12vh] backdrop-blur-sm"
     >
       <div
         role="dialog"

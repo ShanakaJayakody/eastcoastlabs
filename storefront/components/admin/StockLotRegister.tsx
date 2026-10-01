@@ -1,4 +1,5 @@
 'use client';
+import AdminWriteButton from "./AdminWriteButton";
 import {useId,useState,useTransition} from 'react';
 import {useRouter} from 'next/navigation';
 import type {LotCatalog} from '@/lib/admin/fulfilment';
@@ -24,7 +25,7 @@ export default function StockLotRegister({catalog}:{catalog:LotCatalog}){
     <label htmlFor={`${id}-coa`}>Verified certificate (optional)<select key={`coa-${pool}`} id={`${id}-coa`} name="coa" className={field}><option value="">No verified certificate linked</option>{catalog.certificates.filter(c=>c.compound.toLowerCase().trim()===name).map(c=><option key={c.id} value={c.id}>{c.batchId}</option>)}</select></label>
     <label htmlFor={`${id}-evidence`}>Physical stock evidence<textarea id={`${id}-evidence`} name="evidence" required minLength={3} maxLength={2000} className={field}/></label>
     <label className="text-sm sm:col-span-2"><input type="checkbox" required/> I counted these units and checked the physical label against any selected receipt and certificate.</label>
-    <button className="rounded-lg bg-accent px-3 py-2 font-semibold text-accent-ink" type="submit">{pending?'Registering…':'Register existing stock lot'}</button>
+    <AdminWriteButton className="rounded-lg bg-accent px-3 py-2 font-semibold text-accent-ink" type="submit">{pending?'Registering…':'Register existing stock lot'}</AdminWriteButton>
    </fieldset>
   </form>
   {error&&<p role="alert" className="text-sm text-danger">{error}</p>}{saved&&<p role="status" className="text-sm">Lot registered. Inventory totals are unchanged.</p>}

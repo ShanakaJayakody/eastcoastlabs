@@ -1,0 +1,16 @@
+import {createRoot} from 'react-dom/client';
+import AdminShell from '@/components/admin/AdminShell';
+import DailyQuote from '@/components/admin/overview/DailyQuote';
+import RevenueOverview from '@/components/admin/overview/RevenueOverview';
+import ProgressHighlight from '@/components/admin/overview/ProgressHighlight';
+import OpenWork from '@/components/admin/overview/OpenWork';
+import OrdersWorkspace from '@/components/admin/OrdersWorkspace';
+import {makeWorkspaceRow,makeWorkspacePage,makeWorkspaceParams} from '../helpers/order-workspace-fixtures';
+import {dailyQuote} from '@/lib/admin/daily-quote';
+import {aggregatePaidRevenue} from '@/lib/admin/overview/revenue';
+import {facts,now} from './admin-integrated-data';
+import '@/app/globals.css';
+import '@/components/admin/overview/overview.css';
+const revenue=aggregatePaidRevenue(facts,{kind:'week'},now),month=aggregatePaidRevenue(facts,{kind:'month'},now);
+const orders=Array.from({length:4},(_,i)=>({id:'00000000-0000-4000-8000-00000000000'+i,order_number:'#QA-104'+i,status:'paid' as const,customer_name:['Alex Sample','Jordan Sample','Taylor Sample','Morgan Sample'][i],customer_email:'example'+i+'@example.test',total_cents:24500+i*3500,created_at:'2026-09-27T00:00:00Z',item_count:2}));
+createRoot(document.getElementById('root')!).render(<AdminShell email="qa@example.test" readOnly><div className="admin-today"><p style={{color:'var(--color-muted)',fontSize:11,marginBottom:20}}>LOCAL QA · SYNTHETIC DATA ONLY</p><div className="today-heading"><DailyQuote initial={dailyQuote(new Date())}/><a className="overview-button" href="#orders">Open orders ↗</a></div><div className="overview-grid"><div className="overview-revenue"><RevenueOverview initial={revenue}/></div><div className="overview-highlight"><ProgressHighlight month={month}/></div><div className="overview-work"><OpenWork counts={{toFulfil:18,pendingPayment:7,lowStock:3}}/></div></div><div id="orders"><h2 style={{marginBottom:16,fontSize:18}}>Ready to move</h2><OrdersWorkspace params={makeWorkspaceParams()} data={makeWorkspacePage(orders.map(row=>makeWorkspaceRow(row)))} adminUserId="synthetic-integrated"/></div></div></AdminShell>);

@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin/auth";
@@ -32,7 +33,7 @@ export type ManualOrderResult =
  * manual order can never be mispriced or oversold.
  */
 export async function createManualOrder(input: ManualOrderInput): Promise<ManualOrderResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
 
   if (!input.email?.includes("@")) return { ok: false, error: "Enter a valid customer email." };
   if (!input.name?.trim()) return { ok: false, error: "Enter the customer's name." };

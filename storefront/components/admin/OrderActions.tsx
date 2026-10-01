@@ -1,12 +1,16 @@
 "use client";
+import AdminWriteButton from "./AdminWriteButton";
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { CARRIERS } from "@/lib/customer-orders/presentation";
 import { confirmPayment, correctTracking, advanceStatus, cancel, addNote, reinstate, deleteOrder } from "@/app/admin/(dashboard)/orders/actions";
 import ConfirmModal from "./ConfirmModal";
 import RefundReview from "./RefundReview";
 import type { OrderStatus, ReinstateLineCheck } from "@/lib/admin/orders";
+import type { OrderShippingMethod } from "@/lib/admin/order-shipping";
+import ShippingMethodIndicator from "./ShippingMethodIndicator";
 
 const NEXT_LABEL: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
   paid: { to: "processing", label: "Start packing" },
@@ -18,20 +22,25 @@ export default function OrderActions({
   orderId,
   status,
   stockCheck,
-  orderNumber, trackingNumber, hasRefunds=false,
+  shippingMethod,
+  orderNumber, trackingNumber, carrierCode, hasRefunds=false,
 }: {
   orderId: string;
   orderNumber?:string;
   hasRefunds?:boolean;
   remainingRefundCents?:number;
   trackingNumber?:string|null;
+  carrierCode?:string|null;
   status: OrderStatus;
+  shippingMethod?: OrderShippingMethod;
   /** Line-by-line availability, supplied only for cancelled orders. */
   stockCheck?: ReinstateLineCheck[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [paymentRef, setPaymentRef] = useState("");
+  const [carrier, setCarrier] = useState(carrierCode ?? "");
+  const carrierField = <label className="block text-xs">Shipping carrier<select className={"mt-1 block w-full rounded border border-line bg-ink p-2"} value={carrier} onChange={e=>setCarrier(e.target.value)}><option value="">Unknown / other</option>{Object.entries(CARRIERS).map(([key,value])=><option key={key} value={key}>{value.name}</option>)}</select></label>;
   const [tracking, setTracking] = useState(trackingNumber ?? "");
   const [note, setNote] = useState("");
 
@@ -67,6 +76,7 @@ export default function OrderActions({
   return (
     <div className="space-y-4 rounded-xl border border-line bg-surface p-4">
       <h3 className="text-sm font-semibold text-fg">Actions</h3>
+      {shippingMethod && <ShippingMethodIndicator method={shippingMethod} compact />}
       {confirming==='refund' && <RefundReview orderId={orderId} selection={null} onClose={()=>setConfirming(null)}/>}
       <ConfirmModal open={confirming==='cancel'} title={`Cancel order · ${orderNumber ?? orderId}`} confirmLabel="Cancel order" tone="danger" pending={pending} onCancel={()=>setConfirming(null)} onConfirm={()=>run(()=>cancel(orderId,restock),'Order cancellation recorded')} body={<>
         <p>This updates the order record. Money is not transferred; return any money owed through your bank separately. Cancellation does not send a refund confirmation.</p>
@@ -101,7 +111,7 @@ export default function OrderActions({
           </label>
         </div>}
       />}
-      {(status==='shipped'||status==='completed') && <div className="space-y-2"><label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><button disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking),'Tracking updated')}>Save tracking correction</button></div>}
+      {(status==='shipped'||status==='completed') && <div className="space-y-2">{carrierField}<label className="block text-xs">Tracking number<input value={tracking} onChange={e=>setTracking(e.target.value)} className={field}/></label><label className="flex gap-2 text-xs"><input type="checkbox" checked={notifyTracking} onChange={e=>setNotifyTracking(e.target.checked)}/>Email the customer this correction</label><AdminWriteButton disabled={pending} className={`${btn} border border-line`} onClick={()=>run(()=>correctTracking(orderId,tracking,notifyTracking,carrier||null),'Tracking updated')}>Save tracking correction</AdminWriteButton></div>}
 
       {status === "cancelled" && (
         <div className="space-y-2 rounded-lg border border-line-2 bg-ink-2/50 p-3">
@@ -133,7 +143,7 @@ export default function OrderActions({
             />
           )}
 
-          <button
+          <AdminWriteButton
             disabled={pending || !canReinstate}
             onClick={() =>
               run(
@@ -144,8 +154,8 @@ export default function OrderActions({
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Reinstate &amp; mark paid
-          </button>
-          <button
+          </AdminWriteButton>
+          <AdminWriteButton
             disabled={pending || !canReinstate}
             onClick={() =>
               run(
@@ -156,7 +166,7 @@ export default function OrderActions({
             className={`${btn} w-full border border-line-2 bg-surface-2 text-fg-2 hover:text-fg`}
           >
             Reinstate as awaiting payment
-          </button>
+          </AdminWriteButton>
         </div>
       )}
 
@@ -171,62 +181,64 @@ export default function OrderActions({
             onChange={(e) => setPaymentRef(e.target.value)}
             className={field}
           />
-          <button
+          <AdminWriteButton
             disabled={pending}
             onClick={() => run(() => confirmPayment(orderId, paymentRef), "Payment confirmed — stock decremented")}
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Confirm payment
-          </button>
+          </AdminWriteButton>
         </div>
       )}
 
       {status === "processing" || status === "paid" ? (
         <div className="space-y-2">
+          {carrierField}
           <input
+            aria-label="Tracking number"
             placeholder="Tracking number"
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
             className={field}
           />
-          <button
+          <AdminWriteButton
             disabled={pending || !tracking.trim()}
-            onClick={() => run(() => advanceStatus(orderId, "shipped", tracking), "Marked shipped — dispatch email queued")}
+            onClick={() => run(() => advanceStatus(orderId, "shipped", tracking, carrier || null), "Marked shipped — dispatch email queued")}
             className={`${btn} w-full bg-accent text-accent-ink hover:brightness-95`}
           >
             Mark shipped {tracking ? "with tracking" : ""}
-          </button>
+          </AdminWriteButton>
           <p className="text-xs text-muted">A tracking number is required and will be included in the dispatch email.</p>
         </div>
       ) : null}
 
       {next && next.to !== "shipped" && (
-        <button
+        <AdminWriteButton
           disabled={pending}
           onClick={() => run(() => advanceStatus(orderId, next.to), `Order ${next.to}`)}
           className={`${btn} w-full border border-line-2 bg-surface-2 text-fg hover:brightness-110`}
         >
           {next.label}
-        </button>
+        </AdminWriteButton>
       )}
 
       {!closed && (
         <div className="flex gap-2 border-t border-line pt-3">
-          {status!=="pending" && <button
+          {status!=="pending" && <AdminWriteButton
             disabled={pending}
             onClick={() => {setRestock(false);setConfirming("refund");}}
             className={`${btn} flex-1 border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20`}
           >
             Record refund
-          </button>}
+          </AdminWriteButton>}
           {(status === "pending" || status === "paid") && (
-            <button
+            <AdminWriteButton
               disabled={pending}
               onClick={() => {setRestock(false);setConfirming("cancel");}}
               className={`${btn} flex-1 border border-line-2 text-muted hover:text-fg`}
             >
               Cancel
-            </button>
+            </AdminWriteButton>
           )}
         </div>
       )}
@@ -239,7 +251,7 @@ export default function OrderActions({
           onChange={(e) => setNote(e.target.value)}
           className={field}
         />
-        <button
+        <AdminWriteButton
           disabled={pending || !note.trim()}
           onClick={() =>
             run(async () => {
@@ -251,18 +263,18 @@ export default function OrderActions({
           className={`${btn} w-full border border-line-2 bg-surface-2 text-fg-2 hover:text-fg`}
         >
           Add note
-        </button>
+        </AdminWriteButton>
       </div>
 
       {orderNumber && <div className="border-t border-line pt-3">
-        <button
+        <AdminWriteButton
           type="button"
           disabled={pending}
           onClick={()=>{setDeleteConfirmation("");setConfirming("delete");}}
           className={`${btn} w-full border border-red-500/30 text-red-400 hover:bg-red-500/10`}
         >
           Delete order
-        </button>
+        </AdminWriteButton>
       </div>}
     </div>
   );

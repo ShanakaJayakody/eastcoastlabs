@@ -1,4 +1,5 @@
 "use server";
+import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 /**
  * Sequence controls.
@@ -44,7 +45,7 @@ export async function pauseSequence(
   sequence: SequenceId,
   reason?: string,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   const { error } = await adminDb()
     .from("sequence_overrides")
@@ -66,7 +67,7 @@ export async function pauseSequence(
 }
 
 export async function resumeSequence(email: string, sequence: SequenceId): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   const { error } = await adminDb()
     .from("sequence_overrides")
@@ -101,7 +102,7 @@ export async function skipStage(
   sequence: SequenceId,
   stage: number,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   if(sequence==="replenishment"&&reorderReminderDays()==null)return {ok:false,message:"Reorder reminders are disabled until timing is configured."};
   const target = await findStage(to, sequence, stage);
@@ -145,7 +146,7 @@ export async function sendStageNow(
   sequence: SequenceId,
   stage: number,
 ): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   if(sequence==="replenishment"&&reorderReminderDays()==null)return {ok:false,message:"Reorder reminders are disabled until timing is configured."};
   const target = await findStage(to, sequence, stage);
@@ -196,7 +197,7 @@ export async function sendStageNow(
 
 /** Terminal stop for an active cart — the recovery sweep only looks at 'active'. */
 export async function stopCartRecovery(email: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   const { error } = await adminDb().rpc("recovery_stop",{p_email:to});
   if (error) return { ok: false, message: error.message };
@@ -214,7 +215,7 @@ export async function stopCartRecovery(email: string): Promise<ActionResult> {
 /* ---------------- outbox row controls -------------------------------------- */
 
 export async function cancelQueuedEmail(id: string, email: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const { data, error } = await adminDb()
     .from("email_outbox")
     .update({ status: "cancelled" })
@@ -237,7 +238,7 @@ export async function cancelQueuedEmail(id: string, email: string): Promise<Acti
 }
 
 export async function retryFailedEmail(id: string, email: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const db = adminDb();
   const { error: resetError } = await db
     .from("email_outbox")
@@ -266,7 +267,7 @@ export async function retryFailedEmail(id: string, email: string): Promise<Actio
 /* ---------------- marketing suppression ------------------------------------ */
 
 export async function suppressMarketing(email: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   const {error}=await adminDb().rpc("suppress_marketing",{p_email:to,p_source:"admin"});
   if (error) return { ok: false, message: error.message };
@@ -282,7 +283,7 @@ export async function suppressMarketing(email: string): Promise<ActionResult> {
 }
 
 export async function resubscribeMarketing(email: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   const { error } = await adminDb()
     .from("subscribers")
@@ -303,7 +304,7 @@ export async function resubscribeMarketing(email: string): Promise<ActionResult>
 /* ---------------- notes + tags --------------------------------------------- */
 
 export async function addNote(email: string, note: string): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const body = note.trim();
   if (!body) return { ok: false, message: "Note is empty." };
   const to = clean(email);
@@ -318,7 +319,7 @@ export async function addNote(email: string, note: string): Promise<ActionResult
 }
 
 export async function setTags(email: string, tags: string[]): Promise<ActionResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const to = clean(email);
   const cleanTags = [...new Set(tags.map((t) => t.trim()).filter(Boolean))].slice(0, 12);
 
@@ -451,7 +452,7 @@ export interface BulkResult extends ActionResult {
  * Failures are collected and reported, never swallowed.
  */
 export async function bulkSuppressMarketing(emails: string[]): Promise<BulkResult> {
-  await requireAdmin();
+  await requireAdmin(); assertPreviewWritable();
   const targets = [...new Set(emails.map(clean).filter(Boolean))].slice(0, BULK_LIMIT);
   if (!targets.length) return { ok: false, message: "Nobody selected." };
 
@@ -473,7 +474,7 @@ export async function bulkSuppressMarketing(emails: string[]): Promise<BulkResul
  * silently destroy per-customer labels.
  */
 export async function bulkAddTag(emails: string[], tag: string): Promise<BulkResult> {
-  const session = await requireAdmin();
+  const session = await requireAdmin(); assertPreviewWritable();
   const label = tag.trim().slice(0, 32);
   if (!label) return { ok: false, message: "Tag is empty." };
   const targets = [...new Set(emails.map(clean).filter(Boolean))].slice(0, BULK_LIMIT);
