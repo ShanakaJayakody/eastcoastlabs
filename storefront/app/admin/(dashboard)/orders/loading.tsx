@@ -1,5 +1,1 @@
-import { TableSkeleton } from "@/components/admin/Skeleton";
-
-export default function Loading() {
-  return <TableSkeleton />;
-}
+export default function OrdersLoading(){return <div role="status" aria-label="Loading orders" className="space-y-4"><span className="sr-only">Loading orders…</span><div aria-hidden="true" className="space-y-4 motion-safe:animate-pulse"><div className="h-9 w-64 rounded-lg bg-surface"/><div className="h-10 rounded-lg bg-surface"/><div className="h-11 rounded-lg bg-surface"/><div className="overflow-hidden rounded-xl border border-line">{Array.from({length:8},(_,i)=><div key={i} className="h-20 border-b border-line bg-surface last:border-0"/>)}</div></div></div>;}

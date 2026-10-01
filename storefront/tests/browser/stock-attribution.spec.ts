@@ -9,6 +9,8 @@ test("stock attribution shows readable names and quantities across screen sizes"
   await page.goto("/frame.html?page=stock-admin&bare=1");
   await page.getByRole("button", { name: "Manage stock" }).click();
   const panel = page.getByRole("dialog", { name: "Stock — Research compound · 10 mg" });
+  // Contrast and geometry must be measured after the drawer's fade-in completes.
+  await expect(panel.locator(".admin-enter")).toHaveCSS("opacity", "1");
   await expect(panel.getByText("Recording stock as")).toBeVisible();
   await expect(panel.getByRole("heading", { name: "Who added stock" })).toBeVisible();
   const history = panel.getByRole("list", { name: "Stock history" });

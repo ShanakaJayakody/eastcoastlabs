@@ -4,6 +4,7 @@ import {isReadOnlyPreview,PREVIEW_READ_ONLY_MESSAGE} from './preview-policy';
 // establishes that a stored procedure is read-only.
 const READ_RPCS = new Set([
   'admin_order_status_counts','admin_people_counts','admin_settings_snapshot',
+  'admin_order_workspace','admin_order_workspace_scope','admin_order_workspace_export',
   'admin_order_fulfilment','admin_lot_catalog','admin_fulfilment_report',
   'admin_fulfilment_orders','recovery_episode_metrics','commerce_reinstatement_preview',
 ]);

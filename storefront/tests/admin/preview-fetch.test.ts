@@ -32,3 +32,5 @@ it('leaves the production transport unchanged',async()=>{
   await createPreviewDataFetch('https://store.test',send)('https://store.test/rest/v1/orders',{method:'PATCH'});
   expect(send.mock.calls[0]).toEqual(['https://store.test/rest/v1/orders',{method:'PATCH'}]);
 });
+
+it.each(['admin_order_workspace','admin_order_workspace_scope','admin_order_workspace_export'])('allows audited orders read RPC %s in read-only preview',async name=>{const send=vi.fn(async()=>new Response('{}'));await createPreviewDataFetch('https://store.test',send)(`https://store.test/rest/v1/rpc/${name}`,{method:'POST',body:'{}'});expect(send).toHaveBeenCalledOnce();});

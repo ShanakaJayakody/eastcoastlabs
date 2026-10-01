@@ -1,0 +1,8 @@
+import {it,expect,vi,beforeEach} from 'vitest';
+import {makeWorkspacePage,makeWorkspaceParams,makeWorkspaceRow} from '../helpers/order-workspace-fixtures';
+const {rpc}=vi.hoisted(()=>({rpc:vi.fn()}));vi.mock('@/lib/admin/db',()=>({adminDb:()=>({rpc})}));
+import {workspaceOrdersCsv,OrderExportTooLargeError} from '@/lib/admin/order-workspace/export';
+beforeEach(()=>rpc.mockReset());
+it('exports all population filters with compatible columns and safe formula fields',async()=>{rpc.mockResolvedValue({data:makeWorkspacePage([makeWorkspaceRow({customer_name:'=1+1',ordered_physical_units:null,remaining_physical_units:null,items:[]})]),error:null});const csv=await workspaceOrdersCsv(makeWorkspaceParams({status:'pending',discount:'VIP_20',shipping:'express',q:'PAY-1048'}));expect(rpc).toHaveBeenCalledWith('admin_order_workspace_export',{p_filters:expect.objectContaining({status:'pending',discount:'VIP_20',shipping:'express',q:'PAY-1048'})});expect(csv).toMatch(/^order_number,status,customer_name,customer_email,items,total_aud,placed_at,/);expect(csv).toContain("'=1+1");expect(csv).toContain('express,Payment recorded,Ready to pack,,,');});
+it('returns headers for an actual empty result',async()=>{rpc.mockResolvedValue({data:makeWorkspacePage([]),error:null});expect((await workspaceOrdersCsv(makeWorkspaceParams())).split('\n')).toHaveLength(1);});
+it('throws named oversized errors and ordinary read failures',async()=>{rpc.mockResolvedValueOnce({error:{message:'ORDER_EXPORT_TOO_LARGE'}});await expect(workspaceOrdersCsv(makeWorkspaceParams())).rejects.toBeInstanceOf(OrderExportTooLargeError);rpc.mockRejectedValueOnce(new Error('network'));await expect(workspaceOrdersCsv(makeWorkspaceParams())).rejects.toThrow('network');});

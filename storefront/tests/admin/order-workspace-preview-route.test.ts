@@ -1,0 +1,11 @@
+import {beforeEach,it,expect,vi} from 'vitest';
+import {makeOrderPreview} from '../helpers/order-workspace-fixtures';
+const mocks=vi.hoisted(()=>({guard:vi.fn(),order:vi.fn(),facts:vi.fn(),fulfilment:vi.fn()}));
+vi.mock('@/lib/admin/auth',()=>({requireAdmin:mocks.guard}));vi.mock('@/lib/admin/order-queries',()=>({getOrder:mocks.order}));vi.mock('@/lib/admin/order-workspace/queries',()=>({getOrderWorkspaceRow:mocks.facts}));vi.mock('@/lib/admin/fulfilment',()=>({getOrderFulfilment:mocks.fulfilment}));
+import {GET} from '@/app/admin/(dashboard)/orders/[id]/preview/route';
+const preview=makeOrderPreview();const call=(id=preview.facts.id)=>GET(new Request('http://test'),{params:Promise.resolve({id})});
+beforeEach(()=>{vi.clearAllMocks();mocks.guard.mockResolvedValue({userId:'admin'});mocks.order.mockResolvedValue(preview.order);mocks.facts.mockResolvedValue(preview.facts);mocks.fulfilment.mockResolvedValue(preview.fulfilment);});
+it('guards before reads and leaves authorization control flow intact',async()=>{mocks.guard.mockRejectedValueOnce(new Error('NEXT_REDIRECT'));await expect(call()).rejects.toThrow('NEXT_REDIRECT');expect(mocks.order).not.toHaveBeenCalled();});
+it('rejects invalid IDs, distinguishes missing orders and never caches preview data',async()=>{expect((await call('invalid')).status).toBe(400);expect(mocks.order).not.toHaveBeenCalled();const response=await call();expect(response.status).toBe(200);expect(response.headers.get('cache-control')).toBe('private, no-store');expect((await response.json()).facts.id).toBe(preview.facts.id);mocks.order.mockResolvedValue(null);mocks.facts.mockResolvedValue(null);mocks.fulfilment.mockRejectedValue(new Error('missing'));expect((await call()).status).toBe(404);});
+it('retries a concurrent mutation once and reports persistent mismatch',async()=>{mocks.facts.mockResolvedValueOnce({...preview.facts,status:'pending'});expect((await call()).status).toBe(200);expect(mocks.facts).toHaveBeenCalledTimes(2);mocks.facts.mockResolvedValue({...preview.facts,refunded_cents:500});expect((await call()).status).toBe(409);});
+it('does not expose private query errors',async()=>{mocks.order.mockRejectedValue(new Error('database secret'));const response=await call();expect(response.status).toBe(500);expect(await response.text()).not.toContain('secret');});
