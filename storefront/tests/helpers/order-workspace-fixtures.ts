@@ -7,3 +7,7 @@ export function makeWorkspaceRow(patch:Partial<OrderWorkspaceRow>={}):OrderWorks
 export function makeWorkspacePage(rows:OrderWorkspaceRow[]=[makeWorkspaceRow()]):OrderWorkspacePage{
  return {rows,total:rows.length,counts:Object.fromEntries(ORDER_VIEWS.map(v=>[v,v==='all'?rows.length:rows.filter(r=>v==='to_fulfil'?['paid','processing'].includes(r.status):v==='needs_attention'?r.issue_keys.length:r.status===v).length])) as OrderWorkspacePage['counts'],as_of:'2026-09-29T02:00:00Z',page:1,page_size:25};
 }
+export function makeOrderPreview(patch:Partial<OrderWorkspaceRow>={}):import('@/lib/admin/order-workspace/types').OrderPreview {
+ const facts=makeWorkspaceRow(patch);
+ return {facts,order:{...facts,shipping_address:{name:'Alex Sample',line1:'12 Sample Street',suburb:'Melbourne',state:'VIC',postcode:'3000',country:'AU'},subtotal_cents:facts.total_cents,shipping_cents:0,discount_cents:0,discount_code:null,notes:'Synthetic note',stock_settled:facts.status!=='pending',items:facts.items.map(i=>({...i,variant_id:null,product_slug:null,unit_price_cents:7000,line_total_cents:14000,refunded_cents:0})),events:[]},fulfilment:{orderId:facts.id,status:facts.status,editable:['paid','processing'].includes(facts.status),lines:[]}};
+}

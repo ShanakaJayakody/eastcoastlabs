@@ -210,7 +210,7 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
   if (error) throw new Error(`getOrder: ${error.message}`);
   if (!order) return null;
 
-  const [{ data: items }, { data: events }] = await Promise.all([
+  const [{ data: items, error: itemsError }, { data: events, error: eventsError }] = await Promise.all([
     db
       .from("order_items")
       .select(
@@ -224,6 +224,8 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
       .order("created_at", { ascending: true }),
   ]);
 
+  if (itemsError) throw new Error(`getOrder items: ${itemsError.message}`);
+  if (eventsError) throw new Error(`getOrder events: ${eventsError.message}`);
   return {
     ...(order as unknown as OrderDetail),
     items: (items ?? []).map((row) => {

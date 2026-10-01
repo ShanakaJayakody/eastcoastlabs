@@ -91,3 +91,9 @@ export interface OrderPreferences {
   density: 'comfortable' | 'compact';
   views: StoredOrderView[];
 }
+
+export interface OrderPreview {
+ order:import('@/lib/admin/order-queries').OrderDetail;
+ fulfilment:import('@/lib/admin/fulfilment').OrderFulfilment;
+ facts:OrderWorkspaceRow;
+}
