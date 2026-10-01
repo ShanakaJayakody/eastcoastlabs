@@ -1,5 +1,5 @@
 import {PGlite} from '@electric-sql/pglite';
-import {readFileSync,readdirSync} from 'node:fs';
+import {readFileSync,readdirSync,writeFileSync} from 'node:fs';
 import {beforeAll,afterAll,beforeEach,afterEach,it,expect} from 'vitest';
 import type {OrderWorkspacePage} from '@/lib/admin/order-workspace/types';
 let db:PGlite;const at='2026-10-05T04:00:00Z';
@@ -69,7 +69,7 @@ it('rejects invalid SQL filter enums and pages',async()=>{
  for(const filters of [{status:'evil'},{shipping:'evil'},{sort:'evil'},{dir:'sideways'},{page:0},{from_at:'2026-10-03',to_at:'2026-10-01'}]){await db.exec('savepoint invalid');await expect(workspace(filters)).rejects.toThrow(/invalid/i);await db.exec('rollback to savepoint invalid');}
 });
 it('aggregates multiple pools on one item and settlement evidence independently',async()=>{
- const id=await order('refunded',{paid_at:'2026-10-01',shipped_at:'2026-10-02',tracking_number:'TRACK-LITERAL',refunded_cents:1000}),i=await item(id,2,1),p=await pool('one'),a=await pool('two');
+ const id=await order('refunded',{paid_at:'2026-10-01T01:00:00Z',shipped_at:'2026-10-02T00:00:00Z',tracking_number:'TRACK-LITERAL',refunded_cents:1000}),i=await item(id,2,1),p=await pool('one'),a=await pool('two');
  await db.query('insert into order_stock_claims values($1,$2,3),($1,$3,1)',[i,p,a]);
  await db.query("insert into refund_settlements(order_id,amount_cents,transfer_reference,transfer_date,operation_key,actor_email) values($1,1000,'settled','2026-10-03','unique','operator@example.test')",[id]);
  expect((await workspace({q:'TRACK-LITERAL'})).rows[0]).toMatchObject({ordered_physical_units:8,remaining_physical_units:4,refund_settled_cents:1000,issue_keys:[]});
@@ -77,6 +77,6 @@ it('aggregates multiple pools on one item and settlement evidence independently'
 it('keeps a deterministic UUID tie break and measures a 10000-order scope',async()=>{
  await db.exec("insert into orders(customer_email,created_at) select 'performance@example.test','2026-10-01' from generate_series(1,10000);analyze orders");
  const result=await workspace();expect(result.total).toBe(10000);expect(result.rows.map(r=>r.id)).toEqual(result.rows.map(r=>r.id).sort());
- console.info('10k workspace plan',(await db.query("explain (analyze,buffers) select admin_order_workspace('{\"status\":\"all\",\"page\":1}', '2026-10-05T04:00:00Z')")).rows);
- console.info('Item lookup plan',(await db.query("explain select * from order_items where order_id='00000000-0000-4000-8000-000000000001'")).rows);
+ writeFileSync('/tmp/ecl-workspace-query-plan.json',JSON.stringify((await db.query("explain (analyze,buffers) select admin_order_workspace('{\"status\":\"all\",\"page\":1}', '2026-10-05T04:00:00Z')")).rows));
+ writeFileSync('/tmp/ecl-workspace-item-plan.json',JSON.stringify((await db.query("explain select * from order_items where order_id='00000000-0000-4000-8000-000000000001'")).rows));
 });
