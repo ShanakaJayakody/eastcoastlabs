@@ -3,6 +3,8 @@ import {assertPreviewWritable} from '@/lib/admin/preview-policy';
 
 import { prepareProductMedia } from "@/lib/product-media";
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
+import { productImageError } from "@/lib/product-images";
 import { requireAdmin } from "@/lib/admin/auth";
 import {
   updateProduct,
@@ -26,7 +28,6 @@ import { queueBackInStock } from "@/lib/admin/notifications";
 import { formatAud } from "@/lib/format";
 
 const IMAGE_BUCKET = "product-images";
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export interface ActionResult {
   ok: boolean;
@@ -381,35 +382,78 @@ export interface ImageResult extends ActionResult {
   images?: { src: string; alt?: string }[];
 }
 
-/** Upload an image to the public product-images bucket and append it to the
- *  product's images array. */
-export async function uploadProductImage(slug: string, formData: FormData): Promise<ImageResult> {
-  const session = await requireAdmin(); assertPreviewWritable();
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choose an image file." };
-  if (!file.type.startsWith("image/")) return { ok: false, error: "File must be an image." };
-  if (file.size > MAX_IMAGE_BYTES) return { ok: false, error: "Image must be under 8MB." };
+/** Authorize one storage upload. Only metadata crosses the server action:
+ * photo bytes would exceed Next's 1MB / Vercel's 4.5MB request limits. */
+export async function createProductImageUpload(
+  slug: string,
+  file: { name: string; type: string; size: number },
+): Promise<ActionResult & { path?: string; signedUrl?: string }> {
+  await requireAdmin();
+  assertPreviewWritable();
+  const error = productImageError(file);
+  if (error) return { ok: false, error };
 
   try {
     const product = await getProductBySlug(slug);
     if (!product) return { ok: false, error: "Product not found." };
 
-    const db = adminDb();
-    const media = await prepareProductMedia(Buffer.from(await file.arrayBuffer()));
-    const path = `${slug}/${media.digest}.jpg`;
-    const emailPath = `${slug}/${media.digest}-email.jpg`;
-    for (const [assetPath, bytes] of [[path, media.image], [emailPath, media.thumbnail]] as const) {
-      const { error } = await db.storage.from(IMAGE_BUCKET).upload(assetPath, bytes, { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" });
-      if (error && !/already exists|duplicate/i.test(error.message)) throw new Error(error.message);
-    }
-    const publicUrl = db.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
-    const emailUrl = db.storage.from(IMAGE_BUCKET).getPublicUrl(emailPath).data.publicUrl;
-    const images = [...product.images, { src: publicUrl, email_src: emailUrl, alt: product.name, size_label: product.size_label ?? null }];
-    await setProductImages(slug, images, session.email);
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10) || "jpg";
+    const path = `${slug}/${randomUUID()}.${ext}`;
+    const { data, error: signError } = await adminDb().storage
+      .from(IMAGE_BUCKET)
+      .createSignedUploadUrl(path, { upsert: false });
+    if (signError) throw new Error(signError.message);
+    return { ok: true, path, signedUrl: data.signedUrl };
+  } catch (err) {
+    return fail(err);
+  }
+}
 
-    revalidatePath(`/admin/products/${slug}`);
-    revalidatePath(`/product/${slug}`);
-    return { ok: true, message: "Image uploaded", images };
+/** Attach only a completed, verified upload belonging to this product. */
+export async function completeProductImageUpload(slug: string, path: string): Promise<ImageResult> {
+  const session = await requireAdmin();
+  assertPreviewWritable();
+  const prefix = `${slug}/`;
+  if (typeof path !== "string" || !path.startsWith(prefix) ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{1,10}$/.test(path.slice(prefix.length))) {
+    return { ok: false, error: "Invalid image upload. Please try again." };
+  }
+  try {
+    const bucket = adminDb().storage.from(IMAGE_BUCKET);
+    try {
+      const { data, error: infoError } = await bucket.info(path);
+      if (infoError) throw new Error("Image upload could not be verified. Please try again.");
+      const error = productImageError({ size: data.size, type: data.contentType });
+      if (error) return { ok: false, error };
+
+      // Preserve the publication pipeline: decode/strip metadata, optimise the
+      // storefront image and generate its immutable email thumbnail.
+      const { data: original, error: downloadError } = await bucket.download(path);
+      if (downloadError) throw new Error("Could not read the uploaded image. Please try again.");
+      const media = await prepareProductMedia(Buffer.from(await original.arrayBuffer()));
+      const imagePath = `${slug}/${media.digest}.jpg`;
+      const emailPath = `${slug}/${media.digest}-email.jpg`;
+      for (const [assetPath, bytes] of [[imagePath, media.image], [emailPath, media.thumbnail]] as const) {
+        const { error } = await bucket.upload(assetPath, bytes, { contentType: "image/jpeg", upsert: false, cacheControl: "31536000" });
+        if (error && !/already exists|duplicate/i.test(error.message)) throw new Error(error.message);
+      }
+
+      const product = await getProductBySlug(slug);
+      if (!product) return { ok: false, error: "Product not found." };
+      const publicUrl = bucket.getPublicUrl(imagePath).data.publicUrl;
+      const emailUrl = bucket.getPublicUrl(emailPath).data.publicUrl;
+      const images = product.images.some((image) => image.src === publicUrl)
+        ? product.images
+        : [...product.images, { src: publicUrl, email_src: emailUrl, alt: product.name, size_label: product.size_label ?? null }];
+      if (images !== product.images) await setProductImages(slug, images, session.email);
+
+      revalidateProduct(slug);
+      return { ok: true, message: "Image uploaded", images };
+    } finally {
+      // Each picker retry gets a fresh staging path. Retain only the immutable
+      // published images, including when decoding or saving fails.
+      await bucket.remove([path]).catch(() => {});
+    }
   } catch (err) {
     return fail(err);
   }
