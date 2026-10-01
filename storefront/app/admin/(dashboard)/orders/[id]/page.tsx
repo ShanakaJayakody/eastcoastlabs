@@ -1,3 +1,4 @@
+import {safeOrdersReturnTo,type RawOrderParams} from '@/lib/admin/order-workspace/params';
 import OrderCosts from "@/components/admin/OrderCosts";
 import { variableCosts } from "@/lib/admin/reports";
 import LotPacking from "@/components/admin/LotPacking";
@@ -22,9 +23,11 @@ export const dynamic = "force-dynamic";
 
 const cents = (c: number | null) => c==null?"Unknown":formatAud(c / 100);
 
-export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrderDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<RawOrderParams> }) {
   await requireAdmin();
   const { id } = await params;
+  const search = await searchParams;
+  const returnTo = safeOrdersReturnTo(typeof search?.returnTo === "string" ? search.returnTo : null);
   const order = await getOrder(id);
   if (!order) notFound();
 
@@ -38,7 +41,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/admin/orders" className="rounded-md p-1 text-muted hover:text-fg">
+          <Link href={returnTo} aria-label="Back to orders" className="rounded-md p-1 text-muted hover:text-fg">
             <ArrowLeft size={18} />
           </Link>
           <div>
