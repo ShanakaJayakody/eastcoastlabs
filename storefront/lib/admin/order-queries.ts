@@ -226,7 +226,6 @@ export async function getOrder(id: string): Promise<OrderDetail | null> {
   ]);
   if (itemsError) throw new Error(`getOrder items: ${itemsError.message}`);
   if (eventsError) throw new Error(`getOrder events: ${eventsError.message}`);
-
   return {
     ...(order as unknown as OrderDetail),
     items: (items ?? []).map((row) => {

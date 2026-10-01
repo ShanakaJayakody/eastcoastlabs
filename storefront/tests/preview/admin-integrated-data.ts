@@ -8,3 +8,5 @@ export async function searchAdmin(){return [];}
 export async function bulkConfirmPayment(){throw Error('Synthetic read-only fixture');}
 export async function bulkReinstate(){throw Error('Synthetic read-only fixture');}
 export async function loadOrderPreview(id:string){return {id,order_number:'#QA-1042',status:'paid',customer_name:'Synthetic customer',paid_at:'2026-09-28T00:00:00Z',total_cents:24500,items:[{id:'item',product_name:'Research compound',variant_label:'3-pack · 10 mg/mL',size_label:'Changed catalogue label',qty:2,line_total_cents:24500}]};}
+
+export async function confirmPayment(){throw Error('Synthetic read-only fixture');}

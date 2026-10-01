@@ -1,0 +1,7 @@
+// @vitest-environment jsdom
+import {it,expect} from 'vitest';
+import {renderHook,act} from '@testing-library/react';
+import {useOrderSelection} from '@/components/admin/useOrderSelection';
+import {makeWorkspaceRow} from '../helpers/order-workspace-fixtures';
+it('limits selection to the page and never resurrects a previous query selection',()=>{const rows=[makeWorkspaceRow()],{result,rerender}=renderHook(({scope,rows})=>useOrderSelection(rows,scope),{initialProps:{scope:'a',rows}});act(()=>result.current.togglePage());expect(result.current.selectedIds.has(rows[0].id)).toBe(true);rerender({scope:'b',rows});expect(result.current.selectedIds.size).toBe(0);rerender({scope:'a',rows});expect(result.current.selectedIds.size).toBe(0);act(()=>result.current.toggle('not-visible'));expect(result.current.selectedIds.size).toBe(0);});
+it('retains only visible failures and drops removed rows permanently',()=>{const a=makeWorkspaceRow(),b=makeWorkspaceRow({id:'10000000-0000-4000-8000-000000000002'});const {result,rerender}=renderHook(({rows})=>useOrderSelection(rows,'a'),{initialProps:{rows:[a,b]}});act(()=>result.current.togglePage());act(()=>result.current.retainFailures([{id:b.id,error:'stock'},{id:'hidden',error:'gone'}]));expect([...result.current.selectedIds]).toEqual([b.id]);rerender({rows:[a]});expect(result.current.selectedIds.size).toBe(0);rerender({rows:[a,b]});expect(result.current.selectedIds.size).toBe(0);});

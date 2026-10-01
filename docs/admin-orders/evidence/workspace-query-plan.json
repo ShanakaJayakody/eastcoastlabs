@@ -1,0 +1,1 @@
+[{"QUERY PLAN":"Result  (cost=0.00..0.26 rows=1 width=32) (actual time=635.330..635.335 rows=1.00 loops=1)"},{"QUERY PLAN":"  Buffers: shared hit=20610, temp read=11368 written=4070"},{"QUERY PLAN":"Planning Time: 0.037 ms"},{"QUERY PLAN":"Execution Time: 635.397 ms"}]

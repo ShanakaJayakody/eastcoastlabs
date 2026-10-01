@@ -1,0 +1,8 @@
+import {beforeEach,it,expect,vi} from 'vitest';
+const {inside,from}=vi.hoisted(()=>{const inside=vi.fn(),select=vi.fn(()=>({in:inside}));return {inside,select,from:vi.fn(()=>({select}))};});vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from})}));
+import {selectedPackContext} from '@/lib/admin/packing';
+const ids=[1,2,3,4].map(i=>`10000000-0000-4000-8000-00000000000${i}`);
+beforeEach(()=>{vi.clearAllMocks();inside.mockResolvedValue({data:[{id:ids[2],status:'processing'},{id:ids[1],status:'cancelled'},{id:ids[0],status:'paid'},{id:'unexpected',status:'paid'}],error:null});});
+it('fetches only the selected batch and preserves original order with explicit skips',async()=>{const c=await selectedPackContext(ids[0],ids,'/admin/orders?status=to_fulfil&shipping=express&page=3');expect(inside).toHaveBeenCalledWith('id',ids);expect(c).toMatchObject({originalPosition:1,originalTotal:4,eligibleIds:[ids[0],ids[2]],skippedIds:[ids[1],ids[3]],nextId:ids[2],returnTo:'/admin/orders?status=to_fulfil&shipping=express&page=3'});expect((await selectedPackContext(ids[2],ids,'https://evil.test')).nextId).toBeNull();expect((await selectedPackContext(ids[2],ids,'https://evil.test')).returnTo).toBe('/admin/orders');});
+it('rejects malformed, duplicate, oversized and nonmember batches before reading',async()=>{for(const batch of [[],['bad'],[ids[0],ids[0]],Array(26).fill(ids[0]),[ids[1]]])await expect(selectedPackContext(ids[0],batch,'/admin/orders')).rejects.toThrow(/invalid/i);expect(from).not.toHaveBeenCalled();});
+it('propagates read failure rather than entering a different queue',async()=>{inside.mockResolvedValue({error:{message:'offline'}});await expect(selectedPackContext(ids[0],ids,'/admin/orders')).rejects.toThrow('offline');});
