@@ -1,5 +1,7 @@
+import {workspaceFixtureRouter} from './orders-workspace-adapter';
 export function usePathname(){
  const path=window.location.pathname;
+ if(path==='/orders-workspace.html')return '/admin/orders';
  if(path==='/navy.html') return '/';
  if(path==='/mobile-shopping.html') return '/product/sample';
  if(path==='/frame.html') {
@@ -9,4 +11,4 @@ export function usePathname(){
  return path;
 }
 export const useSearchParams=()=>new URLSearchParams(window.location.search);
-export function useRouter(){return {refresh(){},push(){},replace(){}};}
+export function useRouter(){return window.location.pathname==='/orders-workspace.html'?workspaceFixtureRouter:{refresh(){},push(){},replace(){}};}

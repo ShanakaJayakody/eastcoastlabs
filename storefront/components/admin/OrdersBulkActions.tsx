@@ -1,5 +1,5 @@
 'use client';
-import {useRef,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {bulkConfirmPayment,bulkReinstate} from '@/app/admin/(dashboard)/orders/actions';
 import {orderWorkspaceHref} from '@/lib/admin/order-workspace/params';
 import type {OrderWorkspaceParams,OrderWorkspaceRow} from '@/lib/admin/order-workspace/types';
@@ -10,6 +10,14 @@ interface Props {rows:OrderWorkspaceRow[];params:OrderWorkspaceParams;selection:
 export default function OrdersBulkActions({rows,params,selection,reinstatable,report,onResult,onDismiss}:Props){
  const [review,setReview]=useState<'payment'|'reinstate'|null>(null),[pending,setPending]=useState(false),busy=useRef(false);
  const selected=rows.filter(r=>selection.selectedIds.has(r.id)),payments=selected.filter(r=>r.status==='pending'),packing=selected.filter(r=>['paid','processing'].includes(r.status)),reinstate=selected.filter(r=>r.status==='cancelled'&&reinstatable?.[r.id]?.recoverable&&reinstatable[r.id].short===0);
+ const bar=useRef<HTMLDivElement>(null);
+ useEffect(()=>{
+  const node=bar.current,workspace=node?.closest<HTMLElement>('.orders-workspace');
+  if(!node||!workspace||typeof ResizeObserver==='undefined')return;
+  const observer=new ResizeObserver(()=>workspace.style.setProperty('--ow-bulk-height',`${Math.ceil(node.getBoundingClientRect().height)+12}px`));
+  observer.observe(node);
+  return()=>{observer.disconnect();workspace.style.removeProperty('--ow-bulk-height');};
+ },[selected.length]);
  const eligible=review==='payment'?payments:reinstate;
  async function submit(){
   if(busy.current||!review||!eligible.length)return;busy.current=true;setPending(true);
@@ -25,7 +33,7 @@ export default function OrdersBulkActions({rows,params,selection,reinstatable,re
  const returnTo=orderWorkspaceHref(params,{order:null});
  const packHref=packing.length?`/admin/orders/${packing[0].id}/pack?${new URLSearchParams({batch:packing.map(r=>r.id).join(','),returnTo})}`:'';
  return <>
-  {selected.length>0&&<div className="ow-bulk" aria-label="Selected order actions"><strong>{selected.length} selected on this page</strong><button disabled={pending} onClick={selection.clear}>Clear selection</button><div className="ow-actions">
+  {selected.length>0&&<div ref={bar} className="ow-bulk" aria-label="Selected order actions"><strong>{selected.length} selected on this page</strong><button disabled={pending} onClick={selection.clear}>Clear selection</button><div className="ow-actions">
    {payments.length>0&&<button className="ow-primary" disabled={pending} onClick={()=>setReview('payment')}>Confirm {payments.length} payment{payments.length===1?'':'s'}</button>}
    {packing.length>0&&<a href={packHref} onClick={e=>{if(pending)e.preventDefault();}} aria-disabled={pending||undefined}>Prepare packing ({packing.length})</a>}
    {reinstate.length>0&&<button disabled={pending} onClick={()=>setReview('reinstate')}>Reinstate {reinstate.length} order{reinstate.length===1?'':'s'}</button>}

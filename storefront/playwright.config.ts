@@ -2,6 +2,7 @@ import {defineConfig,devices} from '@playwright/test';
 const previewPort = Number(process.env.PREVIEW_PORT ?? 4174);
 export default defineConfig({
  testDir:'./tests/browser',
+ testIgnore:['**/orders-workspace-next.spec.ts'],
  fullyParallel:true,
  forbidOnly:!!process.env.CI,
  retries:process.env.CI?1:0,

@@ -1,5 +1,5 @@
 import {beforeEach,it,expect,vi} from 'vitest';
-const {inside,select,from}=vi.hoisted(()=>{const inside=vi.fn(),select=vi.fn(()=>({in:inside}));return {inside,select,from:vi.fn(()=>({select}))};});vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from})}));
+const {inside,from}=vi.hoisted(()=>{const inside=vi.fn(),select=vi.fn(()=>({in:inside}));return {inside,select,from:vi.fn(()=>({select}))};});vi.mock('@/lib/admin/db',()=>({adminDb:()=>({from})}));
 import {selectedPackContext} from '@/lib/admin/packing';
 const ids=[1,2,3,4].map(i=>`10000000-0000-4000-8000-00000000000${i}`);
 beforeEach(()=>{vi.clearAllMocks();inside.mockResolvedValue({data:[{id:ids[2],status:'processing'},{id:ids[1],status:'cancelled'},{id:ids[0],status:'paid'},{id:'unexpected',status:'paid'}],error:null});});
