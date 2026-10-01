@@ -1,0 +1,57 @@
+Application and test revision: 1f706bffc2f0f4e26e7ed5f7a2ea15eb3bfb13d3
+Baseline: 255d4e988e3c7006ea6e6dbd7c72084b6482df91
+All following outputs were inspected; commands exited 0 unless marked NOT RUN.
+
+Full suite: PASS
+Test Files  195 passed (195)
+Tests  1202 passed (1202)
+Duration  43.10s (tests 71%, environment 20%, import 6%, transform 2%, setup 1%)
+
+Typecheck: PASS
+
+Lint: PASS
+
+Production build: PASS
+ ✓ Compiled successfully in 6.0s
+├ ƒ /admin/orders                                     14.2 kB         120 kB
+├ ƒ /admin/orders/[id]                                7.63 kB         128 kB
+├ ƒ /admin/orders/[id]/pack                           3.55 kB         124 kB
+├ ƒ /admin/orders/[id]/preview                          238 B         103 kB
+├ ƒ /admin/orders/[id]/slip                             323 B         103 kB
+├ ƒ /admin/orders/export                                238 B         103 kB
+├ ƒ /admin/orders/fulfilment                           3.2 kB         109 kB
+├ ƒ /admin/orders/new                                 3.03 kB         120 kB
+├ ƒ /admin/orders/slips                                 323 B         103 kB
+
+Browser fixture: PASS
+4 skipped
+29 passed (15.1s)
+
+Route budgets: PASS
+PASS /(store)/page: 133.6 kB gzip; limit 138 kB (13 unique JS files)
+PASS /(store)/shop/page: 134.3 kB gzip; limit 140 kB (12 unique JS files)
+PASS /(store)/product/[slug]/page: 137.8 kB gzip; limit 142 kB (11 unique JS files)
+PASS /(store)/checkout/page: 129.5 kB gzip; limit 145 kB (10 unique JS files)
+PASS /admin/(dashboard)/products/[slug]/page: 164.1 kB gzip; limit 170 kB (13 unique JS files)
+PASS /admin/(dashboard)/orders/[id]/page: 153.0 kB gzip; limit 175 kB (12 unique JS files)
+
+Private response headers: PASS
+PASS /cart-recovery: HTTP 200, private response headers
+PASS /cart-recovery?token=synthetic-invalid: HTTP 200, private response headers
+PASS /checkout: HTTP 200, private response headers
+PASS /checkout/thank-you: HTTP 200, private response headers
+PASS /pay/synthetic-invalid: HTTP 404, private response headers
+PASS /leave-a-review: HTTP 200, private response headers
+PASS /subscribe/confirm: HTTP 200, private response headers
+PASS /api/unsubscribe: HTTP 200, private response headers
+PASS /api/operations/health: HTTP 503, private response headers
+9 private response checks passed; owned loopback production server only
+
+Native PostgreSQL: PASS
+Verified 50 table contents after restore
+PASS custom-format backup restores every public/storage table and private grants
+30 native PostgreSQL checks passed; synthetic databases only
+
+Authenticated real Next suite: NOT RUN. Configuration refused to start because ECL_ADMIN_ORDERS_BASE_URL and ECL_ADMIN_ORDERS_STORAGE_STATE are missing.
+Native browser zoom 200%: NOT RUN. Automated CSS zoom reflow passed.
+Only synthetic local test data were used. No remote database migration or deployment was performed.

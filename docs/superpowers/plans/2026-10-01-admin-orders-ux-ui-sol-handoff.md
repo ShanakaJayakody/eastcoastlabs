@@ -10,7 +10,7 @@
 
 **Spec:** The embedded [Design contract](#2-design-contract) is the specification for this plan. It incorporates the user's orders-page brainstorming request and the recommended table-plus-drawer direction. Earlier admin-revamp and fulfilment documents are supporting context, not authorization to implement other areas or deploy.
 
-**Plan status:** Written for user review and handoff on 1 October 2026. No application implementation, migration execution, deployment, or production-data verification occurred while writing it. Handing this plan to an executor with an instruction to implement authorizes implementation within this scope; it does not authorize production deployment.
+**Execution status:** Local implementation and independent review are complete on `codex/admin-orders-workspace`, tested code commit `1f706bf`. Consult the execution ledger before doing work; do not restart completed tasks. Three minor deviations remain recorded, and real authenticated Next acceptance plus native browser zoom are outstanding gates. See [implementation evidence](../../admin-orders/2026-10-01-implementation-evidence.md). Nothing was merged, pushed, deployed or migrated remotely. The original plan was written on 1 October 2026; production deployment still requires separate authorization.
 
 ## Global constraints
 
@@ -277,7 +277,7 @@ export interface OrderWorkspaceRow {
   total_cents: number;
   refunded_cents: number;
   refund_settled_cents: number;
-  created_at: string;
+  created_at: string | null; // Non-finite legacy values normalize to unavailable.
   paid_at: string | null;
   shipped_at: string | null;
   payment_method: string | null;
@@ -896,22 +896,30 @@ If new evidence contradicts one of these decisions, record the concrete conflict
 
 ## 7. Execution ledger
 
-The executor fills this with actual evidence. The unchecked state is intentional: this handoff documents future work and does not claim implementation.
+The rows below are the execution record. Procedural checkboxes above retain the original handoff instructions; they are not a second status tracker. Counts are observed task-scoped runs at the listed commits, followed by final whole-branch checks at `1f706bf`.
 
 | Task | State | Commit | Verification / limitation |
 | --- | --- | --- | --- |
-| 1 — Contracts | Not started | None | None run |
-| 2 — SQL read model | Not started | None | None run |
-| 3 — Queries/export | Not started | None | None run |
-| 4 — Preferences/views | Not started | None | None run |
-| 5 — Workspace/toolbar | Not started | None | None run |
-| 6 — Table/cards | Not started | None | None run |
-| 7 — Preview/drawer | Not started | None | None run |
-| 8 — Bulk actions | Not started | None | None run |
-| 9 — Packing batch | Not started | None | None run |
-| 10 — Route integration | Not started | None | None run |
-| 11 — Browser acceptance | Not started | None | None run |
-| 12 — Review/release handoff | Not started | None | None run |
+| 1 — Contracts | Implemented | `a6193ed` | 2 files / 20 tests passed; final review notes Paid/Processing default-sort deviation. |
+| 2 — SQL read model | Implemented | `33942e8`, `6004fd6` | 4 files / 39 tests passed; synthetic 10,000-order query plan inspected. |
+| 3 — Queries/export | Implemented | `5c42b1c` | 3 files / 20 tests passed; exact scope and malformed-payload tests. |
+| 4 — Preferences/views | Implemented | `72903cd` | 2 files / 11 tests passed; corrupt/denied storage and per-admin isolation. |
+| 5 — Workspace/toolbar | Implemented | `28c98e0` | 3 files / 14 tests passed; functional URL harness; separate Search all orders control deferred. |
+| 6 — Table/cards | Implemented | `5031238` | 6 files / 30 tests passed; existing shipping/size/action coverage retained; payment method display deferred. |
+| 7 — Preview/drawer | Implemented | `492d525` | 6 files / 22 tests passed; auth, request races, review, discard and pending states. |
+| 8 — Bulk actions | Implemented | `48462ed` | 4 files / 11 tests passed; current-row eligibility and retained failures. |
+| 9 — Packing batch | Implemented | `9b57510` | 6 files / 27 tests passed; exact selected IDs and legacy navigation. |
+| 10 — Route integration | Implemented | `8821301` | 7 files / 22 tests passed; live list/export moved together, legacy behavior tests migrated. |
+| 11 — Browser acceptance | Fixture verified; real Next/native zoom pending | `2abe28c` | Initially 26 browser passes / 4 intentional skips; final 29 passes / 4 skips after review fixes. Safe authenticated environment not supplied. |
+| 12 — Review/release handoff | Local review and handoff complete | `1f706bf` plus documentation commit | Five Important findings fixed RED→GREEN; 195 files / 1,202 tests, typecheck, lint, build, 29 browser cases, 30 native PostgreSQL checks, 6 budgets and 9 headers pass. Release/rollback and remaining gates documented. |
+
+Final review covered `255d4e9..2abe28c` with a fresh reviewer. Fix commit `1f706bf` preserves search focus, scopes payment notices to their order, normalizes non-finite timestamps, removes obsolete session failure data, and displays payment/shipment milestone times. The full suite passed after those fixes. There were no declined-to-judge items.
+
+**Ruling:** Client-safe date validation stays in the parameter layer instead of importing the server database query module. Cost if wrong: date boundary drift; DST/filter-argument tests cover this risk.
+
+**Deferred minors:** Payment cells omit the available method; a separately labelled Search all orders action is absent although the All orders tab preserves search; Paid/Processing default to waiting time instead of newest placement, with manual sorting available.
+
+**Unverified gates:** Authenticated real Next history/refresh/navigation needs `ECL_ADMIN_ORDERS_BASE_URL`, `ECL_ADMIN_ORDERS_STORAGE_STATE` and synthetic IDs. Native 200% browser zoom needs manual verification; CSS zoom reflow passed. See the [evidence and release checklist](../../admin-orders/2026-10-01-implementation-evidence.md) for exact setup and limits.
 
 ## 8. Research and supporting references
 
