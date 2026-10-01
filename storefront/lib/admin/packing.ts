@@ -64,3 +64,31 @@ export async function packQueuePosition(orderId: string): Promise<PackQueuePosit
     truncated,
   };
 }
+
+export interface SelectedPackContext {
+  ids: string[];
+  originalPosition: number;
+  originalTotal: number;
+  eligibleIds: string[];
+  skippedIds: string[];
+  nextId: string | null;
+  returnTo: string;
+}
+
+/** A selected batch is bounded and ordered by the operator, never expanded into the global queue. */
+export async function selectedPackContext(currentId: string, ids: string[], returnTo: string): Promise<SelectedPackContext> {
+  const {parsePackingBatch, safeOrdersReturnTo} = await import('./order-workspace/params');
+  const validated = parsePackingBatch(ids.join(','));
+  if (!validated || !validated.includes(currentId)) throw new Error('This packing batch is invalid');
+  const {data, error} = await adminDb().from('orders').select('id, status').in('id', validated);
+  if (error) throw new Error(`selectedPackContext: ${error.message}`);
+  const packable = new Set((data ?? []).filter(r => PACKABLE.includes(r.status)).map(r => r.id));
+  const index = validated.indexOf(currentId);
+  return {
+    ids: validated, originalPosition: index + 1, originalTotal: validated.length,
+    eligibleIds: validated.filter(id => packable.has(id)),
+    skippedIds: validated.filter(id => !packable.has(id)),
+    nextId: validated.slice(index + 1).find(id => packable.has(id)) ?? null,
+    returnTo: safeOrdersReturnTo(returnTo),
+  };
+}

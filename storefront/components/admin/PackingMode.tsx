@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -65,6 +65,9 @@ export default function PackingMode({
   position,
   total,
   positionUnknown = false,
+  nextHref,
+  exitHref,
+  positionLabel,
 }: {
   order: PackOrder;
   nextId: string | null;
@@ -73,8 +76,12 @@ export default function PackingMode({
   total: number;
   /** The backlog is deeper than the queue window, so `position` is unknown. */
   positionUnknown?: boolean;
+  nextHref?: string | null;
+  exitHref?: string;
+  positionLabel?: string;
 }) {
   const router = useRouter();
+  const shippingInFlight = useRef(false);
   const [pending, start] = useTransition();
   const [packed, setPacked] = useState<Set<string>>(new Set());
   const [tracking, setTracking] = useState("");
@@ -107,20 +114,23 @@ export default function PackingMode({
       return next;
     });
 
-  const ship = () =>
+  const ship = () => {
+    if (shippingInFlight.current) return;
+    if (!tracking.trim()) { toast.error("Enter a tracking number before shipping."); return; }
+    shippingInFlight.current = true;
     start(async () => {
-      if (!tracking.trim()) { toast.error("Enter a tracking number before shipping."); return; }
-      const result = await advanceStatus(order.id, "shipped", tracking.trim());
-      if (!result.ok) {
-        toast.error(result.error ?? "Couldn't mark it shipped");
-        return;
-      }
-      toast.success(`#${order.orderNumber} shipped — dispatch email queued`);
-      setConfirming(false);
-      // Straight to the next one; the queue is the point of this screen.
-      router.push(nextId ? `/admin/orders/${nextId}/pack` : "/admin/orders");
-      router.refresh();
+      try {
+        const result = await advanceStatus(order.id, "shipped", tracking.trim());
+        if (!result.ok) { toast.error(result.error ?? "Couldn't mark it shipped"); return; }
+        toast.success(`#${order.orderNumber} shipped — dispatch email queued`);
+        setConfirming(false);
+        router.push(nextHref ?? (nextId ? `/admin/orders/${nextId}/pack` : exitHref ?? "/admin/orders"));
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Couldn't mark it shipped");
+      } finally { shippingInFlight.current = false; }
     });
+  };
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -130,11 +140,11 @@ export default function PackingMode({
             Packing #{order.orderNumber}
           </h2>
           <p className="text-sm text-muted">
-            {position > 0
+            {positionLabel ?? (position > 0
               ? `${position} of ${total} to pack`
               : positionUnknown
                 ? `${total} to pack`
-                : "No longer in the packing queue"}
+                : "No longer in the packing queue")}
             {" · "}
             {order.customerName || order.customerEmail}
           </p>
@@ -149,7 +159,7 @@ export default function PackingMode({
             <Printer size={15} /> Slip
           </a>
           <Link
-            href={`/admin/orders/${order.id}`}
+            href={exitHref ?? `/admin/orders/${order.id}`}
             className="flex items-center gap-1.5 rounded-lg border border-line-2 px-3 py-2 text-sm text-muted transition hover:text-fg"
           >
             <X size={15} /> Exit
@@ -302,7 +312,7 @@ export default function PackingMode({
 
       {nextId && (
         <Link
-          href={`/admin/orders/${nextId}/pack`}
+          href={nextHref ?? `/admin/orders/${nextId}/pack`}
           className="flex items-center justify-center gap-1.5 py-2 text-xs text-accent-2 hover:underline"
         >
           Skip to the next order <ArrowRight size={12} />
