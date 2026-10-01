@@ -48,7 +48,7 @@ Run commands from `storefront/` in the implementation worktree. The final checks
 
 The pre-implementation baseline was 175 files / 1,091 passing tests. No baseline failing tests were accepted. The final unit run printed JSDOM notices for unimplemented document navigation and `scrollTo`; these were not test failures. Browser coverage exercises the real focus/history behavior available in the fixture.
 
-[Captured verification summary](evidence/verification-results.txt) retains inspected output after temporary execution logs are removed. Individual task counts and commit boundaries are preserved in the plan ledger.
+[Captured verification summary](evidence/verification-results.txt) retains inspected output after temporary execution logs are removed. Individual task counts and commit boundaries are preserved in the plan ledger and [execution record](evidence/execution-ledger.md).
 
 ### Browser and visual scope
 
