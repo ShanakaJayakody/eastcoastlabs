@@ -1,0 +1,12 @@
+// @vitest-environment jsdom
+import '@testing-library/jest-dom/vitest';
+import {afterEach,it,expect,vi} from 'vitest';
+import {cleanup,render,screen,fireEvent} from '@testing-library/react';
+import SavedOrderViews from '@/components/admin/SavedOrderViews';
+import OrderColumnsControl from '@/components/admin/OrderColumnsControl';
+import {defaultOrderPreferences,saveOrderView} from '@/lib/admin/order-workspace/preferences';
+import {makeWorkspaceParams} from '../helpers/order-workspace-fixtures';
+afterEach(cleanup);
+it('saves a named structural view with the privacy note',()=>{const changed=vi.fn();render(<SavedOrderViews current={makeWorkspaceParams()} preferences={defaultOrderPreferences()} onPreferencesChange={changed} onApply={vi.fn()}/>);fireEvent.click(screen.getByText('Save view'));fireEvent.change(screen.getByLabelText('View name'),{target:{value:'Packing'}});fireEvent.click(screen.getByRole('button',{name:'Save'}));expect(changed.mock.calls[0][0].views[0].name).toBe('Packing');expect(screen.getByText(/Search text is not saved/)).toBeVisible();});
+it('applies, renames and deletes only a saved preference',()=>{const current=makeWorkspaceParams(),p=saveOrderView(defaultOrderPreferences(),current,'Packing'),changed=vi.fn(),apply=vi.fn();render(<SavedOrderViews current={current} preferences={p} onPreferencesChange={changed} onApply={apply}/>);fireEvent.change(screen.getByLabelText('Saved views'),{target:{value:p.views[0].id}});expect(apply).toHaveBeenCalledWith(p.views[0]);fireEvent.click(screen.getByRole('button',{name:'Rename saved view'}));fireEvent.change(screen.getByLabelText('View name'),{target:{value:'Dispatch'}});fireEvent.click(screen.getByText('Save'));expect(changed.mock.calls[0][0].views[0].name).toBe('Dispatch');fireEvent.click(screen.getByRole('button',{name:'Delete saved view'}));expect(screen.getByRole('dialog',{name:'Delete saved view?'})).toBeVisible();fireEvent.click(screen.getByRole('button',{name:'Delete view'}));expect(changed.mock.calls[1][0].views).toEqual([]);});
+it('keeps identity fixed, prevents empty layout, and exposes reorder buttons',()=>{render(<OrderColumnsControl columns={['identity','total']} onChange={vi.fn()} onReset={vi.fn()}/>);fireEvent.click(screen.getByText('Columns'));expect(screen.getByLabelText('Order / customer')).toBeDisabled();expect(screen.getByLabelText('Total')).toBeDisabled();expect(screen.getByRole('button',{name:'Move Total up'})).toBeDisabled();});
